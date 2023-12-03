@@ -24,7 +24,7 @@ As these operations span multiple database types (_SQL_ and _Redis_) however, th
 
 Outboxer is an `ActiveRecord` implementation of the [transactional outbox pattern](https://microservices.io/patterns/data/transactional-outbox.html): a well established solution to this problem.
 
-By creating an outboxer event in the same transaction as the event, we can publish this event out to another system _eventually_ even when there are failures.
+By creating an outboxer event in the same transaction as an event, we can guarantee the event is published out to another system _eventually_, even if there are failures.
 
 ### Getting started
 
