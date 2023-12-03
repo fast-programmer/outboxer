@@ -1,0 +1,19 @@
+module Outboxer
+  VERSION: String
+  
+  module Publisher
+    class Args
+      attr_reader message: untyped
+      attr_reader logger: Logger
+      
+      def initialize: (untyped message, Logger logger) -> void
+    end
+  
+    def self.publish: (?Integer poll, ?Proc[Integer, Integer] backoff) { (Args) -> untyped } -> void
+    def self.dequeue: ({ backoff: Proc[Integer, Integer] }) -> untyped
+    def self.published: ({ outboxer_message: untyped, backoff: Proc[Integer, Integer] }) -> void
+    def self.failed: ({ outboxer_message: untyped, exception: Exception, backoff: Proc[Integer, Integer] }) -> void
+    def self.retry_on_error: ({ backoff: Proc[Integer, Integer] }) { () -> untyped } -> untyped
+    def self.stop: () -> void
+  end
+end
