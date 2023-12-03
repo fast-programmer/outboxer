@@ -7,7 +7,7 @@
 
 Outboxer helps teams migrate existing Ruby on Rails apps to event-driven architecture ASAP.
 
-It guarantees an eventual consistency model, where no events are lost even when updates span SQL and another database like Redis.
+It guarantees an eventual consistency model, where no events are lost even when updates span SQL and Redis.
 
 ## Problem
 
@@ -161,16 +161,16 @@ bin/event_publisher
 
 ## Implementation
 
-To see all the parts working together in a single place, check out the [publisher_spec.rb](https://github.com/fast-programmer/outboxer/blob/master/spec/outboxer/publisher_spec.rb)
+To see all the parts working together in a single place, check out the [publisher_spec.rb](https://github.com/fast-programmer/outboxer/blob/master/spec/outboxer/event_spec.rb)
 
 
 ## Motivation
 
-Outboxer was created to help high growth SAAS companies transition to event driven architecture quickly.
+Outboxer was created to help teams transition Ruby on Rails apps to event driven architecture quickly.
 
 Specifically this means:
 
-1. fast integration into existing Ruby on Rails applications (< 1 hour)
+1. fast integration into existing Ruby on Rails applications (< 1 day)
 2. comprehensive documentation
 3. high reliability in production environments
 4. forever free to use in commerical applications (MIT licence)
