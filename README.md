@@ -145,9 +145,14 @@ end
 ##### a. update block to queue an event handler worker
 
 ```ruby
-loop do
+while running
   Outboxer::Message.publish! do |outboxer_messageable|
-    EventHandlerWorker.perform_async({ 'id' => outboxer_messageable.id })
+    case outboxer_messageable.class.name
+    when 'Models::Event'
+      EventHandlerWorker.perform_async({ 'id' => outboxer_messageable.id })
+
+      published_events << outboxer_messageable
+    end
   end
 end
 ```
