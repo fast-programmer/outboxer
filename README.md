@@ -146,8 +146,8 @@ end
 
 ```ruby
 Outboxer::Message.publish! do |outboxer_messageable|
-  case outboxer_messageable.class.name
-  when 'Models::Event'
+  case outboxer_messageable.class
+  when Event
     EventHandlerWorker.perform_async({ 'id' => outboxer_messageable.id })
   end
 end
