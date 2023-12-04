@@ -13,14 +13,14 @@ module Outboxer
     end
 
     def copy_bin_file
-      template "bin/event_publisher.rb", "bin/event_publisher"
-      run "chmod +x bin/event_publisher"
+      template "bin/outboxer_publisher.rb", "bin/event_publisher"
+      run "chmod +x bin/outboxer_publisher"
     end
 
     def copy_migrations
       migration_template(
-        "migrations/create_outboxer_events.rb",
-        "db/migrate/create_outboxer_events.rb")
+        "migrations/create_outboxer_messages.rb",
+        "db/migrate/create_outboxer_messages.rb")
 
       migration_template(
         "migrations/create_outboxer_exceptions.rb",

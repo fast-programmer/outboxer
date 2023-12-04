@@ -5,7 +5,7 @@ require_relative "outboxer/railtie" if defined?(Rails)
 
 require_relative "outboxer/models"
 
-require_relative "outboxer/event"
+require_relative "outboxer/message"
 
 module Outboxer
 end

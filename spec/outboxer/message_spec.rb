@@ -1,7 +1,7 @@
 require "spec_helper"
 require 'pry-byebug'
 
-require_relative "../../generators/outboxer/templates/migrations/create_outboxer_events"
+require_relative "../../generators/outboxer/templates/migrations/create_outboxer_messages"
 require_relative "../../generators/outboxer/templates/migrations/create_outboxer_exceptions"
 
 # psql -d postgres
@@ -13,7 +13,7 @@ require_relative "../../generators/outboxer/templates/migrations/create_outboxer
 
 # ActiveRecord::Base.logger = Logger.new($stdout)
 
-RSpec.describe Outboxer::Event do
+RSpec.describe Outboxer::Message do
   before(:each) do
     ActiveRecord::Base.establish_connection(
       host: "localhost",
@@ -22,7 +22,7 @@ RSpec.describe Outboxer::Event do
       username: "outboxer_tester",
       password: "outboxer_password")
 
-    existing_tables = %i[outboxer_exceptions outboxer_events events accounting_invoices].select do |table|
+    existing_tables = %i[outboxer_exceptions outboxer_messages events accounting_invoices].select do |table|
       ActiveRecord::Base.connection.table_exists?(table)
     end
 
@@ -49,7 +49,7 @@ RSpec.describe Outboxer::Event do
       add_index :events, [:eventable_type, :eventable_id, :created_at],
         name: 'index_events_on_eventable_and_created_at'
 
-      CreateOutboxerEvents.new.change
+      CreateOutboxerMessages.new.change
       CreateOutboxerExceptions.new.change
     end
 
@@ -70,16 +70,16 @@ RSpec.describe Outboxer::Event do
         validates :type, presence: true
         validates :eventable, presence: true
 
-        # begin outboxer event integration
+        # begin outboxer message integration
 
-        has_one :outboxer_event,
-                class_name: 'Outboxer::Models::Event',
-                as: :outboxer_eventable,
+        has_one :outboxer_message,
+                class_name: 'Outboxer::Models::Message',
+                as: :outboxer_messageable,
                 dependent: :destroy
 
-        after_create -> { create_outboxer_event! }
+        after_create -> { create_outboxer_message! }
 
-        # end outboxer event integration
+        # end outboxer message integration
       end
     end
 
@@ -117,23 +117,26 @@ RSpec.describe Outboxer::Event do
   end
 
   describe ".publish!" do
-    context "when published" do
+    context "when unpublished event" do
       it "publishes events" do
         published_events = []
 
         invoice, created_event = Accounting::Invoice.create!
 
         expect(Models::Event.count).to eq(1)
-        expect(Outboxer::Models::Event.count).to eq(1)
+        expect(Outboxer::Models::Message.count).to eq(1)
 
-        Outboxer::Event.publish! do |event|
-          EventHandlerWorker.perform_async({ 'event' => { 'id' => event.id } })
+        Outboxer::Message.publish! do |outboxer_messageable|
+          case outboxer_messageable.type
+          when 'Event'
+            EventHandlerWorker.perform_async({ 'id' => outboxer_messageable.id })
+          end
 
-          published_events << event
+          published_events << outboxer_messageable
         end
 
         expect(Models::Event.count).to eq(1)
-        expect(Outboxer::Models::Event.count).to eq(0)
+        expect(Outboxer::Models::Message.count).to eq(0)
 
         expect(published_events.count).to eq(1)
         published_event = published_events.first
@@ -146,14 +149,14 @@ RSpec.describe Outboxer::Event do
     end
 
     context "when publishing failed" do
-      it "updates outboxer event status to failed" do
+      it "updates outboxer message status to failed" do
         _, event = Accounting::Invoice.create!
 
         expect(Models::Event.count).to eq(1)
-        expect(Outboxer::Models::Event.count).to eq(1)
+        expect(Outboxer::Models::Message.count).to eq(1)
 
         begin
-          Outboxer::Event.publish! do |_event|
+          Outboxer::Message.publish! do |_outboxer_messageable|
             raise StandardError, "dummy error"
           end
         rescue => exception
@@ -161,18 +164,18 @@ RSpec.describe Outboxer::Event do
         end
 
         expect(Models::Event.count).to eq(1)
-        expect(Outboxer::Models::Event.count).to eq(1)
+        expect(Outboxer::Models::Message.count).to eq(1)
 
-        outboxer_event = Outboxer::Models::Event.find_by!(outboxer_eventable: event)
-        expect(outboxer_event.status).to eq(Outboxer::Models::Event::STATUS[:failed])
-        expect(outboxer_event.outboxer_exceptions.count).to eq(1)
+        outboxer_message = Outboxer::Models::Message.find_by!(outboxer_messageable: event)
+        expect(outboxer_message.status).to eq(Outboxer::Models::Message::STATUS[:failed])
+        expect(outboxer_message.outboxer_exceptions.count).to eq(1)
 
-        last_outboxer_exception = outboxer_event.outboxer_exceptions.last
+        last_outboxer_exception = outboxer_message.outboxer_exceptions.last
 
-        expect(last_outboxer_exception.outboxer_event).to eq(outboxer_event)
+        expect(last_outboxer_exception.outboxer_message).to eq(outboxer_message)
         expect(last_outboxer_exception.message_text).to eq("dummy error")
         expect(last_outboxer_exception.class_name).to eq("StandardError")
-        expect(last_outboxer_exception.backtrace[1]).to include("lib/outboxer/event.rb")
+        expect(last_outboxer_exception.backtrace[1]).to include("lib/outboxer/message.rb")
         expect(last_outboxer_exception.created_at).not_to be_nil
       end
 
@@ -180,26 +183,26 @@ RSpec.describe Outboxer::Event do
         Accounting::Invoice.create!
 
         begin
-          Outboxer::Event.publish! do |_event|
+          Outboxer::Message.publish! do |_event|
             raise StandardError, "dummy error"
           end
         rescue => exception
           # no op
         end
 
-        failed_outboxer_events = Outboxer::Models::Event
-          .where(status: Outboxer::Models::Event::STATUS[:failed])
+        failed_outboxer_messages = Outboxer::Models::Message
+          .where(status: Outboxer::Models::Message::STATUS[:failed])
 
-        expect(failed_outboxer_events.count).to eq(1)
-        failed_outboxer_event = failed_outboxer_events.first
+        expect(failed_outboxer_messages.count).to eq(1)
+        failed_outboxer_message = failed_outboxer_messages.first
 
-        Outboxer::Event.republish!(id: failed_outboxer_event.id)
+        Outboxer::Message.republish!(id: failed_outboxer_message.id)
 
         expect(
-          Outboxer::Models::Event
+          Outboxer::Models::Message
             .where(
-              id: failed_outboxer_event.id,
-              status: Outboxer::Models::Event::STATUS[:unpublished])
+              id: failed_outboxer_message.id,
+              status: Outboxer::Models::Message::STATUS[:unpublished])
             .count
         ).to eq(1)
       end

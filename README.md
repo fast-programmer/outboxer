@@ -24,7 +24,7 @@ As these operations span multiple database types (_SQL_ and _Redis_) however, th
 
 Outboxer is an `ActiveRecord` implementation of the [transactional outbox pattern](https://microservices.io/patterns/data/transactional-outbox.html): a well established solution to this problem.
 
-By creating an outboxer event in the same transaction as an event, we can guarantee the event is published out to another system _eventually_, even if there are failures.
+By creating an outboxer message in the same transaction as an event, we can guarantee the event is published out to another system _eventually_, even if there are failures.
 
 ### Getting started
 
@@ -78,7 +78,7 @@ bin/rake db:migrate
 
 ```ruby
 class Event < ActiveRecord::Base
-  self.inheritance_column = :_type_disabled
+  self.inheritance_column = nil
 
   attribute :created_at, :datetime, default: -> { Time.current }
 
@@ -125,18 +125,18 @@ bin/rails generate outboxer:install
 bin/rake db:migrate
 ```
 
-##### c. associate outboxer event with event
+##### c. associate outboxer message with event
 
 ```ruby
 class Event < ActiveRecord::Base
   # ...
 
-  has_one :outboxer_event,
-          class_name: 'Outboxer::Models::Event',
-          as: :outboxer_eventable,
+  has_one :outboxer_message,
+          class_name: 'Outboxer::Models::Message',
+          as: :outboxer_messageable,
           dependent: :destroy
 
-  after_create -> { create_outboxer_event! }
+  after_create -> { create_outboxer_message! }
 end
 ```
 
@@ -146,22 +146,22 @@ end
 
 ```ruby
 loop do
-  Outboxer::Event.publish! do |outboxer_eventable|
-    EventHandlerWorker.perform_async({ 'event' => { 'id' => outboxer_eventable.id } })
+  Outboxer::Message.publish! do |outboxer_messageable|
+    EventHandlerWorker.perform_async({ 'id' => outboxer_messageable.id })
   end
 end
 ```
 
-##### b. run the event publisher
+##### b. run the outboxer publisher
 
 ```bash
-bin/event_publisher
+bin/outboxer_publisher
 ```
 
 
 ## Implementation
 
-To see all the parts working together in a single place, check out the [publisher_spec.rb](https://github.com/fast-programmer/outboxer/blob/master/spec/outboxer/event_spec.rb)
+To see all the parts working together in a single place, check out the [publisher_spec.rb](https://github.com/fast-programmer/outboxer/blob/master/spec/outboxer/message_spec.rb)
 
 
 ## Motivation

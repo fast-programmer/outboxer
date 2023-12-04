@@ -1,2 +1,2 @@
 require_relative "models/exception"
-require_relative "models/event"
+require_relative "models/message"

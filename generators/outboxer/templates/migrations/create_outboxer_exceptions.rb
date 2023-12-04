@@ -1,7 +1,7 @@
 class CreateOutboxerExceptions < ActiveRecord::Migration[6.1]
   def change
     create_table :outboxer_exceptions do |t|
-      t.references :outboxer_event, null: false, foreign_key: { to_table: :outboxer_events }
+      t.references :outboxer_message, null: false, foreign_key: { to_table: :outboxer_messages }
 
       t.text :class_name, null: false
       t.text :message_text, null: false

@@ -2,12 +2,12 @@ require "active_record"
 
 module Outboxer
   module Models
-    # Represents an exception associated with an {Outboxer::Event}.
+    # Represents an exception associated with an {Outboxer::Message}.
     #
     # @!attribute [r] id
     #   @return [Integer] The unique identifier for the exception.
-    # @!attribute event_id
-    #   @return [Integer] The ID of the associated {Outboxer::Event}.
+    # @!attribute outboxer_message_id
+    #   @return [Integer] The ID of the associated {Outboxer::Message}.
     # @!attribute class_name
     #   @return [String] The class name of the exception.
     # @!attribute message_text
@@ -19,7 +19,7 @@ module Outboxer
     class Exception < ::ActiveRecord::Base
       self.table_name = :outboxer_exceptions
 
-      belongs_to :outboxer_event, class_name: "::Outboxer::Models::Event"
+      belongs_to :outboxer_message, class_name: "::Outboxer::Models::Message"
     end
   end
 end
