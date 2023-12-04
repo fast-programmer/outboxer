@@ -127,12 +127,12 @@ RSpec.describe Outboxer::Message do
         expect(Outboxer::Models::Message.count).to eq(1)
 
         Outboxer::Message.publish! do |outboxer_messageable|
-          case outboxer_messageable.type
-          when 'Event'
+          case outboxer_messageable.class.name
+          when 'Models::Event'
             EventHandlerWorker.perform_async({ 'id' => outboxer_messageable.id })
-          end
 
-          published_events << outboxer_messageable
+            published_events << outboxer_messageable
+          end
         end
 
         expect(Models::Event.count).to eq(1)
