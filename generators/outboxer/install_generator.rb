@@ -13,7 +13,7 @@ module Outboxer
     end
 
     def copy_bin_file
-      template "bin/outboxer_publisher.rb", "bin/event_publisher"
+      template "bin/outboxer_publisher.rb", "bin/outboxer_publisher"
       run "chmod +x bin/outboxer_publisher"
     end
 

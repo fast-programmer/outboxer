@@ -5,19 +5,19 @@ require_relative '../config/environment'
 logger = Logger.new($stdout)
 logger.level = Logger::INFO
 
-interrupted = false
+running = true
 
 trap("INT") do
-  interrupted = true
+  running = false
 
   logger.warn "\nCTRL+C detected. Preparing to exit gracefully..."
 end
 
-while !interrupted
+while running
   begin
     Outboxer::Message.publish! do |outboxer_messageable|
-      case outboxer_messageable.type
-      when 'Event'
+      case outboxer_messageable.class.name
+      when 'Models::Event'
         EventHandlerWorker.perform_async({ 'id' => outboxer_messageable.id })
       end
     end
