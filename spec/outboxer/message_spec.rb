@@ -15,6 +15,8 @@ require_relative "../../generators/outboxer/templates/migrations/create_outboxer
 
 RSpec.describe Outboxer::Message do
   before(:each) do
+    # ActiveRecord::Base.logger = Logger.new(STDOUT)
+
     ActiveRecord::Base.establish_connection(
       host: "localhost",
       adapter: "postgresql",
@@ -61,6 +63,8 @@ RSpec.describe Outboxer::Message do
 
     module Models
       class Event < ActiveRecord::Base
+        include Outboxer::Messageable
+
         self.inheritance_column = :_type_disabled
 
         attribute :created_at, :datetime, default: -> { Time.current }
@@ -70,16 +74,7 @@ RSpec.describe Outboxer::Message do
         validates :type, presence: true
         validates :eventable, presence: true
 
-        # begin outboxer message integration
-
-        has_one :outboxer_message,
-                class_name: 'Outboxer::Models::Message',
-                as: :outboxer_messageable,
-                dependent: :destroy
-
-        after_create -> { create_outboxer_message! }
-
-        # end outboxer message integration
+        has_outboxer_message dependent: :destroy
       end
     end
 
@@ -90,7 +85,6 @@ RSpec.describe Outboxer::Message do
         def create!
           ActiveRecord::Base.transaction do
             invoice = Models::Invoice.create!
-
 
             event = invoice.events.create!(
               type: 'Accounting::Invoice::Created',

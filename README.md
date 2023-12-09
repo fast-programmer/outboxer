@@ -44,9 +44,9 @@ bundle install
 
 ### Usage
 
-#### 1. add events to your model
+#### 1. add polymorphic events to your models
 
-##### a. migrate schema
+##### a. add events table schema
 
 ```bash
 bin/rails g migration create_events
@@ -74,7 +74,7 @@ end
 bin/rake db:migrate
 ```
 
-##### b. add model
+##### b. add Event model
 
 ```ruby
 class Event < ActiveRecord::Base
@@ -89,7 +89,7 @@ class Event < ActiveRecord::Base
 end
 ```
 
-#### 2. associate events with your existing models
+#### 2. associate events with your models
 
 ##### a. invoice
 
@@ -129,14 +129,17 @@ bin/rake db:migrate
 
 ```ruby
 class Event < ActiveRecord::Base
-  # ...
+  include Outboxer::Messageable
+end
+```
 
-  has_one :outboxer_message,
-          class_name: 'Outboxer::Models::Message',
-          as: :outboxer_messageable,
-          dependent: :destroy
+or if you want to override association attributes such as dependent
 
-  after_create -> { create_outboxer_message! }
+```ruby
+class Event < ActiveRecord::Base
+  include Outboxer::Messageable
+
+  has_outboxer_message dependent: :destroy
 end
 ```
 
