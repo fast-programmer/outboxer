@@ -53,6 +53,8 @@ module Outboxer
             .lock("FOR UPDATE SKIP LOCKED")
             .first
 
+          raise Message::NotFound.new("Message not found") if outboxer_message.nil?
+
           outboxer_message.update!(status: Models::Message::STATUS[:publishing])
 
           outboxer_message.outboxer_messageable.readonly!
@@ -60,8 +62,6 @@ module Outboxer
           outboxer_message
         end
       end
-    rescue ActiveRecord::RecordNotFound => exception
-      raise NotFound.new(exception)
     end
 
     def self.published!(id:)
