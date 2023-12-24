@@ -29,7 +29,9 @@ module Outboxer
     #   end
 
     def self.publish!
-      outboxer_message = unpublished!
+      outboxer_message = unpublished!(limit: 1).first
+
+      raise Message::NotFound if outboxer_message.nil?
 
       begin
         yield outboxer_message.outboxer_messageable
@@ -42,25 +44,28 @@ module Outboxer
       published!(id: outboxer_message.id)
     end
 
-    def self.unpublished!
+    def self.unpublished!(limit: 5)
       ActiveRecord::Base.connection_pool.with_connection do
-        ActiveRecord::Base.transaction do
-          outboxer_message = Models::Message
-            .includes(:outboxer_messageable)
+        message_ids = ActiveRecord::Base.transaction do
+          ids = Models::Message
             .where(status: Models::Message::STATUS[:unpublished])
             .order(created_at: :asc)
-            .limit(1)
-            .lock("FOR UPDATE SKIP LOCKED")
-            .first
+            .lock('FOR UPDATE SKIP LOCKED')
+            .limit(limit)
+            .pluck(:id)
 
-          raise Message::NotFound.new("Message not found") if outboxer_message.nil?
+          if !ids.empty?
+            Models::Message.where(id: ids).update_all(status: Models::Message::STATUS[:publishing])
+          end
 
-          outboxer_message.update!(status: Models::Message::STATUS[:publishing])
-
-          outboxer_message.outboxer_messageable.readonly!
-
-          outboxer_message
+          ids
         end
+
+        Models::Message
+          .includes(:outboxer_messageable)
+          .where(id: message_ids, status: Models::Message::STATUS[:publishing])
+          .order(created_at: :asc)
+          .to_a
       end
     end
 
@@ -121,7 +126,5 @@ module Outboxer
         outboxer_message.update!(status: Models::Message::STATUS[:unpublished])
       end
     end
-
-    private_class_method :unpublished!
   end
 end

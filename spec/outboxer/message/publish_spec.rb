@@ -6,7 +6,7 @@ module Outboxer
       context 'when no unpublished message is found' do
         it 'raises NotFound exception' do
           expect do
-            Message.publish! { |outboxer_messageable| }
+            Message.publish! { |_outboxer_messageable| }
           end.to raise_error(Message::NotFound)
         end
       end

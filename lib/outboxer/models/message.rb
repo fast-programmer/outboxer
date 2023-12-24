@@ -25,6 +25,10 @@ module Outboxer
         failed: "failed"
       }
 
+      scope :unpublished, -> { where(status: STATUS[:unpublished]) }
+      scope :publishing, -> { where(status: STATUS[:publishing]) }
+      scope :failed, -> { where(status: STATUS[:failed]) }
+
       attribute :status, default: -> { STATUS[:unpublished] }
 
       belongs_to :outboxer_messageable, polymorphic: true
