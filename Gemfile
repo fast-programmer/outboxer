@@ -10,3 +10,5 @@ gem "rubocop", "~> 1.55"
 gem "yard", "~> 0.9.34"
 
 gem "pg", "~> 1.5"
+
+gem "sidekiq", "~> 7.2"
