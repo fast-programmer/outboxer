@@ -1,10 +1,5 @@
-#!/usr/bin/env ruby
-
-require 'bundler/setup'
-
-require 'logger'
-require 'sidekiq'
 require 'optparse'
+require 'logger'
 
 options = { concurrency: 5, poll: 1 }
 
@@ -20,29 +15,14 @@ OptionParser.new do |opts|
   end
 end.parse!
 
-require_relative '../workers/event_handler_worker'
+publisher = Outboxer::Publisher.new(
+  concurrency: options[:concurrency], poll: options[:poll], logger: Logger.new(STDOUT))
 
-Sidekiq.configure_client do |config|
-  config.redis = { url: 'redis://localhost:6379/0' }
-end
+Signal.trap('INT') { publisher.stop! }
 
-logger = Logger.new($stdout)
-logger.level = Logger::INFO
-
-outboxer_publisher = Outboxer::Publisher.new(
-  concurrency: options[:concurrency], poll: options[:poll], logger: logger)
-
-trap("INT") do
-  logger.info "\nCTRL+C detected. Preparing to exit gracefully..."
-
-  outboxer_publisher.stop!
-end
-
-outboxer_publisher.publish! do |outboxer_message|
+publisher.publish! do |outboxer_message|
   case outboxer_message.outboxer_messageable_type
   when 'Event'
     EventHandlerWorker.perform_async({ 'id' => outboxer_message.outboxer_messageable_id })
   end
 end
-
-logger.info "Exiting..."

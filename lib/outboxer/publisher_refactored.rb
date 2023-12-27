@@ -9,6 +9,8 @@ module Outboxer
       @threads = []
 
       @running = false
+
+      @mutex = Mutex.new
     end
 
     def stop!
@@ -33,12 +35,6 @@ module Outboxer
             Message.published!(id: outboxer_message.id)
           rescue => exception
             @logger.error "Error: #{exception.class}: #{exception.message}"
-          rescue Exception => exception
-            @logger.fatal "Critical Error: #{exception.class}: #{exception.message}"
-
-            stop!
-
-            break
           end
         end
       end
