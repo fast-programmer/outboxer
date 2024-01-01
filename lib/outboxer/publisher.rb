@@ -57,7 +57,7 @@ module Outboxer
         sleep(@poll) if @running && messages.empty?
       end
 
-      @threads.length.times { queue.push(nil) }
+      @threads.length.times { @queue.push(nil) }
 
       @threads.each(&:join)
     end

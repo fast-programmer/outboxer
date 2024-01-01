@@ -1,0 +1,15 @@
+development:
+  adapter: postgresql
+  encoding: unicode
+  database: postgres
+  username: outboxer_developer
+  # password: outboxer_password
+  host: localhost
+
+test:
+  adapter: postgresql
+  encoding: unicode
+  database: outboxer_test
+  username: postgres
+  # password: outboxer_password
+  host: localhost

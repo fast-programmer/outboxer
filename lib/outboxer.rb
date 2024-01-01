@@ -8,5 +8,7 @@ require_relative "outboxer/models"
 require_relative "outboxer/message"
 require_relative "outboxer/messageable"
 
+require_relative "outboxer/publisher"
+
 module Outboxer
 end
