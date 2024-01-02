@@ -37,11 +37,11 @@ CreateOutboxerExceptions.new.up
 #   .select { |table| ActiveRecord::Base.connection.table_exists?(table) }
 #   .each { |existing_table| ActiveRecord::Migration.drop_table(existing_table) }
 
-require_relative "../spec/migrations/create_accounting_invoices"
+require_relative "../spec/db/migrate/create_accounting_invoices"
 CreateAccountingInvoices.new.down
 CreateAccountingInvoices.new.up
 
-require_relative "../spec/migrations/create_events"
+require_relative "../spec/db/migrate/create_events"
 CreateEvents.new.down
 CreateEvents.new.up
 

@@ -3,8 +3,8 @@ class CreateOutboxerExceptions < ActiveRecord::Migration[6.1]
     create_table :outboxer_exceptions do |t|
       t.references :outboxer_message, null: false, foreign_key: { to_table: :outboxer_messages }
 
-      t.text :class_name, null: false
-      t.text :message_text, null: false
+      t.string :class_name, null: false
+      t.string :message_text, null: false
       t.column :backtrace, :text, array: true
 
       t.timestamps
@@ -16,18 +16,4 @@ class CreateOutboxerExceptions < ActiveRecord::Migration[6.1]
   def down
     drop_table :outboxer_exceptions if table_exists?(:outboxer_exceptions)
   end
-
-  # def change
-  #   create_table :outboxer_exceptions do |t|
-  #     t.references :outboxer_message, null: false, foreign_key: { to_table: :outboxer_messages }
-
-  #     t.text :class_name, null: false
-  #     t.text :message_text, null: false
-  #     t.column :backtrace, :text, array: true
-
-  #     t.timestamps
-  #   end
-
-  #   remove_column :outboxer_exceptions, :updated_at
-  # end
 end

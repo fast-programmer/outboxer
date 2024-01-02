@@ -1,17 +1,22 @@
 #!/usr/bin/env ruby
 
 require 'bundler/setup'
-
 require 'logger'
 require 'optparse'
 require 'sidekiq'
-# require 'outboxer'
+require 'pry-byebug'
+
 require_relative '../../../../lib/outboxer'
 
 logger = Logger.new($stdout)
 logger.level = Logger::INFO
 
-options = { concurrency: 5, poll: 1 }
+options = {
+  concurrency: 5,
+  poll: 1,
+  redis_url: 'redis://localhost:6379/0',
+  db_config: 'config/database.yml'
+}
 
 OptionParser.new do |opts|
   opts.banner = "Usage: outboxer_publisher.rb [options]"
@@ -23,21 +28,26 @@ OptionParser.new do |opts|
   opts.on("-p", "--poll INTERVAL", Integer, "Number of seconds to wait when no results or queue full") do |interval|
     options[:poll] = interval.to_i
   end
+
+  opts.on("-r", "--redis_url URL", "URL of the Redis server") do |url|
+    options[:redis_url] = url
+  end
+
+  opts.on("-d", "--db_config PATH", "Path to config/database.yml") do |path|
+    options[:db_config] = path
+  end
 end.parse!
 
-require_relative '../workers/event_handler_worker'
+db_config_path = File.expand_path(options[:db_config], Dir.pwd)
+db_config = YAML.load_file(db_config_path)[ENV.fetch('RAILS_ENV')]
+
+ActiveRecord::Base.establish_connection(db_config.merge({ 'pool' => options[:concurrency] + 1 }))
 
 Sidekiq.configure_client do |config|
-  config.redis = { url: ENV['REDIS_URL'] }
+  config.redis = { url: options[:redis_uri] }
 end
 
-ActiveRecord::Base.establish_connection(
-  host: "localhost",
-  adapter: "postgresql",
-  database: "outboxer_development",
-  username: "outboxer_developer",
-  password: "outboxer_password",
-  pool: options[:concurrency] + 1)
+require_relative '../workers/event_handler_worker'
 
 outboxer_publisher = Outboxer::Publisher.new(
   concurrency: options[:concurrency], poll: options[:poll], logger: logger)
@@ -56,4 +66,13 @@ end
 
 logger.info "Exiting..."
 
-# REDIS_URL=redis://localhost:6379/0 generators/outboxer/templates/bin/outboxer_publisher.rb --concurrency 5 --poll 1"
+# gem
+# RAILS_ENV=development bin/rake outboxer:db:reset -f spec/tasks/database.rake
+# RAILS_ENV=development generators/outboxer/templates/bin/outboxer_publisher.rb --db_config=spec/config/database.yml
+
+# app
+# RAILS_ENV=development bin/outboxer_publisher # --db_config=config/database.yml
+
+# RAILS_ENV=development bin/outboxer_publisher --type=Event --worker=workers/event_handler_worker.rb
+
+# RAILS_ENV=development bin/outboxer_publisher --type=Models::DomainEvent --worker=workers/domain_event_handler_worker.rb

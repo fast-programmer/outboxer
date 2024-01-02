@@ -1,15 +1,17 @@
 development:
   adapter: postgresql
   encoding: unicode
-  database: postgres
-  username: outboxer_developer
-  # password: outboxer_password
   host: localhost
+  port: 5432
+  username: outboxer_developer
+  password: outboxer_password
+  database: outboxer_development
 
 test:
   adapter: postgresql
   encoding: unicode
-  database: outboxer_test
-  username: postgres
-  # password: outboxer_password
   host: localhost
+  port: 5432
+  username: outboxer_developer
+  password: outboxer_password
+  database: outboxer_test
