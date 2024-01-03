@@ -73,6 +73,6 @@ logger.info "Exiting..."
 # app
 # RAILS_ENV=development bin/outboxer_publisher # --db_config=config/database.yml
 
-# RAILS_ENV=development bin/outboxer_publisher --type=Event --worker=workers/event_handler_worker.rb
+# RAILS_ENV=development bin/outboxer_publisher --messageable_type=Event --handler_worker=workers/event_handler_worker.rb
 
-# RAILS_ENV=development bin/outboxer_publisher --type=Models::DomainEvent --worker=workers/domain_event_handler_worker.rb
+# RAILS_ENV=development bin/outboxer_publisher --messageable_type=Models::DomainEvent --worker=workers/domain_event_handler_worker.rb
