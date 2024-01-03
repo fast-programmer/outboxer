@@ -6,6 +6,7 @@ development:
   username: outboxer_developer
   password: outboxer_password
   database: outboxer_development
+  pool: 6
 
 test:
   adapter: postgresql
@@ -15,3 +16,4 @@ test:
   username: outboxer_developer
   password: outboxer_password
   database: outboxer_test
+  pool: 6

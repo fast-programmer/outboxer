@@ -1,7 +1,9 @@
 module Outboxer
   class Publisher
-    def initialize(concurrency: 5, poll: 1, logger: Logger.new(STDOUT))
-      @concurrency = concurrency
+    def initialize(db_config:, poll: 1, logger: Logger.new(STDOUT))
+      ActiveRecord::Base.establish_connection(db_config)
+
+      @concurrency = db_config['pool'].to_i - 1
       @poll = poll
       @logger = logger
 

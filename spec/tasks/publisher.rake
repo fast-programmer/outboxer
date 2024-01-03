@@ -27,7 +27,7 @@ end
 #   --concurrency=5
 #   --poll=1
 #   --redis_url=redis://localhost:6379/0
-#   --db_config=spec/config/database.yml
+#   --db_config_path=spec/config/database.yml
 #   --messageable_type=Models::DomainEvent --worker=workers/domain_event_handler_worker.rb \
 #   --messageable_type=Models::Log         --worker=workers/log_handler_worker.rb
 
