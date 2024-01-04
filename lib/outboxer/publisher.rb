@@ -1,6 +1,6 @@
 module Outboxer
   class Publisher
-    def initialize(db_config:, poll: 1, logger: Logger.new(STDOUT))
+    def initialize(db_config:, poll: 1, logger: Logger.new($stdout))
       ActiveRecord::Base.establish_connection(db_config)
 
       @concurrency = db_config['pool'].to_i - 1
@@ -18,30 +18,32 @@ module Outboxer
     end
 
     def pop_messages_async!(&block)
-      @concurrency.times do
-        @threads << Thread.new do
-          loop do
-            outboxer_message = @queue.pop
-            break if outboxer_message.nil?
+      @concurrency.times { @threads << pop_message_async!(&block) }
+    end
 
-            begin
-              block.call(outboxer_message)
-            rescue => exception
-              Message.failed!(id: outboxer_message.id, exception: exception)
+    def pop_message_async!(&block)
+      Thread.new do
+        loop do
+          outboxer_message = @queue.pop
+          break if outboxer_message.nil?
 
-              raise
-            end
-
-            Message.published!(id: outboxer_message.id)
+          begin
+            block.call(outboxer_message)
           rescue => exception
-            @logger.error "Error: #{exception.class}: #{exception.message}"
-          rescue Exception => exception
-            @logger.fatal "Critical Error: #{exception.class}: #{exception.message}"
+            Message.failed!(id: outboxer_message.id, exception: exception)
 
-            stop!
-
-            break
+            raise
           end
+
+          Message.published!(id: outboxer_message.id)
+        rescue => exception
+          @logger.error "Error: #{exception.class}: #{exception.message}"
+        rescue Exception => exception
+          @logger.fatal "Critical Error: #{exception.class}: #{exception.message}"
+
+          stop!
+
+          break
         end
       end
     end
