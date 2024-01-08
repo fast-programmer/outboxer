@@ -36,7 +36,7 @@ module Outboxer
       has_many :outboxer_exceptions,
                -> { order(created_at: :asc) },
                foreign_key: 'outboxer_message_id',
-               class_name: "::Outboxer::Models::Exception",
+               class_name: "Outboxer::Models::Exception",
                dependent: :destroy
     end
   end

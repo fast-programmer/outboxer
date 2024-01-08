@@ -6,11 +6,8 @@ require 'sidekiq'
 require 'optparse'
 require 'pry-byebug'
 
+
 require_relative '../../../../lib/outboxer'
-
-require_relative '../workers/event_handler_worker'
-
-binding.pry
 
 options = {
   db_config: 'config/database.yml',
@@ -48,14 +45,21 @@ end.parse!
 logger = Logger.new($stdout)
 logger.level = Logger.const_get(options[:log_level])
 
-outboxer_publisher = Outboxer::Publisher.new(
-  db_config: options[:db_config], poll: options[:poll], logger: logger)
+Outboxer::Publisher.connect!(db_config: options[:db_config], logger: logger)
 
-trap("INT") { outboxer_publisher.stop! }
+trap("INT") { Outboxer::Publisher.stop! }
 
-Sidekiq.configure_client { |config| config.redis = { url: options[:redis_url], size: 5 } }
+require_relative '../../../../spec/models/event'
 
-outboxer_publisher.publish! do |outboxer_message|
+Sidekiq.configure_client do |config|
+  config.redis = { url: options[:redis_url], size: options[:concurrency] }
+end
+
+require_relative '../workers/event_handler_worker'
+
+Outboxer::Publisher.publish!(
+  concurrency: options[:concurrency], poll: options[:poll]
+) do |outboxer_message|
   case outboxer_message.outboxer_messageable_type
   when 'Models::Event'
     EventHandlerWorker.perform_async({ 'id' => outboxer_message.outboxer_messageable_id })
@@ -75,10 +79,24 @@ end
 
 # generators/outboxer/templates/bin/sidekiq_publisher.rb --db_config=spec/config/database.yml
 
-# generators/outboxer/templates/bin/sidekiq_publisher.rb \
-#   --db_config=spec/config/database.yml
-#   --concurrency=5
-#   --poll=1
-#   --redis_url=redis://localhost:6379/0
+# RAILS_ENV=development generators/outboxer/templates/bin/sidekiq_publisher.rb \
+#   --db_config=spec/config/database.yml \
+#   --concurrency=5 \
+#   --poll=1 \
+#   --redis_url=redis://localhost:6379/0 \
 #   --log_level=DEBUG
 
+
+# generators/outboxer/templates/bin/sidekiq_publisher.rb
+# --db_config=spec/config/database.yml
+# --concurrency=5
+# --poll=1
+# --redis_url=redis://localhost:6379/0
+# --log_level=DEBUG
+
+# RAILS_ENV=development generators/outboxer/templates/bin/sidekiq_publisher.rb \
+#   --db_config=spec/config/database.yml \
+#   --concurrency=5 \
+#   --poll=1 \
+#   --redis_url=redis://localhost:6379/0 \
+#   --log_level=DEBUG
