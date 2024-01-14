@@ -14,15 +14,30 @@ module Outboxer
       @running = false
     end
 
+    class ConnectError < Error; end
+
     def connect!(db_config:, logger: nil)
       ActiveRecord::Base.logger = logger if logger
 
       ActiveRecord::Base.establish_connection(db_config)
+
+      ActiveRecord::Base.connection_pool.with_connection {}
+    rescue ActiveRecord::DatabaseConnectionError => error
+      raise ConnectError.new(error.message)
     end
 
-    # def connected?
-    #   ActiveRecord::Base.connected?
-    # end
+    def connected?
+      ActiveRecord::Base.connected?
+    end
+
+    class DisconnectError < Error; end
+
+    def disconnect!
+      ActiveRecord::Base.connection_handler.clear_active_connections!
+      ActiveRecord::Base.connection_handler.connection_pool_list.each(&:disconnect!)
+    rescue => error
+      raise DisconnectError.new(error.message)
+    end
 
     class ThreadShutdown < Error; end
 
