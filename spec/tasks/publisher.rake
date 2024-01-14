@@ -31,11 +31,11 @@ end
 #   --messageable_type=Models::DomainEvent --worker=workers/domain_event_handler_worker.rb \
 #   --messageable_type=Models::Log         --worker=workers/log_handler_worker.rb
 
-1. run the install generator
-2. migrate the database
-3. include outboxable in your models
-4. add a handler worker
-5. run the publisher script
+# 1. run the install generator
+# 2. migrate the database
+# 3. include outboxable in your models
+# 4. add a handler worker
+# 5. run the publisher script
 
 # bin/outboxer_publisher \
 #   --concurrency=5

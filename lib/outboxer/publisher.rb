@@ -5,7 +5,8 @@ module Outboxer
     def connect!(db_config:, logger:)
       ActiveRecord::Base.establish_connection(db_config)
 
-      @logger = ActiveRecord::Base.logger = logger
+      # @logger = ActiveRecord::Base.logger = logger
+      @logger = logger
     end
 
     def stop!
@@ -13,7 +14,7 @@ module Outboxer
     end
 
     def pop_messages_async!(&block)
-      @concurrency.times { @threads << pop_message_async!(&block) }
+      @threads_max.times { @threads << pop_message_async!(&block) }
     end
 
     def pop_message_async!(&block)
@@ -55,14 +56,26 @@ module Outboxer
       while @running
         messages = []
 
-        limit = @concurrency - @queue.length
-        @logger.debug "concurrency: #{@concurrency}, queue.length: #{@queue.length}"
-        messages = (limit > 0) ? Outboxer::Message.unpublished!(limit: limit) : []
+        queue_remaining = @queue_max - @queue.length
+        messages = (queue_remaining > 0) ? Outboxer::Message.unpublished!(limit: queue_remaining) : []
+
+        if messages.empty?
+          log("Sleeping for #{@poll} seconds because there are no messages", messages: messages)
+          sleep(@poll)
+          log("Slept for #{@poll} seconds", messages: messages)
+
+          next
+        end
+
+        log("Pushing #{messages.length} messages to the queue", messages: messages)
         messages.each { |message| @queue.push(message) }
+        log("Pushed #{messages.length} messages to the queue", messages: messages)
 
-        @logger.debug "Pushed #{messages.length} messages to the queue" unless messages.empty?
-
-        sleep(@poll) if @running && (@queue.empty? || @queue.length >= @concurrency)
+        if @queue.length >= @queue_max
+          log("Sleeping for #{@poll} seconds because queue length >= queue max", messages: messages)
+          sleep(@poll)
+          log("slept for #{@poll} seconds", messages: messages)
+        end
       end
 
       @threads.length.times { @queue.push(nil) }
@@ -70,8 +83,9 @@ module Outboxer
       @threads.each(&:join)
     end
 
-    def publish!(concurrency:, poll: 1, &block)
-      @concurrency = concurrency
+    def publish!(threads_max:, queue_max:, poll:, &block)
+      @threads_max = threads_max
+      @queue_max = queue_max
       @poll = poll
 
       @queue = Queue.new
@@ -82,6 +96,16 @@ module Outboxer
       pop_messages_async!(&block)
 
       push_messages!
+    end
+
+    def log(message, messages:)
+      summary = {
+        threads_max: @threads_max,
+        messages_length: messages.length,
+        queue_length: @queue.length
+      }
+
+      @logger.debug "#{message} #{summary.to_json}"
     end
   end
 end

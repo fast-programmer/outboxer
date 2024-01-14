@@ -1,24 +1,35 @@
 require 'optparse'
 
 module Outboxer
-  module OptionsParser
+  module OptionParser
     extend self
 
-    def parse!(options)
-      options = {
-        concurrency: 5,
-        poll: 1,
-        redis_url: 'redis://localhost:6379/0',
-        handlers: {}
-      }
+    DEFAULT_OPTIONS = {
+      db_config: 'config/database.yml',
+      threads_max: 5,
+      queue_max: 5,
+      poll: 1,
+      redis_url: 'redis://localhost:6379/0',
+      log_level: 'ERROR'
+    }
 
-      current_messageable_type = nil
+    def parse(args)
+      options = DEFAULT_OPTIONS.dup
 
-      OptionParser.new do |opts|
+      ::OptionParser.new do |opts|
         opts.banner = "Usage: outboxer_publisher.rb [options]"
 
-        opts.on("-c", "--concurrency NUMBER", Integer, "Number of worker threads") do |concurrency|
-          options[:concurrency] = concurrency.to_i
+        opts.on("-d", "--db_config PATH", "Path to config/database.yml") do |path|
+          db_config_path = File.expand_path(path, Dir.pwd)
+          options[:db_config] = YAML.load_file(db_config_path)[ENV.fetch('RAILS_ENV')]
+        end
+
+        opts.on("-t", "--threads_max NUMBER", Integer, "Number of worker threads") do |threads_max|
+          options[:threads_max] = threads_max.to_i
+        end
+
+        opts.on("-q", "--queue_max NUMBER", Integer, "Maximum number of items in the queue") do |queue_max|
+          options[:queue_max] = queue_max
         end
 
         opts.on("-p", "--poll INTERVAL", Integer, "Number of seconds to wait when no results or queue full") do |interval|
@@ -29,27 +40,13 @@ module Outboxer
           options[:redis_url] = url
         end
 
-        opts.on("-d", "--db_config PATH", "Path to config/database.yml") do |path|
-          db_config_path = File.expand_path(path, Dir.pwd)
-          options[:db_config] = YAML.load_file(db_config_path)[ENV.fetch('RAILS_ENV')]
+        opts.on("-l", "--log_level LEVEL", "Set the log level (DEBUG, INFO, WARN, ERROR, FATAL)") do |log_level|
+          options[:log_level] = log_level
         end
-
-        opts.on("-m", "--messageable_type TYPE", "The messageable type") do |type|
-          current_messageable_type = type
-        end
-
-        opts.on("-w", "--worker PATH", "Path to the worker for the current messageable type") do |worker|
-          if current_messageable_type
-            options[:handlers][current_messageable_type] = worker
-          else
-            logger.error "Please specify messageable type before the worker"
-
-            exit
-          end
-        end
-      end.parse!
+      end.parse!(args)
 
       options
     end
   end
 end
+
