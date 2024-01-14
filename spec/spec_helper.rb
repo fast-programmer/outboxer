@@ -6,6 +6,8 @@ SimpleCov.start
 
 require 'outboxer'
 
+env = ENV['RAILS_ENV'] || 'development'
+
 RSpec.configure do |config|
   config.example_status_persistence_file_path = ".rspec_status"
 
