@@ -42,43 +42,39 @@ module Outboxer
     end
 
     def push_messages!(threads:, queue:, queue_max:, poll:, logger:)
-      @running = true
+      messages = []
 
-      while @running
-        messages = []
+      queue_remaining = queue_max - queue.length
+      messages = (queue_remaining > 0) ? Outboxer::Message.unpublished!(limit: queue_remaining) : []
 
-        queue_remaining = queue_max - queue.length
-        messages = (queue_remaining > 0) ? Outboxer::Message.unpublished!(limit: queue_remaining) : []
-
-        if messages.empty?
-          log("Sleeping for #{poll} seconds because there are no messages",
-            logger: logger, threads: threads, queue: queue, messages: messages)
-
-          sleep(poll)
-
-          log("Slept for #{poll} seconds",
-            logger: logger, threads: threads, queue: queue, messages: messages)
-
-          next
-        end
-
-        log("Pushing #{messages.length} messages to the queue",
+      if messages.empty?
+        log("Sleeping for #{poll} seconds because there are no messages",
           logger: logger, threads: threads, queue: queue, messages: messages)
 
-        messages.each { |message| queue.push(message) }
+        sleep(poll)
 
-        log("Pushed #{messages.length} messages to the queue",
+        log("Slept for #{poll} seconds",
           logger: logger, threads: threads, queue: queue, messages: messages)
 
-        if queue.length >= queue_max
-          log("Sleeping for #{poll} seconds because queue length >= queue max",
-            logger: logger, threads: threads, queue: queue, messages: messages)
+        return
+      end
 
-          sleep(poll)
+      log("Pushing #{messages.length} messages to the queue",
+        logger: logger, threads: threads, queue: queue, messages: messages)
 
-          log("Slept for #{poll} seconds",
-            logger: logger, threads: threads, queue: queue, messages: messages)
-        end
+      messages.each { |message| queue.push(message) }
+
+      log("Pushed #{messages.length} messages to the queue",
+        logger: logger, threads: threads, queue: queue, messages: messages)
+
+      if queue.length >= queue_max
+        log("Sleeping for #{poll} seconds because queue length >= queue max",
+          logger: logger, threads: threads, queue: queue, messages: messages)
+
+        sleep(poll)
+
+        log("Slept for #{poll} seconds",
+          logger: logger, threads: threads, queue: queue, messages: messages)
       end
     end
 
@@ -101,7 +97,11 @@ module Outboxer
         end
       end
 
-      push_messages!(threads: threads, queue: queue, queue_max: queue_max, poll: poll, logger: logger)
+      @running = true
+
+      while @running
+        push_messages!(threads: threads, queue: queue, queue_max: queue_max, poll: poll, logger: logger)
+      end
 
       threads.length.times { queue.push(nil) }
       threads.each(&:join)
