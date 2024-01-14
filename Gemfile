@@ -13,3 +13,7 @@ gem "pg", "~> 1.5"
 gem "activerecord", "~> 7.1", ">= 7.1.2"
 
 gem "sidekiq", "~> 7.2"
+
+# group :test do
+#   gem 'database_cleaner', '~> 2.0', '>= 2.0.2'
+# end

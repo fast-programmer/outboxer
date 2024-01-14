@@ -28,22 +28,6 @@ module Outboxer
     #     EventHandlerWorker.perform_async({'id' => outboxer_messageable.id })
     #   end
 
-    def self.publish!
-      outboxer_message = unpublished!(limit: 1).first
-
-      raise Message::NotFound if outboxer_message.nil?
-
-      begin
-        yield outboxer_message.outboxer_messageable
-      rescue => exception
-        failed!(id: outboxer_message.id, exception: exception)
-
-        raise
-      end
-
-      published!(id: outboxer_message.id)
-    end
-
     def self.unpublished!(limit: 5)
       ActiveRecord::Base.connection_pool.with_connection do
         message_ids = ActiveRecord::Base.transaction do
@@ -62,7 +46,7 @@ module Outboxer
         end
 
         Models::Message
-          .includes(:outboxer_messageable)
+          # .includes(:outboxer_messageable)
           .where(id: message_ids, status: Models::Message::STATUS[:publishing])
           .order(created_at: :asc)
           .to_a
