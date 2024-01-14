@@ -28,12 +28,12 @@ module Outboxer
     #     EventHandlerWorker.perform_async({'id' => outboxer_messageable.id })
     #   end
 
-    def self.unpublished!(limit: 5)
+    def self.unpublished!(limit: 5, order: :asc)
       ActiveRecord::Base.connection_pool.with_connection do
         message_ids = ActiveRecord::Base.transaction do
           ids = Models::Message
             .where(status: Models::Message::STATUS[:unpublished])
-            .order(created_at: :asc)
+            .order(created_at: order)
             .lock('FOR UPDATE SKIP LOCKED')
             .limit(limit)
             .pluck(:id)
@@ -67,6 +67,8 @@ module Outboxer
         end
 
         outboxer_message.destroy!
+
+        nil
       end
     end
 
@@ -90,6 +92,8 @@ module Outboxer
             class_name: exception.class.name,
             message_text: exception.message,
             backtrace: exception.backtrace)
+
+          outboxer_message
         end
       end
     end
@@ -97,17 +101,18 @@ module Outboxer
     def self.republish!(id:)
       ActiveRecord::Base.connection_pool.with_connection do
         outboxer_message = Models::Message
-          .order(created_at: :asc)
           .lock
           .find_by!(id: id)
 
         if outboxer_message.status != Models::Message::STATUS[:failed]
           raise InvalidTransition,
             "cannot transition outboxer message #{id} " \
-            "from #{outboxer_message.status} to #{Models::Message::STATUS[:failed]}"
+            "from #{outboxer_message.status} to #{Models::Message::STATUS[:unpublished]}"
         end
 
         outboxer_message.update!(status: Models::Message::STATUS[:unpublished])
+
+        outboxer_message
       end
     end
   end
