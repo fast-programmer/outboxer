@@ -16,10 +16,19 @@ RSpec.configure do |config|
   end
 
   config.before(:all) do
+    # db_config = {
+    #   'adapter' => 'postgresql',
+    #   'username' => `whoami`.strip,
+    #   'database' => 'outboxer_test'
+    # }
+
     db_config = {
       'adapter' => 'postgresql',
-      'username' => `whoami`.strip,
-      'database' => 'outboxer_test'
+      'username' => 'outboxer_tester',
+      'password' => 'outboxer_password',
+      'database' => 'outboxer_test',
+      'host' => 'localhost',
+      'port' => 5432
     }
 
     Outboxer::Publisher.connect!(db_config: db_config)
