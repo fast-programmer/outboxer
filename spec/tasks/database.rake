@@ -9,9 +9,6 @@ namespace :outboxer do
       ActiveRecord::Base.establish_connection({
         'adapter' => 'postgresql', 'username' => `whoami`.strip, 'database' => 'postgres' })
 
-      db_config_path = File.expand_path('../config/database.yml', __dir__)
-      db_config = YAML.load_file(db_config_path)[ENV.fetch('RAILS_ENV')]
-
       ActiveRecord::Base.connection.drop_database(db_config['database'])
 
       ActiveRecord::Base.connection.disconnect!
@@ -21,7 +18,7 @@ namespace :outboxer do
       ActiveRecord::Base.establish_connection({
         'adapter' => 'postgresql', 'username' => `whoami`.strip, 'database' => 'postgres' })
 
-      db_config_path = File.expand_path('../config/database.yml', __dir__)
+      db_config_path = File.expand_path('config/database.yml', Dir.pwd)
       db_config = YAML.load_file(db_config_path)[ENV.fetch('RAILS_ENV')]
 
       ActiveRecord::Base.connection.create_database(db_config['database'])
@@ -30,7 +27,7 @@ namespace :outboxer do
     end
 
     task :migrate do
-      db_config_path = File.expand_path('../config/database.yml', __dir__)
+      db_config_path = File.expand_path('config/database.yml', Dir.pwd)
       db_config = YAML.load_file(db_config_path)[ENV.fetch('RAILS_ENV')]
       ActiveRecord::Base.establish_connection(db_config)
 
@@ -40,11 +37,11 @@ namespace :outboxer do
       require_relative "../../generators/outboxer/templates/migrations/create_outboxer_exceptions"
       CreateOutboxerExceptions.new.up
 
-      require_relative "../db/migrate/create_accounting_invoices"
-      CreateAccountingInvoices.new.up
+      # require_relative "../db/migrate/create_accounting_invoices"
+      # CreateAccountingInvoices.new.up
 
-      require_relative "../db/migrate/create_events"
-      CreateEvents.new.up
+      # require_relative "../db/migrate/create_events"
+      # CreateEvents.new.up
 
       ActiveRecord::Base.connection.disconnect!
     end

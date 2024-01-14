@@ -22,14 +22,17 @@ RSpec.configure do |config|
     #   'database' => 'outboxer_test'
     # }
 
-    db_config = {
-      'adapter' => 'postgresql',
-      'username' => 'outboxer_tester',
-      'password' => 'outboxer_password',
-      'database' => 'outboxer_test',
-      'host' => 'localhost',
-      'port' => 5432
-    }
+    # db_config = {
+    #   'adapter' => 'postgresql',
+    #   'username' => 'outboxer_tester',
+    #   'password' => 'outboxer_password',
+    #   'database' => 'outboxer_test',
+    #   'host' => 'localhost',
+    #   'port' => 5432
+    # }
+
+    db_config_path = File.expand_path('config/database.yml', Dir.pwd)
+    db_config = YAML.load_file(db_config_path)[env]
 
     Outboxer::Publisher.connect!(db_config: db_config)
 
