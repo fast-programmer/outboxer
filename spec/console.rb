@@ -16,4 +16,4 @@ Outboxer::Publisher.connect!(db_config: db_config)
 
 binding.pry
 
-puts 'hi'
+puts 'script finished'

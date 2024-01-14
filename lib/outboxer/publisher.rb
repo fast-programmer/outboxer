@@ -154,5 +154,7 @@ module Outboxer
 
       logger.debug "#{message} #{summary.to_json}"
     end
+
+    private_class_method :debug_log
   end
 end

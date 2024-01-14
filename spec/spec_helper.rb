@@ -34,22 +34,4 @@ RSpec.configure do |config|
        # ignore
     end
   end
-
-  # config.after(:all) do
-  #   Publisher.disconnect!
-  # end
-
-  # config.before(:each) do
-  #   ActiveRecord::Base.establish_connection({
-  #     'adapter' => 'postgresql',
-  #     'username' => `whoami`.strip,
-  #     'database' => 'outboxer_test'
-  #   })
-
-  #   DatabaseCleaner.strategy = :truncation
-  # end
-
-  # config.after(:each) do
-  #   DatabaseCleaner.clean
-  # end
 end
