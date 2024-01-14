@@ -2,11 +2,10 @@ module Outboxer
   module Publisher
     extend self
 
-    def connect!(db_config:, logger:)
+    def connect!(db_config:, logger: nil)
       ActiveRecord::Base.establish_connection(db_config)
 
-      # @logger = ActiveRecord::Base.logger = logger
-      @logger = logger
+      ActiveRecord::Base.logger = logger if logger
     end
 
     def stop!
@@ -83,10 +82,11 @@ module Outboxer
       @threads.each(&:join)
     end
 
-    def publish!(threads_max:, queue_max:, poll:, &block)
+    def publish!(threads_max:, queue_max:, poll:, logger: nil, &block)
       @threads_max = threads_max
       @queue_max = queue_max
       @poll = poll
+      @logger = logger
 
       @queue = Queue.new
       @threads = []
