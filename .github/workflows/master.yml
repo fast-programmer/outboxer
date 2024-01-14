@@ -19,7 +19,7 @@ jobs:
       postgres:
         image: postgres:latest
         env:
-          POSTGRES_USER: outboxer_tester
+          POSTGRES_USER: outboxer_developer
           POSTGRES_PASSWORD: outboxer_password
           POSTGRES_DB: outboxer_test
         ports: ['5432:5432']
