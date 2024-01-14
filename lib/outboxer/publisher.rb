@@ -2,6 +2,8 @@ module Outboxer
   module Publisher
     extend self
 
+    @running = false
+
     class Error < StandardError; end
 
     def connect!(db_config:, logger: nil)
@@ -79,6 +81,7 @@ module Outboxer
     end
 
     def publish!(threads_max:, queue_max:, poll:, logger: nil, &block)
+      @running = true
       queue = Queue.new
 
       threads = threads_max.times.map do
@@ -96,8 +99,6 @@ module Outboxer
           end
         end
       end
-
-      @running = true
 
       while @running
         push_messages!(threads: threads, queue: queue, queue_max: queue_max, poll: poll, logger: logger)
