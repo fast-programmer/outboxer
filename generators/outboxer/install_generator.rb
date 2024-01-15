@@ -13,8 +13,8 @@ module Outboxer
     end
 
     def copy_bin_file
-      template "bin/outboxer_publisher.rb", "bin/outboxer_publisher"
-      run "chmod +x bin/outboxer_publisher"
+      template "bin/sidekiq_publisher.rb", "bin/sidekiq_publisher"
+      run "chmod +x bin/sidekiq_publisher"
     end
 
     def copy_migrations
