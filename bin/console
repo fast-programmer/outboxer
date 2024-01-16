@@ -1,7 +1,24 @@
 #!/usr/bin/env ruby
 
-require "bundler/setup"
-require "outboxer"
+require 'bundler/setup'
+require 'outboxer'
 
-require "irb"
+db_config_path = File.expand_path('../config/database.yml', __dir__)
+db_config = YAML.load_file(db_config_path)[ENV['OUTBOXER_ENV']]
+
+ActiveRecord::Base.establish_connection(db_config)
+
+require_relative '../app/models/event'
+
+require 'sidekiq'
+
+Sidekiq.configure_client do |config|
+  config.redis = { url: 'redis://localhost:6379/0' }
+end
+
+require_relative '../app/jobs/event_handler_job'
+
+require 'irb'
 IRB.start(__FILE__)
+
+# OUTBOXER_ENV=development bin/console

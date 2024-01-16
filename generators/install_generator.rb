@@ -2,7 +2,7 @@ module Outboxer
   class InstallGenerator < Rails::Generators::Base
     include Rails::Generators::Migration
 
-    source_root File.expand_path("templates", __dir__)
+    source_root File.expand_path('../', __dir__)
 
     def self.next_migration_number(dirname)
       next_number = Time.now.utc.strftime("%Y%m%d%H%M%S").to_i
@@ -13,17 +13,17 @@ module Outboxer
     end
 
     def copy_bin_file
-      template "bin/sidekiq_publisher.rb", "bin/sidekiq_publisher"
+      template "bin/sidekiq_publisher", "bin/sidekiq_publisher"
       run "chmod +x bin/sidekiq_publisher"
     end
 
     def copy_migrations
       migration_template(
-        "migrations/create_outboxer_messages.rb",
+        "db/migrate/create_outboxer_messages.rb",
         "db/migrate/create_outboxer_messages.rb")
 
       migration_template(
-        "migrations/create_outboxer_exceptions.rb",
+        "db/migrate/create_outboxer_exceptions.rb",
         "db/migrate/create_outboxer_exceptions.rb")
     end
   end

@@ -6,7 +6,7 @@ module Outboxer
     railtie_name :outboxer
 
     generators do
-      require_relative "../../generators/outboxer/install_generator"
+      require_relative "generators/install_generator"
     end
   end
 end

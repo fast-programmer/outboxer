@@ -1,8 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'bundler/setup'
-env = ENV['RAILS_ENV'] || 'development'
-Bundler.require(:default, env)
+env = ENV['OUTBOXER_ENV'] || 'development'
 
 require 'active_record'
 require 'pry-byebug'
