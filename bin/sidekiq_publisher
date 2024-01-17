@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'bundler/setup'
+
 require 'sidekiq'
 require 'optparse'
 
@@ -14,13 +15,14 @@ DEFAULT_OPTIONS = {
   queue_max: 5,
   poll: 1,
   redis_url: 'redis://localhost:6379/0',
-  log_level: 'ERROR'
+  log_level: 'ERROR',
+  environment: 'development'
 }
 
 options = DEFAULT_OPTIONS.dup
 
 OptionParser.new do |opts|
-  opts.banner = "Usage: sidekiq_publisher.rb [options]"
+  opts.banner = "Usage: sidekiq_publisher [options]"
 
   opts.on("-d", "--db_config_path PATH", "Path to config/database.yml") do |db_config_path|
     options[:db_config_path] = db_config_path
@@ -45,16 +47,17 @@ OptionParser.new do |opts|
   opts.on("-l", "--log_level LEVEL", "Set the log level (DEBUG, INFO, WARN, ERROR, FATAL)") do |log_level|
     options[:log_level] = log_level
   end
+
+  opts.on("-e", "--environment ENVIRONMENT", "Set the environment") do |environment|
+    options[:environment] = environment
+  end
 end.parse!(ARGV)
 
 logger = Outboxer::Logger.new($stdout, level: options[:log_level])
 
-trap('INT') { Outboxer::Publisher.stop! }
-
-db_config_expanded_path = File.expand_path(options[:db_config_path], __dir__)
-db_config = YAML.load_file(db_config_expanded_path)[ENV['OUTBOXER_ENV']]
-
-Outboxer::Publisher.connect!(db_config: db_config)
+Outboxer::Publisher.connect!(
+  db_config_path: File.expand_path(options[:db_config_path], __dir__),
+  environment: options[:environment])
 
 require_relative '../app/models/event'
 
@@ -63,6 +66,8 @@ Sidekiq.configure_client do |config|
 end
 
 require_relative '../app/jobs/event_handler_job'
+
+trap('INT') { Outboxer::Publisher.stop! }
 
 Outboxer::Publisher.publish!(
   threads_max: options[:threads_max],

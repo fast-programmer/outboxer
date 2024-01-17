@@ -69,3 +69,4 @@ end
 # OUTBOXER_ENV=development bin/rake outboxer:db:create
 # OUTBOXER_ENV=development bin/rake outboxer:db:migrate
 # OUTBOXER_ENV=development bin/rake outboxer:db:seed
+# OUTBOXER_ENV=development bin/rake outboxer:db:reset

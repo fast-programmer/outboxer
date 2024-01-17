@@ -3,20 +3,38 @@
 require 'bundler/setup'
 require 'outboxer'
 
-db_config_path = File.expand_path('../config/database.yml', __dir__)
-db_config = YAML.load_file(db_config_path)[ENV['OUTBOXER_ENV']]
-
-ActiveRecord::Base.establish_connection(db_config)
-
-require_relative '../app/models/event'
-
 require 'sidekiq'
+require 'optparse'
+require 'pry-byebug'
 
 Sidekiq.configure_client do |config|
   config.redis = { url: 'redis://localhost:6379/0' }
 end
 
 require_relative '../app/jobs/event_handler_job'
+
+options = {
+  db_config_path: '../config/database.yml',
+  environment: 'development'
+}
+
+OptionParser.new do |opts|
+  opts.banner = "Usage: console [options]"
+
+  opts.on("-d", "--db_config_path PATH", "Path to config/database.yml") do |db_config_path|
+    options[:db_config_path] = db_config_path
+  end
+
+  opts.on("-e", "--environment ENVIRONMENT", "Set the environment") do |environment|
+    options[:environment] = environment
+  end
+end.parse!(ARGV)
+
+Outboxer::Publisher.connect!(
+  db_config_path: File.expand_path(options[:db_config_path], __dir__),
+  environment: options[:environment])
+
+require_relative '../app/models/event'
 
 require 'irb'
 IRB.start(__FILE__)

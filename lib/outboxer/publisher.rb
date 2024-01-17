@@ -1,3 +1,6 @@
+require 'erb'
+require 'yaml'
+
 module Outboxer
   module Publisher
     extend self
@@ -16,8 +19,14 @@ module Outboxer
 
     class ConnectError < Error; end
 
-    def connect!(db_config:, logger: nil)
+    def connect!(db_config_path:, environment:, logger: nil)
       ActiveRecord::Base.logger = logger if logger
+
+      db_config_erb_result = ERB.new(File.read(db_config_path)).result
+      yaml_db_config = YAML.load(db_config_erb_result)
+
+      configurations = ActiveRecord::DatabaseConfigurations.new(yaml_db_config)
+      db_config = configurations.configs_for(env_name: environment)[0].configuration_hash
 
       ActiveRecord::Base.establish_connection(db_config)
 
