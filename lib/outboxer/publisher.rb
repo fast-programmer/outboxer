@@ -1,6 +1,3 @@
-require 'erb'
-require 'yaml'
-
 module Outboxer
   module Publisher
     extend self
@@ -15,37 +12,6 @@ module Outboxer
 
     def stop!
       @running = false
-    end
-
-    class ConnectError < Error; end
-
-    def connect!(db_config_path:, environment:, logger: nil)
-      ActiveRecord::Base.logger = logger if logger
-
-      db_config_erb_result = ERB.new(File.read(db_config_path)).result
-      yaml_db_config = YAML.load(db_config_erb_result)
-
-      configurations = ActiveRecord::DatabaseConfigurations.new(yaml_db_config)
-      db_config = configurations.configs_for(env_name: environment)[0].configuration_hash
-
-      ActiveRecord::Base.establish_connection(db_config)
-
-      ActiveRecord::Base.connection_pool.with_connection {}
-    rescue ActiveRecord::DatabaseConnectionError => error
-      raise ConnectError.new(error.message)
-    end
-
-    def connected?
-      ActiveRecord::Base.connected?
-    end
-
-    class DisconnectError < Error; end
-
-    def disconnect!
-      ActiveRecord::Base.connection_handler.clear_active_connections!
-      ActiveRecord::Base.connection_handler.connection_pool_list.each(&:disconnect!)
-    rescue => error
-      raise DisconnectError.new(error.message)
     end
 
     class ThreadShutdown < Error; end
@@ -161,7 +127,9 @@ module Outboxer
         queue: queue.length
       }
 
-      logger.debug "#{message} #{summary.to_json}"
+      rss = `ps -o rss= -p #{Process.pid}`.strip.to_i
+
+      logger.debug "#{message} #{summary.to_json} (RSS: #{rss} KB)"
     end
 
     private_class_method :debug_log

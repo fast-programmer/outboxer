@@ -6,7 +6,7 @@ development:
   username: outboxer_developer
   password: outboxer_password
   database: outboxer_development
-  pool: <%= ENV.fetch('RAILS_MAX_THREADS') { 5 } %>
+  pool: <%= ENV.fetch('RAILS_MAX_THREADS') { 6 } %>
 
 test:
   adapter: postgresql
@@ -16,4 +16,4 @@ test:
   username: outboxer_developer
   password: outboxer_password
   database: outboxer_test
-  pool: <%= ENV.fetch('RAILS_MAX_THREADS') { 5 } %>
+  pool: <%= ENV.fetch('RAILS_MAX_THREADS') { 6 } %>

@@ -3,7 +3,7 @@ class Event < ActiveRecord::Base
 
   self.inheritance_column = :_type_disabled
 
-  attribute :created_at, :datetime, default: -> { Time.current }
+  attribute :created_at, default: -> { Time.current }
 
   belongs_to :eventable, polymorphic: true
 

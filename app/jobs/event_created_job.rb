@@ -1,8 +1,7 @@
-class EventHandlerJob
+class EventCreatedJob
   include Sidekiq::Job
 
   def self.perform_async(args)
-    # handle event
+    # process created event
   end
 end
-

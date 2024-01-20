@@ -6,8 +6,6 @@ SimpleCov.start
 
 require 'outboxer'
 
-env = ENV['OUTBOXER_ENV'] || 'development'
-
 RSpec.configure do |config|
   config.example_status_persistence_file_path = ".rspec_status"
 
@@ -18,16 +16,9 @@ RSpec.configure do |config|
   end
 
   config.before(:all) do
-    # db_config = {
-    #   'adapter' => 'postgresql',
-    #   'username' => `whoami`.strip,
-    #   'database' => 'outboxer_test'
-    # }
-
-    db_config_path = File.expand_path('config/database.yml', Dir.pwd)
-    db_config = YAML.load_file(db_config_path)[env]
-
-    Outboxer::Publisher.connect!(db_config: db_config)
+    Outboxer::Database.connect!(
+      config_path: File.expand_path('../config/database.yml', __dir__),
+      environment: 'test')
 
     DatabaseCleaner.strategy = :truncation
   end

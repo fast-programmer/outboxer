@@ -1,71 +1,30 @@
 #!/usr/bin/env ruby
 
 require 'bundler/setup'
-
-require 'sidekiq'
-require 'optparse'
-
-require 'pry-byebug'
-
 require 'outboxer'
 
-DEFAULT_OPTIONS = {
-  db_config_path: '../config/database.yml',
-  threads_max: 5,
-  queue_max: 5,
-  poll: 1,
-  redis_url: 'redis://localhost:6379/0',
-  log_level: 'ERROR',
-  environment: 'development'
-}
-
-options = DEFAULT_OPTIONS.dup
-
-OptionParser.new do |opts|
-  opts.banner = "Usage: sidekiq_publisher [options]"
-
-  opts.on("-d", "--db_config_path PATH", "Path to config/database.yml") do |db_config_path|
-    options[:db_config_path] = db_config_path
-  end
-
-  opts.on("-t", "--threads_max NUMBER", Integer, "Number of worker threads") do |threads_max|
-    options[:threads_max] = threads_max.to_i
-  end
-
-  opts.on("-q", "--queue_max NUMBER", Integer, "Maximum number of items in the queue") do |queue_max|
-    options[:queue_max] = queue_max
-  end
-
-  opts.on("-p", "--poll INTERVAL", Integer, "Number of seconds to wait when no results or queue full") do |interval|
-    options[:poll] = interval.to_i
-  end
-
-  opts.on("-r", "--redis_url URL", "URL of the Redis server") do |url|
-    options[:redis_url] = url
-  end
-
-  opts.on("-l", "--log_level LEVEL", "Set the log level (DEBUG, INFO, WARN, ERROR, FATAL)") do |log_level|
-    options[:log_level] = log_level
-  end
-
-  opts.on("-e", "--environment ENVIRONMENT", "Set the environment") do |environment|
-    options[:environment] = environment
-  end
-end.parse!(ARGV)
-
-logger = Outboxer::Logger.new($stdout, level: options[:log_level])
-
-Outboxer::Publisher.connect!(
-  db_config_path: File.expand_path(options[:db_config_path], __dir__),
-  environment: options[:environment])
+require 'sidekiq'
 
 require_relative '../app/models/event'
+require_relative '../app/jobs/event_created_job'
+
+options = { redis_url: 'redis://localhost:6379/0' }
+
+Outboxer::OptionParser.parse!(options) do |option_parser|
+  option_parser.banner = 'Usage: example.rb [options]'
+
+  option_parser.on("-r", "--redis_url URL", "URL of the Redis server") do |redis_url|
+    options[:redis_url] = redis_url
+  end
+end
 
 Sidekiq.configure_client do |config|
   config.redis = { url: options[:redis_url], size: options[:threads_max] }
 end
 
-require_relative '../app/jobs/event_handler_job'
+Outboxer::Database.connect!(
+  config_path: File.expand_path(options[:db_config_path], Dir.pwd),
+  environment: options[:environment])
 
 trap('INT') { Outboxer::Publisher.stop! }
 
@@ -73,20 +32,21 @@ Outboxer::Publisher.publish!(
   threads_max: options[:threads_max],
   queue_max: options[:queue_max],
   poll: options[:poll],
-  logger: logger
+  logger: Outboxer::Logger.new($stdout, level: options[:log_level])
 ) do |outboxer_message|
   case outboxer_message.outboxer_messageable_type
   when 'Event'
-    EventHandlerJob.perform_async({ 'id' => outboxer_message.outboxer_messageable_id })
+    EventCreatedJob.perform_async({ 'id' => outboxer_message.outboxer_messageable_id })
   else
     raise "No handler defined for #{outboxer_message.outboxer_messageable_type}"
   end
 end
 
-# OUTBOXER_ENV=development bin/sidekiq_publisher \
+# bin/sidekiq_publisher \
+#   --environment=development \
 #   --db_config_path=config/database.yml \
 #   --queue_max=5 \
 #   --threads_max=5 \
 #   --poll=1 \
-#   --redis_url=redis://localhost:6379/0 \
-#   --log_level=DEBUG
+#   --log_level=DEBUG \
+#   --redis_url=redis://localhost:6379/0
