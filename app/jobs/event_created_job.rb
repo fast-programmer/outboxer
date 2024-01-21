@@ -1,7 +1,7 @@
 class EventCreatedJob
   include Sidekiq::Job
 
-  def self.perform_async(args)
+  def perform(args)
     event = Event.find(args['id'])
 
     puts "EventCreatedJob #{event.id}"
