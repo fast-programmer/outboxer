@@ -20,7 +20,7 @@ module Outboxer
       outboxer_message = queue.pop
       raise ThreadAborted if outboxer_message.nil?
 
-      logger.debug "Processing message id: #{outboxer_message.id}"
+      logger&.debug "Processing message id: #{outboxer_message.id}"
 
       begin
         block.call(outboxer_message)
@@ -34,7 +34,7 @@ module Outboxer
 
       Message.published!(id: outboxer_message.id)
 
-      logger.debug "Message processed successfully for id: #{outboxer_message.id}"
+      logger&.debug "Message processed successfully for id: #{outboxer_message.id}"
     end
 
     def push_messages!(threads:, queue:, queue_size:, poll_interval:, logger:, kernel:)
@@ -76,11 +76,8 @@ module Outboxer
 
     def publish!(
       thread_count: 5, queue_size: 8, poll_interval: 1,
-      logger: Logger.new($stdout), log_level: 'DEBUG',
-      kernel: Kernel, &block
+      logger: nil, kernel: Kernel, &block
     )
-      logger.level = Logger.const_get(log_level)
-
       @running = true
       queue = Queue.new
 

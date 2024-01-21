@@ -6,7 +6,6 @@ module Outboxer
       let(:queue_size) { 1 }
       let(:thread_count) { 1 }
       let(:poll_interval) { 1 }
-      let(:log_level) { 'ERROR' }
       let(:logger) { instance_double(Logger, debug: true, error: true, fatal: true) }
       let(:kernel) { class_double(Kernel, sleep: nil) }
 
@@ -27,7 +26,7 @@ module Outboxer
             thread_count: thread_count,
             queue_size: queue_size,
             poll_interval: poll_interval,
-            log_level: log_level,
+            logger: logger,
             kernel: kernel
           ) do |publishing_message|
             expect(publishing_message.outboxer_messageable_type).to eq('DummyType')
@@ -53,7 +52,6 @@ module Outboxer
               queue_size: queue_size,
               poll_interval: poll_interval,
               logger: logger,
-              log_level: log_level,
               kernel: kernel,
             ) do |publishing_message|
               Publisher.stop!
@@ -80,7 +78,6 @@ module Outboxer
               queue_size: queue_size,
               poll_interval: poll_interval,
               logger: logger,
-              log_level: log_level,
               kernel: kernel,
             ) do |publishing_message|
               Publisher.stop!
@@ -117,7 +114,6 @@ module Outboxer
               queue_size: queue_size,
               poll_interval: poll_interval,
               logger: logger,
-              log_level: log_level,
               kernel: kernel
             ) {}
           end
