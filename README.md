@@ -45,21 +45,21 @@ class Event < ActiveRecord::Base
 end
 ```
 
-#### 4. update the generated sidekiq publisher block to queue a job based on the class
+#### 4. generate the sidekiq publisher
+
+```bash
+bin/rails g outboxer:publisher:sidekiq
+```
+
+#### 5. update the publish block to queue a sidekiq job based on the class of the created model
 
 ```ruby
-Outboxer::Message.publish! do |outboxer_message|
+Outboxer::Publisher.publish! do |outboxer_message|
   case outboxer_message.outboxer_messageable_id
   when 'Event'
     EventCreatedJob.perform_async({ 'id' => outboxer_message.outboxer_messageable_id })
   end
 end
-```
-
-#### 5. generate the sidekiq publisher
-
-```bash
-bin/rails g outboxer:publisher:sidekiq
 ```
 
 #### 6. run the publisher
