@@ -37,19 +37,19 @@ module Outboxer
       logger.debug "Message processed successfully for id: #{outboxer_message.id}"
     end
 
-    def push_messages!(threads:, queue:, queue_max:, poll:, logger:, kernel:)
+    def push_messages!(threads:, queue:, queue_size:, poll_interval:, logger:, kernel:)
       messages = []
 
-      queue_remaining = queue_max - queue.length
+      queue_remaining = queue_size - queue.length
       messages = (queue_remaining > 0) ? Outboxer::Message.unpublished!(limit: queue_remaining) : []
 
       if messages.empty?
-        debug_log("Sleeping for #{poll} seconds because there are no messages",
+        debug_log("Sleeping for #{poll_interval} seconds because there are no messages",
           logger: logger, threads: threads, queue: queue, messages: messages)
 
-        kernel.sleep(poll)
+        kernel.sleep(poll_interval)
 
-        debug_log("Slept for #{poll} seconds",
+        debug_log("Slept for #{poll_interval} seconds",
           logger: logger, threads: threads, queue: queue, messages: messages)
 
         return
@@ -63,22 +63,29 @@ module Outboxer
       debug_log("Pushed #{messages.length} messages to the queue",
         logger: logger, threads: threads, queue: queue, messages: messages)
 
-      if queue.length >= queue_max
-        debug_log("Sleeping for #{poll} seconds because queue length >= queue max",
+      if queue.length >= queue_size
+        debug_log("Sleeping for #{poll_interval} seconds because queue length >= queue size",
           logger: logger, threads: threads, queue: queue, messages: messages)
 
-        kernel.sleep(poll)
+        kernel.sleep(poll_interval)
 
-        debug_log("Slept for #{poll} seconds",
+        debug_log("Slept for #{poll_interval} seconds",
           logger: logger, threads: threads, queue: queue, messages: messages)
       end
     end
 
-    def publish!(threads_max:, queue_max:, poll:, logger: nil, kernel: Kernel, &block)
+    def publish!(
+      thread_count: 5, queue_size: 8, poll_interval: 1,
+      log_level: 'DEBUG', kernel: Kernel, &block
+    )
+      logger = Logger.new($stdout, level: Logger.const_get(log_level))
+
       @running = true
       queue = Queue.new
 
-      threads = threads_max.times.map do
+      trap('INT') { Publisher.stop! }
+
+      threads = thread_count.times.map do
         Thread.new do
           loop do
             begin
@@ -103,8 +110,8 @@ module Outboxer
           push_messages!(
             threads: threads,
             queue: queue,
-            queue_max: queue_max,
-            poll: poll,
+            queue_size: queue_size,
+            poll_interval: poll_interval,
             logger: logger,
             kernel: Kernel)
         rescue => exception
@@ -121,15 +128,12 @@ module Outboxer
     end
 
     def debug_log(message, logger:, threads:, queue:, messages:)
-      summary = {
-        threads: threads.length,
+      queue = {
         messages: messages.length,
-        queue: queue.length
-      }
+        queue: queue.length,
+        threads: threads.length }
 
-      rss = `ps -o rss= -p #{Process.pid}`.strip.to_i
-
-      logger.debug "#{message} #{summary.to_json} (RSS: #{rss} KB)"
+      logger&.debug "#{message} | queue: #{queue.to_json}"
     end
 
     private_class_method :debug_log

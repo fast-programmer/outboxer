@@ -8,45 +8,27 @@ require 'sidekiq'
 require_relative '../app/models/event'
 require_relative '../app/jobs/event_created_job'
 
-options = { redis_url: 'redis://localhost:6379/0' }
-
-Outboxer::OptionParser.parse!(options) do |option_parser|
-  option_parser.banner = 'Usage: example.rb [options]'
-
-  option_parser.on("-r", "--redis_url URL", "URL of the Redis server") do |redis_url|
-    options[:redis_url] = redis_url
-  end
-end
+environment = ENV['RAILS_ENV'] || 'development'
+config = Outboxer::Database.config(environment: environment)
+Outboxer::Database.connect!(config: config.merge('pool' => 5))
 
 Sidekiq.configure_client do |config|
-  config.redis = { url: options[:redis_url], size: options[:threads_max] }
+  redis_url = ENV['REDIS_URL'] || 'redis://localhost:6379/0'
+  config.redis = { url: redis_url, size: 4 }
 end
 
-Outboxer::Database.connect!(
-  config_path: File.expand_path(options[:db_config_path], Dir.pwd),
-  environment: options[:environment])
-
-trap('INT') { Outboxer::Publisher.stop! }
-
 Outboxer::Publisher.publish!(
-  threads_max: options[:threads_max],
-  queue_max: options[:queue_max],
-  poll: options[:poll],
-  logger: Outboxer::Logger.new($stdout, level: options[:log_level])
+  thread_count: 4,
+  queue_size: 8,
+  poll_interval: 1,
+  log_level: 'DEBUG'
 ) do |outboxer_message|
   case outboxer_message.outboxer_messageable_type
   when 'Event'
     EventCreatedJob.perform_async({ 'id' => outboxer_message.outboxer_messageable_id })
-  else
-    raise "No handler defined for #{outboxer_message.outboxer_messageable_type}"
   end
 end
 
-# bin/sidekiq_publisher \
-#   --environment=development \
-#   --db_config_path=config/database.yml \
-#   --queue_max=5 \
-#   --threads_max=5 \
-#   --poll=1 \
-#   --log_level=DEBUG \
-#   --redis_url=redis://localhost:6379/0
+# bin/sidekiq_publisher
+# RAILS_ENV=development bin/sidekiq_publisher
+# RAILS_ENV=development REDIS_URL=redis://localhost:6379/1 bin/sidekiq_publisher

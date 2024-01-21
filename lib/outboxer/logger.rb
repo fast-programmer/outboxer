@@ -11,8 +11,15 @@ module Outboxer
       "\e[90m"  # Grey
     ]
 
-    def initialize(*args)
-      super
+    DEBUG = ::Logger::DEBUG
+    INFO = ::Logger::INFO
+    WARN = ::Logger::WARN
+    ERROR = ::Logger::ERROR
+    FATAL = ::Logger::FATAL
+    UNKNOWN = ::Logger::UNKNOWN
+
+    def initialize(output, **args)
+      super(output, **args)
 
       @thread_color_map = {}
       @mutex = Mutex.new

@@ -16,9 +16,8 @@ RSpec.configure do |config|
   end
 
   config.before(:all) do
-    Outboxer::Database.connect!(
-      config_path: File.expand_path('../config/database.yml', __dir__),
-      environment: 'test')
+    db_config = Outboxer::Database.config(environment: 'test')
+    Outboxer::Database.connect!(config: db_config)
 
     DatabaseCleaner.strategy = :truncation
   end

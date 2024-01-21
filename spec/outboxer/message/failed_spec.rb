@@ -1,3 +1,4 @@
+require 'spec_helper'
 
 module Outboxer
   RSpec.describe Message do

@@ -1,8 +1,11 @@
 require 'optparse'
+require 'pry-byebug'
 
 module Outboxer
   class OptionParser
-    def self.parse!(options = {})
+    def self.parse!(default_options = {})
+      options = default_options.dup
+
       options.merge!({
         environment: 'development',
         db_config_path: 'config/database.yml',

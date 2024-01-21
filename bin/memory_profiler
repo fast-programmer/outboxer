@@ -1,0 +1,26 @@
+#!/usr/bin/env ruby
+
+require 'logger'
+require 'objspace'
+
+logger = Logger.new($stdout)
+
+loop do
+  GC.start
+
+  rss = `ps -o rss= -p #{Process.pid}`.strip.to_i
+  total_objects = ObjectSpace.each_object.count
+  total_strings = ObjectSpace.each_object(String).count
+  total_arrays = ObjectSpace.each_object(Array).count
+  total_hashes = ObjectSpace.each_object(Hash).count
+  total_symbols = ObjectSpace.each_object(Symbol).count
+  total_classes = ObjectSpace.each_object(Class).count
+  total_modules = ObjectSpace.each_object(Module).count
+  total_files = ObjectSpace.each_object(File).count
+  total_procs = ObjectSpace.each_object(Proc).count
+
+  logger.debug "iteration (RSS: #{rss} KB, Objects: #{total_objects}, Strings: #{total_strings}, Arrays: #{total_arrays}, Hashes: #{total_hashes}, Symbols: #{total_symbols}, Classes: #{total_classes}, Modules: #{total_modules}, Files: #{total_files}, Procs: #{total_procs})"
+
+
+  sleep 1
+end

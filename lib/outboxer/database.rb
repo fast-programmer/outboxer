@@ -9,16 +9,16 @@ module Outboxer
 
     class ConnectError < Error; end
 
-    def connect!(config_path:, environment:, logger: nil)
+    def config(environment:, path: 'config/database.yml')
+      db_config_content = File.read(path)
+      db_config_erb_result = ERB.new(db_config_content).result
+      YAML.load(db_config_erb_result)[environment]
+    end
+
+    def connect!(config:, logger: nil)
       ActiveRecord::Base.logger = logger if logger
 
-      config_erb_result = ERB.new(File.read(config_path)).result
-      yaml_config = YAML.load(config_erb_result)
-
-      configurations = ActiveRecord::DatabaseConfigurations.new(yaml_config)
-      config_hash = configurations.configs_for(env_name: environment)[0].configuration_hash
-
-      ActiveRecord::Base.establish_connection(config_hash)
+      ActiveRecord::Base.establish_connection(config)
 
       ActiveRecord::Base.connection_pool.with_connection {}
     rescue ActiveRecord::DatabaseConnectionError => error

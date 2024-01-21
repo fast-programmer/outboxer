@@ -1,7 +1,7 @@
 require_relative '../app/models/invoice'
 require_relative '../app/models/event'
 
-100.times do |_i|
+1.times do |_i|
   invoice = Invoice.create!
 
   event = invoice.events.create!(type: 'Invoice.created')
