@@ -90,10 +90,10 @@ module Outboxer
           queue.push(nil)
         end
 
-        it 'raises ThreadShutdown' do
+        it 'raises ThreadAborted' do
           expect do
             Publisher.pop_message!(queue: queue, logger: logger) { |_msg| 'processed' }
-          end.to raise_error(Publisher::ThreadShutdown)
+          end.to raise_error(Publisher::ThreadAborted)
         end
       end
     end

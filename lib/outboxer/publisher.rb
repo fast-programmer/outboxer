@@ -14,11 +14,11 @@ module Outboxer
       @running = false
     end
 
-    class ThreadShutdown < Error; end
+    class ThreadAborted < Error; end
 
     def pop_message!(queue:, logger:, &block)
       outboxer_message = queue.pop
-      raise ThreadShutdown if outboxer_message.nil?
+      raise ThreadAborted if outboxer_message.nil?
 
       logger.debug "Processing message id: #{outboxer_message.id}"
 
@@ -91,7 +91,7 @@ module Outboxer
           loop do
             begin
               pop_message!(queue: queue, logger: logger, &block)
-            rescue ThreadShutdown
+            rescue ThreadAborted
               break
             rescue => exception
               logger.error "#{exception.class}: #{exception.message}"
