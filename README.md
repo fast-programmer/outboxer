@@ -23,10 +23,10 @@ bundle install
 
 ## Usage
 
-#### 1. generate the outboxer schema and sidekiq publisher
+#### 1. generate the outboxer schema
 
 ```bash
-bin/rails generate outboxer:install
+bin/rails g outboxer:schema
 ```
 
 #### 2. migrate the outboxer schema
@@ -48,15 +48,21 @@ end
 #### 4. update the generated sidekiq publisher block to queue a job based on the class
 
 ```ruby
-Outboxer::Message.publish! do |outboxer_messageable|
-  case outboxer_messageable
-  when Event
-    EventHandlerJob.perform_async({ 'id' => outboxer_messageable.id })
+Outboxer::Message.publish! do |outboxer_message|
+  case outboxer_message.outboxer_messageable_id
+  when 'Event'
+    EventCreatedJob.perform_async({ 'id' => outboxer_message.outboxer_messageable_id })
   end
 end
 ```
 
-#### 5. run the sidekiq publisher as a long running process
+#### 5. generate the sidekiq publisher
+
+```bash
+bin/rails g outboxer:publisher:sidekiq
+```
+
+#### 6. run the publisher
 
 ```bash
 bin/sidekiq_publisher
@@ -64,7 +70,7 @@ bin/sidekiq_publisher
 
 ## Motivation
 
-Outboxer was created to help teams migrate conventional Ruby on Rails apps to event driven architecture quickly.
+Outboxer was created to help Rails teams migrate to event driven architecture quickly.
 
 ## Contributing
 
