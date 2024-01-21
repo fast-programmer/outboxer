@@ -76,9 +76,10 @@ module Outboxer
 
     def publish!(
       thread_count: 5, queue_size: 8, poll_interval: 1,
-      log_level: 'DEBUG', kernel: Kernel, &block
+      logger: Logger.new($stdout), log_level: 'DEBUG',
+      kernel: Kernel, &block
     )
-      logger = Logger.new($stdout, level: Logger.const_get(log_level))
+      logger.level = Logger.const_get(log_level)
 
       @running = true
       queue = Queue.new

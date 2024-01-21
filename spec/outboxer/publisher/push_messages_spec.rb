@@ -7,8 +7,8 @@ module Outboxer
         let(:queue) { Queue.new }
         let(:logger) { instance_double(Logger, debug: true, error: true) }
         let(:threads) { [] }
-        let(:queue_max) { 1 }
-        let(:poll) { 1 }
+        let(:queue_size) { 1 }
+        let(:poll_interval) { 1 }
         let(:kernel) { class_double(Kernel, sleep: nil) }
 
         let!(:message) do
@@ -22,8 +22,8 @@ module Outboxer
           Publisher.push_messages!(
             threads: threads,
             queue: queue,
-            queue_max: queue_max,
-            poll: poll,
+            queue_size: queue_size,
+            poll_interval: poll_interval,
             logger: logger,
             kernel: kernel)
         end
@@ -33,7 +33,7 @@ module Outboxer
         end
 
         it 'sleeps due to queue full' do
-          expect(kernel).to have_received(:sleep).with(poll)
+          expect(kernel).to have_received(:sleep).with(poll_interval)
         end
       end
 
@@ -41,20 +41,20 @@ module Outboxer
         let(:queue) { Queue.new }
         let(:logger) { instance_double(Logger, debug: true, error: true) }
         let(:threads) { [] }
-        let(:queue_max) { 1 }
-        let(:poll) { 1 }
+        let(:queue_size) { 1 }
+        let(:poll_interval) { 1 }
         let(:kernel) { class_double(Kernel) }
 
         before do
           allow(kernel).to receive(:sleep)
 
           Publisher.push_messages!(
-            threads: threads, queue: queue, queue_max: queue_max, poll: poll, logger: logger,
+            threads: threads, queue: queue, queue_size: queue_size, poll_interval: poll_interval, logger: logger,
             kernel: kernel)
         end
 
         it 'calls sleep once' do
-          expect(kernel).to have_received(:sleep).with(poll).once
+          expect(kernel).to have_received(:sleep).with(poll_interval).once
         end
 
         it 'does not change the queue size from 0' do
@@ -66,8 +66,8 @@ module Outboxer
         let(:queue) { Queue.new }
         let(:logger) { instance_double(Logger, debug: true, error: true) }
         let(:threads) { [] }
-        let(:queue_max) { 1 }
-        let(:poll) { 1 }
+        let(:queue_size) { 1 }
+        let(:poll_interval) { 1 }
         let(:kernel) { class_double(Kernel, sleep: nil) }
 
         let(:message) do
@@ -83,12 +83,12 @@ module Outboxer
           queue.push(message)
 
           Publisher.push_messages!(
-            threads: threads, queue: queue, queue_max: queue_max, poll: poll, logger: logger,
+            threads: threads, queue: queue, queue_size: queue_size, poll_interval: poll_interval, logger: logger,
             kernel: kernel)
         end
 
         it 'calls sleep once' do
-          expect(kernel).to have_received(:sleep).with(poll).once
+          expect(kernel).to have_received(:sleep).with(poll_interval).once
         end
 
         it 'does not change the queue size from 1' do
