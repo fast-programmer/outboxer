@@ -1,5 +1,5 @@
 module Outboxer
-  class InstallGenerator < Rails::Generators::Base
+  class SchemaGenerator < Rails::Generators::Base
     include Rails::Generators::Migration
 
     source_root File.expand_path('../', __dir__)
@@ -10,11 +10,6 @@ module Outboxer
       next_number += 1 while Dir.glob("#{dirname}/#{next_number}*").any?
 
       next_number.to_s
-    end
-
-    def copy_bin_file
-      template "bin/sidekiq_publisher", "bin/sidekiq_publisher"
-      run "chmod +x bin/sidekiq_publisher"
     end
 
     def copy_migrations

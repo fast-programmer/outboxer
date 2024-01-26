@@ -22,7 +22,7 @@ Outboxer::Database.connect!(config: config.merge('pool' => concurrency + 1))
 
 Outboxer::Publisher.publish!(
   thread_count: concurrency, queue_size: concurrency * 2, poll_interval: 1,
-  logger: logger,
+  logger: logger
 ) do |outboxer_message|
   case outboxer_message.outboxer_messageable_type
   when 'Event'
@@ -30,5 +30,4 @@ Outboxer::Publisher.publish!(
   end
 end
 
-# bin/sidekiq_publisher
-# REDIS_URL=redis://localhost:6379/0 CONCURRENCY=5 RAILS_ENV=development bin/sidekiq_publisher
+# CONCURRENCY=5 REDIS_URL=redis://localhost:6379/0 RAILS_ENV=development bin/sidekiq_publisher

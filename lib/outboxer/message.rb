@@ -5,7 +5,7 @@ module Outboxer
   module Message
     module_function
 
-    class Error < StandardError; end;
+    class Error < Outboxer::Error; end;
     class NotFound < Error; end
     class InvalidTransition < Error; end
 

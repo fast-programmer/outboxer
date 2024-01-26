@@ -2,7 +2,7 @@ module Outboxer
   module Publisher
     extend self
 
-    class Error < StandardError; end
+    class Error < Outboxer::Error; end;
 
     @running = false
 

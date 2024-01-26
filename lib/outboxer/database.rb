@@ -12,7 +12,7 @@ module Outboxer
     def config(environment:, path: 'config/database.yml')
       db_config_content = File.read(path)
       db_config_erb_result = ERB.new(db_config_content).result
-      YAML.load(db_config_erb_result)[environment]
+      YAML.safe_load(db_config_erb_result, aliases: true)[environment]
     end
 
     def connect!(config:, logger: nil)

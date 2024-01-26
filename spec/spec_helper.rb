@@ -1,5 +1,5 @@
-require 'database_cleaner'
 require 'simplecov'
+require 'database_cleaner'
 require 'pry-byebug'
 
 SimpleCov.start

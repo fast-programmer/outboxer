@@ -5,179 +5,72 @@
 
 ## Background
 
-Outboxer helps teams migrate existing Ruby on Rails apps to event-driven architecture ASAP.
+Outboxer is a Ruby implementation of the [transactional outbox pattern](https://microservices.io/patterns/data/transactional-outbox.html).
 
-It guarantees an eventual consistency model, where no events are lost even when updates span SQL and Redis.
+## Installation
 
-## Problem
-
-To support an eventually consistent event driven architecture, an application service often needs to:
-
-1. create or update a `Model` row in an _SQL table_
-1. create an `Event` row in an _SQL table_
-2. queue a `Worker` entry in _Redis set_
-
-
-As these operations span multiple database types (_SQL_ and _Redis_) however, they can not be combined into a single atomic operation using a transaction. If either database fails, inconsistencies can occur.
-
-## Solution
-
-Outboxer is an `ActiveRecord` implementation of the [transactional outbox pattern](https://microservices.io/patterns/data/transactional-outbox.html): a well established solution to this problem.
-
-By creating an outboxer message in the same transaction as an event, we can guarantee the event is published out to another system _eventually_, even if there are failures.
-
-### Getting started
-
-### Installation
-
-#### add the outboxer gem to your application's Gemfile:
+### add the outboxer gem to your application's gemfile
 
 ```
 gem 'outboxer'
 ```
 
-#### install the outboxer gem:
+### install the outboxer gem
 
 ```
 bundle install
 ```
 
-### Usage
+## Usage
 
-#### 1. add polymorphic events to your models
-
-##### a. add events table schema
+### generate the outboxer schema
 
 ```bash
-bin/rails g migration create_events
+bin/rails g outboxer:schema
 ```
 
-```ruby
-class CreateEvents < ActiveRecord::Migration[6.1]
-  def change
-    create_table :events, force: true do |t|
-      t.text :type, null: false
-      t.jsonb :payload
-
-      t.datetime :created_at, null: false
-
-      t.references :eventable, polymorphic: true, null: false, index: true
-    end
-
-    add_index :events, [:eventable_type, :eventable_id, :created_at],
-      name: 'index_events_on_eventable_and_created_at'
-  end
-end
-```
+### migrate the outboxer schema
 
 ```bash
 bin/rake db:migrate
 ```
 
-##### b. add Event model
-
-```ruby
-class Event < ActiveRecord::Base
-  self.inheritance_column = nil
-
-  attribute :created_at, :datetime, default: -> { Time.current }
-
-  belongs_to :eventable, polymorphic: true
-
-  validates :type, presence: true
-  validates :eventable, presence: true
-end
-```
-
-#### 2. associate events with your models
-
-##### a. invoice
-
-```ruby
-class Invoice < ActiveRecord::Base
-  has_many :events,
-            -> { order(created_at: :asc) },
-            as: :eventable
-end
-```
-
-##### b. contact
-
-```ruby
-class Contact < ActiveRecord::Base
-  has_many :events,
-            -> { order(created_at: :asc) },
-            as: :eventable
-end
-```
-
-#### 3. integrate events with outboxer
-
-##### a. generate outboxer schema and publisher
-
-```bash
-bin/rails generate outboxer:install
-```
-
-##### b. migrate outboxer schema
-
-```bash
-bin/rake db:migrate
-```
-
-##### c. associate outboxer message with event
-
-```ruby
-class Event < ActiveRecord::Base
-  include Outboxer::Messageable
-end
-```
-
-or if you want to override association attributes such as dependent
+### add outboxer messageable to the models you want to handle in a sidekiq job
 
 ```ruby
 class Event < ActiveRecord::Base
   include Outboxer::Messageable
 
-  has_outboxer_message dependent: :destroy
+  # your existing code here
 end
 ```
 
-#### 4. publish events
+### generate the sidekiq publisher
 
-##### a. update block to queue an event handler worker
+```bash
+bin/rails g outboxer:sidekiq_publisher
+```
+
+### update the publish block to queue a sidekiq job based on the class of the created model
 
 ```ruby
-Outboxer::Message.publish! do |outboxer_messageable|
-  case outboxer_messageable
-  when Event
-    EventHandlerWorker.perform_async({ 'id' => outboxer_messageable.id })
+Outboxer::Publisher.publish! do |outboxer_message|
+  case outboxer_message.outboxer_messageable_id
+  when 'Event'
+    EventCreatedJob.perform_async({ 'id' => outboxer_message.outboxer_messageable_id })
   end
 end
 ```
 
-##### b. run the outboxer publisher
+### run the publisher
 
 ```bash
-bin/outboxer_publisher
+bin/sidekiq_publisher
 ```
-
-
-## Implementation
-
-To see all the parts working together in a single place, check out the [publisher_spec.rb](https://github.com/fast-programmer/outboxer/blob/master/spec/outboxer/message_spec.rb)
-
 
 ## Motivation
 
-Outboxer was created to help teams transition Ruby on Rails apps to event driven architecture quickly.
-
-Specifically this means:
-
-1. fast integration into existing Ruby on Rails applications (< 1 day)
-2. comprehensive documentation
-3. high reliability in production environments
-4. forever free to use in commerical applications (MIT licence)
+Outboxer was created to help Rails teams migrate to event driven architecture quickly.
 
 ## Contributing
 
