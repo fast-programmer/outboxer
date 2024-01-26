@@ -6,7 +6,7 @@ module Outboxer
       let(:queue_size) { 1 }
       let(:thread_count) { 1 }
       let(:poll_interval) { 1 }
-      let(:logger) { instance_double(Logger, debug: true, error: true, fatal: true) }
+      let(:logger) { instance_double(Logger, debug: true, error: true, fatal: true, info: true) }
       let(:kernel) { class_double(Kernel, sleep: nil) }
 
       before do
