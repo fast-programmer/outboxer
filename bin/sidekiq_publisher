@@ -4,25 +4,25 @@ require 'bundler/setup'
 require 'outboxer'
 require 'sidekiq'
 
-require_relative '../app/models/event'
 require_relative '../app/jobs/event_created_job'
 
+concurrency = ENV['CONCURRENCY'] || 5
+redis_url = ENV['REDIS_URL'] || 'redis://localhost:6379/0'
 environment = ENV['RAILS_ENV'] || 'development'
-config = Outboxer::Database.config(environment: environment)
-Outboxer::Database.connect!(config: config.merge('pool' => 5))
+
+logger = Outboxer::Logger.new($stdout, level: Outboxer::Logger::INFO)
 
 Sidekiq.configure_client do |config|
-  redis_url = ENV['REDIS_URL'] || 'redis://localhost:6379/0'
-  config.redis = { url: redis_url, size: 4 }
+  config.redis = { url: redis_url, size: concurrency }
+  config.logger = logger
 end
 
-logger = Outboxer::Logger.new($stdout, level: Outboxer::Logger::DEBUG)
+config = Outboxer::Database.config(environment: environment)
+Outboxer::Database.connect!(config: config.merge('pool' => concurrency + 1))
 
 Outboxer::Publisher.publish!(
-  thread_count: 4,
-  queue_size: 8,
-  poll_interval: 1,
-  logger: logger
+  thread_count: concurrency, queue_size: concurrency * 2, poll_interval: 1,
+  logger: logger,
 ) do |outboxer_message|
   case outboxer_message.outboxer_messageable_type
   when 'Event'
@@ -31,5 +31,4 @@ Outboxer::Publisher.publish!(
 end
 
 # bin/sidekiq_publisher
-# RAILS_ENV=development bin/sidekiq_publisher
-# RAILS_ENV=development REDIS_URL=redis://localhost:6379/1 bin/sidekiq_publisher
+# REDIS_URL=redis://localhost:6379/0 CONCURRENCY=5 RAILS_ENV=development bin/sidekiq_publisher

@@ -4,11 +4,31 @@ require 'thread'
 module Outboxer
   class Logger < ::Logger
     COLORS = [
-      "\e[33m", # Yellow
-      "\e[35m", # Magenta
-      "\e[36m", # Cyan
-      "\e[37m", # White
-      "\e[90m"  # Grey
+      "\e[33m",  # Yellow
+      "\e[35m",  # Magenta
+      "\e[36m",  # Cyan
+      "\e[37m",  # White
+      "\e[90m",  # Grey
+      "\e[34m",  # Blue
+      "\e[94m",  # Bright Blue
+      "\e[95m",  # Bright Magenta
+      "\e[96m",  # Bright Cyan
+      "\e[97m",  # Bright White
+      "\e[93m",  # Bright Yellow
+      "\e[91m",  # Bright Red (can be used if not indicating error)
+      "\e[92m",  # Bright Green (can be used if not indicating success)
+      "\e[100m", # Background Grey
+      "\e[44m",  # Background Blue
+      "\e[45m",  # Background Magenta
+      "\e[46m",  # Background Cyan
+      "\e[47m",  # Background White
+      "\e[104m", # Background Bright Blue
+      "\e[105m", # Background Bright Magenta
+      "\e[106m", # Background Bright Cyan
+      "\e[107m", # Background Bright White
+      "\e[103m", # Background Bright Yellow
+      "\e[101m", # Background Bright Red (can be used if not indicating error)
+      "\e[102m"  # Background Bright Green (can be used if not indicating success)
     ]
 
     DEBUG = ::Logger::DEBUG

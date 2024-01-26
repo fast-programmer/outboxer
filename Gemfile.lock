@@ -40,6 +40,7 @@ GEM
     docile (1.4.0)
     drb (2.2.0)
       ruby2_keywords
+    foreman (0.87.2)
     i18n (1.14.1)
       concurrent-ruby (~> 1.0)
     json (2.6.3)
@@ -118,6 +119,7 @@ PLATFORMS
 DEPENDENCIES
   activerecord (~> 7.1, >= 7.1.2)
   database_cleaner (~> 2.0, >= 2.0.2)
+  foreman (~> 0.87.2)
   outboxer!
   pg (~> 1.5)
   pry-byebug (~> 3.10)

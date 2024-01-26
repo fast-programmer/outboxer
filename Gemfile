@@ -14,6 +14,8 @@ gem "activerecord", "~> 7.1", ">= 7.1.2"
 
 gem "sidekiq", "~> 7.2"
 
+gem 'foreman', '~> 0.87.2'
+
 # group :test do
 #   gem 'database_cleaner', '~> 2.0', '>= 2.0.2'
 # end

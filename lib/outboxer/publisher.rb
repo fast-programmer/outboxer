@@ -74,14 +74,17 @@ module Outboxer
       end
     end
 
-    def publish!(
-      thread_count: 5, queue_size: 8, poll_interval: 1,
-      logger: nil, kernel: Kernel, &block
-    )
+    def publish!(thread_count: 5, queue_size: 8, poll_interval: 1,
+                 logger: nil, kernel: Kernel, &block)
+      config = { thread_count: thread_count, queue_size: queue_size, poll_interval: poll_interval }
+      logger&.info "Starting publisher #{config}"
+
       @running = true
       queue = Queue.new
 
       trap('INT') { Publisher.stop! }
+
+      logger&.info "Creating #{thread_count} worker threads"
 
       threads = thread_count.times.map do
         Thread.new do
@@ -89,6 +92,8 @@ module Outboxer
             begin
               pop_message!(queue: queue, logger: logger, &block)
             rescue ThreadAborted
+              logger&.info 'Thread shutting down gracefully'
+
               break
             rescue => exception
               logger.error "#{exception.class}: #{exception.message}"
@@ -102,6 +107,8 @@ module Outboxer
           end
         end
       end
+
+      logger&.info 'Publishing messages to queue...'
 
       while @running
         begin
@@ -121,8 +128,12 @@ module Outboxer
         end
       end
 
+      logger&.info "Publisher shutting down..."
+
       threads.length.times { queue.push(nil) }
       threads.each(&:join)
+
+      logger&.info "Publisher shut down gracefully"
     end
 
     def debug_log(message, logger:, threads:, queue:, messages:)

@@ -30,6 +30,7 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency "activerecord", "~> 7.0"
 
+  spec.add_development_dependency 'foreman', '~> 0.87.2'
   spec.add_development_dependency 'pry-byebug', '3.10'
   spec.add_development_dependency 'activerecord', '~> 7.0'
   spec.add_development_dependency 'database_cleaner', '~> 2.0', '>= 2.0.2'
