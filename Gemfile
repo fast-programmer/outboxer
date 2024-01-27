@@ -4,7 +4,7 @@ gemspec
 
 gem "pry-byebug", "~> 3.10"
 gem "rake", "~> 13.0"
-gem "rspec", "~> 3.12"
+gem "rspec"
 gem "rubocop", "~> 1.55"
 
 gem "yard", "~> 0.9.34"

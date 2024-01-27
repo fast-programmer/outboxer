@@ -35,13 +35,13 @@ bin/rails g outboxer:schema
 bin/rake db:migrate
 ```
 
-### add outboxer messageable to the models you want to handle in a sidekiq job
+### include outboxer messageable to the models you want to handle in a sidekiq job
 
 ```ruby
 class Event < ActiveRecord::Base
   include Outboxer::Messageable
 
-  # your existing code here
+  # ...
 end
 ```
 
@@ -62,7 +62,7 @@ Outboxer::Publisher.publish! do |outboxer_message|
 end
 ```
 
-### run the publisher
+### run the sidekiq publisher
 
 ```bash
 bin/sidekiq_publisher
@@ -70,7 +70,7 @@ bin/sidekiq_publisher
 
 ## Motivation
 
-Outboxer was created to help Rails teams migrate to event driven architecture quickly.
+Outboxer was created to help Rails teams migrate to eventually consistent event driven architecture quickly, using existing tools and infrastructure.
 
 ## Contributing
 

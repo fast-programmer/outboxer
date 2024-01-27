@@ -1,8 +1,7 @@
 require 'simplecov'
+SimpleCov.start
 require 'database_cleaner'
 require 'pry-byebug'
-
-SimpleCov.start
 
 require 'outboxer'
 

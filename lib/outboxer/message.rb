@@ -3,7 +3,7 @@ require "active_record"
 
 module Outboxer
   module Message
-    module_function
+    extend self
 
     class Error < Outboxer::Error; end;
     class NotFound < Error; end
@@ -24,11 +24,14 @@ module Outboxer
     # @raise [StandardError] Reraises any exception that occurs during the yield.
     #
     # @example Publish message
-    #   Outboxer::Message.publish! do |outboxer_messageable|
-    #     EventHandlerWorker.perform_async({'id' => outboxer_messageable.id })
+    #   Outboxer::Message.publish! do |outboxer_message|
+    #     case outboxer_message.outboxer_messageable_type
+    #     when 'Event'
+    #       EventCreatedJob.perform_async({ 'id' => outboxer_message.outboxer_messageable_id })
+    #     end
     #   end
 
-    def self.unpublished!(limit: 5, order: :asc)
+    def unpublished!(limit: 5, order: :asc)
       ActiveRecord::Base.connection_pool.with_connection do
         message_ids = ActiveRecord::Base.transaction do
           ids = Models::Message
@@ -53,12 +56,9 @@ module Outboxer
       end
     end
 
-    def self.published!(id:)
+    def published!(id:)
       ActiveRecord::Base.connection_pool.with_connection do
-        outboxer_message = Models::Message
-          .order(created_at: :asc)
-          .lock
-          .find_by!(id: id)
+        outboxer_message = Models::Message.order(created_at: :asc).lock.find_by!(id: id)
 
         if outboxer_message.status != Models::Message::STATUS[:publishing]
           raise InvalidTransition,
@@ -72,13 +72,10 @@ module Outboxer
       end
     end
 
-    def self.failed!(id:, exception:)
+    def failed!(id:, exception:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          outboxer_message = Models::Message
-            .order(created_at: :asc)
-            .lock
-            .find_by!(id: id)
+          outboxer_message = Models::Message.order(created_at: :asc).lock.find_by!(id: id)
 
           if outboxer_message.status != Models::Message::STATUS[:publishing]
             raise InvalidTransition,
@@ -98,11 +95,9 @@ module Outboxer
       end
     end
 
-    def self.republish!(id:)
+    def republish!(id:)
       ActiveRecord::Base.connection_pool.with_connection do
-        outboxer_message = Models::Message
-          .lock
-          .find_by!(id: id)
+        outboxer_message = Models::Message.lock.find_by!(id: id)
 
         if outboxer_message.status != Models::Message::STATUS[:failed]
           raise InvalidTransition,

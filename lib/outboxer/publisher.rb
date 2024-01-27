@@ -92,7 +92,7 @@ module Outboxer
             begin
               pop_message!(queue: queue, logger: logger, &block)
             rescue ThreadAborted
-              logger&.info 'Thread shutting down gracefully'
+              logger&.info 'Thread shutting down'
 
               break
             rescue => exception
@@ -105,8 +105,12 @@ module Outboxer
               break
             end
           end
+
+          logger&.info 'Thread shut down gracefully'
         end
       end
+
+      logger&.info "Created #{thread_count} worker threads"
 
       logger&.info 'Publishing messages to queue...'
 
