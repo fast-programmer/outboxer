@@ -9,13 +9,13 @@ Outboxer is a Ruby implementation of the [transactional outbox pattern](https://
 
 ## Installation
 
-### add the outboxer gem to your application's gemfile
+### add the gem to your application's gemfile
 
 ```
 gem 'outboxer'
 ```
 
-### install the outboxer gem
+### install the gem
 
 ```
 bundle install
@@ -23,19 +23,19 @@ bundle install
 
 ## Usage
 
-### generate the outboxer schema
+### generate the schema
 
 ```bash
 bin/rails g outboxer:schema
 ```
 
-### migrate the outboxer schema
+### migrate the schema
 
 ```bash
 bin/rake db:migrate
 ```
 
-### include outboxer messageable to the models you want to handle in a sidekiq job
+### include messageable into the models you want to handle creation of in a sidekiq job
 
 ```ruby
 class Event < ActiveRecord::Base

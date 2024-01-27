@@ -1,5 +1,9 @@
 module Outboxer
   module Messageable
+    # The Messageable module, when included in a class, provides the ability to associate
+    # that class with an Outboxer message. This association is set up through a series
+    # of class methods defined in the included ClassMethods module.
+
     def self.included(base)
       base.extend ClassMethods
 
