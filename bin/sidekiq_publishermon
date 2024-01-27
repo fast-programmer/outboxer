@@ -1,0 +1,21 @@
+#!/usr/bin/env ruby
+
+require 'bundler/setup'
+require 'outboxer'
+require 'sidekiq'
+
+environment = ENV['RAILS_ENV'] || 'development'
+config = Outboxer::Database.config(environment: environment)
+Outboxer::Database.connect!(config: config.merge('pool' => 1))
+
+total_unpublished = Outboxer::Models::Message.unpublished.count
+total_publishing = Outboxer::Models::Message.publishing.count
+total_failed = Outboxer::Models::Message.failed.count
+
+puts "Outboxer Report"
+puts Time.now.utc
+puts "\n---- Overview ----"
+
+puts format("%-15s: %s", "Unpublished", total_unpublished)
+puts format("%-15s: %s", "Publishing", total_publishing)
+puts format("%-15s: %s", "Failed", total_failed)
