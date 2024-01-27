@@ -1,9 +1,11 @@
 require 'simplecov'
-SimpleCov.start
+SimpleCov.start do
+  track_files 'lib/**/*.rb'
+end
 require 'database_cleaner'
 require 'pry-byebug'
 
-require 'outboxer'
+require_relative '../lib/outboxer'
 
 RSpec.configure do |config|
   config.example_status_persistence_file_path = ".rspec_status"

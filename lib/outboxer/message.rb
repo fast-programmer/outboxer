@@ -9,28 +9,6 @@ module Outboxer
     class NotFound < Error; end
     class InvalidTransition < Error; end
 
-    # publish an unpublished outboxer messageable
-    #
-    # This method retrieves an unpublished message, sets it to publishing and then yields it to
-    # the provided block. The message is marked as readonly to prevent modifications
-    # during processing. If an error occurs during the yield, the method rescues
-    # the exception, sets the message status to failed, and re-raises the exception.
-    # Upon successful processing, the message status is set to published.
-    #
-    # @yield [outboxer_messageable] Yields the polymorphically associated model.
-    # @yieldparam outboxer_messageable The readonly message from outboxer.
-    #
-    # @raise [Outboxer::Message::NotFound] If no unpublished message is found in the queue.
-    # @raise [StandardError] Reraises any exception that occurs during the yield.
-    #
-    # @example Publish message
-    #   Outboxer::Message.publish! do |outboxer_message|
-    #     case outboxer_message.outboxer_messageable_type
-    #     when 'Event'
-    #       EventCreatedJob.perform_async({ 'id' => outboxer_message.outboxer_messageable_id })
-    #     end
-    #   end
-
     def unpublished!(limit: 5, order: :asc)
       ActiveRecord::Base.connection_pool.with_connection do
         message_ids = ActiveRecord::Base.transaction do
@@ -49,7 +27,6 @@ module Outboxer
         end
 
         Models::Message
-          # .includes(:outboxer_messageable)
           .where(id: message_ids, status: Models::Message::STATUS[:publishing])
           .order(created_at: order)
           .to_a
