@@ -1,7 +1,5 @@
 require 'simplecov'
-SimpleCov.start do
-  track_files 'lib/**/*.rb'
-end
+SimpleCov.start
 require 'database_cleaner'
 require 'pry-byebug'
 
