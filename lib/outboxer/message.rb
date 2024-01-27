@@ -51,7 +51,7 @@ module Outboxer
         Models::Message
           # .includes(:outboxer_messageable)
           .where(id: message_ids, status: Models::Message::STATUS[:publishing])
-          .order(created_at: :asc)
+          .order(created_at: order)
           .to_a
       end
     end
