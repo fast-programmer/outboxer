@@ -28,9 +28,15 @@ end
 loop do
   system("clear") || system("cls")
 
-  total_unpublished = Outboxer::Models::Message.unpublished.count
-  total_publishing = Outboxer::Models::Message.publishing.count
-  total_failed = Outboxer::Models::Message.failed.count
+  total_unpublished = nil
+  total_publishing = nil
+  total_failed = nil
+
+  ActiveRecord::Base.connection_pool.with_connection do
+    total_unpublished = Outboxer::Models::Message.unpublished.count
+    total_publishing = Outboxer::Models::Message.publishing.count
+    total_failed = Outboxer::Models::Message.failed.count
+  end
 
   pids = sidekiq_publisher_pids.sort
 

@@ -19,5 +19,3 @@ end
 
 require 'irb'
 IRB.start(__FILE__)
-
-# bin/console
