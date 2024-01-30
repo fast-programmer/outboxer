@@ -37,6 +37,6 @@ jobs:
         export PGPASSWORD=outboxer_password
         psql -h localhost -U outboxer_developer -d outboxer_test -c 'SELECT version();'
     - name: Run Database Migrations
-      run: RAILS_ENV=test bin/rake outboxer:db:migrate -f spec/tasks/database.rake
+      run: RAILS_ENV=test bin/rake outboxer:db:migrate
     - name: Run the default task
       run: RAILS_ENV=test bin/rspec spec
