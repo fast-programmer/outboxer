@@ -23,6 +23,8 @@ module Outboxer
       ActiveRecord::Base.connection_pool.with_connection {}
     rescue ActiveRecord::DatabaseConnectionError => error
       raise ConnectError.new(error.message)
+    rescue ActiveRecord::ConnectionNotEstablished => error
+      raise ConnectError.new(error.message)
     end
 
     def connected?
