@@ -24,7 +24,7 @@ RSpec.configure do |config|
   config.after(:each) do
     begin
       DatabaseCleaner.clean
-    rescue ActiveRecord::DatabaseConnectionError
+    rescue ActiveRecord::DatabaseConnectionError, ActiveRecord::ConnectionNotEstablished
       # ignore
     end
   end
