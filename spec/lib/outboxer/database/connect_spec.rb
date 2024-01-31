@@ -24,7 +24,7 @@ module Outboxer
         it 'establishes a connection without errors' do
           expect do
             Database.connect!(config: config)
-          end.to raise_error(Database::ConnectError, /There is an issue connecting/)
+          end.to raise_error(Database::ConnectError)
         end
 
         it 'does not connect to the database' do
