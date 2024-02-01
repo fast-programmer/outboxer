@@ -19,3 +19,9 @@ gem 'foreman', '~> 0.87.2'
 # group :test do
 #   gem 'database_cleaner', '~> 2.0', '>= 2.0.2'
 # end
+
+# web
+gem 'rackup', '~> 2.1'
+gem 'sinatra', '~> 4.0'
+gem 'puma', '~> 6.4', '>= 6.4.2'
+gem 'kaminari', '~> 1.2', '>= 1.2.2'
