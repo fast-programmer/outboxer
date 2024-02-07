@@ -21,8 +21,7 @@ config = Outboxer::Database.config(environment: environment)
 Outboxer::Database.connect!(config: config.merge('pool' => concurrency + 1))
 
 Outboxer::Publisher.publish!(
-  thread_count: concurrency, queue_size: concurrency * 2, poll_interval: 1,
-  logger: logger
+  thread_count: concurrency, queue_size: concurrency * 2, poll_interval: 1, logger: logger
 ) do |outboxer_message|
   case outboxer_message.outboxer_messageable_type
   when 'Event'
