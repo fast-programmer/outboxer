@@ -7,13 +7,13 @@ module Outboxer
         let!(:unpublished_messages) do
           [
             Models::Message.create!(
-              outboxer_messageable_type: 'DummyType',
-              outboxer_messageable_id: 1,
+              messageable_type: 'DummyType',
+              messageable_id: 1,
               status: Models::Message::STATUS[:unpublished],
               created_at: DateTime.parse('2024-01-14T00:00:00Z')),
             Models::Message.create!(
-              outboxer_messageable_type: 'DummyType',
-              outboxer_messageable_id: 2,
+              messageable_type: 'DummyType',
+              messageable_id: 2,
               status: Models::Message::STATUS[:unpublished],
               created_at: DateTime.parse('2024-01-14T00:00:01Z'))
           ]
@@ -27,8 +27,8 @@ module Outboxer
               expect(publishing_messages.count).to eq(1)
 
               publishing_message = publishing_messages.first
-              expect(publishing_message.outboxer_messageable_type).to eq('DummyType')
-              expect(publishing_message.outboxer_messageable_id).to eq(1)
+              expect(publishing_message.messageable_type).to eq('DummyType')
+              expect(publishing_message.messageable_id).to eq(1)
               expect(publishing_message.status).to eq(Models::Message::STATUS[:publishing])
             end
 

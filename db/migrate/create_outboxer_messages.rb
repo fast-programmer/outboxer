@@ -3,7 +3,7 @@ class CreateOutboxerMessages < ActiveRecord::Migration[6.1]
     create_table :outboxer_messages do |t|
       t.string :status, null: false
 
-      t.references :outboxer_messageable, polymorphic: true, null: false
+      t.references :messageable, polymorphic: true, null: false
 
       t.timestamps
     end

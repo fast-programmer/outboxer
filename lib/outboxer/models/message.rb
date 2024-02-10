@@ -6,9 +6,9 @@ module Outboxer
     #
     # @!attribute [r] id
     #   @return [Integer] The unique identifier for the message.
-    # @!attribute [r] outboxer_messageable_id
+    # @!attribute [r] messageable_id
     #   @return [Integer] The ID of the associated polymorphic message.
-    # @!attribute [r] outboxer_messageable_type
+    # @!attribute [r] messageable_type
     #   @return [String] The type of the associated polymorphic message.
     # @!attribute status
     #   @return [String] The status of the message (see {STATUS}).
@@ -31,7 +31,7 @@ module Outboxer
 
       attribute :status, default: -> { STATUS[:unpublished] }
 
-      belongs_to :outboxer_messageable, polymorphic: true
+      belongs_to :messageable, polymorphic: true
 
       has_many :outboxer_exceptions,
                -> { order(created_at: :asc) },
