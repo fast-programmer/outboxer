@@ -14,7 +14,7 @@ module Outboxer
       def has_outboxer_message(
         dependent: nil,
         class_name: 'Outboxer::Models::Message',
-        as: :outboxer_messageable
+        as: :messageable
       )
         has_one :outboxer_message,
                 dependent: dependent,

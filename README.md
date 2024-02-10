@@ -55,9 +55,9 @@ bin/rails g outboxer:sidekiq_publisher
 
 ```ruby
 Outboxer::Publisher.publish! do |outboxer_message|
-  case outboxer_message.outboxer_messageable_id
+  case outboxer_message.messageable_type
   when 'Event'
-    EventCreatedJob.perform_async({ 'id' => outboxer_message.outboxer_messageable_id })
+    EventCreatedJob.perform_async({ 'id' => outboxer_message.messageable_id })
   end
 end
 ```

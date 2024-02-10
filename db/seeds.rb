@@ -7,20 +7,20 @@
 
   Outboxer::Models::Message
     .create!(
-      outboxer_messageable_type: messageable_type,
-      outboxer_messageable_id: messageable_id,
+      messageable_type: messageable_type,
+      messageable_id: messageable_id,
       status: Outboxer::Models::Message::STATUS[:unpublished])
 
   Outboxer::Models::Message
     .create!(
-      outboxer_messageable_type: messageable_type,
-      outboxer_messageable_id: messageable_id,
+      messageable_type: messageable_type,
+      messageable_id: messageable_id,
       status: Outboxer::Models::Message::STATUS[:publishing])
 
   failed_message = Outboxer::Models::Message
     .create!(
-      outboxer_messageable_type: messageable_type,
-      outboxer_messageable_id: messageable_id,
+      messageable_type: messageable_type,
+      messageable_id: messageable_id,
       status: Outboxer::Models::Message::STATUS[:failed])
 
   failed_message
