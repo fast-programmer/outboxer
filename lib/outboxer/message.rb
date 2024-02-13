@@ -13,21 +13,21 @@ module Outboxer
       ActiveRecord::Base.connection_pool.with_connection do
         message_ids = ActiveRecord::Base.transaction do
           ids = Models::Message
-            .where(status: Models::Message::STATUS[:unpublished])
+            .where(status: Models::Message::Status::UNPUBLISHED)
             .order(created_at: order)
             .lock('FOR UPDATE SKIP LOCKED')
             .limit(limit)
             .pluck(:id)
 
           if !ids.empty?
-            Models::Message.where(id: ids).update_all(status: Models::Message::STATUS[:publishing])
+            Models::Message.where(id: ids).update_all(status: Models::Message::Status::PUBLISHING)
           end
 
           ids
         end
 
         Models::Message
-          .where(id: message_ids, status: Models::Message::STATUS[:publishing])
+          .where(id: message_ids, status: Models::Message::Status::PUBLISHING)
           .order(created_at: order)
           .to_a
       end
@@ -37,7 +37,7 @@ module Outboxer
       ActiveRecord::Base.connection_pool.with_connection do
         outboxer_message = Models::Message.order(created_at: :asc).lock.find_by!(id: id)
 
-        if outboxer_message.status != Models::Message::STATUS[:publishing]
+        if outboxer_message.status != Models::Message::Status::PUBLISHING
           raise InvalidTransition,
             "cannot transition outboxer message #{outboxer_message.id} " \
             "from #{outboxer_message.status} to (deleted)"
@@ -54,13 +54,13 @@ module Outboxer
         ActiveRecord::Base.transaction do
           outboxer_message = Models::Message.order(created_at: :asc).lock.find_by!(id: id)
 
-          if outboxer_message.status != Models::Message::STATUS[:publishing]
+          if outboxer_message.status != Models::Message::Status::PUBLISHING
             raise InvalidTransition,
               "cannot transition outboxer message #{id} " \
-              "from #{outboxer_message.status} to #{Models::Message::STATUS[:failed]}"
+              "from #{outboxer_message.status} to #{Models::Message::Status::FAILED}"
           end
 
-          outboxer_message.update!(status: Models::Message::STATUS[:failed])
+          outboxer_message.update!(status: Models::Message::Status::FAILED)
 
           outboxer_message.outboxer_exceptions.create!(
             class_name: exception.class.name,
@@ -76,13 +76,13 @@ module Outboxer
       ActiveRecord::Base.connection_pool.with_connection do
         outboxer_message = Models::Message.lock.find_by!(id: id)
 
-        if outboxer_message.status != Models::Message::STATUS[:failed]
+        if outboxer_message.status != Models::Message::Status::FAILED
           raise InvalidTransition,
             "cannot transition outboxer message #{id} " \
-            "from #{outboxer_message.status} to #{Models::Message::STATUS[:unpublished]}"
+            "from #{outboxer_message.status} to #{Models::Message::Status::UNPUBLISHED}"
         end
 
-        outboxer_message.update!(status: Models::Message::STATUS[:unpublished])
+        outboxer_message.update!(status: Models::Message::Status::UNPUBLISHED)
 
         outboxer_message
       end

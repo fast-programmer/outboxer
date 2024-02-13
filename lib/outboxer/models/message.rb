@@ -19,17 +19,21 @@ module Outboxer
     class Message < ::ActiveRecord::Base
       self.table_name = :outboxer_messages
 
-      STATUS = {
-        unpublished: "unpublished",
-        publishing: "publishing",
-        failed: "failed"
-      }
+      module Status
+        UNPUBLISHED = 'unpublished'
+        PUBLISHING = 'publishing'
+        PUBLISHED = 'published'
+        FAILED = 'failed'
+      end
 
-      scope :unpublished, -> { where(status: STATUS[:unpublished]) }
-      scope :publishing, -> { where(status: STATUS[:publishing]) }
-      scope :failed, -> { where(status: STATUS[:failed]) }
+      STATUSES = [Status::UNPUBLISHED, Status::PUBLISHING, Status::PUBLISHED, Status::FAILED]
 
-      attribute :status, default: -> { STATUS[:unpublished] }
+      scope :unpublished, -> { where(status: UNPUBLISHED) }
+      scope :publishing, -> { where(status: PUBLISHING) }
+      scope :failed, -> { where(status: FAILED) }
+
+      attribute :status, default: -> { Status::UNPUBLISHED }
+      # validates :status, inclusion: { in: STATUSES }
 
       belongs_to :messageable, polymorphic: true
 

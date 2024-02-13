@@ -9,19 +9,19 @@
     .create!(
       messageable_type: messageable_type,
       messageable_id: messageable_id,
-      status: Outboxer::Models::Message::STATUS[:unpublished])
+      status: Outboxer::Models::Message::Status::UNPUBLISHED)
 
   Outboxer::Models::Message
     .create!(
       messageable_type: messageable_type,
       messageable_id: messageable_id,
-      status: Outboxer::Models::Message::STATUS[:publishing])
+      status: Outboxer::Models::Message::Status::PUBLISHING)
 
   failed_message = Outboxer::Models::Message
     .create!(
       messageable_type: messageable_type,
       messageable_id: messageable_id,
-      status: Outboxer::Models::Message::STATUS[:failed])
+      status: Outboxer::Models::Message::Status::FAILED)
 
   failed_message
     .outboxer_exceptions

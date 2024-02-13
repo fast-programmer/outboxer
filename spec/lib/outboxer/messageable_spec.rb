@@ -25,7 +25,7 @@ RSpec.describe Outboxer::Messageable, type: :model do
     let(:outboxer_message) { event.outboxer_message }
 
     it 'creates outboxer message' do
-      expect(outboxer_message.status).to eq(Outboxer::Models::Message::STATUS[:unpublished])
+      expect(outboxer_message.status).to eq(Outboxer::Models::Message::Status::UNPUBLISHED)
       expect(outboxer_message.messageable_type).to eq(event.class.to_s)
       expect(outboxer_message.messageable_id).to eq(event.id)
       expect(outboxer_message.created_at).to be_present

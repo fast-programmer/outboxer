@@ -10,7 +10,7 @@ module Outboxer
           Models::Message.create!(
             messageable_type: 'DummyType',
             messageable_id: 1,
-            status: Models::Message::STATUS[:publishing],
+            status: Models::Message::Status::PUBLISHING,
             created_at: DateTime.parse('2024-01-14T00:00:00Z'))
         end
 
@@ -18,13 +18,13 @@ module Outboxer
 
         it 'returns updated message' do
           expect(failed_message.id).to eq(publishing_message.id)
-          expect(failed_message.status).to eq(Models::Message::STATUS[:failed])
+          expect(failed_message.status).to eq(Models::Message::Status::FAILED)
         end
 
         it 'updates publishing message status to failed' do
           publishing_message.reload
 
-          expect(publishing_message.status).to eq(Models::Message::STATUS[:failed])
+          expect(publishing_message.status).to eq(Models::Message::Status::FAILED)
         end
       end
 
@@ -33,7 +33,7 @@ module Outboxer
           Models::Message.create!(
             messageable_type: 'DummyType',
             messageable_id: 1,
-            status: Models::Message::STATUS[:unpublished],
+            status: Models::Message::Status::UNPUBLISHED,
             created_at: DateTime.parse('2024-01-14T00:00:00Z'))
         end
 

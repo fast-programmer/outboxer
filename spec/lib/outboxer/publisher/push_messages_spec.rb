@@ -15,7 +15,7 @@ module Outboxer
           Models::Message.create!(
             messageable_type: 'DummyType',
             messageable_id: 2,
-            status: Models::Message::STATUS[:unpublished])
+            status: Models::Message::Status::UNPUBLISHED)
         end
 
         before do
@@ -74,7 +74,7 @@ module Outboxer
           Models::Message.create!(
             messageable_type: 'DummyType',
             messageable_id: 1,
-            status: Models::Message::STATUS[:publishing])
+            status: Models::Message::Status::PUBLISHING)
         end
 
         before do

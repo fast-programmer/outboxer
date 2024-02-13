@@ -8,7 +8,7 @@ module Outboxer
           Models::Message.create!(
             messageable_type: 'DummyType',
             messageable_id: 1,
-            status: Models::Message::STATUS[:publishing],
+            status: Models::Message::Status::PUBLISHING,
             created_at: DateTime.parse('2024-01-14T00:00:00Z'))
         end
 
@@ -28,7 +28,7 @@ module Outboxer
           Models::Message.create!(
             messageable_type: 'DummyType',
             messageable_id: 1,
-            status: Models::Message::STATUS[:unpublished],
+            status: Models::Message::Status::UNPUBLISHED,
             created_at: DateTime.parse('2024-01-14T00:00:00Z'))
         end
 
