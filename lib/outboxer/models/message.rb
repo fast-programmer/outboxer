@@ -33,7 +33,7 @@ module Outboxer
       scope :failed, -> { where(status: FAILED) }
 
       attribute :status, default: -> { Status::UNPUBLISHED }
-      # validates :status, inclusion: { in: STATUSES }
+      validates :status, inclusion: { in: STATUSES }, length: { maximum: 255 }
 
       belongs_to :messageable, polymorphic: true
 
