@@ -3,8 +3,8 @@ class CreateOutboxerExceptions < ActiveRecord::Migration[6.1]
     create_table :outboxer_exceptions do |t|
       t.references :outboxer_message, null: false, foreign_key: { to_table: :outboxer_messages }
 
-      t.string :class_name, null: false
-      t.string :message_text, null: false
+      t.text :class_name, null: false
+      t.text :message_text, null: false
       t.column :backtrace, :text, array: true
 
       t.timestamps
