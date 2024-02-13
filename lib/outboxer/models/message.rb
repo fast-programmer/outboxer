@@ -37,9 +37,9 @@ module Outboxer
 
       belongs_to :messageable, polymorphic: true
 
-      has_many :outboxer_exceptions,
+      has_many :exceptions,
                -> { order(created_at: :asc) },
-               foreign_key: 'outboxer_message_id',
+               foreign_key: 'message_id',
                class_name: "Outboxer::Models::Exception",
                dependent: :destroy
     end

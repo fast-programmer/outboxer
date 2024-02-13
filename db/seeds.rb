@@ -24,14 +24,14 @@
       status: Outboxer::Models::Message::Status::FAILED)
 
   failed_message
-    .outboxer_exceptions
+    .exceptions
     .create!(
       class_name: 'StandardError',
       message_text: 'Sample error message',
       backtrace: ['Sample backtrace line 1', 'Sample backtrace line 2'])
 
   failed_message
-    .outboxer_exceptions
+    .exceptions
     .create!(
       class_name: 'StandardError',
       message_text: 'Sample error message',

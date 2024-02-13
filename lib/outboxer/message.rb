@@ -62,7 +62,7 @@ module Outboxer
 
           outboxer_message.update!(status: Models::Message::Status::FAILED)
 
-          outboxer_message.outboxer_exceptions.create!(
+          outboxer_message.exceptions.create!(
             class_name: exception.class.name,
             message_text: exception.message,
             backtrace: exception.backtrace)
