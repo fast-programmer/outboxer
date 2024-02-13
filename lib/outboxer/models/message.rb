@@ -28,9 +28,9 @@ module Outboxer
 
       STATUSES = [Status::UNPUBLISHED, Status::PUBLISHING, Status::PUBLISHED, Status::FAILED]
 
-      scope :unpublished, -> { where(status: UNPUBLISHED) }
-      scope :publishing, -> { where(status: PUBLISHING) }
-      scope :failed, -> { where(status: FAILED) }
+      scope :unpublished, -> { where(status: Status::UNPUBLISHED) }
+      scope :publishing, -> { where(status: Status::PUBLISHING) }
+      scope :failed, -> { where(status: Status::FAILED) }
 
       attribute :status, default: -> { Status::UNPUBLISHED }
       validates :status, inclusion: { in: STATUSES }, length: { maximum: 255 }
