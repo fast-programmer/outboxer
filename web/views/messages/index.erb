@@ -6,8 +6,8 @@
                 <%
                 headers = {
                     'Id' => 'id',
-                    'Messageable Type' => 'outboxer_messageable_type',
-                    'Messageable Id' => 'outboxer_messageable_id',
+                    'Messageable Type' => 'messageable_type',
+                    'Messageable Id' => 'messageable_id',
                     'Status' => 'status',
                     'Created At' => 'created_at',
                     'Updated At' => 'updated_at'
@@ -29,8 +29,8 @@
             <% messages.each do |message| %>
                 <tr class="clickable-row" data-href="/messages/<%= message.id %>">
                     <td><%= message.id %></td>
-                    <td><%= message.outboxer_messageable_type %></td>
-                    <td><%= message.outboxer_messageable_id %></td>
+                    <td><%= message.messageable_type %></td>
+                    <td><%= message.messageable_id %></td>
                     <td><%= message.status %></td>
                     <td><%= message.created_at %></td>
                     <td><%= message.updated_at %></td>

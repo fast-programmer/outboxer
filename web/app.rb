@@ -1,7 +1,10 @@
 require 'bundler/setup'
+
 require 'outboxer'
 require 'sinatra/base'
 require 'kaminari'
+require 'ransack'
+
 require 'pry-byebug'
 
 environment = ENV['RAILS_ENV'] || 'development'
@@ -10,6 +13,28 @@ Outboxer::Database.connect!(config: config.merge('pool' => 5))
 
 module Outboxer
   class App < Sinatra::Base
+    get '/searches' do
+      q = Outboxer::Models::Message.ransack(params[:q])
+      messages = q.result.includes(:outboxer_exceptions)
+
+      erb :'searches/new',
+        locals: { q: q, messages: messages },
+        layout: nil
+    end
+
+    post '/searches' do
+      q = Outboxer::Models::Message.ransack(params[:q])
+      # messages = q.result.includes(:outboxer_exceptions)
+
+      query_string = URI.encode_www_form(params[:q].to_h)
+
+      redirect to("/searches?q=#{query_string}")
+
+      # erb :'searches/new',
+      #   locals: { q: q, messages: messages },
+      #   layout: nil
+    end
+
     get '/' do
       redirect to('/all')
     end
@@ -31,7 +56,7 @@ module Outboxer
     get '/:status' do |status|
       page = params[:page] || 1
       limit = params[:limit] || 100
-      sort = %w[id status outboxer_messageable_type outboxer_messageable_id created_at updated_at]
+      sort = %w[id status messageable_type messageable_id created_at updated_at]
         .include?(params[:sort]) ? params[:sort].to_sym : :created_at
       order = %w[asc desc].include?(params[:order]) ? params[:order].to_sym : :asc
 

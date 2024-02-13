@@ -19,11 +19,12 @@ module Outboxer
     class Message < ::ActiveRecord::Base
       self.table_name = :outboxer_messages
 
-      STATUS = {
-        unpublished: "unpublished",
-        publishing: "publishing",
-        failed: "failed"
-      }
+      UNPUBLISHED = 'unpublished'
+      PUBLISHING = 'publishing'
+      PUBLISHED = 'published'
+      FAILED = 'failed'
+
+      STATUSES = [UNPUBLISHED, PUBLISHING, PUBLISHED, FAILED]
 
       scope :unpublished, -> { where(status: STATUS[:unpublished]) }
       scope :publishing, -> { where(status: STATUS[:publishing]) }
@@ -38,6 +39,14 @@ module Outboxer
                foreign_key: 'outboxer_message_id',
                class_name: "Outboxer::Models::Exception",
                dependent: :destroy
+
+      def self.ransackable_attributes(auth_object = nil)
+        ["created_at", "id", "id_value", "messageable_id", "messageable_type", "status", "updated_at"]
+      end
+
+      def self.ransackable_associations(auth_object = nil)
+        ["messageable", "outboxer_exceptions"]
+      end
     end
   end
 end
