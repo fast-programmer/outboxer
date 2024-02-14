@@ -40,6 +40,9 @@ namespace :outboxer do
       require_relative "../db/migrate/create_outboxer_exceptions"
       CreateOutboxerExceptions.new.up
 
+      require_relative "../db/migrate/create_outboxer_frames"
+      CreateOutboxerFrames.new.up
+
       ActiveRecord::Base.connection.disconnect!
     end
 

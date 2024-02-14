@@ -1,5 +1,3 @@
-require "active_record"
-
 module Outboxer
   module Models
     # Represents an exception associated with an {Outboxer::Message}.
@@ -20,6 +18,7 @@ module Outboxer
       self.table_name = :outboxer_exceptions
 
       belongs_to :message, class_name: "Outboxer::Models::Message"
+      has_many :frames, class_name: "Outboxer::Models::Frame", foreign_key: "exception_id"
     end
   end
 end
