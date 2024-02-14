@@ -48,11 +48,11 @@ module Outboxer
         it 'creates frames' do
           publishing_message.reload
 
-          expect(publishing_message.exceptions[0].frames).not_to be_empty
+          expect(publishing_message.exceptions[0].frames.length).to eq(65)
 
-          expect(publishing_message.exceptions[0].frames[0].file_name).to eq(__FILE__)
-          expect(publishing_message.exceptions[0].frames[0].line_number).to eq(9)
-          expect(publishing_message.exceptions[0].frames[0].method_name).to eq('raise_exception')
+          expect(publishing_message.exceptions[0].frames[0].index).to eq(0)
+          expect(publishing_message.exceptions[0].frames[0].text)
+            .to include('outboxer/spec/lib/outboxer/message/failed_spec.rb:9:in `raise_exception')
         end
       end
 

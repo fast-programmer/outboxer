@@ -3,9 +3,10 @@ class CreateOutboxerFrames < ActiveRecord::Migration[6.1]
     create_table :outboxer_frames do |t|
       t.references :exception, null: false, foreign_key: { to_table: :outboxer_exceptions }
 
-      t.text :file_name, null: false
-      t.integer :line_number, null: false
-      t.text :method_name
+      t.integer :index, null: false
+      t.text :text, null: false
+
+      # TODO: add uniqueness column
     end
   end
 

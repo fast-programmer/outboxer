@@ -63,15 +63,10 @@ module Outboxer
           outboxer_message.update!(status: Models::Message::Status::FAILED)
 
           outboxer_exception = outboxer_message.exceptions.create!(
-            class_name: exception.class.name,
-            message_text: exception.message)
+            class_name: exception.class.name, message_text: exception.message)
 
-          exception.backtrace.each do |line|
-            file_name, line_number, method_info = line.split(':')
-            method_name = method_info&.match(/in `(.*)'/)&.captures&.first
-
-            outboxer_exception.frames.create!(
-              file_name: file_name, line_number: line_number, method_name: method_name)
+          exception.backtrace.each_with_index do |frame, index|
+            outboxer_exception.frames.create!(index: index, text: frame)
           end
 
           outboxer_message
