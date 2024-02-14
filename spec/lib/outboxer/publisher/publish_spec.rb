@@ -17,7 +17,7 @@ module Outboxer
         Models::Message.create!(
           messageable_type: 'DummyType',
           messageable_id: 1,
-          status: Models::Message::STATUS[:unpublished])
+          status: Models::Message::Status::UNPUBLISHED)
       end
 
       context 'when message published successfully' do
@@ -31,7 +31,7 @@ module Outboxer
           ) do |publishing_message|
             expect(publishing_message.messageable_type).to eq('DummyType')
             expect(publishing_message.messageable_id).to eq(1)
-            expect(publishing_message.status).to eq(Models::Message::STATUS[:publishing])
+            expect(publishing_message.status).to eq(Models::Message::Status::PUBLISHING)
 
             Publisher.stop!
           end

@@ -11,7 +11,7 @@ module Outboxer
           Models::Message.create!(
             messageable_type: 'DummyType',
             messageable_id: 1,
-            status: Models::Message::STATUS[:publishing])
+            status: Models::Message::Status::PUBLISHING)
         end
 
         before do
@@ -40,7 +40,7 @@ module Outboxer
           Models::Message.create!(
             messageable_type: 'DummyType',
             messageable_id: 1,
-            status: 'publishing')
+            status: Models::Message::Status::PUBLISHING)
         end
 
         let(:error) { StandardError.new('processing error') }
@@ -67,12 +67,12 @@ module Outboxer
             # ignore
           end
 
-          updated_message = Models::Message.find(message.id)
-          expect(updated_message.status).to eq(Models::Message::STATUS[:failed])
-          expect(updated_message.outboxer_exceptions.count).to eq(1)
-          expect(updated_message.outboxer_exceptions.first.class_name).to eq(error.class.name)
-          expect(updated_message.outboxer_exceptions.first.message_text).to eq(error.message)
-          expect(updated_message.outboxer_exceptions.first.backtrace).to be_present
+          updated_outboxer_message = Models::Message.find(message.id)
+          expect(updated_outboxer_message.status).to eq(Models::Message::Status::FAILED)
+          expect(updated_outboxer_message.exceptions.count).to eq(1)
+          expect(updated_outboxer_message.exceptions.first.class_name).to eq(error.class.name)
+          expect(updated_outboxer_message.exceptions.first.message_text).to eq(error.message)
+          expect(updated_outboxer_message.exceptions.first.backtrace).to be_present
         end
 
         it 're-raises error' do

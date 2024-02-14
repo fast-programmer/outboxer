@@ -19,24 +19,27 @@ module Outboxer
     class Message < ::ActiveRecord::Base
       self.table_name = :outboxer_messages
 
-      UNPUBLISHED = 'unpublished'
-      PUBLISHING = 'publishing'
-      PUBLISHED = 'published'
-      FAILED = 'failed'
+      module Status
+        UNPUBLISHED = 'unpublished'
+        PUBLISHING = 'publishing'
+        PUBLISHED = 'published'
+        FAILED = 'failed'
+      end
 
-      STATUSES = [UNPUBLISHED, PUBLISHING, PUBLISHED, FAILED]
+      STATUSES = [Status::UNPUBLISHED, Status::PUBLISHING, Status::PUBLISHED, Status::FAILED]
 
-      scope :unpublished, -> { where(status: STATUS[:unpublished]) }
-      scope :publishing, -> { where(status: STATUS[:publishing]) }
-      scope :failed, -> { where(status: STATUS[:failed]) }
+      scope :unpublished, -> { where(status: Status::UNPUBLISHED) }
+      scope :publishing, -> { where(status: Status::PUBLISHING) }
+      scope :failed, -> { where(status: Status::FAILED) }
 
-      attribute :status, default: -> { STATUS[:unpublished] }
+      attribute :status, default: -> { Status::UNPUBLISHED }
+      validates :status, inclusion: { in: STATUSES }, length: { maximum: 255 }
 
       belongs_to :messageable, polymorphic: true
 
-      has_many :outboxer_exceptions,
+      has_many :exceptions,
                -> { order(created_at: :asc) },
-               foreign_key: 'outboxer_message_id',
+               foreign_key: 'message_id',
                class_name: "Outboxer::Models::Exception",
                dependent: :destroy
 

@@ -19,7 +19,7 @@ module Outboxer
     class Exception < ::ActiveRecord::Base
       self.table_name = :outboxer_exceptions
 
-      belongs_to :outboxer_message, class_name: "Outboxer::Models::Message"
+      belongs_to :message, class_name: "Outboxer::Models::Message"
     end
   end
 end

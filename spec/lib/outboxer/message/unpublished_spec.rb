@@ -9,12 +9,12 @@ module Outboxer
             Models::Message.create!(
               messageable_type: 'DummyType',
               messageable_id: 1,
-              status: Models::Message::STATUS[:unpublished],
+              status: Models::Message::Status::UNPUBLISHED,
               created_at: DateTime.parse('2024-01-14T00:00:00Z')),
             Models::Message.create!(
               messageable_type: 'DummyType',
               messageable_id: 2,
-              status: Models::Message::STATUS[:unpublished],
+              status: Models::Message::Status::UNPUBLISHED,
               created_at: DateTime.parse('2024-01-14T00:00:01Z'))
           ]
         end
@@ -29,11 +29,12 @@ module Outboxer
               publishing_message = publishing_messages.first
               expect(publishing_message.messageable_type).to eq('DummyType')
               expect(publishing_message.messageable_id).to eq(1)
-              expect(publishing_message.status).to eq(Models::Message::STATUS[:publishing])
+              expect(publishing_message.status).to eq(Models::Message::Status::PUBLISHING)
             end
 
             it 'keeps last unpublished message' do
-              remaining_messages = Models::Message.where(status: Models::Message::STATUS[:unpublished])
+              remaining_messages = Models::Message.where(status: Models::Message::Status::UNPUBLISHED)
+
               expect(remaining_messages.count).to eq(1)
 
               remaining_message = remaining_messages.last
@@ -54,7 +55,7 @@ module Outboxer
             end
 
             it 'keeps first unpublished message' do
-              remaining_messages = Models::Message.where(status: Models::Message::STATUS[:unpublished])
+              remaining_messages = Models::Message.where(status: Models::Message::Status::UNPUBLISHED)
               expect(remaining_messages.count).to eq(1)
 
               remaining_message = remaining_messages.first
