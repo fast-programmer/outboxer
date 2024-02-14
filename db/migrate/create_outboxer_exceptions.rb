@@ -5,7 +5,6 @@ class CreateOutboxerExceptions < ActiveRecord::Migration[6.1]
 
       t.text :class_name, null: false
       t.text :message_text, null: false
-      t.column :backtrace, :text, array: true
 
       t.timestamps
     end

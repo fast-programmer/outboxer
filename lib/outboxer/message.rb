@@ -64,8 +64,7 @@ module Outboxer
 
           outboxer_exception = outboxer_message.exceptions.create!(
             class_name: exception.class.name,
-            message_text: exception.message,
-            backtrace: exception.backtrace)
+            message_text: exception.message)
 
           exception.backtrace.each do |line|
             file_name, line_number, method_info = line.split(':')
