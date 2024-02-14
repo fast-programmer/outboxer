@@ -3,7 +3,13 @@ require 'spec_helper'
 module Outboxer
   RSpec.describe Message do
     describe '.failed!' do
-      let(:exception) { StandardError.new('unhandled error') }
+      let(:exception) do
+        begin
+          raise StandardError.new('unhandled error')
+        rescue StandardError => e
+          e
+        end
+      end
 
       context 'when publishing message' do
         let!(:publishing_message) do
