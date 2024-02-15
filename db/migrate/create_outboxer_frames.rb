@@ -6,7 +6,7 @@ class CreateOutboxerFrames < ActiveRecord::Migration[6.1]
       t.integer :index, null: false
       t.text :text, null: false
 
-      # TODO: add uniqueness column
+      t.index [:exception_id, :index], unique: true
     end
   end
 
