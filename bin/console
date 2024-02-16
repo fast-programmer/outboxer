@@ -5,9 +5,6 @@ require 'outboxer'
 
 require 'sidekiq'
 
-require_relative '../app/models/event'
-require_relative '../app/jobs/event_created_job'
-
 environment = ENV['RAILS_ENV'] || 'development'
 config = Outboxer::Database.config(environment: environment)
 Outboxer::Database.connect!(config: config.merge(pool: 1))
