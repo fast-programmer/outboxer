@@ -3,7 +3,8 @@ class CreateOutboxerMessages < ActiveRecord::Migration[6.1]
     create_table :outboxer_messages, id: :uuid do |t|
       t.string :status, null: false, limit: 255
 
-      t.references :messageable, polymorphic: true, null: false
+      t.text :messageable_id, null: false
+      t.text :messageable_type, null: false
 
       t.timestamps
     end
