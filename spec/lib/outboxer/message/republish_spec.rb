@@ -6,8 +6,8 @@ module Outboxer
       context 'when failed message' do
         let!(:failed_message) do
           Models::Message.create!(
-            messageable_type: 'DummyType',
-            messageable_id: 1,
+            outboxable_type: 'DummyType',
+            outboxable_id: 1,
             status: Models::Message::Status::FAILED,
             created_at: DateTime.parse('2024-01-14T00:00:00Z'))
         end
@@ -29,8 +29,8 @@ module Outboxer
       context 'when unpublished messaged' do
         let(:unpublished_message) do
           Models::Message.create!(
-            messageable_type: 'DummyType',
-            messageable_id: 1,
+            outboxable_type: 'DummyType',
+            outboxable_id: 1,
             status: Models::Message::Status::UNPUBLISHED,
             created_at: DateTime.parse('2024-01-14T00:00:00Z'))
         end

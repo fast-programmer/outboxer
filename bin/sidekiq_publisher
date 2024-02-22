@@ -21,12 +21,11 @@ config = Outboxer::Database.config(environment: environment)
 Outboxer::Database.connect!(config: config.merge('pool' => concurrency + 1))
 
 Outboxer::Publisher.publish!(
-  thread_count: concurrency, queue_size: concurrency * 2, poll_interval: 1,
-  logger: logger
+  thread_count: concurrency, queue_size: concurrency * 2, poll_interval: 1, logger: logger
 ) do |outboxer_message|
-  case outboxer_message.messageable_type
+  case outboxer_message.outboxable_type
   when 'Event'
-    EventCreatedJob.perform_async({ 'id' => outboxer_message.messageable_id })
+    EventCreatedJob.perform_async({ 'id' => outboxer_message.outboxable_id })
   end
 end
 

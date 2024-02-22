@@ -15,8 +15,8 @@ module Outboxer
 
       let!(:message) do
         Models::Message.create!(
-          messageable_type: 'DummyType',
-          messageable_id: 1,
+          outboxable_type: 'DummyType',
+          outboxable_id: 1,
           status: Models::Message::Status::UNPUBLISHED)
       end
 
@@ -29,8 +29,8 @@ module Outboxer
             logger: logger,
             kernel: kernel
           ) do |publishing_message|
-            expect(publishing_message.messageable_type).to eq('DummyType')
-            expect(publishing_message.messageable_id).to eq('1')
+            expect(publishing_message.outboxable_type).to eq('DummyType')
+            expect(publishing_message.outboxable_id).to eq('1')
             expect(publishing_message.status).to eq(Models::Message::Status::PUBLISHING)
 
             Publisher.stop!

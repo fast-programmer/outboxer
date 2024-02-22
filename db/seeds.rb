@@ -2,22 +2,22 @@
 # require_relative '../app/models/outboxer_exception'
 
 100.times do |i|
-  messageable_type = 'Event'
-  messageable_id = 1
+  outboxable_type = 'Event'
+  outboxable_id = 1
 
   Outboxer::Models::Message.create!(
-    messageable_type: messageable_type,
-    messageable_id: messageable_id,
+    outboxable_type: outboxable_type,
+    outboxable_id: outboxable_id,
     status: Outboxer::Models::Message::Status::UNPUBLISHED)
 
   Outboxer::Models::Message.create!(
-    messageable_type: messageable_type,
-    messageable_id: messageable_id,
+    outboxable_type: outboxable_type,
+    outboxable_id: outboxable_id,
     status: Outboxer::Models::Message::Status::PUBLISHING)
 
   failed_message = Outboxer::Models::Message.create!(
-    messageable_type: messageable_type,
-    messageable_id: messageable_id,
+    outboxable_type: outboxable_type,
+    outboxable_id: outboxable_id,
     status: Outboxer::Models::Message::Status::FAILED)
 
   failed_message_exception = failed_message.exceptions.create!(

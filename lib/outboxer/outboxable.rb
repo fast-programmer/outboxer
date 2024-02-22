@@ -1,6 +1,6 @@
 module Outboxer
-  module Messageable
-    # The Messageable module, when included in a class, provides the ability to associate
+  module Outboxable
+    # The Outboxable module, when included in a class, provides the ability to associate
     # that class with an Outboxer message. This association is set up through a series
     # of class methods defined in the included ClassMethods module.
 
@@ -14,7 +14,7 @@ module Outboxer
       def has_outboxer_message(
         dependent: nil,
         class_name: 'Outboxer::Models::Message',
-        as: :messageable
+        as: :outboxable
       )
         has_one :outboxer_message,
                 dependent: dependent,
