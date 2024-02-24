@@ -18,17 +18,14 @@
     <div class="collapse navbar-collapse" id="navbarSupportedContent">
       <ul class="navbar-nav me-auto mb-2 mb-lg-0">
         <li class="nav-item">
-          <a class="nav-link active" aria-current="page" href="#">All</a>
+            <a class="nav-link active" aria-current="page" href="messages">All (<%= messages_count %>)</a>
         </li>
-        <li class="nav-item">
-          <a class="nav-link" href="#">Unpublished</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="#">Publishing</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="#">Failed</a>
-        </li>
+
+        <% status_counts.each do |status, count| %>
+            <li class="nav-item">
+                <a class="nav-link" href="/messages/<%= status %>"><%= status.capitalize %> (<%= count %>)</a>
+            </li>
+        <% end %>
       </ul>
       <form action="/messages/search" method="post" class="d-flex" role="search">
         <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search" name="text">
@@ -98,6 +95,36 @@
             </button>
         </form>
     </div>
+    <!-- Per Page Dropdown -->
+    <form action="/messages/per_page" method="post" class="d-flex align-items-center mb-3">
+        <label class="me-2" for="perPage">Per Page:</label>
+        <select id="perPage" name="per_page" class="form-select me-2" onchange="this.form.submit()">
+            <option value="100" <%= 'selected' if per_page == 100 %>>100</option>
+            <option value="200" <%= 'selected' if per_page == 200 %>>200</option>
+            <option value="500" <%= 'selected' if per_page == 500 %>>500</option>
+            <option value="1000" <%= 'selected' if per_page == 1000 %>>1000</option>
+        </select>
+    </form>
+
+
+<!-- Pagination Controls -->
+<div class="container">
+    <nav aria-label="Page navigation">
+        <ul class="pagination justify-content-center">
+            <li class="page-item <%= 'disabled' unless messages.current_page > 1 %>">
+                <a class="page-link" href="?page_number=<%= messages.prev_page %>&per_page=<%= per_page %>&order=<%= order %>&sort=<%= sort %>" tabindex="-1" aria-disabled="true">&lt;&lt;</a>
+            </li>
+            <% messages.total_pages.times do |i| %>
+                <li class="page-item <%= 'active' if messages.current_page == i + 1 %>">
+                    <a class="page-link" href="?page_number=<%= i + 1 %>&per_page=<%= per_page %>&order=<%= order %>&sort=<%= sort %>"><%= i + 1 %></a>
+                </li>
+            <% end %>
+            <li class="page-item <%= 'disabled' unless messages.current_page < messages.total_pages %>">
+                <a class="page-link" href="?page_number=<%= messages.next_page %>&per_page=<%= per_page %>&order=<%= order %>&sort=<%= sort %>" >&gt;&gt;</a>
+            </li>
+        </ul>
+    </nav>
+</div>
 
     <% messages.each do |message| %>
         <form id="retry-form-<%= message.id %>" action="/messages/<%= message.id %>/retry" method="post">

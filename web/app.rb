@@ -4,6 +4,7 @@ require 'outboxer'
 require 'sinatra/base'
 require 'kaminari'
 require 'ransack'
+require 'uri'
 
 require 'sinatra/reloader'
 require 'pry-byebug'
@@ -24,11 +25,120 @@ module Outboxer
       redirect to('/messages')
     end
 
-    get '/messages' do
-      messages = Models::Message.all
+    post '/messages/per_page' do
+      page_number = params[:page_number] || 1
+      per_page = [100, 200, 500, 1000].include?(params[:per_page].to_i) ? params[:per_page].to_i : 100
+      sort = %w[id status messageable_type messageable_id created_at updated_at]
+        .include?(params[:sort]) ? params[:sort].to_sym : :created_at
+      order = %w[asc desc].include?(params[:order]) ? params[:order].to_sym : :asc
 
-      erb :messages, locals: { messages: messages }, layout: nil
+      redirect "/messages?" \
+        "#{URI.encode_www_form_component('page_number')}=#{URI.encode_www_form_component(page_number)}&" \
+        "#{URI.encode_www_form_component('per_page')}=#{URI.encode_www_form_component(per_page)}&" \
+        "#{URI.encode_www_form_component('sort')}=#{URI.encode_www_form_component(sort)}&" \
+        "#{URI.encode_www_form_component('order')}=#{URI.encode_www_form_component(order)}"
     end
+
+    get '/messages' do
+      page_number = params[:page_number] || 1
+      per_page = [100, 200, 500, 1000].include?(params[:per_page].to_i) ? params[:per_page].to_i : 100
+      sort = %w[id status messageable_type messageable_id created_at updated_at]
+        .include?(params[:sort]) ? params[:sort].to_sym : :created_at
+      order = %w[asc desc].include?(params[:order]) ? params[:order].to_sym : :asc
+
+      messages_scope = Models::Message
+      messages = messages_scope.order(sort => order).page(page_number).per(per_page)
+      messages_count = Models::Message.count
+
+      status_counts = { 'unpublished' => 0, 'publishing' => 0, 'failed' => 0 }.merge(
+        Models::Message.group(:status).count)
+
+      erb :messages, layout: nil, locals: {
+        status_counts: status_counts,
+        messages_count: messages_count,
+        messages: messages,
+        page_number: page_number,
+        per_page: per_page,
+        sort: sort,
+        order: order
+      }
+    end
+
+    get '/messages/unpublished' do
+      page_number = params[:page_number] || 1
+      per_page = [100, 200, 500, 1000].include?(params[:per_page].to_i) ? params[:per_page].to_i : 100
+      sort = %w[id status messageable_type messageable_id created_at updated_at]
+        .include?(params[:sort]) ? params[:sort].to_sym : :created_at
+      order = %w[asc desc].include?(params[:order]) ? params[:order].to_sym : :asc
+
+      messages_scope = Models::Message.where(status: 'unpublished')
+      messages = messages_scope.order(sort => order).page(page_number).per(per_page)
+      messages_count = Models::Message.count
+
+      status_counts = { 'unpublished' => 0, 'publishing' => 0, 'failed' => 0 }.merge(
+        Models::Message.group(:status).count)
+
+      erb :messages, layout: nil, locals: {
+        status_counts: status_counts,
+        messages_count: messages_count,
+        messages: messages,
+        page_number: page_number,
+        per_page: per_page,
+        sort: sort,
+        order: order
+      }
+    end
+
+    get '/messages/publishing' do
+      page_number = params[:page_number] || 1
+      per_page = [100, 200, 500, 1000].include?(params[:per_page].to_i) ? params[:per_page].to_i : 100
+      sort = %w[id status messageable_type messageable_id created_at updated_at]
+        .include?(params[:sort]) ? params[:sort].to_sym : :created_at
+      order = %w[asc desc].include?(params[:order]) ? params[:order].to_sym : :asc
+
+      messages_scope = Models::Message.where(status: 'publishing')
+      messages = messages_scope.order(sort => order).page(page_number).per(per_page)
+      messages_count = Models::Message.count
+
+      status_counts = { 'unpublished' => 0, 'publishing' => 0, 'failed' => 0 }.merge(
+        Models::Message.group(:status).count)
+
+      erb :messages, layout: nil, locals: {
+        status_counts: status_counts,
+        messages_count: messages_count,
+        messages: messages,
+        page_number: page_number,
+        per_page: per_page,
+        sort: sort,
+        order: order
+      }
+    end
+
+    get '/messages/failed' do
+      page_number = params[:page_number] || 1
+      per_page = [100, 200, 500, 1000].include?(params[:per_page]) ? params[:per_page].to_i : 100
+      sort = %w[id status messageable_type messageable_id created_at updated_at]
+        .include?(params[:sort]) ? params[:sort].to_sym : :created_at
+      order = %w[asc desc].include?(params[:order]) ? params[:order].to_sym : :asc
+
+      messages_scope = Models::Message.where(status: 'failed')
+      messages = messages_scope.order(sort => order).page(page_number).per(per_page)
+      messages_count = Models::Message.count
+
+      status_counts = { 'unpublished' => 0, 'publishing' => 0, 'failed' => 0 }.merge(
+        Models::Message.group(:status).count)
+
+      erb :messages, layout: nil, locals: {
+        status_counts: status_counts,
+        messages_count: messages_count,
+        messages: messages,
+        page_number: page_number,
+        per_page: per_page,
+        sort: sort,
+        order: order
+      }
+    end
+
 
     post '/messages/bulk_action' do
       bulk_action = params['bulk_action']
@@ -79,47 +189,47 @@ module Outboxer
     end
 
     get '/' do
-      redirect to('/all')
+      redirect to('/messages/all')
     end
 
-    get '/messages/:id' do |id|
-      messages_count = Models::Message.count
+    # get '/messages/:id' do |id|
+    #   messages_count = Models::Message.count
 
-      message = Models::Message.includes(:outboxer_exceptions).find(id)
-      status_counts = { 'unpublished' => 0, 'publishing' => 0, 'failed' => 0 }.merge(
-        Models::Message.group(:status).count)
+    #   message = Models::Message.includes(:outboxer_exceptions).find(id)
+    #   status_counts = { 'unpublished' => 0, 'publishing' => 0, 'failed' => 0 }.merge(
+    #     Models::Message.group(:status).count)
 
-      erb :'messages/show', locals: {
-        status_counts: status_counts,
-        messages_count: messages_count,
-        message: message
-      }
-    end
+    #   erb :'messages/show', locals: {
+    #     status_counts: status_counts,
+    #     messages_count: messages_count,
+    #     message: message
+    #   }
+    # end
 
-    get '/:status' do |status|
-      page = params[:page] || 1
-      limit = params[:limit] || 100
-      sort = %w[id status messageable_type messageable_id created_at updated_at]
-        .include?(params[:sort]) ? params[:sort].to_sym : :created_at
-      order = %w[asc desc].include?(params[:order]) ? params[:order].to_sym : :asc
+    # get '/:status' do |status|
+    #   page = params[:page] || 1
+    #   limit = params[:limit] || 100
+    #   sort = %w[id status messageable_type messageable_id created_at updated_at]
+    #     .include?(params[:sort]) ? params[:sort].to_sym : :created_at
+    #   order = %w[asc desc].include?(params[:order]) ? params[:order].to_sym : :asc
 
-      messages_scope = status == 'all' ? Models::Message : Models::Message.where(status: status)
-      messages = messages_scope.order(sort => order).page(page).per(limit)
-      messages_count = Models::Message.count
+    #   messages_scope = status == 'all' ? Models::Message : Models::Message.where(status: status)
+    #   messages = messages_scope.order(sort => order).page(page).per(limit)
+    #   messages_count = Models::Message.count
 
-      status_counts = { 'unpublished' => 0, 'publishing' => 0, 'failed' => 0 }.merge(
-        Models::Message.group(:status).count)
+    #   status_counts = { 'unpublished' => 0, 'publishing' => 0, 'failed' => 0 }.merge(
+    #     Models::Message.group(:status).count)
 
-      erb :'messages/index', locals: {
-        status_counts: status_counts,
-        messages_count: messages_count,
-        messages: messages,
-        page: page,
-        limit: limit,
-        sort: sort,
-        order: order
-      }
-    end
+    #   erb :'messages/index', locals: {
+    #     status_counts: status_counts,
+    #     messages_count: messages_count,
+    #     messages: messages,
+    #     page: page,
+    #     limit: limit,
+    #     sort: sort,
+    #     order: order
+    #   }
+    # end
   end
 end
 
