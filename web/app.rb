@@ -5,6 +5,7 @@ require 'sinatra/base'
 require 'kaminari'
 require 'ransack'
 
+require 'sinatra/reloader'
 require 'pry-byebug'
 
 environment = ENV['RAILS_ENV'] || 'development'
@@ -13,6 +14,52 @@ Outboxer::Database.connect!(config: config.merge('pool' => 5))
 
 module Outboxer
   class App < Sinatra::Base
+    set :method_override, true
+
+    get '/table' do
+      fruits = 10.times.map do |i|
+        { id: i + 1, name: "Fruit #{i + 1}", health_rating: rand(1..10) }
+      end
+
+      erb :table, locals: { fruits: fruits }, layout: nil
+    end
+
+    post '/bulk_action' do
+      bulk_action = params['bulk_action']
+      fruit_ids = params['fruit_ids']
+
+      binding.pry
+
+      case bulk_action
+      when 'retry_selected'
+        # TODO
+      when 'delete_selected'
+        # TODO
+      else
+        raise "#{params['bulk_action']} not supported"
+      end
+
+      if params['retry_selected']
+        # TODO
+      elsif params['delete']
+        # TODO
+      end
+
+      redirect to('/table')
+    end
+
+    delete '/fruits/:id' do
+      binding.pry
+
+      redirect to('/table')
+    end
+
+    patch '/fruits/:id/retry' do
+      binding.pry
+
+      redirect to('/table')
+    end
+
     get '/searches' do
       q = Outboxer::Models::Message.ransack(params[:q])
       messages = q.result.includes(:outboxer_exceptions)

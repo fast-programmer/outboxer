@@ -23,6 +23,7 @@ gem 'foreman', '~> 0.87.2'
 # web
 gem 'rackup', '~> 2.1'
 gem 'sinatra', '~> 4.0'
+gem 'sinatra-contrib'
 gem 'puma', '~> 6.4', '>= 6.4.2'
 gem 'kaminari', '~> 1.2', '>= 1.2.2'
 gem 'ransack', '~> 4.1', '>= 4.1.1'

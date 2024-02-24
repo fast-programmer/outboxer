@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Outboxer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous"></head>
+<body>
+    <header class="bg-light py-3">
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="#">Outboxer</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item">
+          <a class="nav-link active" aria-current="page" href="#">All</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#">Unpublished</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#">Publishing</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#">Failed</a>
+        </li>
+      </ul>
+      <form class="d-flex" role="search">
+        <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
+        <button class="btn btn-outline-success" type="submit">Search</button>
+      </form>
+    </div>
+  </div>
+</nav>
+    </header>
+
+
+
+    <div class="container mt-4">
+        <% if @message %>
+            <div class="alert alert-info">
+                <%= @message %>
+            </div>
+        <% end %>
+
+    </div>
+
+    <div class="container mt-4">
+        <form action="/bulk_action" method="post">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th scope="col"><input type="checkbox" id="checkAll"></th>
+                        <th scope="col">ID</th>
+                        <th scope="col">Name</th>
+                        <th scope="col">Health Rating</th>
+                        <th scope="col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% fruits.each do |fruit| %>
+                        <tr>
+                            <td><input type="checkbox" name="fruit_ids[]" value="<%= fruit[:id] %>"></td>
+                            <th scope="row"><%= fruit[:id] %></th>
+                            <td><%= fruit[:name] %></td>
+                            <td><%= fruit[:health_rating] %></td>
+                            <td>
+                                <!-- Retry Button -->
+                                <button type="submit" form="retry-form-<%= fruit[:id] %>" class="btn btn-primary btn-sm">
+                                    <i class="bi bi-arrow-clockwise"></i> Retry
+                                </button>
+
+                                <!-- Delete Button -->
+                                <button type="submit" form="delete-form-<%= fruit[:id] %>" class="btn btn-danger btn-sm">
+                                    <i class="bi bi-trash"></i> Delete
+                                </button>
+                            </td>
+                        </tr>
+                    <% end %>
+                </tbody>
+            </table>
+
+            <!-- Bulk Action Buttons -->
+            <button type="submit" name="bulk_action" value="retry_selected" class="btn btn-primary">
+                <i class="bi bi-arrow-clockwise"></i> Retry selected
+            </button>
+            <button type="submit" name="bulk_action" value="delete_selected" class="btn btn-danger">
+                <i class="bi bi-trash"></i> Delete selected
+            </button>
+        </form>
+    </div>
+
+    <% fruits.each do |fruit| %>
+        <form id="retry-form-<%= fruit[:id] %>" action="/fruits/<%= fruit[:id] %>/retry" method="post">
+            <input type="hidden" name="_method" value="PATCH">
+        </form>
+        <form id="delete-form-<%= fruit[:id] %>" action="/fruits/<%= fruit[:id] %>" method="post">
+            <input type="hidden" name="_method" value="DELETE">
+        </form>
+    <% end %>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+
+    <script>
+     document.getElementById('checkAll').addEventListener('click', function() {
+         var checkboxes = document.querySelectorAll('input[type="checkbox"]');
+         for (var checkbox of checkboxes) {
+             checkbox.checked = this.checked;
+         }
+     });
+    </script></body>
+</html>
+
