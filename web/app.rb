@@ -16,17 +16,23 @@ module Outboxer
   class App < Sinatra::Base
     set :method_override, true
 
-    get '/table' do
-      fruits = 10.times.map do |i|
-        { id: i + 1, name: "Fruit #{i + 1}", health_rating: rand(1..10) }
-      end
+    post '/messages/search' do
+      text = params['text']
 
-      erb :table, locals: { fruits: fruits }, layout: nil
+      binding.pry
+
+      redirect to('/messages')
     end
 
-    post '/bulk_action' do
+    get '/messages' do
+      messages = Models::Message.all
+
+      erb :messages, locals: { messages: messages }, layout: nil
+    end
+
+    post '/messages/bulk_action' do
       bulk_action = params['bulk_action']
-      fruit_ids = params['fruit_ids']
+      message_ids = params['message_ids']
 
       binding.pry
 
@@ -36,28 +42,18 @@ module Outboxer
       when 'delete_selected'
         # TODO
       else
-        raise "#{params['bulk_action']} not supported"
+        raise "#{bulk_action} not supported"
       end
 
-      if params['retry_selected']
-        # TODO
-      elsif params['delete']
-        # TODO
-      end
+      redirect to('/messages')
+    end
 
+    delete '/messages/:id' do
       redirect to('/table')
     end
 
-    delete '/fruits/:id' do
-      binding.pry
-
-      redirect to('/table')
-    end
-
-    patch '/fruits/:id/retry' do
-      binding.pry
-
-      redirect to('/table')
+    patch '/messages/:id/retry' do
+      redirect to('/messages')
     end
 
     get '/searches' do

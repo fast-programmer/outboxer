@@ -30,8 +30,8 @@
           <a class="nav-link" href="#">Failed</a>
         </li>
       </ul>
-      <form class="d-flex" role="search">
-        <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
+      <form action="/messages/search" method="post" class="d-flex" role="search">
+        <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search" name="text">
         <button class="btn btn-outline-success" type="submit">Search</button>
       </form>
     </div>
@@ -44,39 +44,43 @@
     <div class="container mt-4">
         <% if @message %>
             <div class="alert alert-info">
-                <%= @message %>
+                <%= @flash %>
             </div>
         <% end %>
 
     </div>
 
     <div class="container mt-4">
-        <form action="/bulk_action" method="post">
+        <h2 class="mb-4">Messages</h2>
+
+        <form action="/messages/bulk_action" method="post">
             <table class="table">
                 <thead>
                     <tr>
                         <th scope="col"><input type="checkbox" id="checkAll"></th>
-                        <th scope="col">ID</th>
-                        <th scope="col">Name</th>
-                        <th scope="col">Health Rating</th>
+                        <th scope="col">Id</th>
+                        <th scope="col">Messageable</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Created At</th>
                         <th scope="col">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <% fruits.each do |fruit| %>
+                    <% messages.each do |message| %>
                         <tr>
-                            <td><input type="checkbox" name="fruit_ids[]" value="<%= fruit[:id] %>"></td>
-                            <th scope="row"><%= fruit[:id] %></th>
-                            <td><%= fruit[:name] %></td>
-                            <td><%= fruit[:health_rating] %></td>
+                            <td><input type="checkbox" name="message_ids[]" value="<%= message.id %>"></td>
+                            <th scope="row"><%= message.id %></th>
+                            <td><%= message.messageable_type %>::<%= message.messageable_id %></td>
+                            <td><%= message.status %></td>
+                            <td><%= message.created_at %></td>
                             <td>
                                 <!-- Retry Button -->
-                                <button type="submit" form="retry-form-<%= fruit[:id] %>" class="btn btn-primary btn-sm">
+                                <button type="submit" form="retry-form-<%= message.id %>" class="btn btn-primary btn-sm">
                                     <i class="bi bi-arrow-clockwise"></i> Retry
                                 </button>
 
                                 <!-- Delete Button -->
-                                <button type="submit" form="delete-form-<%= fruit[:id] %>" class="btn btn-danger btn-sm">
+                                <button type="submit" form="delete-form-<%= message.id %>" class="btn btn-danger btn-sm">
                                     <i class="bi bi-trash"></i> Delete
                                 </button>
                             </td>
@@ -95,11 +99,11 @@
         </form>
     </div>
 
-    <% fruits.each do |fruit| %>
-        <form id="retry-form-<%= fruit[:id] %>" action="/fruits/<%= fruit[:id] %>/retry" method="post">
+    <% messages.each do |message| %>
+        <form id="retry-form-<%= message.id %>" action="/messages/<%= message.id %>/retry" method="post">
             <input type="hidden" name="_method" value="PATCH">
         </form>
-        <form id="delete-form-<%= fruit[:id] %>" action="/fruits/<%= fruit[:id] %>" method="post">
+        <form id="delete-form-<%= message.id %>" action="/messages/<%= message.id %>" method="post">
             <input type="hidden" name="_method" value="DELETE">
         </form>
     <% end %>
