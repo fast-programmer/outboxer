@@ -28,17 +28,14 @@ namespace :outboxer do
       db_config = Outboxer::Database.config(environment: environment)
       ActiveRecord::Base.establish_connection(db_config)
 
-      require_relative "../db/migrate/create_invoices"
-      CreateInvoices.new.up
-
-      require_relative "../db/migrate/create_events"
-      CreateEvents.new.up
-
       require_relative "../db/migrate/create_outboxer_messages"
       CreateOutboxerMessages.new.up
 
       require_relative "../db/migrate/create_outboxer_exceptions"
       CreateOutboxerExceptions.new.up
+
+      require_relative "../db/migrate/create_outboxer_frames"
+      CreateOutboxerFrames.new.up
 
       ActiveRecord::Base.connection.disconnect!
     end

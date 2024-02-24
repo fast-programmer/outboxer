@@ -54,7 +54,7 @@ module Outboxer
         .include?(params[:sort]) ? params[:sort].to_sym : :created_at
 
       if sort == :messageable
-        messages = messages.order(:messageable_type, :messageable_id)
+        messages.order(messageable_type: order, messageable_id: order).to_sql
       else
         messages = messages.order(sort => order)
       end

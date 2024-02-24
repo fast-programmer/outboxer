@@ -35,7 +35,7 @@ bin/rails g outboxer:schema
 bin/rake db:migrate
 ```
 
-### include messageable into the models you want to handle creation of in a sidekiq job
+### include messageable into your models
 
 ```ruby
 class Event < ActiveRecord::Base
@@ -51,7 +51,7 @@ end
 bin/rails g outboxer:sidekiq_publisher
 ```
 
-### update the publish block to queue a sidekiq job based on the class of the created model
+### update the publish block to queue a job
 
 ```ruby
 Outboxer::Publisher.publish! do |outboxer_message|

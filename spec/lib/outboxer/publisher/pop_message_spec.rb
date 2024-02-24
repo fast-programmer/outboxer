@@ -9,6 +9,7 @@ module Outboxer
 
         let(:message) do
           Models::Message.create!(
+            id: SecureRandom.uuid,
             messageable_type: 'DummyType',
             messageable_id: 1,
             status: Models::Message::Status::PUBLISHING)
@@ -38,6 +39,7 @@ module Outboxer
 
         let(:message) do
           Models::Message.create!(
+            id: SecureRandom.uuid,
             messageable_type: 'DummyType',
             messageable_id: 1,
             status: Models::Message::Status::PUBLISHING)
@@ -72,7 +74,7 @@ module Outboxer
           expect(updated_outboxer_message.exceptions.count).to eq(1)
           expect(updated_outboxer_message.exceptions.first.class_name).to eq(error.class.name)
           expect(updated_outboxer_message.exceptions.first.message_text).to eq(error.message)
-          expect(updated_outboxer_message.exceptions.first.backtrace).to be_present
+          expect(updated_outboxer_message.exceptions.first.frames).to be_present
         end
 
         it 're-raises error' do

@@ -6,6 +6,7 @@ module Outboxer
       context 'when publishing message' do
         let!(:publishing_message) do
           Models::Message.create!(
+            id: SecureRandom.uuid,
             messageable_type: 'DummyType',
             messageable_id: 1,
             status: Models::Message::Status::PUBLISHING,
@@ -26,6 +27,7 @@ module Outboxer
       context 'when unpublished messaged' do
         let(:unpublished_message) do
           Models::Message.create!(
+            id: SecureRandom.uuid,
             messageable_type: 'DummyType',
             messageable_id: 1,
             status: Models::Message::Status::UNPUBLISHED,

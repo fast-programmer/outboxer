@@ -7,11 +7,13 @@ module Outboxer
         let!(:unpublished_messages) do
           [
             Models::Message.create!(
+              id: SecureRandom.uuid,
               messageable_type: 'DummyType',
               messageable_id: 1,
               status: Models::Message::Status::UNPUBLISHED,
               created_at: DateTime.parse('2024-01-14T00:00:00Z')),
             Models::Message.create!(
+              id: SecureRandom.uuid,
               messageable_type: 'DummyType',
               messageable_id: 2,
               status: Models::Message::Status::UNPUBLISHED,
@@ -28,7 +30,7 @@ module Outboxer
 
               publishing_message = publishing_messages.first
               expect(publishing_message.messageable_type).to eq('DummyType')
-              expect(publishing_message.messageable_id).to eq(1)
+              expect(publishing_message.messageable_id).to eq('1')
               expect(publishing_message.status).to eq(Models::Message::Status::PUBLISHING)
             end
 
