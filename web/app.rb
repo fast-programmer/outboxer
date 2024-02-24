@@ -28,7 +28,7 @@ module Outboxer
     post '/messages/per_page' do
       page_number = params[:page_number] || 1
       per_page = [100, 200, 500, 1000].include?(params[:per_page].to_i) ? params[:per_page].to_i : 100
-      sort = %w[id status messageable_type messageable_id created_at updated_at]
+      sort = %w[id status messageable created_at updated_at]
         .include?(params[:sort]) ? params[:sort].to_sym : :created_at
       order = %w[asc desc].include?(params[:order]) ? params[:order].to_sym : :asc
 
@@ -40,14 +40,25 @@ module Outboxer
     end
 
     get '/messages' do
+      messages = Models::Message
+
       page_number = params[:page_number] || 1
+      messages = messages.page(page_number)
+
       per_page = [100, 200, 500, 1000].include?(params[:per_page].to_i) ? params[:per_page].to_i : 100
-      sort = %w[id status messageable_type messageable_id created_at updated_at]
-        .include?(params[:sort]) ? params[:sort].to_sym : :created_at
+      messages = messages.per(per_page)
+
       order = %w[asc desc].include?(params[:order]) ? params[:order].to_sym : :asc
 
-      messages_scope = Models::Message
-      messages = messages_scope.order(sort => order).page(page_number).per(per_page)
+      sort = %w[id status messageable created_at updated_at]
+        .include?(params[:sort]) ? params[:sort].to_sym : :created_at
+
+      if params[:sort] == :messageable
+        messages = messages.order(:messageable_type, :messageable_id)
+      else
+        messages = messages.order(sort => order)
+      end
+
       messages_count = Models::Message.count
 
       status_counts = { 'unpublished' => 0, 'publishing' => 0, 'failed' => 0 }.merge(
@@ -67,7 +78,7 @@ module Outboxer
     get '/messages/unpublished' do
       page_number = params[:page_number] || 1
       per_page = [100, 200, 500, 1000].include?(params[:per_page].to_i) ? params[:per_page].to_i : 100
-      sort = %w[id status messageable_type messageable_id created_at updated_at]
+      sort = %w[id status messageable created_at updated_at]
         .include?(params[:sort]) ? params[:sort].to_sym : :created_at
       order = %w[asc desc].include?(params[:order]) ? params[:order].to_sym : :asc
 
@@ -92,7 +103,7 @@ module Outboxer
     get '/messages/publishing' do
       page_number = params[:page_number] || 1
       per_page = [100, 200, 500, 1000].include?(params[:per_page].to_i) ? params[:per_page].to_i : 100
-      sort = %w[id status messageable_type messageable_id created_at updated_at]
+      sort = %w[id status messageable created_at updated_at]
         .include?(params[:sort]) ? params[:sort].to_sym : :created_at
       order = %w[asc desc].include?(params[:order]) ? params[:order].to_sym : :asc
 
@@ -117,7 +128,7 @@ module Outboxer
     get '/messages/failed' do
       page_number = params[:page_number] || 1
       per_page = [100, 200, 500, 1000].include?(params[:per_page]) ? params[:per_page].to_i : 100
-      sort = %w[id status messageable_type messageable_id created_at updated_at]
+      sort = %w[id status messageable created_at updated_at]
         .include?(params[:sort]) ? params[:sort].to_sym : :created_at
       order = %w[asc desc].include?(params[:order]) ? params[:order].to_sym : :asc
 

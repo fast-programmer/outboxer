@@ -55,10 +55,26 @@
                 <thead>
                     <tr>
                         <th scope="col"><input type="checkbox" id="checkAll"></th>
-                        <th scope="col">Id</th>
-                        <th scope="col">Messageable</th>
-                        <th scope="col">Status</th>
-                        <th scope="col">Created At</th>
+
+                        <%
+                        headers = {
+                            'Id' => 'id',
+                            'Messageable' => 'messageable',
+                            'Status' => 'status',
+                            'Created At' => 'created_at',
+                            'Updated At' => 'updated_at'
+                        }
+                        headers.each do |display, col|
+                        %>
+                            <th>
+                                <a href="?page_number=<%= page_number %>&per_page=<%= per_page %>&sort=<%= col %>&order=<%= sort.to_s == col && order == :asc ? 'desc' : 'asc' %>">
+                                    <%= display %>
+                                    <% if sort.to_s == col %>
+                                        <%= order == :asc ? '▲' : '▼' %>
+                                    <% end %>
+                                </a>
+                            </th>
+                        <% end %>
                         <th scope="col">Actions</th>
                     </tr>
                 </thead>
@@ -70,6 +86,7 @@
                             <td><%= message.messageable_type %>::<%= message.messageable_id %></td>
                             <td><%= message.status %></td>
                             <td><%= message.created_at %></td>
+                            <td><%= message.updated_at %></td>
                             <td>
                                 <!-- Retry Button -->
                                 <button type="submit" form="retry-form-<%= message.id %>" class="btn btn-primary btn-sm">
