@@ -28,15 +28,15 @@ module Outboxer
     post '/messages/per_page' do
       page_number = params[:page_number] || 1
       per_page = [100, 200, 500, 1000].include?(params[:per_page].to_i) ? params[:per_page].to_i : 100
-      sort = %w[id status messageable created_at updated_at]
-        .include?(params[:sort]) ? params[:sort].to_sym : :created_at
-      order = %w[asc desc].include?(params[:order]) ? params[:order].to_sym : :asc
+      order = %w[id status messageable created_at updated_at]
+        .include?(params[:order]) ? params[:order].to_sym : :created_at
+      sort = %w[asc desc].include?(params[:sort]) ? params[:sort].to_sym : :asc
 
       redirect "/messages?" \
-        "#{URI.encode_www_form_component('page_number')}=#{URI.encode_www_form_component(page_number)}&" \
-        "#{URI.encode_www_form_component('per_page')}=#{URI.encode_www_form_component(per_page)}&" \
+        "#{URI.encode_www_form_component('order')}=#{URI.encode_www_form_component(order)}&" \
         "#{URI.encode_www_form_component('sort')}=#{URI.encode_www_form_component(sort)}&" \
-        "#{URI.encode_www_form_component('order')}=#{URI.encode_www_form_component(order)}"
+        "#{URI.encode_www_form_component('page_number')}=#{URI.encode_www_form_component(page_number)}&" \
+        "#{URI.encode_www_form_component('per_page')}=#{URI.encode_www_form_component(per_page)}"
     end
 
     get '/messages' do
@@ -53,7 +53,7 @@ module Outboxer
       sort = %w[id status messageable created_at updated_at]
         .include?(params[:sort]) ? params[:sort].to_sym : :created_at
 
-      if params[:sort] == :messageable
+      if sort == :messageable
         messages = messages.order(:messageable_type, :messageable_id)
       else
         messages = messages.order(sort => order)
@@ -68,10 +68,10 @@ module Outboxer
         status_counts: status_counts,
         messages_count: messages_count,
         messages: messages,
-        page_number: page_number,
-        per_page: per_page,
+        order: order,
         sort: sort,
-        order: order
+        page_number: page_number,
+        per_page: per_page
       }
     end
 
