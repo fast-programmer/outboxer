@@ -1,6 +1,8 @@
 class CreateOutboxerFrames < ActiveRecord::Migration[6.1]
   def up
-    create_table :outboxer_frames, id: :uuid do |t|
+    create_table :outboxer_frames, id: false do |t|
+        t.uuid :id, primary_key: true
+
       t.references :exception,
         null: false, type: :uuid, foreign_key: { to_table: :outboxer_exceptions }
 

@@ -35,11 +35,11 @@ bin/rails g outboxer:schema
 bin/rake db:migrate
 ```
 
-### include outboxable into your models
+### include messageable into your models
 
 ```ruby
 class Event < ActiveRecord::Base
-  include Outboxer::Outboxable
+  include Outboxer::Messageable
 
   # ...
 end
@@ -55,9 +55,9 @@ bin/rails g outboxer:sidekiq_publisher
 
 ```ruby
 Outboxer::Publisher.publish! do |outboxer_message|
-  case outboxer_message.outboxable_type
+  case outboxer_message.messageable_type
   when 'Event'
-    EventCreatedJob.perform_async({ 'id' => outboxer_message.outboxable_id })
+    EventCreatedJob.perform_async({ 'id' => outboxer_message.messageable_id })
   end
 end
 ```

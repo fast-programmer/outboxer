@@ -9,7 +9,7 @@ require_relative "outboxer/logger"
 require_relative "outboxer/models"
 
 require_relative "outboxer/message"
-require_relative "outboxer/outboxable"
+require_relative "outboxer/messageable"
 
 require_relative "outboxer/database"
 require_relative "outboxer/publisher"

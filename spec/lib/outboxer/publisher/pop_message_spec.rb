@@ -9,8 +9,9 @@ module Outboxer
 
         let(:message) do
           Models::Message.create!(
-            outboxable_type: 'DummyType',
-            outboxable_id: 1,
+            id: SecureRandom.uuid,
+            messageable_type: 'DummyType',
+            messageable_id: 1,
             status: Models::Message::Status::PUBLISHING)
         end
 
@@ -20,7 +21,7 @@ module Outboxer
 
         it 'processes the message' do
           Publisher.pop_message!(queue: queue, logger: logger) do |msg|
-            expect(msg.outboxable_type).to eq('DummyType')
+            expect(msg.messageable_type).to eq('DummyType')
             expect(msg.id).to eq(message.id)
           end
         end
@@ -38,8 +39,9 @@ module Outboxer
 
         let(:message) do
           Models::Message.create!(
-            outboxable_type: 'DummyType',
-            outboxable_id: 1,
+            id: SecureRandom.uuid,
+            messageable_type: 'DummyType',
+            messageable_id: 1,
             status: Models::Message::Status::PUBLISHING)
         end
 

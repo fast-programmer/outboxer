@@ -13,8 +13,9 @@ module Outboxer
 
         let!(:message) do
           Models::Message.create!(
-            outboxable_type: 'DummyType',
-            outboxable_id: 2,
+            id: SecureRandom.uuid,
+            messageable_type: 'DummyType',
+            messageable_id: 2,
             status: Models::Message::Status::UNPUBLISHED)
         end
 
@@ -72,8 +73,9 @@ module Outboxer
 
         let(:message) do
           Models::Message.create!(
-            outboxable_type: 'DummyType',
-            outboxable_id: 1,
+            id: SecureRandom.uuid,
+            messageable_type: 'DummyType',
+            messageable_id: 1,
             status: Models::Message::Status::PUBLISHING)
         end
 
