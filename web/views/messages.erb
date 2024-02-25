@@ -3,178 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Outboxer</title>
+    <title>Responsive Bootstrap 5.3 Table with Pagination and Filters</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-    <style>
-     .clickable-row:hover {
-         cursor: pointer;
-         background-color: #f5f5f5; /* or any other color you prefer */
-     }
-    </style>
 </head>
 <body>
-    <header class="bg-light py-3">
-
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-  <div class="container-fluid">
-    <a class="navbar-brand" href="#">Outboxer</a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="navbarSupportedContent">
-      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-        <li class="nav-item">
-            <a class="nav-link active" aria-current="page" href="messages">All (<%= messages_count %>)</a>
-        </li>
-
-        <% status_counts.each do |status, count| %>
-            <li class="nav-item">
-                <a class="nav-link" href="/messages/<%= status %>"><%= status.capitalize %> (<%= count %>)</a>
-            </li>
-        <% end %>
-      </ul>
-      <form action="/messages/search" method="post" class="d-flex" role="search">
-        <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search" name="text">
-        <button class="btn btn-outline-success" type="submit">Search</button>
-      </form>
-    </div>
-  </div>
-</nav>
-    </header>
-
-
-
     <div class="container mt-4">
-        <% if @message %>
-            <div class="alert alert-info">
-                <%= @flash %>
+        <h5 class="mb-4">Messages</h5> <!-- Messages heading -->
+        <!-- Card to wrap the table and its controls -->
+        <div class="card">
+            <div class="card-header">
+                <!-- Controls Row -->
+                <div class="row">
+                    <div class="col-lg-4 col-md-6 col-12 mb-3 mb-md-0">
+                        <div class="dropdown">
+                            <button class="btn btn-secondary dropdown-toggle" type="button" id="bulkActionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-list-check"></i>
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="bulkActionsDropdown">
+                                <li><a class="dropdown-item" href="#"><i class="bi bi-arrow-clockwise"></i> Retry</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="bi bi-trash"></i> Delete</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-lg-8 col-md-6 col-12 text-md-end d-flex justify-content-end">
+                        <button class="btn btn-outline-secondary me-2" type="button">
+                            <i class="bi bi-funnel"></i>
+                        </button>
+                        <div class="input-group" style="max-width: 75%;">
+                            <input type="text" class="form-control" placeholder="Search">
+                            <button class="btn btn-outline-secondary" type="button">
+                                <i class="bi bi-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
-        <% end %>
-
-    </div>
-
-    <div class="container mt-4">
-        <h2 class="mb-4">Messages</h2>
-
-        <form action="/messages/bulk_action" method="post">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th scope="col"><input type="checkbox" id="checkAll"></th>
-
-                        <%
-                        headers = {
-                            'Id' => 'id',
-                            'Messageable' => 'messageable',
-                            'Status' => 'status',
-                            'Created At' => 'created_at',
-                            'Updated At' => 'updated_at'
-                        }
-                        headers.each do |display, col|
-                        %>
-                            <th>
-                                <a href="?page_number=<%= page_number %>&per_page=<%= per_page %>&sort=<%= col %>&order=<%= sort.to_s == col && order == :asc ? 'desc' : 'asc' %>">
-                                    <%= display %>
-                                    <% if sort.to_s == col %>
-                                        <%= order == :asc ? '▲' : '▼' %>
-                                    <% end %>
-                                </a>
-                            </th>
-                        <% end %>
-                        <th scope="col">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <% messages.each do |message| %>
-                        <tr class="clickable-row" data-href="/messages/<%= message.id %>">
-                            <td><input type="checkbox" name="message_ids[]" value="<%= message.id %>"></td>
-                            <th scope="row"><%= message.id %></th>
-                            <td><%= message.messageable_type %>::<%= message.messageable_id %></td>
-                            <td><%= message.status %></td>
-                            <td><%= message.created_at %></td>
-                            <td><%= message.updated_at %></td>
-                            <td>
-                                <!-- Retry Button -->
-                                <button type="submit" form="retry-form-<%= message.id %>" class="btn btn-primary btn-sm">
-                                    <i class="bi bi-arrow-clockwise"></i> Retry
-                                </button>
-
-                                <!-- Delete Button -->
-                                <button type="submit" form="delete-form-<%= message.id %>" class="btn btn-danger btn-sm">
-                                    <i class="bi bi-trash"></i> Delete
-                                </button>
-                            </td>
+            <div class="card-body">
+                <!-- Table -->
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th scope="col"><input type="checkbox"></th> <!-- New Checkbox Column -->
+                            <th scope="col">#</th>
+                            <th scope="col">First Column</th>
+                            <th scope="col">Second Column</th>
+                            <th scope="col">Third Column</th>
                         </tr>
-                    <% end %>
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><input type="checkbox"></td> <!-- Checkbox in Row -->
+                            <th scope="row">1</th>
+                            <td>Data 1</td>
+                            <td>Data 2</td>
+                            <td>Data 3</td>
+                        </tr>
+                        <!-- Additional rows can be added here -->
+                    </tbody>
+                </table>
 
-            <!-- Bulk Action Buttons -->
-            <button type="submit" name="bulk_action" value="retry_selected" class="btn btn-primary">
-                <i class="bi bi-arrow-clockwise"></i> Retry selected
-            </button>
-            <button type="submit" name="bulk_action" value="delete_selected" class="btn btn-danger">
-                <i class="bi bi-trash"></i> Delete selected
-            </button>
-        </form>
+                <!-- Pagination and Per Page Dropdown -->
+                <div class="d-flex justify-content-between align-items-center mt-4">
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination">
+                            <li class="page-item"><a class="page-link" href="#">Previous</a></li>
+                            <li class="page-item"><a class="page-link" href="#">1</a></li>
+                            <li class="page-item"><a class="page-link" href="#">2</a></li>
+                            <li class="page-item"><a class="page-link" href="#">3</a></li>
+                            <li class="page-item"><a class="page-link" href="#">Next</a></li>
+                        </ul>
+                    </nav>
+                    <div class="d-flex align-items-center">
+                        <label for="perPageSelect" class="me-2">Per page:</label>
+                        <select id="perPageSelect" class="form-select" style="width: auto;">
+                            <option>100</option>
+                            <option>200</option>
+                            <option>500</option>
+                            <option>1000</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-    <!-- Per Page Dropdown -->
-    <form action="/messages/per_page" method="post" class="d-flex align-items-center mb-3">
-        <label class="me-2" for="perPage">Per Page:</label>
-        <select id="perPage" name="per_page" class="form-select me-2" onchange="this.form.submit()">
-            <option value="100" <%= 'selected' if per_page == 100 %>>100</option>
-            <option value="200" <%= 'selected' if per_page == 200 %>>200</option>
-            <option value="500" <%= 'selected' if per_page == 500 %>>500</option>
-            <option value="1000" <%= 'selected' if per_page == 1000 %>>1000</option>
-        </select>
-    </form>
 
-
-<!-- Pagination Controls -->
-<div class="container">
-    <nav aria-label="Page navigation">
-        <ul class="pagination justify-content-center">
-            <li class="page-item <%= 'disabled' unless messages.current_page > 1 %>">
-                <a class="page-link" href="?page_number=<%= messages.prev_page %>&per_page=<%= per_page %>&order=<%= order %>&sort=<%= sort %>" tabindex="-1" aria-disabled="true">&lt;&lt;</a>
-            </li>
-            <% messages.total_pages.times do |i| %>
-                <li class="page-item <%= 'active' if messages.current_page == i + 1 %>">
-                    <a class="page-link" href="?page_number=<%= i + 1 %>&per_page=<%= per_page %>&order=<%= order %>&sort=<%= sort %>"><%= i + 1 %></a>
-                </li>
-            <% end %>
-            <li class="page-item <%= 'disabled' unless messages.current_page < messages.total_pages %>">
-                <a class="page-link" href="?page_number=<%= messages.next_page %>&per_page=<%= per_page %>&order=<%= order %>&sort=<%= sort %>" >&gt;&gt;</a>
-            </li>
-        </ul>
-    </nav>
-</div>
-
-    <% messages.each do |message| %>
-        <form id="retry-form-<%= message.id %>" action="/messages/<%= message.id %>/retry" method="post">
-            <input type="hidden" name="_method" value="PATCH">
-        </form>
-        <form id="delete-form-<%= message.id %>" action="/messages/<%= message.id %>" method="post">
-            <input type="hidden" name="_method" value="DELETE">
-        </form>
-    <% end %>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-
-    <script>
-     document.getElementById('checkAll').addEventListener('click', function() {
-         var checkboxes = document.querySelectorAll('input[type="checkbox"]');
-         for (var checkbox of checkboxes) {
-             checkbox.checked = this.checked;
-         }
-     });
-
-     var rows = document.querySelectorAll('.clickable-row');
-     rows.forEach(function(row) {
-         row.addEventListener('click', function() {
-             window.location.href = this.dataset.href;
-         });
-     });
-    </script></body>
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
 </html>
-
