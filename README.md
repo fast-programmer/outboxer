@@ -5,7 +5,7 @@
 
 ## Background
 
-Outboxer is a Ruby implementation of the [transactional outbox pattern](https://microservices.io/patterns/data/transactional-outbox.html).
+Outboxer is an ActiveRecord implementation of the [transactional outbox pattern](https://microservices.io/patterns/data/transactional-outbox.html).
 
 It helps you quickly migrate conventional Rails apps to an eventually consistent, event driven architecture based on best practice domain driven design (DDD) principles.
 
@@ -47,13 +47,28 @@ class Event < ActiveRecord::Base
 end
 ```
 
+### define an event created job
+
+```
+class EventCreatedJob
+  include Sidekiq::Job
+
+  def perform(args)
+    event = Event.find(args['id'])
+
+    # ...
+  end
+end
+```
+
 ### generate the sidekiq publisher
 
 ```bash
 bin/rails g outboxer:sidekiq_publisher
 ```
 
-### update the publish block to queue a job
+
+### update the publish block to add an event created job
 
 ```ruby
 Outboxer::Publisher.publish! do |outboxer_message|
