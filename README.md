@@ -49,7 +49,7 @@ end
 
 ### define an event created job
 
-```
+```ruby
 class EventCreatedJob
   include Sidekiq::Job
 
