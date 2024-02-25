@@ -7,7 +7,7 @@
 
 Outboxer is a Ruby implementation of the [transactional outbox pattern](https://microservices.io/patterns/data/transactional-outbox.html).
 
-It helps you migrate conventional Rails apps to an eventually consistent, event driven architecture based on best practice domain driven design (DDD) principles.
+It helps you quickly migrate conventional Rails apps to an eventually consistent, event driven architecture based on best practice domain driven design (DDD) principles.
 
 ## Installation
 
