@@ -16,6 +16,12 @@
      .custom-link:hover {
          text-decoration: underline; /* Adds underline on hover for better UX */
      }
+     @media (max-width: 768px) {
+         /* Add margin to the bottom of the Messages header for small screens */
+         .card-header .row > div:first-child {
+             margin-bottom: 0.5rem;
+         }
+    }
     </style>
 </head>
 <body>
@@ -52,12 +58,12 @@
                 <!-- Controls Row -->
                 <div class="row align-items-center">
                     <!-- Messages Header (Taking up more space) -->
-                    <div class="col-md-8 col-lg-9">
+                    <div class="col-12 col-md-8 col-lg-9">
                         <h3 class="mb-0">Messages</h3>
                     </div>
 
                     <!-- Search Bar -->
-                    <div class="col-md-4 col-lg-3">
+                    <div class="col-12 col-md-4 col-lg-3">
                         <div class="input-group">
                             <input type="text" class="form-control" placeholder="Search">
                             <button class="btn btn-outline-secondary" type="button">
@@ -96,7 +102,7 @@
                                 <th scope="col">Messageable</th>
                                 <th scope="col">
                                     Created At
-                                    <i class="bi bi-arrow-down"></i> <!-- Down sort icon -->
+                                    <i class="bi bi-arrow-up"></i> <!-- Up sort icon -->
                                 </th>
                                 <th scope="col">Updated At</th>
                                 <th scope="col">Actions</th>
@@ -108,11 +114,11 @@
                                 <td><input type="checkbox" class="individual-check"></td>
                                 <th scope="row">
                                     <a href="file:///Users/adammikulasev/dev/outboxer/web/mockup_show_accordian.html" class="custom-link">
-                                        79b5c0a8-0954-41f4-b4b1-86e9e4af1963
+                                        1
                                     </a>
                                 </th>
                                 <td>unpublished</td>
-                                <td>User::1</td>
+                                <td>Event::1</td>
                                 <td>2024-02-24 14:59:06 UTC</td>
                                 <td>2024-02-24 14:59:06 UTC</td>
                                 <td>
@@ -132,11 +138,11 @@
                                 <td><input type="checkbox" class="individual-check"></td>
                                 <th scope="row">
                                     <a href="file:///Users/adammikulasev/dev/outboxer/web/mockup_show_accordian.html" class="custom-link">
-                                        8f5b2c0d-0632-48f5-a2c7-34e9e8af1974
+                                        2
                                     </a>
                                 </th>
                                 <td>publishing</td>
-                                <td>User::2</td>
+                                <td>Event::2</td>
                                 <td>2024-02-24 15:10:07 UTC</td>
                                 <td>2024-02-24 15:10:07 UTC</td>
                                 <td>
@@ -156,11 +162,11 @@
                                 <td><input type="checkbox" class="individual-check"></td>
                                 <th scope="row">
                                     <a href="file:///Users/adammikulasev/dev/outboxer/web/mockup_show.html" class="custom-link">
-                                        a2c3d405-0968-4f6b-8b34-56f1e9af1985
+                                        3
                                     </a>
                                 </th>
                                 <td>failed</td>
-                                <td>User::3</td>
+                                <td>Event::3</td>
                                 <td>2024-02-24 15:20:08 UTC</td>
                                 <td>2024-02-24 15:20:08 UTC</td>
                                 <td>

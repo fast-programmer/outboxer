@@ -9,6 +9,15 @@
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css" rel="stylesheet">
     <style>
+        .custom-accordion-header small {
+            margin-bottom: 0.25rem; /* Adjust space below the ID and time */
+        }
+        .accordion-button:not(.collapsed) {
+            padding-bottom: 0; /* Reduces space at the bottom of the expanded header */
+        }
+        .accordion-body {
+            padding-top: 0.25rem; /* Adjusts the starting padding of the accordion body to reduce space */
+        }
         .card-header {
             display: flex;
             justify-content: space-between;
@@ -27,13 +36,71 @@
         .back-button {
             margin-top: 20px;
         }
-    </style>
+     .custom-header-content {
+         line-height: 1.4; /* Adjust line spacing */
+     }
+     .accordion-button:not(.collapsed) .custom-header-content {
+         margin-bottom: 0.5rem; /* Add spacing at the bottom when expanded */
+     }
+     /* Custom breadcrumb styling to mimic h3 */
+     .breadcrumb {
+         font-size: 1.75rem; /* h3 size; adjust as needed */
+         font-weight: 500; /* Medium weight; adjust based on your h3 */
+         margin-bottom: 0; /* Remove default margin-bottom of breadcrumb */
+     }
+
+     /* Additional styling to ensure breadcrumb links match the emphasis */
+     .breadcrumb a {
+         color: inherit; /* Ensures links use the breadcrumb (likely body text) color */
+         text-decoration: none; /* Optional: removes underline from links */
+     }
+
+     .breadcrumb a:hover {
+         text-decoration: underline; /* Optional: adds underline on hover for links */
+    }
+</style>
 </head>
 <body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#"><i class="bi bi-envelope-open-fill"></i> Outboxer</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" href="#">All (600)</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Unpublished (200)</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Publishing (200)</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Failed (200)</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
     <div class="container my-4">
         <div class="card">
             <div class="card-header">
-                <span>Message</span>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0">
+                        <li class="breadcrumb-item">
+                            <a href="file:///Users/adammikulasev/dev/outboxer/web/mockup.html">Messages</a>
+                        </li>
+                        <li class="breadcrumb-item active" aria-current="page">
+                            <!-- <a href="file:///Users/adammikulasev/dev/outboxer/web/mockup_show_accordian.html">1</a> -->
+                            1
+                        </li>
+                    </ol>
+                </nav>
                 <div class="card-header-buttons">
                     <button type="button" class="btn btn-primary">
                         <i class="bi bi-arrow-clockwise"></i> Retry
@@ -46,10 +113,6 @@
             <div class="card-body">
                 <table class="table">
                     <tbody>
-                        <tr>
-                            <th scope="row">Id</th>
-                            <td>123e4567-e89b-12d3-a456-426614174000</td>
-                        </tr>
                         <tr>
                             <th scope="row">Messageable</th>
                             <td>Event::1</td>
@@ -64,79 +127,67 @@
                         </tr>
                         <tr>
                             <th scope="row">Updated at</th>
-                            <td>2024-02-25 10:00:00</td>
+                            <td>2024-02-25 11:30:00</td>
                         </tr>
                     </tbody>
                 </table>
 
                 <div class="accordion" id="exceptionsAccordion">
-                    <!-- First Exception -->
+                    <!-- Last Exception -->
                     <div class="accordion-item">
-                        <h2 class="accordion-header" id="headingOne">
-                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
-                                <strong>StandardError</strong> - undefined method 'blah'
+                        <h2 class="accordion-header" id="exceptionHeader1">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#exceptionCollapse1" aria-expanded="false" aria-controls="exceptionCollapse1">
+                                <div class="custom-header-content w-100">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-exclamation-triangle-fill"></i>
+                                        <span class="ms-2">1: StandardError - undefined method 'blah'</span>
+                                    </div>
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-calendar3"></i>
+                                        <small class="text-muted ms-2" style="font-size: 0.75em;">2024-02-25 11:30:00</small>
+                                    </div>
+                                </div>
                             </button>
                         </h2>
-                        <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne">
+                        <div id="exceptionCollapse1" class="accordion-collapse collapse" aria-labelledby="exceptionHeader1">
                             <div class="accordion-body">
-                                <table class="table mb-3">
-                                    <tbody>
-                                        <tr>
-                                            <th scope="row">Id</th>
-                                            <td>456f4567-g89h-12d3-a456-426614174abc</td>
-                                        </tr>
-                                        <tr>
-                                            <th scope="row">Created at</th>
-                                            <td>2024-02-25 11:00:00</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
                                 <ul class="list-group list-group-flush">
-                                    <li class="list-group-item">app/controllers/my_controller.rb:23:in `index`</li>
-                                    <li class="list-group-item">app/models/my_model.rb:45:in `calculate`</li>
-                                    <li class="list-group-item">app/helpers/my_helper.rb:10:in `format`</li>
+                                    <li class="list-group-item">1: app/controllers/my_controller.rb:23:in `index`</li>
+                                    <li class="list-group-item">2: app/models/my_model.rb:45:in `calculate`</li>
+                                    <li class="list-group-item">3: app/helpers/my_helper.rb:10:in `format`</li>
                                 </ul>
                             </div>
                         </div>
                     </div>
-
-                    <!-- Second Exception -->
+                    <!-- Second Last Exception -->
                     <div class="accordion-item">
-                        <h2 class="accordion-header" id="headingTwo">
-                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
-                                <strong>ArgumentError</strong> - wrong number of arguments
+                        <h2 class="accordion-header" id="exceptionHeader2">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#exceptionCollapse2" aria-expanded="false" aria-controls="exceptionCollapse1">
+                                <div class="custom-header-content w-100">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-exclamation-triangle-fill"></i>
+                                        <span class="ms-2">2: AugumentError - wrong number of arguments</span>
+                                    </div>
+                                    <div class="d-flex align-items-center mt-2">
+                                        <i class="bi bi-calendar3"></i>
+                                        <small class="text-muted ms-2" style="font-size: 0.75em;">2024-02-25 10:00:00</small>
+                                    </div>
+                                </div>
                             </button>
                         </h2>
-                        <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo">
+                        <div id="exceptionCollapse2" class="accordion-collapse collapse" aria-labelledby="exceptionHeader2">
                             <div class="accordion-body">
-                                <table class="table mb-3">
-                                    <tbody>
-                                        <tr>
-                                            <th scope="row">Id</th>
-                                            <td>789g4567-h89j-12d3-a456-426614174xyz</td>
-                                        </tr>
-                                        <tr>
-                                            <th scope="row">Created at</th>
-                                            <td>2024-02-25 11:30:00</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
                                 <ul class="list-group list-group-flush">
-                                    <li class="list-group-item">app/services/my_service.rb:30:in `execute`</li>
-                                    <li class="list-group-item">app/controllers/another_controller.rb:52:in `show`</li>
-                                    <li class="list-group-item">app/jobs/my_job.rb:15:in `perform`</li>
+                                    <li class="list-group-item">4: app/services/my_service.rb:30:in `execute`</li>
+                                    <li class="list-group-item">5: app/controllers/another_controller.rb:52:in `show`</li>
+                                    <li class="list-group-item">6: app/jobs/my_job.rb:15:in `perform`</li>
                                 </ul>
                             </div>
                         </div>
                     </div>
-                    <!-- More exceptions can be added here -->
                 </div>
             </div>
         </div>
-        <!-- Back Button -->
-        <button type="button" class="btn btn-secondary back-button">
-            <i class="bi bi-arrow-left"></i> Back
-        </button>
     </div>
 
     <!-- Bootstrap Bundle with Popper -->
