@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bootstrap Card with Enhanced Header</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container py-5">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"> <!-- Changed from <div> to <h5> and added classes for emphasis -->
+                    <span class="fw-bold">Messages</span>
+                </h5>
+                <div class="d-flex align-items-center">
+                    <div class="dropdown">
+                        <button class="btn btn-secondary dropdown-toggle" type="button" id="bulkActionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-list-check"></i>
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="bulkActionsDropdown">
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-arrow-repeat"></i> Retry Selected</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-trash"></i> Delete Selected</a></li>
+                        </ul>
+                    </div>
+                    <div class="input-group ms-2">
+                        <input type="text" class="form-control" placeholder="Search">
+                        <button class="btn btn-outline-secondary" type="button" id="button-addon2">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <!-- Table -->
+                    <table class="table table-hover">
+                        <thead>
+                        <tr>
+                            <th scope="col">
+                            <input type="checkbox" id="checkAll"> <!-- Check All Checkbox -->
+                            </th>
+                            <th scope="col">Id</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Messageable</th>
+                            <th scope="col">
+                            Created At
+                            <i class="bi bi-arrow-down"></i> <!-- Down sort icon -->
+                            </th>
+                            <th scope="col">Updated At</th>
+                            <th scope="col">Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <!-- Row 1: Existing row -->
+                        <tr>
+                            <td><input type="checkbox" class="individual-check"></td>
+                            <th scope="row">
+                            <a href="file:///Users/adammikulasev/dev/outboxer/web/mockup_show_accordian.html" class="custom-link">
+                                79b5c0a8-0954-41f4-b4b1-86e9e4af1963
+                            </a>
+                            </th>
+                            <td>unpublished</td>
+                            <td>User::1</td>
+                            <td>2024-02-24 14:59:06 UTC</td>
+                            <td>2024-02-24 14:59:06 UTC</td>
+                            <td>
+                            <!-- Action buttons -->
+                            <div class="d-flex">
+                                <button type="button" class="btn btn-outline-secondary btn-sm me-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Retry">
+                                <i class="bi bi-arrow-clockwise"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-danger btn-sm ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete">
+                                <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                            </td>
+                        </tr>
+                        <!-- Additional rows formatted similarly -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer d-flex justify-content-between">
+                <div class="d-flex justify-content-center flex-grow-1">
+                    <nav aria-label="Page navigation example" class="text-center">
+                        <ul class="pagination">
+                            <li class="page-item"><a class="page-link" href="#">Previous</a></li>
+                            <li class="page-item"><a class="page-link" href="#">1</a></li>
+                            <li class="page-item"><a class="page-link" href="#">2</a></li>
+                            <li class="page-item"><a class="page-link" href="#">3</a></li>
+                            <li class="page-item"><a class="page-link" href="#">Next</a></li>
+                        </ul>
+                    </nav>
+                </div>
+                <div class="ms-auto">
+                    <select class="form-select" aria-label="Per page">
+                        <option selected>Per page</option>
+                        <option value="100">100</option>
+                        <option value="200">200</option>
+                        <option value="500">500</option>
+                        <option value="1000">1000</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

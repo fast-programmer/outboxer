@@ -48,51 +48,41 @@
     <div class="container mt-4">
         <!-- Card to wrap the table and its controls -->
         <div class="card">
-<div class="card-header">
-    <!-- Controls Row -->
-    <div class="row align-items-center">
-        <!-- Messages Header (Taking up more space) -->
-        <div class="col-lg-7 col-md-6">
-            <h3 class="mb-0">Messages</h3>
-        </div>
+            <div class="card-header">
+                <!-- Controls Row -->
+                <div class="row align-items-center">
+                    <!-- Messages Header (Taking up more space) -->
+                    <div class="col-md-8 col-lg-9">
+                        <h3 class="mb-0">Messages</h3>
+                    </div>
 
-        <!-- Per Page Dropdown and Bulk Actions Dropdown -->
-        <div class="col-lg-3 col-md-4 text-lg-end d-flex justify-content-end align-items-center">
-            <!-- Per Page Dropdown -->
-            <div class="d-flex align-items-center me-2">
-                <label for="perPageSelect" class="me-2">Per page:</label>
-                <select id="perPageSelect" class="form-select" style="width: auto;">
-                    <option>100</option>
-                    <option>200</option>
-                    <option>500</option>
-                    <option>1000</option>
-                </select>
+                    <!-- Search Bar -->
+                    <div class="col-md-4 col-lg-3">
+                        <div class="input-group">
+                            <input type="text" class="form-control" placeholder="Search">
+                            <button class="btn btn-outline-secondary" type="button">
+                                <i class="bi bi-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
-
-            <!-- Bulk Actions Dropdown -->
-            <div class="dropdown">
-                <button class="btn btn-secondary dropdown-toggle" type="button" id="bulkActionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="bi bi-list-check"></i>
-                </button>
-                <ul class="dropdown-menu" aria-labelledby="bulkActionsDropdown">
-                    <li><a class="dropdown-item" href="#"><i class="bi bi-arrow-clockwise"></i> Retry selected</a></li>
-                    <li><a class="dropdown-item" href="#"><i class="bi bi-trash"></i> Delete selected</a></li>
-                </ul>
+            <!-- Bulk Actions Toolbar -->
+            <div class="card-toolbar py-2 d-none" id="bulkActionsToolbar" style="border-top: 1px solid #eee; border-bottom: 1px solid #eee; background-color: #E9F5FB;">
+                <div class="container">
+                    <div class="row justify-content-start"> <!-- Adjusted to align items to the start -->
+                        <div class="col-auto">
+                            <button class="btn btn-secondary me-2" type="button" id="retrySelected" data-bs-toggle="tooltip" data-bs-placement="top" title="Retry selected">
+                                <i class="bi bi-arrow-clockwise"></i> Retry
+                            </button>
+                            <button class="btn btn-danger" type="button" id="deleteSelected" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete selected">
+                                <i class="bi bi-trash"></i> Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
-
-        <!-- Search Bar -->
-        <div class="col-lg-2 col-md-2 text-md-end">
-            <div class="input-group">
-                <input type="text" class="form-control" placeholder="Search">
-                <button class="btn btn-outline-secondary" type="button">
-                    <i class="bi bi-search"></i>
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-<div class="card-body">
+            <div class="card-body">
                 <div class="table-responsive">
                     <!-- Table -->
                     <table class="table table-hover">
@@ -113,11 +103,11 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <!-- Row 1: Existing row -->
+                            <!-- Row 1 -->
                             <tr>
                                 <td><input type="checkbox" class="individual-check"></td>
                                 <th scope="row">
-                                    <a href="file:///Users/adammikulasev/dev/outboxer/web/mockup_show.html" class="custom-link">
+                                    <a href="file:///Users/adammikulasev/dev/outboxer/web/mockup_show_accordian.html" class="custom-link">
                                         79b5c0a8-0954-41f4-b4b1-86e9e4af1963
                                     </a>
                                 </th>
@@ -127,14 +117,14 @@
                                 <td>2024-02-24 14:59:06 UTC</td>
                                 <td>
                                     <!-- Action buttons -->
-            <div class="d-flex">
-                <button type="button" class="btn btn-outline-secondary btn-sm me-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Retry">
-                    <i class="bi bi-arrow-clockwise"></i>
-                </button>
-                <button type="button" class="btn btn-outline-danger btn-sm ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete">
-                    <i class="bi bi-trash"></i>
-                </button>
-            </div>
+                                    <div class="d-flex">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm me-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Retry">
+                                            <i class="bi bi-arrow-clockwise"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-danger btn-sm ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                             <!-- Row 2 -->
@@ -151,14 +141,14 @@
                                 <td>2024-02-24 15:10:07 UTC</td>
                                 <td>
                                     <!-- Action buttons -->
-            <div class="d-flex">
-                <button type="button" class="btn btn-outline-secondary btn-sm me-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Retry">
-                    <i class="bi bi-arrow-clockwise"></i>
-                </button>
-                <button type="button" class="btn btn-outline-danger btn-sm ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete">
-                    <i class="bi bi-trash"></i>
-                </button>
-            </div>
+                                    <div class="d-flex">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm me-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Retry">
+                                            <i class="bi bi-arrow-clockwise"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-danger btn-sm ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                             <!-- Row 3 -->
@@ -175,204 +165,42 @@
                                 <td>2024-02-24 15:20:08 UTC</td>
                                 <td>
                                     <!-- Action buttons -->
-            <div class="d-flex">
-                <button type="button" class="btn btn-outline-secondary btn-sm me-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Retry">
-                    <i class="bi bi-arrow-clockwise"></i>
-                </button>
-                <button type="button" class="btn btn-outline-danger btn-sm ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete">
-                    <i class="bi bi-trash"></i>
-                </button>
-            </div>
-                                </td>
-                            </tr>
-                            <!-- Row 4 -->
-                            <tr>
-                                <td><input type="checkbox" class="individual-check"></td>
-                                <th scope="row">
-                                    <a href="file:///Users/adammikulasev/dev/outboxer/web/mockup_show.html" class="custom-link">
-                                        b4d5e607-0a29-45f6-9b3a-67f2eaaf1996
-                                    </a>
-                                </th>
-                                <td>published</td>
-                                <td>User::4</td>
-                                <td>2024-02-24 15:30:09 UTC</td>
-                                <td>2024-02-24 15:30:09 UTC</td>
-                                <td>
-                                    <!-- Action buttons -->
-            <div class="d-flex">
-                <button type="button" class="btn btn-outline-secondary btn-sm me-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Retry">
-                    <i class="bi bi-arrow-clockwise"></i>
-                </button>
-                <button type="button" class="btn btn-outline-danger btn-sm ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete">
-                    <i class="bi bi-trash"></i>
-                </button>
-            </div>
-                                </td>
-                            </tr>
-                            <!-- Row 5 -->
-                            <tr>
-                                <td><input type="checkbox" class="individual-check"></td>
-                                <th scope="row">
-                                    <a href="file:///Users/adammikulasev/dev/outboxer/web/mockup_show.html" class="custom-link">
-                                        c6e7f809-0b4a-46f7-abc4-78f3ebaf1a07
-                                    </a>
-                                </th>
-                                <td>unpublished</td>
-                                <td>User::5</td>
-                                <td>2024-02-24 15:40:10 UTC</td>
-                                <td>2024-02-24 15:40:10 UTC</td>
-                                <td>
-                                    <!-- Action buttons -->
-            <div class="d-flex">
-                <button type="button" class="btn btn-outline-secondary btn-sm me-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Retry">
-                    <i class="bi bi-arrow-clockwise"></i>
-                </button>
-                <button type="button" class="btn btn-outline-danger btn-sm ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete">
-                    <i class="bi bi-trash"></i>
-                </button>
-            </div>
-                                </td>
-                            </tr>
-                            <!-- Row 6 -->
-                            <tr>
-                                <td><input type="checkbox" class="individual-check"></td>
-                                <th scope="row">
-                                    <a href="file:///Users/adammikulasev/dev/outboxer/web/mockup_show.html" class="custom-link">
-                                        d8f9g0ab-1c5b-48f8-bd2d-89f4fcac1b18
-                                    </a>
-                                </th>
-                                <td>failed</td>
-                                <td>User::6</td>
-                                <td>2024-02-24 15:50:11 UTC</td>
-                                <td>2024-02-24 15:50:11 UTC</td>
-                                <td>
-                                    <!-- Action buttons -->
-            <div class="d-flex">
-                <button type="button" class="btn btn-outline-secondary btn-sm me-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Retry">
-                    <i class="bi bi-arrow-clockwise"></i>
-                </button>
-                <button type="button" class="btn btn-outline-danger btn-sm ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete">
-                    <i class="bi bi-trash"></i>
-                </button>
-            </div>
-                                </td>
-                            </tr>
-                            <!-- Row 7 -->
-                            <tr>
-                                <td><input type="checkbox" class="individual-check"></td>
-                                <th scope="row">
-                                    <a href="file:///Users/adammikulasev/dev/outboxer/web/mockup_show.html" class="custom-link">
-                                        ea1fb2cd-2e6c-49f9-ce3e-9a5bfdad2c19
-                                    </a>
-                                </th>
-                                <td>publishing</td>
-                                <td>User::7</td>
-                                <td>2024-02-24 16:00:12 UTC</td>
-                                <td>2024-02-24 16:00:12 UTC</td>
-                                <td>
-                                    <!-- Action buttons -->
-            <div class="d-flex">
-                <button type="button" class="btn btn-outline-secondary btn-sm me-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Retry">
-                    <i class="bi bi-arrow-clockwise"></i>
-                </button>
-                <button type="button" class="btn btn-outline-danger btn-sm ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete">
-                    <i class="bi bi-trash"></i>
-                </button>
-            </div>
-                                </td>
-                            </tr>
-                            <!-- Row 8 -->
-                            <tr>
-                                <td><input type="checkbox" class="individual-check"></td>
-                                <th scope="row">
-                                    <a href="file:///Users/adammikulasev/dev/outboxer/web/mockup_show.html" class="custom-link">
-                                        fc1d2e3f-3f7d-50a0-de4f-ab6cdeaf3d20
-                                    </a>
-                                </th>
-                                <td>published</td>
-                                <td>User::8</td>
-                                <td>2024-02-24 16:10:13 UTC</td>
-                                <td>2024-02-24 16:10:13 UTC</td>
-                                <td>
-                                    <!-- Action buttons -->
-            <div class="d-flex">
-                <button type="button" class="btn btn-outline-secondary btn-sm me-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Retry">
-                    <i class="bi bi-arrow-clockwise"></i>
-                </button>
-                <button type="button" class="btn btn-outline-danger btn-sm ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete">
-                    <i class="bi bi-trash"></i>
-                </button>
-            </div>
-                                </td>
-                            </tr>
-                            <!-- Row 9 -->
-                            <tr>
-                                <td><input type="checkbox" class="individual-check"></td>
-                                <th scope="row">
-                                    <a href="file:///Users/adammikulasev/dev/outboxer/web/mockup_show.html" class="custom-link">
-                                        ge2f3g4h-4g8h-51b1-ef5g-cb7dfebg4e21
-                                    </a>
-                                </th>
-                                <td>unpublished</td>
-                                <td>User::9</td>
-                                <td>2024-02-24 16:20:14 UTC</td>
-                                <td>2024-02-24 16:20:14 UTC</td>
-                                <td>
-                                    <!-- Action buttons -->
-            <div class="d-flex">
-                <button type="button" class="btn btn-outline-secondary btn-sm me-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Retry">
-                    <i class="bi bi-arrow-clockwise"></i>
-                </button>
-                <button type="button" class="btn btn-outline-danger btn-sm ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete">
-                    <i class="bi bi-trash"></i>
-                </button>
-            </div>
-                                </td>
-                            </tr>
-                            <!-- Row 10 -->
-                            <tr>
-                                <td><input type="checkbox" class="individual-check"></td>
-                                <th scope="row">
-                                    <a href="file:///Users/adammikulasev/dev/outboxer/web/mockup_show.html" class="custom-link">
-                                        hf3g4h5i-5i9j-62c2-fg6h-dc8efgci5f22
-                                    </a>
-                                </th>
-                                <td>failed</td>
-                                <td>User::10</td>
-                                <td>2024-02-24 16:30:15 UTC</td>
-                                <td>2024-02-24 16:30:15 UTC</td>
-                                <td>
-                                    <!-- Action buttons -->
-            <div class="d-flex">
-                <button type="button" class="btn btn-outline-secondary btn-sm me-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Retry">
-                    <i class="bi bi-arrow-clockwise"></i>
-                </button>
-                <button type="button" class="btn btn-outline-danger btn-sm ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete">
-                    <i class="bi bi-trash"></i>
-                </button>
-            </div>
+                                    <div class="d-flex">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm me-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Retry">
+                                            <i class="bi bi-arrow-clockwise"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-danger btn-sm ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
-<div class="card-footer">
-    <!-- Row for Pagination -->
-    <div class="row">
-        <div class="col-12">
-            <nav aria-label="Page navigation" class="d-flex justify-content-center">
-                <ul class="pagination">
-                    <li class="page-item"><a class="page-link" href="#">Previous</a></li>
-                    <li class="page-item"><a class="page-link" href="#">1</a></li>
-                    <li class="page-item"><a class="page-link" href="#">2</a></li>
-                    <li class="page-item"><a class="page-link" href="#">3</a></li>
-                    <li class="page-item"><a class="page-link" href="#">Next</a></li>
-                </ul>
-            </nav>
-        </div>
-    </div>
-</div>
+            <div class="card-footer d-flex justify-content-between">
+                <div class="d-flex justify-content-center flex-grow-1">
+                    <nav aria-label="Page navigation example" class="text-center">
+                        <ul class="pagination">
+                            <li class="page-item"><a class="page-link" href="#">Previous</a></li>
+                            <li class="page-item"><a class="page-link" href="#">1</a></li>
+                            <li class="page-item"><a class="page-link" href="#">2</a></li>
+                            <li class="page-item"><a class="page-link" href="#">3</a></li>
+                            <li class="page-item"><a class="page-link" href="#">Next</a></li>
+                        </ul>
+                    </nav>
+                </div>
+                <div class="ms-auto">
+                    <select class="form-select" aria-label="Per page">
+                        <option selected>Per page</option>
+                        <option value="100">100</option>
+                        <option value="200">200</option>
+                        <option value="500">500</option>
+                        <option value="1000">1000</option>
+                    </select>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -380,6 +208,28 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <!-- JavaScript for Check All functionality -->
     <script>
+     document.addEventListener('DOMContentLoaded', function () {
+         const checkboxes = document.querySelectorAll('.individual-check');
+         const checkAll = document.getElementById('checkAll');
+         const bulkActionsToolbar = document.getElementById('bulkActionsToolbar');
+
+         // Function to check the state of individual checkboxes and toggle the toolbar
+         function toggleBulkActionsToolbar() {
+             const anyChecked = Array.from(checkboxes).some(checkbox => checkbox.checked);
+             bulkActionsToolbar.classList.toggle('d-none', !anyChecked);
+         }
+
+         // Event listener for individual checkboxes
+         checkboxes.forEach(checkbox => {
+             checkbox.addEventListener('change', toggleBulkActionsToolbar);
+         });
+
+         // Event listener for the "Check All" checkbox
+         checkAll.addEventListener('change', function () {
+             toggleBulkActionsToolbar();
+         });
+     });
+
      document.getElementById('checkAll').addEventListener('change', function (e) {
          var checkboxes = document.querySelectorAll('.individual-check');
          for (var i = 0; i < checkboxes.length; i++) {
