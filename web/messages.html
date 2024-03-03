@@ -16,6 +16,13 @@
      .custom-link:hover {
          text-decoration: underline; /* Adds underline on hover for better UX */
      }
+     .btn-sm, .btn-label {
+         padding: 0.25rem 0.4rem; /* Slightly reduce padding */
+         font-size: 0.8rem; /* Slightly reduce font size */
+    }
+     .btn-label {
+         white-space: nowrap;
+    }
      @media (max-width: 768px) {
          /* Add margin to the bottom of the Messages header for small screens */
          .card-header .row > div:first-child {
@@ -50,39 +57,63 @@
             </div>
         </div>
     </nav>
+    <!-- Flash Message -->
+    <div class="alert alert-primary alert-dismissible fade show text-center" role="alert">
+        10 messages have been deleted
+        <button type="button" class="btn-close float-end" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
 
     <div class="container mt-4">
         <!-- Card to wrap the table and its controls -->
         <div class="card">
-            <div class="card-header">
-                <!-- Controls Row -->
-                <div class="row align-items-center">
-                    <!-- Messages Header (Taking up more space) -->
-                    <div class="col-12 col-md-8 col-lg-9">
-                        <h3 class="mb-0">Messages</h3>
-                    </div>
+    <div class="card-header">
+        <!-- Controls Row -->
+        <div class="row align-items-center">
+            <!-- Messages Header (Taking up more space) -->
+            <div class="col-12 col-lg-6">
+                <h3 class="mb-0">Messages</h3>
+            </div>
 
-                    <!-- Search Bar -->
-                    <div class="col-12 col-md-4 col-lg-3">
-                        <div class="input-group">
-                            <input type="text" class="form-control" placeholder="Search">
-                            <button class="btn btn-outline-secondary" type="button">
-                                <i class="bi bi-search"></i>
-                            </button>
-                        </div>
+            <!-- New Buttons and Search Bar -->
+            <div class="col-12 col-lg-6">
+                <div class="d-flex justify-content-end">
+                   <form id="retryAllForm" action="/messages" method="post" class="me-2">
+                        <input type="hidden" name="action" value="retryAll">
+                        <button type="submit" class="btn btn-sm btn-outline-secondary">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-arrow-clockwise me-1"></i> Retry&nbsp;All
+                            </div>
+                        </button>
+                    </form>
+                    <!-- Delete All Button -->
+                    <form id="deleteAllForm" action="/messages/retry" method="post" class="me-2">
+                        <input type="hidden" name="action" value="deleteAll">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-trash me-1"></i> Delete&nbsp;All
+                            </div>
+                        </button>
+                    </form>                    <!-- Search Bar -->
+                    <div class="input-group">
+                        <input type="text" class="form-control" placeholder="Search">
+                        <button class="btn btn-outline-secondary" type="button">
+                            <i class="bi bi-search"></i>
+                        </button>
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
             <!-- Bulk Actions Toolbar -->
             <div class="card-toolbar py-2 d-none" id="bulkActionsToolbar" style="border-top: 1px solid #eee; border-bottom: 1px solid #eee; background-color: #E9F5FB;">
                 <div class="container">
                     <div class="row justify-content-start"> <!-- Adjusted to align items to the start -->
                         <div class="col-auto">
-                            <button class="btn btn-secondary me-2" type="button" id="retrySelected" data-bs-toggle="tooltip" data-bs-placement="top" title="Retry selected">
-                                <i class="bi bi-arrow-clockwise"></i> Retry
+                            <button class="btn btn-outline-secondary me-2 btn-sm" type="button" id="retrySelected" data-bs-toggle="tooltip" data-bs-placement="top" title="Retry selected">
+                                <i class="bi bi-arrow-clockwise"></i> Retry Selected
                             </button>
-                            <button class="btn btn-danger" type="button" id="deleteSelected" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete selected">
-                                <i class="bi bi-trash"></i> Delete
+                            <button class="btn btn-outline-danger btn-sm" type="button" id="deleteSelected" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete selected">
+                                <i class="bi bi-trash"></i> Delete Selected
                             </button>
                         </div>
                     </div>
@@ -113,7 +144,7 @@
                             <tr>
                                 <td><input type="checkbox" class="individual-check"></td>
                                 <th scope="row">
-                                    <a href="file:///Users/adammikulasev/dev/outboxer/web/mockup_show_accordian.html" class="custom-link">
+                                    <a href="file:///Users/adammikulasev/dev/outboxer/web/message.html" class="custom-link">
                                         1
                                     </a>
                                 </th>
@@ -125,10 +156,10 @@
                                     <!-- Action buttons -->
                                     <div class="d-flex">
                                         <button type="button" class="btn btn-outline-secondary btn-sm me-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Retry">
-                                            <i class="bi bi-arrow-clockwise"></i>
+                                            <i class="bi bi-arrow-clockwise"></i> Retry
                                         </button>
                                         <button type="button" class="btn btn-outline-danger btn-sm ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete">
-                                            <i class="bi bi-trash"></i>
+                                            <i class="bi bi-trash"></i> Delete
                                         </button>
                                     </div>
                                 </td>
@@ -137,7 +168,7 @@
                             <tr>
                                 <td><input type="checkbox" class="individual-check"></td>
                                 <th scope="row">
-                                    <a href="file:///Users/adammikulasev/dev/outboxer/web/mockup_show_accordian.html" class="custom-link">
+                                    <a href="file:///Users/adammikulasev/dev/outboxer/web/message.html" class="custom-link">
                                         2
                                     </a>
                                 </th>
@@ -149,10 +180,10 @@
                                     <!-- Action buttons -->
                                     <div class="d-flex">
                                         <button type="button" class="btn btn-outline-secondary btn-sm me-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Retry">
-                                            <i class="bi bi-arrow-clockwise"></i>
+                                            <i class="bi bi-arrow-clockwise"></i> Retry
                                         </button>
                                         <button type="button" class="btn btn-outline-danger btn-sm ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete">
-                                            <i class="bi bi-trash"></i>
+                                            <i class="bi bi-trash"></i> Delete
                                         </button>
                                     </div>
                                 </td>
@@ -161,7 +192,7 @@
                             <tr>
                                 <td><input type="checkbox" class="individual-check"></td>
                                 <th scope="row">
-                                    <a href="file:///Users/adammikulasev/dev/outboxer/web/mockup_show.html" class="custom-link">
+                                    <a href="file:///Users/adammikulasev/dev/outboxer/web/message.html" class="custom-link">
                                         3
                                     </a>
                                 </th>
@@ -173,10 +204,10 @@
                                     <!-- Action buttons -->
                                     <div class="d-flex">
                                         <button type="button" class="btn btn-outline-secondary btn-sm me-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Retry">
-                                            <i class="bi bi-arrow-clockwise"></i>
+                                            <i class="bi bi-arrow-clockwise"></i> Retry
                                         </button>
                                         <button type="button" class="btn btn-outline-danger btn-sm ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete">
-                                            <i class="bi bi-trash"></i>
+                                            <i class="bi bi-trash"></i> Delete
                                         </button>
                                     </div>
                                 </td>
@@ -185,29 +216,32 @@
                     </table>
                 </div>
             </div>
-            <div class="card-footer d-flex justify-content-between">
-                <div class="d-flex justify-content-center flex-grow-1">
-                    <nav aria-label="Page navigation example" class="text-center">
-                        <ul class="pagination">
-                            <li class="page-item"><a class="page-link" href="#">Previous</a></li>
-                            <li class="page-item"><a class="page-link" href="#">1</a></li>
-                            <li class="page-item"><a class="page-link" href="#">2</a></li>
-                            <li class="page-item"><a class="page-link" href="#">3</a></li>
-                            <li class="page-item"><a class="page-link" href="#">Next</a></li>
-                        </ul>
-                    </nav>
-                </div>
-                <div class="ms-auto">
-                    <select class="form-select" aria-label="Per page">
-                        <option selected>Per page</option>
-                        <option value="100">100</option>
-                        <option value="200">200</option>
-                        <option value="500">500</option>
-                        <option value="1000">1000</option>
-                    </select>
+            <div class="card-footer">
+                <div class="row align-items-center justify-content-between">
+                    <div class="col d-flex justify-content-center py-2">
+                        <nav aria-label="Page navigation example">
+                            <ul class="pagination mb-0">
+                                <li class="page-item"><a class="page-link" href="#">Previous</a></li>
+                                <li class="page-item"><a class="page-link" href="#">1</a></li>
+                                <li class="page-item"><a class="page-link" href="#">2</a></li>
+                                <li class="page-item"><a class="page-link" href="#">3</a></li>
+                                <li class="page-item"><a class="page-link" href="#">Next</a></li>
+                            </ul>
+                        </nav>
+                    </div>
+                    <!-- "Per page" selection with flex adjustment -->
+                    <div class="col-auto d-flex flex-nowrap align-items-center py-2">
+                        <label for="perPageSelect" class="me-2 mb-0">Per&nbsp;page</label>
+                        <select class="form-select" aria-label="Per page" id="perPageSelect">
+                            <option value="100">100</option>
+                            <option value="200">200</option>
+                            <option value="500">500</option>
+                            <option value="1000">1000</option>
+                        </select>
+                    </div>
                 </div>
             </div>
-        </div>
+       </div>
     </div>
 
     <!-- Bootstrap Bundle with Popper -->
@@ -234,14 +268,6 @@
          checkAll.addEventListener('change', function () {
              toggleBulkActionsToolbar();
          });
-     });
-
-     document.getElementById('checkAll').addEventListener('change', function (e) {
-         var checkboxes = document.querySelectorAll('.individual-check');
-         for (var i = 0; i < checkboxes.length; i++) {
-             checkboxes[i].checked = e.target.checked;
-         }
-     });
     </script>
 </body>
 </html>
