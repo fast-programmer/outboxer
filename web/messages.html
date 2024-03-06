@@ -16,19 +16,6 @@
      .custom-link:hover {
          text-decoration: underline; /* Adds underline on hover for better UX */
      }
-     .btn-sm, .btn-label {
-         padding: 0.25rem 0.4rem; /* Slightly reduce padding */
-         font-size: 0.8rem; /* Slightly reduce font size */
-    }
-     .btn-label {
-         white-space: nowrap;
-    }
-     @media (max-width: 768px) {
-         /* Add margin to the bottom of the Messages header for small screens */
-         .card-header .row > div:first-child {
-             margin-bottom: 0.5rem;
-         }
-    }
     </style>
 </head>
 <body>
@@ -67,47 +54,56 @@
         <div class="card">
     <div class="card-header">
         <!-- Controls Row -->
-        <div class="row align-items-center">
-            <!-- Messages Header (Taking up more space) -->
-            <div class="col-12 col-lg-6">
-                <h3 class="mb-0">Messages</h3>
-            </div>
 
-            <!-- New Buttons and Search Bar -->
-            <div class="col-12 col-lg-6">
-                <div class="d-flex justify-content-end align-items-center">
-                    <form id="retryAllForm" action="/messages" method="post" class="me-2">
-                        <input type="hidden" name="action" value="retryAll">
-                        <button type="submit" class="btn btn-outline-secondary">
-                            <span style="white-space: nowrap;"><i class="bi bi-arrow-clockwise"></i>  Retry All</span>
-                        </button>
-                    </form>
 
-                    <form id="deleteAllForm" action="/messages/retry" method="post" class="me-2">
-                        <input type="hidden" name="action" value="deleteAll">
-                        <button type="submit" class="btn btn-outline-danger">
-                            <span style="white-space: nowrap;"><i class="bi bi-trash"></i> Delete All</span>
-                        </button>
-                    </form>                    <!-- Search Bar -->
-                    <div class="input-group">
-                        <input type="text" class="form-control" placeholder="Search">
-                        <button class="btn btn-outline-secondary" type="button">
-                            <i class="bi bi-search"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
+
+<div class="container-fluid">
+    <div class="row">
+        <!-- Title -->
+        <div class="col-12 col-md-4 mb-2 mb-md-0">
+            <h3 class="mb-0">Messages</h3>
         </div>
+
+        <!-- Buttons -->
+        <div class="col-12 col-md-4 d-flex justify-content-md-end align-items-center mb-2 mb-md-0">
+            <form id="retryAllForm" action="/messages" method="post" class="me-2">
+                <input type="hidden" name="action" value="retryAll">
+                <button type="submit" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-arrow-clockwise"></i> Retry All
+                </button>
+            </form>
+            <form id="deleteAllForm" action="/messages/retry" method="post">
+                <input type="hidden" name="action" value="deleteAll">
+                <button type="submit" class="btn btn-sm btn-outline-danger">
+                    <i class="bi bi-trash"></i> Delete All
+                </button>
+            </form>
+        </div>
+
+        <!-- Search Input -->
+        <div class="col-12 col-md-4">
+            <form action="/messages/search" method="get"> <!-- Update method as needed -->
+                <div class="input-group">
+                    <input type="text" class="form-control form-control-sm" placeholder="Search" name="query">
+                    <button class="btn btn-sm btn-outline-secondary" type="submit">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
     </div>
             <!-- Bulk Actions Toolbar -->
             <div class="card-toolbar py-2 d-none" id="bulkActionsToolbar" style="border-top: 1px solid #eee; border-bottom: 1px solid #eee; background-color: #E9F5FB;">
                 <div class="container">
                     <div class="row justify-content-start"> <!-- Adjusted to align items to the start -->
                         <div class="col-auto">
-                            <button class="btn btn-outline-secondary me-2 btn" type="button" id="retrySelected" data-bs-toggle="tooltip" data-bs-placement="top" title="Retry selected">
+                            <button class="btn btn-sm btn-outline-secondary me-2" type="button" id="retrySelected" data-bs-toggle="tooltip" data-bs-placement="top" title="Retry selected">
                                 <i class="bi bi-arrow-clockwise"></i> Retry Selected
                             </button>
-                            <button class="btn btn-outline-danger btn" type="button" id="deleteSelected" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete selected">
+                            <button class="btn btn-sm btn-outline-danger" type="button" id="deleteSelected" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete selected">
                                 <i class="bi bi-trash"></i> Delete Selected
                             </button>
                         </div>
@@ -150,13 +146,13 @@
                                 <td>
                                     <!-- Action buttons -->
                                     <div class="d-flex">
-                                        <button type="button" class="btn btn-outline-secondary">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary">
                                             <div class="d-flex align-items-center justify-content-center">
                                                 <i class="bi bi-arrow-clockwise me-2"></i>
                                                 <span>Retry</span>
                                             </div>
                                         </button>
-                                        <button type="button" class="btn btn-outline-danger ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete">
+                                        <button type="button" class="btn btn-sm btn-outline-danger ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete">
                                             <i class="bi bi-trash"></i> Delete
                                         </button>
                                     </div>
@@ -177,13 +173,13 @@
                                 <td>
                                     <!-- Action buttons -->
                                     <div class="d-flex">
-                                        <button type="button" class="btn btn-outline-secondary">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary">
                                             <div class="d-flex align-items-center justify-content-center">
                                                 <i class="bi bi-arrow-clockwise me-2"></i>
                                                 <span>Retry</span>
                                             </div>
                                         </button>
-                                        <button type="button" class="btn btn-outline-danger ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete">
+                                        <button type="button" class="btn btn-sm btn-outline-danger ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete">
                                             <i class="bi bi-trash"></i> Delete
                                         </button>
                                     </div>
@@ -204,13 +200,13 @@
                                 <td>
                                     <!-- Action buttons -->
                                     <div class="d-flex">
-                                        <button type="button" class="btn btn-outline-secondary">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary">
                                             <div class="d-flex align-items-center justify-content-center">
                                                 <i class="bi bi-arrow-clockwise me-2"></i>
                                                 <span>Retry</span>
                                             </div>
                                         </button>
-                                        <button type="button" class="btn btn-outline-danger ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete">
+                                        <button type="button" class="btn btn-sm btn-outline-danger ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete">
                                             <i class="bi bi-trash"></i> Delete
                                         </button>
                                     </div>
