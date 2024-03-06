@@ -62,7 +62,6 @@
         10 messages have been deleted
         <button type="button" class="btn-close float-end" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
-
     <div class="container mt-4">
         <!-- Card to wrap the table and its controls -->
         <div class="card">
@@ -76,22 +75,18 @@
 
             <!-- New Buttons and Search Bar -->
             <div class="col-12 col-lg-6">
-                <div class="d-flex justify-content-end">
-                   <form id="retryAllForm" action="/messages" method="post" class="me-2">
+                <div class="d-flex justify-content-end align-items-center">
+                    <form id="retryAllForm" action="/messages" method="post" class="me-2">
                         <input type="hidden" name="action" value="retryAll">
-                        <button type="submit" class="btn btn-sm btn-outline-secondary">
-                            <div class="d-flex align-items-center">
-                                <i class="bi bi-arrow-clockwise me-1"></i> Retry&nbsp;All
-                            </div>
+                        <button type="submit" class="btn btn-outline-secondary">
+                            <span style="white-space: nowrap;"><i class="bi bi-arrow-clockwise"></i>  Retry All</span>
                         </button>
                     </form>
-                    <!-- Delete All Button -->
+
                     <form id="deleteAllForm" action="/messages/retry" method="post" class="me-2">
                         <input type="hidden" name="action" value="deleteAll">
-                        <button type="submit" class="btn btn-sm btn-outline-danger">
-                            <div class="d-flex align-items-center">
-                                <i class="bi bi-trash me-1"></i> Delete&nbsp;All
-                            </div>
+                        <button type="submit" class="btn btn-outline-danger">
+                            <span style="white-space: nowrap;"><i class="bi bi-trash"></i> Delete All</span>
                         </button>
                     </form>                    <!-- Search Bar -->
                     <div class="input-group">
@@ -109,10 +104,10 @@
                 <div class="container">
                     <div class="row justify-content-start"> <!-- Adjusted to align items to the start -->
                         <div class="col-auto">
-                            <button class="btn btn-outline-secondary me-2 btn-sm" type="button" id="retrySelected" data-bs-toggle="tooltip" data-bs-placement="top" title="Retry selected">
+                            <button class="btn btn-outline-secondary me-2 btn" type="button" id="retrySelected" data-bs-toggle="tooltip" data-bs-placement="top" title="Retry selected">
                                 <i class="bi bi-arrow-clockwise"></i> Retry Selected
                             </button>
-                            <button class="btn btn-outline-danger btn-sm" type="button" id="deleteSelected" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete selected">
+                            <button class="btn btn-outline-danger btn" type="button" id="deleteSelected" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete selected">
                                 <i class="bi bi-trash"></i> Delete Selected
                             </button>
                         </div>
@@ -155,10 +150,13 @@
                                 <td>
                                     <!-- Action buttons -->
                                     <div class="d-flex">
-                                        <button type="button" class="btn btn-outline-secondary btn-sm me-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Retry">
-                                            <i class="bi bi-arrow-clockwise"></i> Retry
+                                        <button type="button" class="btn btn-outline-secondary">
+                                            <div class="d-flex align-items-center justify-content-center">
+                                                <i class="bi bi-arrow-clockwise me-2"></i>
+                                                <span>Retry</span>
+                                            </div>
                                         </button>
-                                        <button type="button" class="btn btn-outline-danger btn-sm ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete">
+                                        <button type="button" class="btn btn-outline-danger ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete">
                                             <i class="bi bi-trash"></i> Delete
                                         </button>
                                     </div>
@@ -179,10 +177,13 @@
                                 <td>
                                     <!-- Action buttons -->
                                     <div class="d-flex">
-                                        <button type="button" class="btn btn-outline-secondary btn-sm me-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Retry">
-                                            <i class="bi bi-arrow-clockwise"></i> Retry
+                                        <button type="button" class="btn btn-outline-secondary">
+                                            <div class="d-flex align-items-center justify-content-center">
+                                                <i class="bi bi-arrow-clockwise me-2"></i>
+                                                <span>Retry</span>
+                                            </div>
                                         </button>
-                                        <button type="button" class="btn btn-outline-danger btn-sm ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete">
+                                        <button type="button" class="btn btn-outline-danger ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete">
                                             <i class="bi bi-trash"></i> Delete
                                         </button>
                                     </div>
@@ -203,10 +204,13 @@
                                 <td>
                                     <!-- Action buttons -->
                                     <div class="d-flex">
-                                        <button type="button" class="btn btn-outline-secondary btn-sm me-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Retry">
-                                            <i class="bi bi-arrow-clockwise"></i> Retry
+                                        <button type="button" class="btn btn-outline-secondary">
+                                            <div class="d-flex align-items-center justify-content-center">
+                                                <i class="bi bi-arrow-clockwise me-2"></i>
+                                                <span>Retry</span>
+                                            </div>
                                         </button>
-                                        <button type="button" class="btn btn-outline-danger btn-sm ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete">
+                                        <button type="button" class="btn btn-outline-danger ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete">
                                             <i class="bi bi-trash"></i> Delete
                                         </button>
                                     </div>
@@ -268,6 +272,34 @@
          checkAll.addEventListener('change', function () {
              toggleBulkActionsToolbar();
          });
+
+         // Confirm before delete all
+         deleteAllBtn.addEventListener('click', function(e) {
+             e.preventDefault(); // Prevent the form from submitting if necessary
+             const confirmation = confirm('Are you sure you want to delete all?');
+             if (!confirmation) {
+                 return false; // Stop the function if the user clicks "Cancel"
+             }
+             // Place the code to delete all here if they click "OK"
+         });
+
+         // Confirm before retry all
+         retryAllBtn.addEventListener('click', function(e) {
+             e.preventDefault(); // Prevent the form from submitting if necessary
+             const confirmation = confirm('Are you sure you want to retry all?');
+             if (!confirmation) {
+                 return false; // Stop the function if the user clicks "Cancel"
+             }
+             // Place the code to retry all here if they click "OK"
+         });
+     });
+
+     document.getElementById('checkAll').addEventListener('change', function (e) {
+         var checkboxes = document.querySelectorAll('.individual-check');
+         for (var i = 0; i < checkboxes.length; i++) {
+             checkboxes[i].checked = e.target.checked;
+         }
+     });
     </script>
 </body>
 </html>
