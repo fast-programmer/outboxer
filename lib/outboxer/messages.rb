@@ -8,7 +8,7 @@ module Outboxer
     class Error < Outboxer::Error; end;
     class InvalidTransition < Error; end
 
-    def unpublished!(limit: 1, order: 'asc')
+    def unpublished!(limit: 1, order: :asc)
       ActiveRecord::Base.connection_pool.with_connection do
         message_ids = ActiveRecord::Base.transaction do
           ids = Models::Message

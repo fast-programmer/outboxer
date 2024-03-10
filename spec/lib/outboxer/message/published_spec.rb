@@ -4,9 +4,7 @@ module Outboxer
   RSpec.describe Message do
     describe '.published!' do
       context 'when publishing message' do
-        let!(:publishing_message) do
-          create(:outboxer_message, :publishing)
-        end
+        let!(:publishing_message) { create(:outboxer_message, :publishing) }
 
         let!(:published_message) { Message.published!(id: publishing_message.id) }
 
@@ -20,9 +18,7 @@ module Outboxer
       end
 
       context 'when unpublished messaged' do
-        let(:unpublished_message) do
-          create(:outboxer_message, :unpublished)
-        end
+        let(:unpublished_message) { create(:outboxer_message, :unpublished) }
 
         it 'raises invalid transition error' do
           expect do

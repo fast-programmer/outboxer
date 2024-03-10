@@ -16,10 +16,7 @@ module Outboxer
       end
 
       context 'when publishing message' do
-
-        let!(:publishing_message) do
-          create(:outboxer_message, :publishing)
-        end
+        let!(:publishing_message) { create(:outboxer_message, :publishing) }
 
         let!(:failed_message) { Message.failed!(id: publishing_message.id, exception: exception) }
 
@@ -54,9 +51,7 @@ module Outboxer
       end
 
       context 'when unpublished messaged' do
-        let!(:unpublished_message) do
-          create(:outboxer_message, :unpublished)
-        end
+        let!(:unpublished_message) { create(:outboxer_message, :unpublished) }
 
         it 'raises invalid transition error' do
           expect do
