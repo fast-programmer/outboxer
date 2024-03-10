@@ -2,6 +2,9 @@ require 'simplecov'
 SimpleCov.start
 require 'database_cleaner'
 require 'pry-byebug'
+require 'factory_bot'
+
+Dir[File.join(__dir__, 'factories/**/*.rb')].each { |f| require f }
 
 require_relative '../lib/outboxer'
 
@@ -13,6 +16,8 @@ RSpec.configure do |config|
   config.expect_with :rspec do |c|
     c.syntax = :expect
   end
+
+  config.include FactoryBot::Syntax::Methods
 
   config.before(:all) do
     db_config = Outboxer::Database.config(environment: 'test')

@@ -13,13 +13,7 @@ module Outboxer
         allow(logger).to receive(:level=)
       end
 
-      let!(:message) do
-        Models::Message.create!(
-          id: SecureRandom.uuid,
-          messageable_type: 'DummyType',
-          messageable_id: 1,
-          status: Models::Message::Status::UNPUBLISHED)
-      end
+      let!(:message) { create(:outboxer_message, :unpublished) }
 
       context 'when message published successfully' do
         before do

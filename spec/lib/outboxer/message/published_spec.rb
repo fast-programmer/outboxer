@@ -5,12 +5,7 @@ module Outboxer
     describe '.published!' do
       context 'when publishing message' do
         let!(:publishing_message) do
-          Models::Message.create!(
-            id: SecureRandom.uuid,
-            messageable_type: 'DummyType',
-            messageable_id: 1,
-            status: Models::Message::Status::PUBLISHING,
-            created_at: DateTime.parse('2024-01-14T00:00:00Z'))
+          create(:outboxer_message, :publishing)
         end
 
         let!(:published_message) { Message.published!(id: publishing_message.id) }
@@ -26,12 +21,7 @@ module Outboxer
 
       context 'when unpublished messaged' do
         let(:unpublished_message) do
-          Models::Message.create!(
-            id: SecureRandom.uuid,
-            messageable_type: 'DummyType',
-            messageable_id: 1,
-            status: Models::Message::Status::UNPUBLISHED,
-            created_at: DateTime.parse('2024-01-14T00:00:00Z'))
+          create(:outboxer_message, :unpublished)
         end
 
         it 'raises invalid transition error' do
