@@ -1,6 +1,5 @@
 FactoryBot.define do
   factory :outboxer_message, class: 'Outboxer::Models::Message' do
-    id { SecureRandom.uuid }
     messageable_type { 'DummyType' }
     messageable_id { 1 }
     status { Outboxer::Models::Message::Status::PUBLISHING }

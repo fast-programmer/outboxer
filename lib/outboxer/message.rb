@@ -39,10 +39,10 @@ module Outboxer
           outboxer_message.update!(status: Models::Message::Status::FAILED)
 
           outboxer_exception = outboxer_message.exceptions.create!(
-            id: SecureRandom.uuid, class_name: exception.class.name, message_text: exception.message)
+            class_name: exception.class.name, message_text: exception.message)
 
           exception.backtrace.each_with_index do |frame, index|
-            outboxer_exception.frames.create!(id: SecureRandom.uuid, index: index, text: frame)
+            outboxer_exception.frames.create!(index: index, text: frame)
           end
 
           outboxer_message
