@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 module Outboxer
-  RSpec.describe Message do
+  RSpec.describe Messages do
     describe '.unpublished!' do
       context 'when there are 2 unpublished messages' do
         let!(:unpublished_messages) do
@@ -23,7 +23,7 @@ module Outboxer
 
         context 'when order asc' do
           context 'when limit is 1' do
-            let!(:publishing_messages) { Message.unpublished!(limit: 1) }
+            let!(:publishing_messages) { Messages.unpublished!(limit: 1) }
 
             it 'returns first unpublished message' do
               expect(publishing_messages.count).to eq(1)
@@ -47,7 +47,7 @@ module Outboxer
 
         context 'when order desc' do
           context 'when limit is 1' do
-            let!(:publishing_messages) { Message.unpublished!(limit: 1, order: :desc) }
+            let!(:publishing_messages) { Messages.unpublished!(limit: 1, order: :desc) }
 
             it 'returns first unpublished message' do
               expect(publishing_messages.count).to eq(1)
