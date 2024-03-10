@@ -15,8 +15,6 @@ Outboxer::Database.connect!(config: config.merge('pool' => 5))
 
 module Outboxer
   class App < Sinatra::Base
-    set :method_override, true
-
     get '/messages/unpublished' do
       page_number = params[:page_number] || 1
       per_page = [100, 200, 500, 1000].include?(params[:per_page].to_i) ? params[:per_page].to_i : 100
@@ -92,8 +90,32 @@ module Outboxer
       }
     end
 
+    post '/messages/update' do
+      message_ids = params[:message_ids].map(&:to_i)
 
-    get '/messages/:id' do |id|
+      case params[:submit]
+      when 'Retry Selected'
+        Messages.retry_selected(message_ids: message_ids)
+      when 'Delete Selected'
+        Messages.delete_selected(message_ids: message_ids)
+      else
+        raise "Unknown value: #{params[:submit]}"
+      end
+
+      redirect to('/messages')
+    end
+
+    post '/messages/retry_all' do
+      Messages.retry_all(message_ids: message_ids)
+
+      redirect to('/messages')
+    end
+
+    post '/messages/delete_all' do
+      Messages.delete_all(message_ids: message_ids)
+    end
+
+    get '/message/:id' do |id|
       messages_count = Models::Message.count
 
       message = Models::Message.includes(:exceptions).find(id)
@@ -108,15 +130,7 @@ module Outboxer
     end
 
 
-    post '/messages/search' do
-      text = params['text']
-
-      binding.pry
-
-      redirect to('/messages')
-    end
-
-    post '/messages/per_page' do
+    post '/messages/update_per_page' do
       page_number = params[:page_number] || 1
       per_page = [100, 200, 500, 1000].include?(params[:per_page].to_i) ? params[:per_page].to_i : 100
       order = %w[id status messageable created_at updated_at]
@@ -126,8 +140,42 @@ module Outboxer
       redirect "/messages?" \
         "#{URI.encode_www_form_component('order')}=#{URI.encode_www_form_component(order)}&" \
         "#{URI.encode_www_form_component('sort')}=#{URI.encode_www_form_component(sort)}&" \
-        "#{URI.encode_www_form_component('page_number')}=#{URI.encode_www_form_component(page_number)}&" \
+        "#{URI.encode_www_form_component('page')}=#{URI.encode_www_form_component(page)}&" \
         "#{URI.encode_www_form_component('per_page')}=#{URI.encode_www_form_component(per_page)}"
+    end
+
+    get '/messages' do
+      Messages.list(
+        status: params['status'],
+        sort: params['sort'],
+        order: params['order'],
+        page: params['page'].nil? ,
+        per_page: params['per_page'])
+
+      status = params['status'] || nil
+      sort = params['sort'] || 'created_at'
+      order = params['order'] || 'asc'
+      page = params['page'] || 1
+      per_page = params['per_page'] || 100
+
+      status = params['status'] && params['status'].include?([''])
+      per_page = [100, 200, 500, 1000].include?(params[:per_page]) ? params[:per_page] : 100
+
+      sort = ['id', 'status', 'messageable', 'created_at', 'updated_at']
+        .include?(sort) ? params['sort'] : 'created_at'
+
+      messages = status.nil? ? User.all : User.where(status: status)
+
+      messages =
+        if sort == :messageable
+          messages.order(messageable_type: order, messageable_id: order)
+        else
+          messages.order(sort => order)
+        end
+
+      messages = messages.paginate(page: page, per_page: per_page)
+
+      messages
     end
 
     get '/messages' do
@@ -167,7 +215,7 @@ module Outboxer
     end
 
 
-    post '/messages/bulk_action' do
+    post '/messages/update' do
       bulk_action = params['bulk_action']
       message_ids = params['message_ids']
 
@@ -185,64 +233,19 @@ module Outboxer
       redirect to('/messages')
     end
 
-    delete '/messages/:id' do
-      redirect to('/table')
-    end
-
-    patch '/messages/:id/retry' do
+    post '/message/:id/retry' do
       redirect to('/messages')
     end
 
-    get '/searches' do
-      q = Outboxer::Models::Message.ransack(params[:q])
-      messages = q.result.includes(:outboxer_exceptions)
-
-      erb :'searches/new',
-        locals: { q: q, messages: messages },
-        layout: nil
+    post '/message/:id/delete' do
+      redirect to('/messages')
     end
 
-    post '/searches' do
-      q = Outboxer::Models::Message.ransack(params[:q])
-      # messages = q.result.includes(:outboxer_exceptions)
-
-      query_string = URI.encode_www_form(params[:q].to_h)
-
-      redirect to("/searches?q=#{query_string}")
-
-      # erb :'searches/new',
-      #   locals: { q: q, messages: messages },
-      #   layout: nil
-    end
 
     get '/' do
       redirect to('/messages/all')
     end
 
-    # get '/:status' do |status|
-    #   page = params[:page] || 1
-    #   limit = params[:limit] || 100
-    #   sort = %w[id status messageable_type messageable_id created_at updated_at]
-    #     .include?(params[:sort]) ? params[:sort].to_sym : :created_at
-    #   order = %w[asc desc].include?(params[:order]) ? params[:order].to_sym : :asc
-
-    #   messages_scope = status == 'all' ? Models::Message : Models::Message.where(status: status)
-    #   messages = messages_scope.order(sort => order).page(page).per(limit)
-    #   messages_count = Models::Message.count
-
-    #   status_counts = { 'unpublished' => 0, 'publishing' => 0, 'failed' => 0 }.merge(
-    #     Models::Message.group(:status).count)
-
-    #   erb :'messages/index', locals: {
-    #     status_counts: status_counts,
-    #     messages_count: messages_count,
-    #     messages: messages,
-    #     page: page,
-    #     limit: limit,
-    #     sort: sort,
-    #     order: order
-    #   }
-    # end
   end
 end
 
