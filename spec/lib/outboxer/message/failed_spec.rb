@@ -16,14 +16,7 @@ module Outboxer
       end
 
       context 'when publishing message' do
-        let!(:publishing_message) do
-          Models::Message.create!(
-            id: SecureRandom.uuid,
-            messageable_type: 'DummyType',
-            messageable_id: 1,
-            status: Models::Message::Status::PUBLISHING,
-            created_at: DateTime.parse('2024-01-14T00:00:00Z'))
-        end
+        let!(:publishing_message) { create(:outboxer_message, :publishing) }
 
         let!(:failed_message) { Message.failed!(id: publishing_message.id, exception: exception) }
 
@@ -58,14 +51,7 @@ module Outboxer
       end
 
       context 'when unpublished messaged' do
-        let(:unpublished_message) do
-          Models::Message.create!(
-            id: SecureRandom.uuid,
-            messageable_type: 'DummyType',
-            messageable_id: 1,
-            status: Models::Message::Status::UNPUBLISHED,
-            created_at: DateTime.parse('2024-01-14T00:00:00Z'))
-        end
+        let!(:unpublished_message) { create(:outboxer_message, :unpublished) }
 
         it 'raises invalid transition error' do
           expect do

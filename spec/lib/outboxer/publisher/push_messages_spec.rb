@@ -11,13 +11,7 @@ module Outboxer
         let(:poll_interval) { 1 }
         let(:kernel) { class_double(Kernel, sleep: nil) }
 
-        let!(:message) do
-          Models::Message.create!(
-            id: SecureRandom.uuid,
-            messageable_type: 'DummyType',
-            messageable_id: 2,
-            status: Models::Message::Status::UNPUBLISHED)
-        end
+        let!(:message) { create(:outboxer_message, :unpublished) }
 
         before do
           Publisher.push_messages!(
@@ -71,13 +65,7 @@ module Outboxer
         let(:poll_interval) { 1 }
         let(:kernel) { class_double(Kernel, sleep: nil) }
 
-        let(:message) do
-          Models::Message.create!(
-            id: SecureRandom.uuid,
-            messageable_type: 'DummyType',
-            messageable_id: 1,
-            status: Models::Message::Status::PUBLISHING)
-        end
+        let!(:message) { create(:outboxer_message, :publishing) }
 
         before do
           allow(kernel).to receive(:sleep)
