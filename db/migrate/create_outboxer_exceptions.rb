@@ -1,11 +1,8 @@
 class CreateOutboxerExceptions < ActiveRecord::Migration[6.1]
   def up
     ActiveRecord::Base.transaction do
-      create_table :outboxer_exceptions, id: false do |t|
-        t.uuid :id, primary_key: true
-
-        t.references :message, null: false,
-          type: :uuid, foreign_key: { to_table: :outboxer_messages }
+      create_table :outboxer_exceptions do |t|
+        t.references :message, null: false, foreign_key: { to_table: :outboxer_messages }
 
         t.text :class_name, null: false
         t.text :message_text, null: false
