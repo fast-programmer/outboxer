@@ -41,7 +41,7 @@ module Outboxer
       messages = []
 
       queue_remaining = queue_size - queue.length
-      messages = (queue_remaining > 0) ? Outboxer::Message.unpublished!(limit: queue_remaining) : []
+      messages = (queue_remaining > 0) ? Outboxer::Messages.unpublished!(limit: queue_remaining) : []
 
       if messages.empty?
         debug_log("Sleeping for #{poll_interval} seconds because there are no messages",
