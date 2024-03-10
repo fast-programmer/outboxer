@@ -1,0 +1,21 @@
+FactoryBot.define do
+  factory :outboxer_message, class: 'Outboxer::Models::Message' do
+    id { SecureRandom.uuid }
+    messageable_type { 'DummyType' }
+    messageable_id { 1 }
+    status { Outboxer::Models::Message::Status::PUBLISHING }
+    created_at { 1.day.ago }
+
+    trait :publishing do
+      status { Outboxer::Models::Message::Status::PUBLISHING }
+    end
+
+    trait :unpublished do
+      status { Outboxer::Models::Message::Status::UNPUBLISHED }
+    end
+
+    trait :failed do
+      status { Outboxer::Models::Message::Status::FAILED }
+    end
+  end
+end

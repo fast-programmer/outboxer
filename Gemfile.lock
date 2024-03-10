@@ -40,6 +40,8 @@ GEM
     docile (1.4.0)
     drb (2.2.0)
       ruby2_keywords
+    factory_bot (6.4.6)
+      activesupport (>= 5.0.0)
     foreman (0.87.2)
     i18n (1.14.1)
       concurrent-ruby (~> 1.0)
@@ -120,6 +122,7 @@ PLATFORMS
 DEPENDENCIES
   activerecord (~> 7.1, >= 7.1.2)
   database_cleaner (~> 2.0, >= 2.0.2)
+  factory_bot (~> 6.4, >= 6.4.6)
   foreman (~> 0.87.2)
   outboxer!
   pg (~> 1.5)
