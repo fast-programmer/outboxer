@@ -1,3 +1,6 @@
+require 'bundler/setup'
+
+require 'sinatra'
 require 'sidekiq'
 require 'sidekiq/web'
 
