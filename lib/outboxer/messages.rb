@@ -32,17 +32,17 @@ module Outboxer
       end
     end
 
-    def list(status: nil, sort: 'created_at', order: 'asc', page: 1, per_page: 100)
+    def list(status: nil, sort: :updated_at, order: :asc, page: 1, per_page: 100)
       if !status.nil? && !Models::Message::STATUSES.include?(status)
         raise InvalidParameter, "status must be #{Models::Message::STATUSES.join(' ')}"
       end
 
-      sort_options = ['id', 'status', 'messageable', 'created_at', 'updated_at']
+      sort_options = [:id, :status, :messageable, :created_at, :updated_at]
       if !sort_options.include?(sort)
         raise InvalidParameter, "sort must be #{sort_options.join(' ')}"
       end
 
-      order_options = ['asc', 'desc']
+      order_options = [:asc, :desc]
       if !order_options.include?(order)
         raise InvalidParameter, "order must be #{order_options.join(' ')}"
       end
@@ -59,7 +59,7 @@ module Outboxer
       messages = status.nil? ? Models::Message.all : Models::Message.where(status: status)
 
       messages =
-        if sort == 'messageable'
+        if sort == :messageable
           messages.order(messageable_type: order, messageable_id: order)
         else
           messages.order(sort => order)
