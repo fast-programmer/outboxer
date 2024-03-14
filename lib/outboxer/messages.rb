@@ -66,7 +66,7 @@ module Outboxer
         end
 
       ActiveRecord::Base.connection_pool.with_connection do
-        messages.paginate(page: page, per_page: per_page)
+        messages.page(page).per(per_page)
       end
     end
   end

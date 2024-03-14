@@ -29,7 +29,13 @@ RSpec.configure do |config|
   config.after(:each) do
     begin
       DatabaseCleaner.clean
-    rescue ActiveRecord::DatabaseConnectionError, ActiveRecord::ConnectionNotEstablished
+
+      ActiveRecord::Base.connection.tables.each do |table|
+        ActiveRecord::Base.connection.reset_pk_sequence!(table)
+      end
+    rescue ActiveRecord::DatabaseConnectionError,
+        ActiveRecord::ConnectionNotEstablished,
+        ActiveRecord::StatementInvalid
       # ignore
     end
   end
