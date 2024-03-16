@@ -8,6 +8,18 @@ module Outboxer
     class Error < Outboxer::Error; end;
     class InvalidTransition < Error; end
 
+    def counts_by_status
+      status_counts = Models::Message::STATUSES.each_with_object({}) do |status, hash|
+        hash[status.to_s] = 0
+      end
+
+      Models::Message.group(:status).count.each do |status, count|
+        status_counts[status.to_s] = count
+      end
+
+      status_counts
+    end
+
     def unpublished!(limit: 1, order: :asc)
       ActiveRecord::Base.connection_pool.with_connection do
         message_ids = ActiveRecord::Base.transaction do
