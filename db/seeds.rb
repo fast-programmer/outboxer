@@ -24,15 +24,15 @@
       message_text: 'Validation failed: Exceptions is invalid')
 
     failed_message_exception.frames.create!(
-      index: 0,
+      index: 1,
       text: "/lib/active_record/validations.rb:84:in `raise_validation_error'")
 
     failed_message_exception.frames.create!(
-      index: 1,
+      index: 2,
       text: "/lib/active_record/validations.rb:55:in `save!'")
 
     failed_message_exception.frames.create!(
-      index: 2,
+      index: 3,
       text: "lib/active_record/transactions.rb:313:in `block in save!'")
   end
 end
