@@ -79,6 +79,20 @@ module Outboxer
       end
     end
 
+    def delete!(id:)
+      ActiveRecord::Base.connection_pool.with_connection do
+        ActiveRecord::Base.transaction do
+          outboxer_message = Models::Message.includes(exceptions: :frames).find_by!(id: id)
+
+          outboxer_message.exceptions.each { |exception| exception.frames.destroy_all }
+          outboxer_message.exceptions.destroy_all
+          outboxer_message.destroy
+        end
+      end
+
+      { 'id' => id }
+    end
+
     def republish!(id:)
       ActiveRecord::Base.connection_pool.with_connection do
         outboxer_message = Models::Message.lock.find_by!(id: id)
