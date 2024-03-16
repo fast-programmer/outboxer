@@ -44,6 +44,32 @@ module Outboxer
       end
     end
 
+    def republish_all_failed!
+      ActiveRecord::Base.connection_pool.with_connection do
+        Models::Message
+          .where(status: Models::Message::Status::FAILED)
+          .order(updated_at: :asc)
+          .pluck(:id)
+          .each_slice(1000) { |message_ids| republish_batch_failed!(message_ids) }
+      end
+    end
+
+    def republish_batch_failed!(message_ids)
+      ActiveRecord::Base.transaction do
+        message_ids.each do |message_id|
+          message = Models::Message.lock.find(message_id)
+
+          if message.status != Models::Message::Status::FAILED
+            raise InvalidTransition,
+              "cannot transition outboxer message #{message.id} " \
+              "from #{message.status} to #{Models::Message::Status::UNPUBLISHED}"
+          end
+
+          message.update!(status: Models::Message::Status::UNPUBLISHED)
+        end
+      end
+    end
+
     def delete_all!
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
