@@ -15,7 +15,7 @@ module Outboxer
 
         it 'processes the message' do
           Publisher.pop_message!(queue: queue, logger: logger) do |msg|
-            expect(msg.messageable_type).to eq('DummyType')
+            expect(msg.messageable_type).to eq('Event')
             expect(msg.id).to eq(message.id)
           end
         end

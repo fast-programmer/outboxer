@@ -24,7 +24,7 @@ module Outboxer
             logger: logger,
             kernel: kernel
           ) do |publishing_message|
-            expect(publishing_message.messageable_type).to eq('DummyType')
+            expect(publishing_message.messageable_type).to eq('Event')
             expect(publishing_message.messageable_id).to eq('1')
             expect(publishing_message.status).to eq(Models::Message::Status::PUBLISHING)
 
