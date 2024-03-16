@@ -43,5 +43,17 @@ module Outboxer
           .to_a
       end
     end
+
+    def delete_all!
+      ActiveRecord::Base.connection_pool.with_connection do
+        ActiveRecord::Base.transaction do
+          Models::Frame.delete_all
+          Models::Exception.delete_all
+          Models::Message.delete_all
+        end
+      end
+
+      nil
+    end
   end
 end
