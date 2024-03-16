@@ -3,13 +3,13 @@ require 'spec_helper'
 module Outboxer
   RSpec.describe Messages do
     before do
-      create(:outboxer_message, id: 4, status: :unpublished, messageable_type: 'TypeA', 
+      create(:outboxer_message, id: 4, status: :unpublished, messageable_type: 'Event',
         messageable_id: 1, created_at: 5.minutes.ago, updated_at: 4.minutes.ago)
-      create(:outboxer_message, id: 3, status: :failed, messageable_type: 'TypeB', 
+      create(:outboxer_message, id: 3, status: :failed, messageable_type: 'Event',
         messageable_id: 2, created_at: 4.minutes.ago, updated_at: 3.minutes.ago)
-      create(:outboxer_message, id: 2, status: :publishing, messageable_type: 'TypeA', 
+      create(:outboxer_message, id: 2, status: :publishing, messageable_type: 'Event',
         messageable_id: 3, created_at: 3.minutes.ago, updated_at: 2.minutes.ago)
-      create(:outboxer_message, id: 1, status: :unpublished, messageable_type: 'TypeC', 
+      create(:outboxer_message, id: 1, status: :unpublished, messageable_type: 'Event',
         messageable_id: 4, created_at: 2.minutes.ago, updated_at: 1.minute.ago)
     end
 
