@@ -9,6 +9,7 @@ class CreateOutboxerMessages < ActiveRecord::Migration[6.1]
       t.timestamps
     end
 
+    add_index :outboxer_messages, :status
     add_index :outboxer_messages, %i[status created_at]
   end
 
