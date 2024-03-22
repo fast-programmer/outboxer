@@ -18,49 +18,92 @@ module Outboxer
     end
 
     describe '.list' do
+      context 'when an invalid sort is specified' do
+        it 'raises an ArgumentError' do
+          expect do
+            Messages.list(sort: :invalid)
+          end.to raise_error(
+            ArgumentError, "sort must be id status messageable created_at updated_at")
+        end
+      end
+
+      context 'when an invalid order is specified' do
+        it 'raises an ArgumentError' do
+          expect do
+            Messages.list(order: :invalid)
+          end.to raise_error(ArgumentError, "order must be asc desc")
+        end
+      end
+
       context 'with sort by status' do
         it 'sorts messages by status in ascending order' do
-          expect(Messages.list(sort: :status, order: :asc).map(&:status)).to eq(
-            ['failed', 'publishing', 'unpublished', 'unpublished'])
+          expect(
+            Messages
+              .list(sort: :status, order: :asc)
+              .map { |message| message['status'] }
+          ).to eq(['failed', 'publishing', 'unpublished', 'unpublished'])
         end
 
         it 'sorts messages by status in descending order' do
-          expect(Messages.list(sort: :status, order: :desc).map(&:status)).to eq(
-            ['unpublished', 'unpublished', 'publishing', 'failed'])
+          expect(
+            Messages
+              .list(sort: :status, order: :desc)
+              .map { |message| message['status'] }
+            ).to eq(['unpublished', 'unpublished', 'publishing', 'failed'])
         end
       end
 
       context 'with sort by messageable' do
         it 'sorts messages by messageable in ascending order' do
-          sorted_messages = Messages.list(sort: :messageable, order: :asc)
-          expect(sorted_messages.map { |m| [m.messageable_type, m.messageable_id] }).to eq(
-            [['Event', '1'], ['Event', '2'], ['Event', '3'], ['Event', '4']])
+          expect(
+            Messages
+              .list(sort: :messageable, order: :asc)
+              .map { |message| message['messageable'] }
+          ).to eq(['Event::1', 'Event::2', 'Event::3', 'Event::4'])
         end
 
         it 'sorts messages by messageable in descending order' do
-          sorted_messages = Messages.list(sort: :messageable, order: :desc)
-          expect(sorted_messages.map { |m| [m.messageable_type, m.messageable_id] }).to eq(
-            [['Event', '4'], ['Event', '3'], ['Event', '2'], ['Event', '1']])
+          expect(
+            Messages
+              .list(sort: :messageable, order: :desc)
+              .map { |message| message['messageable'] }
+          ).to eq(['Event::4', 'Event::3', 'Event::2', 'Event::1'])
         end
       end
 
       context 'with sort by created_at' do
         it 'sorts messages by created_at in ascending order' do
-          expect(Messages.list(sort: :created_at, order: :asc).map(&:id)).to eq([4, 3, 2, 1])
+          expect(
+            Messages
+              .list(sort: :created_at, order: :asc)
+              .map { |message| message['id'] }
+          ).to eq([4, 3, 2, 1])
         end
 
         it 'sorts messages by created_at in descending order' do
-          expect(Messages.list(sort: :created_at, order: :desc).map(&:id)).to eq([1, 2, 3, 4])
+          expect(
+            Messages
+              .list(sort: :created_at, order: :desc)
+              .map { |message| message['id'] }
+          ).to eq([1, 2, 3, 4])
         end
       end
 
       context 'with sort by updated_at' do
         it 'sorts messages by updated_at in ascending order' do
-          expect(Messages.list(sort: :updated_at, order: :asc).map(&:id)).to eq([4, 3, 2, 1])
+          expect(
+            Messages
+              .list(sort: :updated_at, order: :asc)
+              .map { |message| message['id'] }
+          ).to eq([4, 3, 2, 1])
         end
 
         it 'sorts messages by updated_at in descending order' do
-          expect(Messages.list(sort: :updated_at, order: :desc).map(&:id)).to eq([1, 2, 3, 4])
+          expect(
+            Messages
+              .list(sort: :updated_at, order: :desc)
+              .map { |message| message['id'] }
+          ).to eq([1, 2, 3, 4])
         end
       end
     end

@@ -6,18 +6,25 @@ module Outboxer
       let!(:messages) do
         [
           create(:outboxer_message, :unpublished,
-            id: 1, created_at: 4.minutes.ago, updated_at: 2.minutes.ago),
+            id: 1, messageable_type: 'Event', messageable_id: 1),
           create(:outboxer_message, :failed,
-            id: 2, created_at: 3.minutes.ago, updated_at: 3.minutes.ago),
+            id: 2, messageable_type: 'Event', messageable_id: 2),
           create(:outboxer_message, :publishing,
-            id: 3, created_at: 2.minute.ago, updated_at: 2.minutes.ago),
+            id: 3, messageable_type: 'Event', messageable_id: 3),
           create(:outboxer_message, :unpublished,
-            id: 4, created_at: 1.minute.ago, updated_at: 1.minutes.ago)
+            id: 4, messageable_type: 'Event', messageable_id: 4)
         ]
       end
 
-      it 'returns all messages ordered by last updated at desc' do
-        expect(Messages.list.map(&:id)).to eq([1, 2, 3, 4])
+      it 'returns all messages ordered by last updated at asc' do
+        expect(
+          Messages.list.map { |message| message.slice('id', 'status', 'messageable') }
+        ).to match_array([
+          { 'id' => 1, 'status' => 'unpublished', 'messageable' => 'Event::1' },
+          { 'id' => 2, 'status' => 'failed', 'messageable' => 'Event::2' },
+          { 'id' => 3, 'status' => 'publishing', 'messageable' => 'Event::3' },
+          { 'id' => 4, 'status' => 'unpublished', 'messageable' => 'Event::4' },
+        ])
       end
     end
   end

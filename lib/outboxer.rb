@@ -5,6 +5,8 @@ require_relative "outboxer/version"
 require_relative "outboxer/railtie" if defined?(Rails)
 
 require_relative "outboxer/error"
+require_relative "outboxer/argument_error"
+
 require_relative "outboxer/logger"
 
 require_relative "outboxer/models"

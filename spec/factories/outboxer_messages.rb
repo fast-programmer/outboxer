@@ -1,6 +1,6 @@
 FactoryBot.define do
   factory :outboxer_message, class: 'Outboxer::Models::Message' do
-    messageable_type { 'DummyType' }
+    messageable_type { 'Event' }
     messageable_id { 1 }
     status { Outboxer::Models::Message::Status::PUBLISHING }
     created_at { 1.day.ago }
