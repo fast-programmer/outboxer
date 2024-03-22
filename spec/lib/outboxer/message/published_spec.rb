@@ -9,7 +9,7 @@ module Outboxer
         let!(:published_message) { Message.published!(id: publishing_message.id) }
 
         it 'returns nil' do
-          expect(published_message).to be_nil
+          expect(published_message).to eq({ 'id' => publishing_message.id })
         end
 
         it 'deletes publishing message' do
@@ -25,7 +25,7 @@ module Outboxer
             Message.published!(id: unpublished_message.id)
           end.to raise_error(
             Message::InvalidTransition,
-            "cannot transition outboxer message #{unpublished_message.id} " +
+            "cannot transition message #{unpublished_message.id} " +
               "from unpublished to (deleted)")
         end
 

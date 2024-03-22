@@ -5,12 +5,12 @@ FactoryBot.define do
     status { Outboxer::Models::Message::Status::PUBLISHING }
     created_at { 1.day.ago }
 
-    trait :publishing do
-      status { Outboxer::Models::Message::Status::PUBLISHING }
-    end
-
     trait :unpublished do
       status { Outboxer::Models::Message::Status::UNPUBLISHED }
+    end
+
+    trait :publishing do
+      status { Outboxer::Models::Message::Status::PUBLISHING }
     end
 
     trait :failed do
