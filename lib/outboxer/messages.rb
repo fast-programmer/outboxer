@@ -82,8 +82,8 @@ module Outboxer
         raise ArgumentError, "page must be >= 1"
       end
 
-      per_page_options = [100, 200, 500, 1000]
-      if !per_page_options.include?(per_page)
+      per_page_options = [10, 100, 200, 500, 1000]
+      if !per_page_options.include?(per_page.to_i)
         raise ArgumentError, "per_page must be #{per_page_options.join(' ')}"
       end
 

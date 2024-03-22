@@ -38,5 +38,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'sidekiq', '~> 7.2', '>= 7.2.1'
   spec.add_development_dependency 'simplecov', '~> 0.22.0'
   spec.add_development_dependency 'factory_bot', '~> 6.4', '>= 6.4.6'
+  spec.add_development_dependency 'rerun', '~> 0.14.0'
 end
 # rubocop:enable Layout/LineLength
