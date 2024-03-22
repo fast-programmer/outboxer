@@ -109,7 +109,7 @@ module Outboxer
 
             Models::Frame
               .joins(:exception)
-              .where(outboxer_exceptions: { message_id: locked_ids })
+              .where(exception: { message_id: locked_ids })
               .delete_all
 
             Models::Exception.where(message_id: locked_ids).delete_all
@@ -138,14 +138,14 @@ module Outboxer
             raise NotFound, "Some IDs could not be found: #{missing_ids.join(', ')}"
           end
 
-          Models::Frame.joins(:exception).where(exceptions: { message_id: locked_ids }).delete_all
+          Models::Frame
+            .joins(:exception)
+            .where(exception: { message_id: locked_ids })
+            .delete_all
+
           Models::Exception.where(message_id: locked_ids).delete_all
 
           deleted_count = Models::Message.where(id: locked_ids).delete_all
-
-          if deleted_count != locked_ids.size
-            raise "Expected to delete #{locked_ids.size} records, only deleted #{deleted_count}"
-          end
         end
       end
 

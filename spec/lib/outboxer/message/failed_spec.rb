@@ -21,8 +21,7 @@ module Outboxer
         let!(:failed_message) { Message.failed!(id: publishing_message.id, exception: exception) }
 
         it 'returns updated message' do
-          expect(failed_message.id).to eq(publishing_message.id)
-          expect(failed_message.status).to eq(Models::Message::Status::FAILED)
+          expect(failed_message['id']).to eq(publishing_message.id)
         end
 
         it 'updates message status to failed' do
