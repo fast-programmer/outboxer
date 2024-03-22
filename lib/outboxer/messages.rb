@@ -10,12 +10,13 @@ module Outboxer
 
     def counts_by_status
       ActiveRecord::Base.connection_pool.with_connection do
-        status_counts = Models::Message::STATUSES.each_with_object({}) do |status, hash|
+        status_counts = Models::Message::STATUSES.each_with_object({ 'all' => 0 }) do |status, hash|
           hash[status.to_s] = 0
         end
 
         Models::Message.group(:status).count.each do |status, count|
           status_counts[status.to_s] = count
+          status_counts['all'] += count
         end
 
         status_counts
@@ -44,7 +45,25 @@ module Outboxer
       end
     end
 
-    def list(status: nil, sort: :updated_at, order: :asc, page: 1, per_page: 100)
+    STATUS = nil
+    SORT = :updated_at
+    ORDER = :asc
+    PAGE = 1
+    PER_PAGE = 100
+
+    def unpublished(sort: SORT, order: ORDER, page: PAGE, per_page: PER_PAGE)
+      list(status: Models::Message::Status::UNPUBLISHED)
+    end
+
+    def publishing(sort: SORT, order: ORDER, page: PAGE, per_page: PER_PAGE)
+      list(status: Models::Message::Status::PUBLISHING)
+    end
+
+    def failed(sort: SORT, order: ORDER, page: PAGE, per_page: PER_PAGE)
+      list(status: Models::Message::Status::FAILED)
+    end
+
+    def list(status: STATUS, sort: SORT, order: ORDER, page: PAGE, per_page: PER_PAGE)
       if !status.nil? && !Models::Message::STATUSES.include?(status.to_s)
         raise ArgumentError, "status must be #{Models::Message::STATUSES.join(' ')}"
       end

@@ -16,88 +16,39 @@ Outboxer::Database.connect!(config: config.merge('pool' => 5))
 module Outboxer
   class App < Sinatra::Base
     get '/messages/unpublished' do
-      page_number = params[:page_number] || 1
-      per_page = [100, 200, 500, 1000].include?(params[:per_page].to_i) ? params[:per_page].to_i : 100
-      sort = %w[id status messageable created_at updated_at]
-        .include?(params[:sort]) ? params[:sort].to_sym : :created_at
-      order = %w[asc desc].include?(params[:order]) ? params[:order].to_sym : :asc
+      status_counts = Messages.counts_by_status
 
-      messages_scope = Models::Message.where(status: 'unpublished')
-      messages = messages_scope.order(sort => order).page(page_number).per(per_page)
-      messages_count = Models::Message.count
+      sort = params[:sort]|| Messages::SORT
+      order = params[:order] || Messages::ORDER
+      page = params[:page] || Messages::PAGE
+      per_page = params[:per_page] || Messages::PER_PAGE
 
-      status_counts = { 'unpublished' => 0, 'publishing' => 0, 'failed' => 0 }.merge(
-        Models::Message.group(:status).count)
+      messages = Messages.unpublished(sort: sort, order: order, page: page, per_page: per_page)
 
-      erb :messages, layout: nil, locals: {
+      erb :messages, locals: {
         status_counts: status_counts,
-        messages_count: messages_count,
         messages: messages,
-        page_number: page_number,
+        page: page,
         per_page: per_page,
         sort: sort,
         order: order
       }
     end
 
-    get '/messages/publishing' do
-      page_number = params[:page_number] || 1
-      per_page = [100, 200, 500, 1000].include?(params[:per_page].to_i) ? params[:per_page].to_i : 100
-      sort = %w[id status messageable created_at updated_at]
-        .include?(params[:sort]) ? params[:sort].to_sym : :created_at
-      order = %w[asc desc].include?(params[:order]) ? params[:order].to_sym : :asc
+    # get '/messages/publishing' do
+    # end
 
-      messages_scope = Models::Message.where(status: 'publishing')
-      messages = messages_scope.order(sort => order).page(page_number).per(per_page)
-      messages_count = Models::Message.count
-
-      status_counts = { 'unpublished' => 0, 'publishing' => 0, 'failed' => 0 }.merge(
-        Models::Message.group(:status).count)
-
-      erb :messages, layout: nil, locals: {
-        status_counts: status_counts,
-        messages_count: messages_count,
-        messages: messages,
-        page_number: page_number,
-        per_page: per_page,
-        sort: sort,
-        order: order
-      }
-    end
-
-    get '/messages/failed' do
-      page_number = params[:page_number] || 1
-      per_page = [100, 200, 500, 1000].include?(params[:per_page]) ? params[:per_page].to_i : 100
-      sort = %w[id status messageable created_at updated_at]
-        .include?(params[:sort]) ? params[:sort].to_sym : :created_at
-      order = %w[asc desc].include?(params[:order]) ? params[:order].to_sym : :asc
-
-      messages_scope = Models::Message.where(status: 'failed')
-      messages = messages_scope.order(sort => order).page(page_number).per(per_page)
-      messages_count = Models::Message.count
-
-      status_counts = { 'unpublished' => 0, 'publishing' => 0, 'failed' => 0 }.merge(
-        Models::Message.group(:status).count)
-
-      erb :messages, layout: nil, locals: {
-        status_counts: status_counts,
-        messages_count: messages_count,
-        messages: messages,
-        page_number: page_number,
-        per_page: per_page,
-        sort: sort,
-        order: order
-      }
-    end
+    # get '/messages/failed' do
+    # end
 
     post '/messages/update' do
-      message_ids = params[:message_ids].map(&:to_i)
+      ids = params[:ids].map(&:to_i)
 
       case params[:submit]
       when 'Retry Selected'
-        Messages.retry_selected(message_ids: message_ids)
+        Messages.republish_selected!(ids: ids)
       when 'Delete Selected'
-        Messages.delete_selected(message_ids: message_ids)
+        Messages.delete_selected!(ids: ids)
       else
         raise "Unknown value: #{params[:submit]}"
       end
@@ -105,14 +56,16 @@ module Outboxer
       redirect to('/messages')
     end
 
-    post '/messages/retry_all' do
-      Messages.retry_all(message_ids: message_ids)
+    post '/messages/republish_all' do
+      ids = params[:ids].map(&:to_i)
+
+      Messages.republish_all!(ids: ids)
 
       redirect to('/messages')
     end
 
     post '/messages/delete_all' do
-      Messages.delete_all(message_ids: message_ids)
+      Messages.delete_all!(batch_size: 100)
     end
 
     get '/message/:id' do |id|

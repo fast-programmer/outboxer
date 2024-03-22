@@ -1,67 +1,109 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web App</title>
+    <title>Responsive Bootstrap 5.3 Table with Navigation</title>
     <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
     <style>
-        body {
-            padding-top: 20px;
-        }
-        .top-nav-item {
-            margin: 0 10px;
-        }
-        .table-container {
-            margin-top: 30px;
-        }
-        /* Style for pagination controls */
-        .pagination {
-            flex-wrap: wrap; /* Allows pagination items to wrap */
-        }
-        .pagination .page-item {
-            margin-bottom: 5px; /* Adds spacing between wrapped lines */
-        }
-        .clickable-row {
-            cursor: pointer;
-        }
-
-        .clickable-row:hover {
-            background-color: #f5f5f5; /* Light gray background on hover */
-        }
+     .custom-link {
+         color: #495057; /* Dark grey color */
+         text-decoration: none; /* Removes the underline */
+     }
+     .custom-link:hover {
+         text-decoration: underline; /* Adds underline on hover for better UX */
+     }
     </style>
 </head>
 <body>
     <!-- Navigation Bar -->
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
-        <div class="container-fluid justify-content-center">
-            <ul class="navbar-nav">
-                <li class="nav-item top-nav-item">
-                    <a class="nav-link" href="/all">All (<%= messages_count %>)</a>
-                </li>
-                <% status_counts.each do |status, count| %>
-                    <li class="nav-item top-nav-item">
-                        <a class="nav-link" href="/<%= status %>"><%= status.capitalize %> (<%= count %>)</a>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#"><i class="bi bi-envelope-open-fill"></i> Outboxer</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" href="#">All (600)</a>
                     </li>
-                <% end %>
-            </ul>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Unpublished (200)</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Publishing (200)</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Failed (200)</a>
+                    </li>
+                </ul>
+            </div>
         </div>
     </nav>
+    <!-- Flash Message -->
+    <div class="alert alert-primary alert-dismissible fade show text-center" role="alert">
+        10 messages have been deleted
+        <button type="button" class="btn-close float-end" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
 
-    <%= yield %>>
+    <%= yield %>
 
-    <!-- Bootstrap JS Bundle with Popper -->
-    <script src="/js/bootstrap.bundle.min.js"></script>
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- JavaScript for Check All functionality -->
     <script>
-     document.addEventListener("DOMContentLoaded", function() {
-         const rows = document.querySelectorAll("tr.clickable-row");
+     document.addEventListener('DOMContentLoaded', function () {
+         const checkboxes = document.querySelectorAll('.individual-check');
+         const checkAll = document.getElementById('checkAll');
+         const bulkActionsToolbar = document.getElementById('bulkActionsToolbar');
 
-         rows.forEach(row => {
-             row.addEventListener("click", () => {
-                 window.location.href = row.dataset.href;
-             });
+         // Function to check the state of individual checkboxes and toggle the toolbar
+         function toggleBulkActionsToolbar() {
+             const anyChecked = Array.from(checkboxes).some(checkbox => checkbox.checked);
+             bulkActionsToolbar.classList.toggle('d-none', !anyChecked);
+         }
+
+         // Event listener for individual checkboxes
+         checkboxes.forEach(checkbox => {
+             checkbox.addEventListener('change', toggleBulkActionsToolbar);
          });
+
+         // Event listener for the "Check All" checkbox
+         checkAll.addEventListener('change', function () {
+             toggleBulkActionsToolbar();
+         });
+
+         // Confirm before delete all
+         deleteAllBtn.addEventListener('click', function(e) {
+             e.preventDefault(); // Prevent the form from submitting if necessary
+             const confirmation = confirm('Are you sure you want to delete all?');
+             if (!confirmation) {
+                 return false; // Stop the function if the user clicks "Cancel"
+             }
+             // Place the code to delete all here if they click "OK"
+         });
+
+         // Confirm before retry all
+         retryAllBtn.addEventListener('click', function(e) {
+             e.preventDefault(); // Prevent the form from submitting if necessary
+             const confirmation = confirm('Are you sure you want to retry all?');
+             if (!confirmation) {
+                 return false; // Stop the function if the user clicks "Cancel"
+             }
+             // Place the code to retry all here if they click "OK"
+         });
+     });
+
+     document.getElementById('checkAll').addEventListener('change', function (e) {
+         var checkboxes = document.querySelectorAll('.individual-check');
+         for (var i = 0; i < checkboxes.length; i++) {
+             checkboxes[i].checked = e.target.checked;
+         }
      });
     </script>
 </body>

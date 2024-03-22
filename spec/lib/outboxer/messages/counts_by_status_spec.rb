@@ -5,7 +5,7 @@ module Outboxer
     describe '.counts_by_status' do
       context 'when no messages exist' do
         it 'returns 0 for all statuses' do
-          expected_counts = { 'unpublished' => 0, 'publishing' => 0, 'failed' => 0 }
+          expected_counts = { 'all' => 0, 'unpublished' => 0, 'publishing' => 0, 'failed' => 0 }
 
           expect(Outboxer::Messages.counts_by_status).to eq(expected_counts)
         end
@@ -19,7 +19,7 @@ module Outboxer
         end
 
         it 'returns correct counts for each status' do
-          expected_counts = { 'unpublished' => 2, 'publishing' => 3, 'failed' => 4 }
+          expected_counts = { 'all' => 9, 'unpublished' => 2, 'publishing' => 3, 'failed' => 4 }
 
           expect(Messages.counts_by_status).to eq(expected_counts)
         end
