@@ -53,6 +53,8 @@ module Outboxer
               "from #{message.status} to (deleted)"
           end
 
+          message.exceptions.each { |exception| exception.frames.each(&:delete) }
+          message.exceptions.delete_all
           message.delete
 
           { 'id' => id }
