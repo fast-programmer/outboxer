@@ -46,10 +46,12 @@
         </div>
     </nav>
     <!-- Flash Message -->
+    <% if flash[:notice] %>
     <div class="alert alert-primary alert-dismissible fade show text-center" role="alert">
-        10 messages have been deleted
+        <%= flash[:notice] %>
         <button type="button" class="btn-close float-end" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
+    <% end %>
 
     <%= yield %>
 

@@ -4,6 +4,7 @@ PATH
     outboxer (0.1.11)
       activerecord (~> 7.0)
       kaminari (~> 1.2)
+      rack-flash3 (~> 1.0, >= 1.0.5)
 
 GEM
   remote: https://rubygems.org/
@@ -104,6 +105,8 @@ GEM
       nio4r (~> 2.0)
     racc (1.7.1)
     rack (3.0.8)
+    rack-flash3 (1.0.5)
+      rack
     rack-protection (4.0.0)
       base64 (>= 0.1.0)
       rack (>= 3.0.0, < 4)

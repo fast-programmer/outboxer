@@ -5,6 +5,7 @@ require 'sinatra/base'
 require 'kaminari'
 require 'ransack'
 require 'uri'
+require 'rack/flash'
 
 require 'sinatra/reloader'
 require 'pry-byebug'
@@ -15,6 +16,9 @@ Outboxer::Database.connect!(config: config.merge('pool' => 5))
 
 module Outboxer
   class App < Sinatra::Base
+    enable :sessions
+    use Rack::Flash
+
     get '/' do
       redirect to('/messages/all')
     end
@@ -115,7 +119,11 @@ module Outboxer
     end
 
     post '/messages/republish_all' do
-      Messages.republish_all!
+      # Messages.republish_all!
+
+      republished_count = 0
+
+      flash[:notice] = "#{republished_count} messages have been republished."
 
       redirect to('/messages/all')
     end
