@@ -7,13 +7,7 @@ module Outboxer
         let(:queue) { Queue.new }
         let(:logger) { instance_double(Logger, debug: true, error: true) }
 
-        let(:message) do
-          Models::Message.create!(
-            id: SecureRandom.uuid,
-            messageable_type: 'DummyType',
-            messageable_id: 1,
-            status: Models::Message::Status::PUBLISHING)
-        end
+        let(:message) { create(:outboxer_message, :publishing) }
 
         before do
           queue.push(message)
@@ -21,7 +15,7 @@ module Outboxer
 
         it 'processes the message' do
           Publisher.pop_message!(queue: queue, logger: logger) do |msg|
-            expect(msg.messageable_type).to eq('DummyType')
+            expect(msg.messageable_type).to eq('Event')
             expect(msg.id).to eq(message.id)
           end
         end
@@ -37,13 +31,7 @@ module Outboxer
         let(:queue) { Queue.new }
         let(:logger) { instance_double(Logger, debug: true, error: true) }
 
-        let(:message) do
-          Models::Message.create!(
-            id: SecureRandom.uuid,
-            messageable_type: 'DummyType',
-            messageable_id: 1,
-            status: Models::Message::Status::PUBLISHING)
-        end
+        let(:message) { create(:outboxer_message, :publishing) }
 
         let(:error) { StandardError.new('processing error') }
 

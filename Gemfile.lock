@@ -3,6 +3,7 @@ PATH
   specs:
     outboxer (0.1.11)
       activerecord (~> 7.0)
+      kaminari (~> 1.2)
 
 GEM
   remote: https://rubygems.org/
@@ -49,6 +50,8 @@ GEM
     drb (2.2.0)
       ruby2_keywords
     erubi (1.12.0)
+    factory_bot (6.4.6)
+      activesupport (>= 5.0.0)
     foreman (0.87.2)
     i18n (1.14.1)
       concurrent-ruby (~> 1.0)
@@ -189,6 +192,7 @@ PLATFORMS
 DEPENDENCIES
   activerecord (~> 7.1, >= 7.1.2)
   database_cleaner (~> 2.0, >= 2.0.2)
+  factory_bot (~> 6.4, >= 6.4.6)
   foreman (~> 0.87.2)
   kaminari (~> 1.2, >= 1.2.2)
   outboxer!

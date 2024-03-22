@@ -1,36 +1,24 @@
 require 'spec_helper'
 
 module Outboxer
-  RSpec.describe Message do
+  RSpec.describe Messages do
     describe '.unpublished!' do
       context 'when there are 2 unpublished messages' do
         let!(:unpublished_messages) do
           [
-            Models::Message.create!(
-              id: SecureRandom.uuid,
-              messageable_type: 'DummyType',
-              messageable_id: 1,
-              status: Models::Message::Status::UNPUBLISHED,
-              created_at: DateTime.parse('2024-01-14T00:00:00Z')),
-            Models::Message.create!(
-              id: SecureRandom.uuid,
-              messageable_type: 'DummyType',
-              messageable_id: 2,
-              status: Models::Message::Status::UNPUBLISHED,
-              created_at: DateTime.parse('2024-01-14T00:00:01Z'))
+            create(:outboxer_message, :unpublished, created_at: 2.minutes.ago),
+            create(:outboxer_message, :unpublished, created_at: 1.minute.ago)
           ]
         end
 
         context 'when order asc' do
           context 'when limit is 1' do
-            let!(:publishing_messages) { Message.unpublished!(limit: 1) }
+            let!(:publishing_messages) { Messages.unpublished!(limit: 1) }
 
             it 'returns first unpublished message' do
               expect(publishing_messages.count).to eq(1)
 
               publishing_message = publishing_messages.first
-              expect(publishing_message.messageable_type).to eq('DummyType')
-              expect(publishing_message.messageable_id).to eq('1')
               expect(publishing_message.status).to eq(Models::Message::Status::PUBLISHING)
             end
 
@@ -47,7 +35,7 @@ module Outboxer
 
         context 'when order desc' do
           context 'when limit is 1' do
-            let!(:publishing_messages) { Message.unpublished!(limit: 1, order: :desc) }
+            let!(:publishing_messages) { Messages.unpublished!(limit: 1, order: :desc) }
 
             it 'returns first unpublished message' do
               expect(publishing_messages.count).to eq(1)

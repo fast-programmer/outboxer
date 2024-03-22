@@ -2,6 +2,9 @@ require 'simplecov'
 SimpleCov.start
 require 'database_cleaner'
 require 'pry-byebug'
+require 'factory_bot'
+
+Dir[File.join(__dir__, 'factories/**/*.rb')].each { |f| require f }
 
 require_relative '../lib/outboxer'
 
@@ -14,6 +17,8 @@ RSpec.configure do |config|
     c.syntax = :expect
   end
 
+  config.include FactoryBot::Syntax::Methods
+
   config.before(:all) do
     db_config = Outboxer::Database.config(environment: 'test')
     Outboxer::Database.connect!(config: db_config)
@@ -24,7 +29,13 @@ RSpec.configure do |config|
   config.after(:each) do
     begin
       DatabaseCleaner.clean
-    rescue ActiveRecord::DatabaseConnectionError, ActiveRecord::ConnectionNotEstablished
+
+      ActiveRecord::Base.connection.tables.each do |table|
+        ActiveRecord::Base.connection.reset_pk_sequence!(table)
+      end
+    rescue ActiveRecord::DatabaseConnectionError,
+        ActiveRecord::ConnectionNotEstablished,
+        ActiveRecord::StatementInvalid
       # ignore
     end
   end

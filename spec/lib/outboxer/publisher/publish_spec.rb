@@ -13,13 +13,7 @@ module Outboxer
         allow(logger).to receive(:level=)
       end
 
-      let!(:message) do
-        Models::Message.create!(
-          id: SecureRandom.uuid,
-          messageable_type: 'DummyType',
-          messageable_id: 1,
-          status: Models::Message::Status::UNPUBLISHED)
-      end
+      let!(:message) { create(:outboxer_message, :unpublished) }
 
       context 'when message published successfully' do
         before do
@@ -30,7 +24,7 @@ module Outboxer
             logger: logger,
             kernel: kernel
           ) do |publishing_message|
-            expect(publishing_message.messageable_type).to eq('DummyType')
+            expect(publishing_message.messageable_type).to eq('Event')
             expect(publishing_message.messageable_id).to eq('1')
             expect(publishing_message.status).to eq(Models::Message::Status::PUBLISHING)
 

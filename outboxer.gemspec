@@ -29,6 +29,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_dependency "activerecord", "~> 7.0"
+  spec.add_dependency 'kaminari', '~> 1.2'
 
   spec.add_development_dependency 'foreman', '~> 0.87.2'
   spec.add_development_dependency 'pry-byebug', '3.10'
@@ -36,5 +37,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'database_cleaner', '~> 2.0', '>= 2.0.2'
   spec.add_development_dependency 'sidekiq', '~> 7.2', '>= 7.2.1'
   spec.add_development_dependency 'simplecov', '~> 0.22.0'
+  spec.add_development_dependency 'factory_bot', '~> 6.4', '>= 6.4.6'
 end
 # rubocop:enable Layout/LineLength

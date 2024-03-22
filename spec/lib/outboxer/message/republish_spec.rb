@@ -4,20 +4,12 @@ module Outboxer
   RSpec.describe Message do
     describe '.republish!' do
       context 'when failed message' do
-        let!(:failed_message) do
-          Models::Message.create!(
-            id: SecureRandom.uuid,
-            messageable_type: 'DummyType',
-            messageable_id: 1,
-            status: Models::Message::Status::FAILED,
-            created_at: DateTime.parse('2024-01-14T00:00:00Z'))
-        end
+        let!(:failed_message) { create(:outboxer_message, :failed) }
 
         let!(:unpublished_message) { Message.republish!(id: failed_message.id) }
 
         it 'returns unpublished message' do
-          expect(unpublished_message.id).to eq(failed_message.id)
-          expect(unpublished_message.status).to eq(Models::Message::Status::UNPUBLISHED)
+          expect(unpublished_message['id']).to eq(failed_message.id)
         end
 
         it 'updates failed message status to unpublishied' do
@@ -28,14 +20,7 @@ module Outboxer
       end
 
       context 'when unpublished messaged' do
-        let(:unpublished_message) do
-          Models::Message.create!(
-            id: SecureRandom.uuid,
-            messageable_type: 'DummyType',
-            messageable_id: 1,
-            status: Models::Message::Status::UNPUBLISHED,
-            created_at: DateTime.parse('2024-01-14T00:00:00Z'))
-        end
+        let(:unpublished_message) { create(:outboxer_message, :unpublished) }
 
         it 'raises invalid transition error' do
           expect do

@@ -22,11 +22,10 @@ module Outboxer
       module Status
         UNPUBLISHED = 'unpublished'
         PUBLISHING = 'publishing'
-        PUBLISHED = 'published'
         FAILED = 'failed'
       end
 
-      STATUSES = [Status::UNPUBLISHED, Status::PUBLISHING, Status::PUBLISHED, Status::FAILED]
+      STATUSES = [Status::UNPUBLISHED, Status::PUBLISHING, Status::FAILED]
 
       scope :unpublished, -> { where(status: Status::UNPUBLISHED) }
       scope :publishing, -> { where(status: Status::PUBLISHING) }

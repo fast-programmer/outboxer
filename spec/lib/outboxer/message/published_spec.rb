@@ -4,19 +4,12 @@ module Outboxer
   RSpec.describe Message do
     describe '.published!' do
       context 'when publishing message' do
-        let!(:publishing_message) do
-          Models::Message.create!(
-            id: SecureRandom.uuid,
-            messageable_type: 'DummyType',
-            messageable_id: 1,
-            status: Models::Message::Status::PUBLISHING,
-            created_at: DateTime.parse('2024-01-14T00:00:00Z'))
-        end
+        let!(:publishing_message) { create(:outboxer_message, :publishing) }
 
         let!(:published_message) { Message.published!(id: publishing_message.id) }
 
         it 'returns nil' do
-          expect(published_message).to be_nil
+          expect(published_message).to eq({ 'id' => publishing_message.id })
         end
 
         it 'deletes publishing message' do
@@ -25,21 +18,14 @@ module Outboxer
       end
 
       context 'when unpublished messaged' do
-        let(:unpublished_message) do
-          Models::Message.create!(
-            id: SecureRandom.uuid,
-            messageable_type: 'DummyType',
-            messageable_id: 1,
-            status: Models::Message::Status::UNPUBLISHED,
-            created_at: DateTime.parse('2024-01-14T00:00:00Z'))
-        end
+        let(:unpublished_message) { create(:outboxer_message, :unpublished) }
 
         it 'raises invalid transition error' do
           expect do
             Message.published!(id: unpublished_message.id)
           end.to raise_error(
             Message::InvalidTransition,
-            "cannot transition outboxer message #{unpublished_message.id} " +
+            "cannot transition message #{unpublished_message.id} " +
               "from unpublished to (deleted)")
         end
 

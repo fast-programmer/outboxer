@@ -9,84 +9,113 @@ module Outboxer
     class NotFound < Error; end
     class InvalidTransition < Error; end
 
-    def unpublished!(limit: 5, order: :asc)
+    def find_by_id!(id:)
       ActiveRecord::Base.connection_pool.with_connection do
-        message_ids = ActiveRecord::Base.transaction do
-          ids = Models::Message
-            .where(status: Models::Message::Status::UNPUBLISHED)
-            .order(created_at: order)
-            .lock('FOR UPDATE SKIP LOCKED')
-            .limit(limit)
-            .pluck(:id)
+        ActiveRecord::Base.transaction do
+          message = Models::Message.includes(exceptions: :frames).find_by!(id: id)
 
-          if !ids.empty?
-            Models::Message.where(id: ids).update_all(status: Models::Message::Status::PUBLISHING)
-          end
-
-          ids
+          {
+            'id' => message.id,
+            'status' => message.status,
+            'messageable' => "#{message.messageable_type}::#{message.messageable_id}",
+            'created_at' => message.created_at.utc.to_s,
+            'updated_at' => message.updated_at.utc.to_s,
+            'exceptions' => message.exceptions.map do |exception|
+              {
+                'id' => exception.id,
+                'class_name' => exception.class_name,
+                'message_text' => exception.message_text,
+                'created_at' => exception.created_at.utc.to_s,
+                'frames' => exception.frames.map do |frame|
+                  {
+                    'id' => frame.id,
+                    'index' => frame.index,
+                    'text' => frame.text
+                  }
+                end
+              }
+            end
+          }
         end
-
-        Models::Message
-          .where(id: message_ids, status: Models::Message::Status::PUBLISHING)
-          .order(created_at: order)
-          .to_a
       end
+    rescue ActiveRecord::RecordNotFound
+      raise NotFound, "Couldn't find Outboxer::Models::Message with id #{id}"
     end
 
     def published!(id:)
       ActiveRecord::Base.connection_pool.with_connection do
-        outboxer_message = Models::Message.order(created_at: :asc).lock.find_by!(id: id)
+        ActiveRecord::Base.transaction do
+          message = Models::Message.lock.find_by!(id: id)
 
-        if outboxer_message.status != Models::Message::Status::PUBLISHING
-          raise InvalidTransition,
-            "cannot transition outboxer message #{outboxer_message.id} " \
-            "from #{outboxer_message.status} to (deleted)"
+          if message.status != Models::Message::Status::PUBLISHING
+            raise InvalidTransition,
+              "cannot transition message #{message.id} " \
+              "from #{message.status} to (deleted)"
+          end
+
+          message.exceptions.each { |exception| exception.frames.each(&:delete) }
+          message.exceptions.delete_all
+          message.delete
+
+          { 'id' => id }
         end
-
-        outboxer_message.destroy!
-
-        nil
       end
     end
 
     def failed!(id:, exception:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          outboxer_message = Models::Message.order(created_at: :asc).lock.find_by!(id: id)
+          message = Models::Message.order(created_at: :asc).lock.find_by!(id: id)
 
-          if outboxer_message.status != Models::Message::Status::PUBLISHING
+          if message.status != Models::Message::Status::PUBLISHING
             raise InvalidTransition,
               "cannot transition outboxer message #{id} " \
-              "from #{outboxer_message.status} to #{Models::Message::Status::FAILED}"
+              "from #{message.status} to #{Models::Message::Status::FAILED}"
           end
 
-          outboxer_message.update!(status: Models::Message::Status::FAILED)
+          message.update!(status: Models::Message::Status::FAILED)
 
-          outboxer_exception = outboxer_message.exceptions.create!(
-            id: SecureRandom.uuid, class_name: exception.class.name, message_text: exception.message)
+          outboxer_exception = message.exceptions.create!(
+            class_name: exception.class.name, message_text: exception.message)
 
           exception.backtrace.each_with_index do |frame, index|
-            outboxer_exception.frames.create!(id: SecureRandom.uuid, index: index, text: frame)
+            outboxer_exception.frames.create!(index: index, text: frame)
           end
 
-          outboxer_message
+          { 'id' => id }
+        end
+      end
+    end
+
+    def delete!(id:)
+      ActiveRecord::Base.connection_pool.with_connection do
+        ActiveRecord::Base.transaction do
+          message = Models::Message.includes(exceptions: :frames).lock.find_by!(id: id)
+
+          message.exceptions.each { |exception| exception.frames.each(&:delete) }
+          message.exceptions.delete_all
+          message.delete
+
+          { 'id' => id }
         end
       end
     end
 
     def republish!(id:)
       ActiveRecord::Base.connection_pool.with_connection do
-        outboxer_message = Models::Message.lock.find_by!(id: id)
+        ActiveRecord::Base.transaction do
+          message = Models::Message.lock.find_by!(id: id)
 
-        if outboxer_message.status != Models::Message::Status::FAILED
-          raise InvalidTransition,
-            "cannot transition outboxer message #{id} " \
-            "from #{outboxer_message.status} to #{Models::Message::Status::UNPUBLISHED}"
+          if message.status != Models::Message::Status::FAILED
+            raise InvalidTransition,
+              "cannot transition outboxer message #{id} " \
+              "from #{message.status} to #{Models::Message::Status::UNPUBLISHED}"
+          end
+
+          message.update!(status: Models::Message::Status::UNPUBLISHED)
+
+          { 'id' => id }
         end
-
-        outboxer_message.update!(status: Models::Message::Status::UNPUBLISHED)
-
-        outboxer_message
       end
     end
   end
