@@ -33,17 +33,17 @@ module Outboxer
     end
 
     def list(status: nil, sort: :updated_at, order: :asc, page: 1, per_page: 100)
-      if !status.nil? && !Models::Message::STATUSES.include?(status)
+      if !status.nil? && !Models::Message::STATUSES.include?(status.to_sym)
         raise InvalidParameter, "status must be #{Models::Message::STATUSES.join(' ')}"
       end
 
       sort_options = [:id, :status, :messageable, :created_at, :updated_at]
-      if !sort_options.include?(sort)
+      if !sort_options.include?(sort.to_sym)
         raise InvalidParameter, "sort must be #{sort_options.join(' ')}"
       end
 
       order_options = [:asc, :desc]
-      if !order_options.include?(order)
+      if !order_options.include?(order.to_sym)
         raise InvalidParameter, "order must be #{order_options.join(' ')}"
       end
 
@@ -59,10 +59,10 @@ module Outboxer
       messages = status.nil? ? Models::Message.all : Models::Message.where(status: status)
 
       messages =
-        if sort == :messageable
-          messages.order(messageable_type: order, messageable_id: order)
+        if sort.to_sym == :messageable
+          messages.order(messageable_type: order.to_sym, messageable_id: order.to_sym)
         else
-          messages.order(sort => order)
+          messages.order(sort.to_sym => order.to_sym)
         end
 
       ActiveRecord::Base.connection_pool.with_connection do

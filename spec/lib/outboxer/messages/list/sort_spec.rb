@@ -3,14 +3,18 @@ require 'spec_helper'
 module Outboxer
   RSpec.describe Messages do
     before do
-      create(:outboxer_message, id: 4, status: :unpublished, messageable_type: 'Event',
-        messageable_id: 1, created_at: 5.minutes.ago, updated_at: 4.minutes.ago)
-      create(:outboxer_message, id: 3, status: :failed, messageable_type: 'Event',
-        messageable_id: 2, created_at: 4.minutes.ago, updated_at: 3.minutes.ago)
-      create(:outboxer_message, id: 2, status: :publishing, messageable_type: 'Event',
-        messageable_id: 3, created_at: 3.minutes.ago, updated_at: 2.minutes.ago)
-      create(:outboxer_message, id: 1, status: :unpublished, messageable_type: 'Event',
-        messageable_id: 4, created_at: 2.minutes.ago, updated_at: 1.minute.ago)
+      create(:outboxer_message, id: 4, status: :unpublished,
+        messageable_type: 'Event', messageable_id: 1,
+        created_at: 5.minutes.ago, updated_at: 4.minutes.ago)
+      create(:outboxer_message, id: 3, status: :failed,
+        messageable_type: 'Event', messageable_id: 2,
+        created_at: 4.minutes.ago, updated_at: 3.minutes.ago)
+      create(:outboxer_message, id: 2, status: :publishing,
+        messageable_type: 'Event', messageable_id: 3,
+        created_at: 3.minutes.ago, updated_at: 2.minutes.ago)
+      create(:outboxer_message, id: 1, status: :unpublished,
+        messageable_type: 'Event', messageable_id: 4,
+        created_at: 2.minutes.ago, updated_at: 1.minute.ago)
     end
 
     describe '.list' do
@@ -30,13 +34,13 @@ module Outboxer
         it 'sorts messages by messageable in ascending order' do
           sorted_messages = Messages.list(sort: :messageable, order: :asc)
           expect(sorted_messages.map { |m| [m.messageable_type, m.messageable_id] }).to eq(
-            [['TypeA', '1'], ['TypeA', '3'], ['TypeB', '2'], ['TypeC', '4']])
+            [['Event', '1'], ['Event', '2'], ['Event', '3'], ['Event', '4']])
         end
 
         it 'sorts messages by messageable in descending order' do
           sorted_messages = Messages.list(sort: :messageable, order: :desc)
           expect(sorted_messages.map { |m| [m.messageable_type, m.messageable_id] }).to eq(
-            [['TypeC', '4'], ['TypeB', '2'], ['TypeA', '3'], ['TypeA', '1']])
+            [['Event', '4'], ['Event', '3'], ['Event', '2'], ['Event', '1']])
         end
       end
 
