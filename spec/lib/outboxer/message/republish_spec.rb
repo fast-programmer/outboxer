@@ -9,8 +9,7 @@ module Outboxer
         let!(:unpublished_message) { Message.republish!(id: failed_message.id) }
 
         it 'returns unpublished message' do
-          expect(unpublished_message.id).to eq(failed_message.id)
-          expect(unpublished_message.status).to eq(Models::Message::Status::UNPUBLISHED)
+          expect(unpublished_message['id']).to eq(failed_message.id)
         end
 
         it 'updates failed message status to unpublishied' do

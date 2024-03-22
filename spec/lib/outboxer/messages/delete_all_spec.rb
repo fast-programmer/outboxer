@@ -25,8 +25,8 @@ module Outboxer
         expect(Models::Frame.count).to eq(0)
       end
 
-      it 'returns nil' do
-        expect(result).to be_nil
+      it 'returns count' do
+        expect(result['count']).to eq(2)
       end
     end
   end
