@@ -14,7 +14,8 @@ module Outboxer
         ActiveRecord::Base.transaction do
           message = Models::Message.create!(
             messageable_id: messageable_id,
-            messageable_type: messageable_type)
+            messageable_type: messageable_type,
+            status: Models::Message::Status::BACKLOGGED)
 
           { 'id' => message.id }
         end
