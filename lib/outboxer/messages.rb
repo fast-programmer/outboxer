@@ -22,24 +22,28 @@ module Outboxer
       end
     end
 
-    def queue!(limit: 1, order: :asc)
+    def queue!(limit: 1)
       ActiveRecord::Base.connection_pool.with_connection do
         ids = []
 
         ActiveRecord::Base.transaction do
           ids = Models::Message
             .where(status: Models::Message::Status::BACKLOGGED)
-            .order(created_at: order)
+            .order(updated_at: :asc)
             .lock('FOR UPDATE SKIP LOCKED')
             .limit(limit)
             .pluck(:id)
 
-          Models::Message.where(id: ids).update_all(status: Models::Message::Status::PUBLISHING)
+          Models::Message
+            .where(id: ids)
+            .update_all(
+              updated_at: Time.current,
+              status: Models::Message::Status::PUBLISHING)
         end
 
         Models::Message
           .where(id: ids, status: Models::Message::Status::PUBLISHING)
-          .order(created_at: order)
+          .order(updated_at: :asc)
           .to_a
       end
     end

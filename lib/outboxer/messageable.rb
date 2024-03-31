@@ -22,6 +22,8 @@ module Outboxer
                 as: as
 
         after_create :create_outboxer_message!
+
+        # after_create { |event| Outboxer::Message.backlog(messageable: event) }
       end
     end
   end
