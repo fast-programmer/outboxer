@@ -109,10 +109,10 @@ module Outboxer
           if message.status != Models::Message::Status::FAILED
             raise InvalidTransition,
               "cannot transition outboxer message #{id} " \
-              "from #{message.status} to #{Models::Message::Status::UNPUBLISHED}"
+              "from #{message.status} to #{Models::Message::Status::BACKLOGGED}"
           end
 
-          message.update!(status: Models::Message::Status::UNPUBLISHED)
+          message.update!(status: Models::Message::Status::BACKLOGGED)
 
           { 'id' => id }
         end

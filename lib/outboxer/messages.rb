@@ -22,13 +22,13 @@ module Outboxer
       end
     end
 
-    def unpublished!(limit: 1, order: :asc)
+    def queue!(limit: 1, order: :asc)
       ActiveRecord::Base.connection_pool.with_connection do
         ids = []
 
         ActiveRecord::Base.transaction do
           ids = Models::Message
-            .where(status: Models::Message::Status::UNPUBLISHED)
+            .where(status: Models::Message::Status::BACKLOGGED)
             .order(created_at: order)
             .lock('FOR UPDATE SKIP LOCKED')
             .limit(limit)
@@ -109,7 +109,7 @@ module Outboxer
               .pluck(:id)
 
             updated_count = Models::Message.where(id: locked_ids).update_all(
-              status: Models::Message::Status::UNPUBLISHED, updated_at: DateTime.now.utc)
+              status: Models::Message::Status::BACKLOGGED, updated_at: DateTime.now.utc)
           end
 
           updated_total_count += updated_count
@@ -138,7 +138,7 @@ module Outboxer
           end
 
           updated_count = Models::Message.where(id: locked_ids).update_all(
-            status: Models::Message::Status::UNPUBLISHED, updated_at: DateTime.now.utc)
+            status: Models::Message::Status::BACKLOGGED, updated_at: DateTime.now.utc)
         end
       end
 

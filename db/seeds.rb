@@ -7,7 +7,7 @@
     Outboxer::Models::Message.create!(
       messageable_type: 'Event',
       messageable_id: i,
-      status: Outboxer::Models::Message::Status::UNPUBLISHED)
+      status: Outboxer::Models::Message::Status::BACKLOGGED)
   when 1
     Outboxer::Models::Message.create!(
       messageable_type: 'Event',

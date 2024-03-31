@@ -3,7 +3,7 @@ require 'spec_helper'
 module Outboxer
   RSpec.describe Messages do
     before do
-      create(:outboxer_message, id: 4, status: :unpublished,
+      create(:outboxer_message, id: 4, status: :backlogged,
         messageable_type: 'Event', messageable_id: 1,
         created_at: 5.minutes.ago, updated_at: 4.minutes.ago)
       create(:outboxer_message, id: 3, status: :failed,
@@ -12,7 +12,7 @@ module Outboxer
       create(:outboxer_message, id: 2, status: :publishing,
         messageable_type: 'Event', messageable_id: 3,
         created_at: 3.minutes.ago, updated_at: 2.minutes.ago)
-      create(:outboxer_message, id: 1, status: :unpublished,
+      create(:outboxer_message, id: 1, status: :backlogged,
         messageable_type: 'Event', messageable_id: 4,
         created_at: 2.minutes.ago, updated_at: 1.minute.ago)
     end
@@ -41,7 +41,7 @@ module Outboxer
             Messages
               .list(sort: :status, order: :asc)
               .map { |message| message['status'] }
-          ).to eq(['failed', 'publishing', 'unpublished', 'unpublished'])
+          ).to eq(['failed', 'publishing', 'backlogged', 'backlogged'])
         end
 
         it 'sorts messages by status in descending order' do
@@ -49,7 +49,7 @@ module Outboxer
             Messages
               .list(sort: :status, order: :desc)
               .map { |message| message['status'] }
-            ).to eq(['unpublished', 'unpublished', 'publishing', 'failed'])
+            ).to eq(['backlogged', 'backlogged', 'publishing', 'failed'])
         end
       end
 

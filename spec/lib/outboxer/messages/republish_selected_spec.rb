@@ -15,10 +15,10 @@ module Outboxer
       let!(:result) { Messages.republish_selected!(ids: ids) }
 
       describe 'when ids exist' do
-        it 'sets message status to unpublished' do
+        it 'sets message status to backlogged' do
           expect(
             Models::Message
-              .where(status: Models::Message::Status::UNPUBLISHED)
+              .where(status: Models::Message::Status::BACKLOGGED)
               .order(id: :asc)
               .pluck(:id)
           ).to eq(ids)

@@ -13,7 +13,7 @@ module Outboxer
         allow(logger).to receive(:level=)
       end
 
-      let!(:message) { create(:outboxer_message, :unpublished) }
+      let!(:message) { create(:outboxer_message, :backlogged) }
 
       context 'when message published successfully' do
         before do
