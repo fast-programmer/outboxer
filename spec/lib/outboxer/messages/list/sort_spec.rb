@@ -41,7 +41,7 @@ module Outboxer
             Messages
               .list(sort: :status, order: :asc)
               .map { |message| message['status'] }
-          ).to eq(['failed', 'publishing', 'backlogged', 'backlogged'])
+          ).to eq(['backlogged', 'backlogged', 'failed', 'publishing'])
         end
 
         it 'sorts messages by status in descending order' do
@@ -49,7 +49,7 @@ module Outboxer
             Messages
               .list(sort: :status, order: :desc)
               .map { |message| message['status'] }
-            ).to eq(['backlogged', 'backlogged', 'publishing', 'failed'])
+          ).to eq(['publishing', 'failed', 'backlogged', 'backlogged'])
         end
       end
 
