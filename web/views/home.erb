@@ -8,10 +8,13 @@
                 <table class="table table-hover">
                     <thead>
                         <tr>
-                            <th scope="col">#</th>
+                            <th scope="col">Order</th>
+                            <th scope="col">Id</th>
                             <th scope="col">Messageable</th>
-                            <th scope="col">Updated At</th>
                             <th scope="col">Created At</th>
+                            <th scope="col">
+                                Updated At <i class="bi bi-sort-up"></i>
+                            </th>
                         </tr>
                     </thead>
 
@@ -24,12 +27,17 @@
                         </tr>
                     </tbody>
                     <tbody id="publishingSection" class="collapse show table-group-divider">
-                        <% messages_publishing['data'].each do |message| %>
+                        <% messages_publishing['data'].each_with_index do |message, index| %>
                             <tr>
-                                <td><%= message['id'] %></td>
+                                <td><%= index + 1 %></td>
+                                <td>
+                                    <a href="/message/<%= message['id'] %>" class="custom-link">
+                                        <%= message['id'] %>
+                                    </a>
+                                </td>
                                 <td><%= message['messageable'] %></td>
-                                <td><%= message['updated_at'] %></td>
                                 <td><%= message['created_at'] %></td>
+                                <td><%= message['updated_at'] %></td>
                             </tr>
                         <% end %>
                     </tbody>
@@ -43,12 +51,17 @@
                         </tr>
                     </tbody>
                     <tbody id="unpublishedSection" class="collapse show table-group-divider">
-                        <% messages_unpublished['data'].each do |message| %>
+                        <% messages_unpublished['data'].each_with_index do |message, index| %>
                             <tr>
-                                <td><%= message['id'] %></td>
+                                <td><%= messages_publishing['data'].count + index + 1 %></td>
+                                <td>
+                                    <a href="/message/<%= message['id'] %>" class="custom-link">
+                                        <%= message['id'] %>
+                                    </a>
+                                </td>
                                 <td><%= message['messageable'] %></td>
-                                <td><%= message['updated_at'] %></td>
                                 <td><%= message['created_at'] %></td>
+                                <td><%= message['updated_at'] %></td>
                             </tr>
                         <% end %>
                     </tbody>

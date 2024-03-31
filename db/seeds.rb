@@ -1,25 +1,40 @@
 # require_relative '../app/models/message'
 # require_relative '../app/models/outboxer_exception'
 
+now = Time.now
+today = Time.new(now.year, now.month, now.day, 0, 0, 0, now.utc_offset)
+
 5.times do |i|
+  created_at = today - (i + 1).days + rand(0..23).hours + rand(0..59).minutes + rand(0..59).seconds
+
   Outboxer::Models::Message.create!(
     messageable_type: 'Event',
-    messageable_id: i,
-    status: Outboxer::Models::Message::Status::PUBLISHING)
+    messageable_id: i + 1,
+    status: Outboxer::Models::Message::Status::PUBLISHING,
+    created_at: created_at,
+    updated_at: created_at + rand(0..23).hours + rand(0..59).minutes + rand(0..59).seconds)
 end
 
 15.times do |i|
+  created_at = today - (i + 21).days + rand(0..23).hours + rand(0..59).minutes + rand(0..59).seconds
+
   Outboxer::Models::Message.create!(
     messageable_type: 'Event',
-    messageable_id: i + 5,
-    status: Outboxer::Models::Message::Status::UNPUBLISHED)
+    messageable_id: i + 6,
+    status: Outboxer::Models::Message::Status::UNPUBLISHED,
+    created_at: created_at,
+    updated_at: created_at + rand(0..23).hours + rand(0..59).minutes + rand(0..59).seconds)
 end
 
 5.times do |i|
+  created_at = today - (i + 30).days + rand(0..23).hours + rand(0..59).minutes + rand(0..59).seconds
+
   failed_message = Outboxer::Models::Message.create!(
     messageable_type: 'Event',
-    messageable_id: i + 20,
-    status: Outboxer::Models::Message::Status::FAILED)
+    messageable_id: i + 21,
+    status: Outboxer::Models::Message::Status::FAILED,
+    created_at: created_at,
+    updated_at: created_at + rand(0..23).hours + rand(0..59).minutes + rand(0..59).seconds)
 
   failed_message_exception = failed_message.exceptions.create!(
     class_name: 'ActiveRecord::RecordInvalid',
