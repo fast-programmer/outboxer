@@ -112,7 +112,7 @@ module Outboxer
 
       logger&.info "Created #{thread_count} worker threads"
 
-      logger&.info 'Publishing messages to queue...'
+      logger&.info 'Publishing messages...'
 
       while @running
         begin

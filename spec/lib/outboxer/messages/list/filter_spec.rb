@@ -9,7 +9,7 @@ module Outboxer
       create(:outboxer_message, :failed, id: 3,
         messageable_type: 'Event', messageable_id: 2,
         created_at: 4.minutes.ago, updated_at: 3.minutes.ago)
-      create(:outboxer_message, :publishing, id: 2,
+      create(:outboxer_message, :queued, id: 2,
         messageable_type: 'Event', messageable_id: 3,
         created_at: 3.minutes.ago, updated_at: 2.minutes.ago)
       create(:outboxer_message, :backlogged, id: 1,
@@ -41,7 +41,7 @@ module Outboxer
             },
             {
               'id' => 2,
-              'status' => 'publishing',
+              'status' => 'queued',
               'messageable' => 'Event::3',
               'created_at' => 3.minutes.ago.utc.to_s,
               'updated_at' => 2.minutes.ago.utc.to_s
@@ -87,14 +87,14 @@ module Outboxer
         end
       end
 
-      context 'with publishing status' do
-        it 'returns publishing messages' do
+      context 'with queued status' do
+        it 'returns queued messages' do
           expect(
-            Messages.list(status: :publishing, sort: :status, order: :asc)
+            Messages.list(status: :queued, sort: :status, order: :asc)
           ).to match_array([
             {
               'id' => 2,
-              'status' => 'publishing',
+              'status' => 'queued',
               'messageable' => 'Event::3',
               'created_at' => 3.minutes.ago.utc.to_s,
               'updated_at' => 2.minutes.ago.utc.to_s

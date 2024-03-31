@@ -15,36 +15,36 @@ module Outboxer
         raise_exception
       end
 
-      context 'when publishing message' do
-        let!(:publishing_message) { create(:outboxer_message, :publishing) }
+      context 'when queued message' do
+        let!(:queued_message) { create(:outboxer_message, :queued) }
 
-        let!(:failed_message) { Message.failed!(id: publishing_message.id, exception: exception) }
+        let!(:failed_message) { Message.failed!(id: queued_message.id, exception: exception) }
 
         it 'returns updated message' do
-          expect(failed_message['id']).to eq(publishing_message.id)
+          expect(failed_message['id']).to eq(queued_message.id)
         end
 
         it 'updates message status to failed' do
-          publishing_message.reload
+          queued_message.reload
 
-          expect(publishing_message.status).to eq(Models::Message::Status::FAILED)
+          expect(queued_message.status).to eq(Models::Message::Status::FAILED)
         end
 
         it 'creates exception' do
-          publishing_message.reload
+          queued_message.reload
 
-          expect(publishing_message.exceptions.length).to eq(1)
-          expect(publishing_message.exceptions[0].class_name).to eq(exception.class.name)
-          expect(publishing_message.exceptions[0].message_text).to eq(exception.message)
+          expect(queued_message.exceptions.length).to eq(1)
+          expect(queued_message.exceptions[0].class_name).to eq(exception.class.name)
+          expect(queued_message.exceptions[0].message_text).to eq(exception.message)
         end
 
         it 'creates frames' do
-          publishing_message.reload
+          queued_message.reload
 
-          expect(publishing_message.exceptions[0].frames.length).to eq(65)
+          expect(queued_message.exceptions[0].frames.length).to eq(65)
 
-          expect(publishing_message.exceptions[0].frames[0].index).to eq(0)
-          expect(publishing_message.exceptions[0].frames[0].text)
+          expect(queued_message.exceptions[0].frames[0].index).to eq(0)
+          expect(queued_message.exceptions[0].frames[0].text)
             .to include('outboxer/spec/lib/outboxer/message/failed_spec.rb:9:in `raise_exception')
         end
       end

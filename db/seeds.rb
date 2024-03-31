@@ -12,7 +12,7 @@
     Outboxer::Models::Message.create!(
       messageable_type: 'Event',
       messageable_id: i,
-      status: Outboxer::Models::Message::Status::PUBLISHING)
+      status: Outboxer::Models::Message::Status::QUEUED)
   else
     failed_message = Outboxer::Models::Message.create!(
       messageable_type: 'Event',

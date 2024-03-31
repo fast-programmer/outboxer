@@ -23,10 +23,10 @@ module Outboxer
             poll_interval: poll_interval,
             logger: logger,
             kernel: kernel
-          ) do |publishing_message|
-            expect(publishing_message.messageable_type).to eq('Event')
-            expect(publishing_message.messageable_id).to eq('1')
-            expect(publishing_message.status).to eq(Models::Message::Status::PUBLISHING)
+          ) do |queued_message|
+            expect(queued_message.messageable_type).to eq('Event')
+            expect(queued_message.messageable_id).to eq('1')
+            expect(queued_message.status).to eq(Models::Message::Status::QUEUED)
 
             Publisher.stop!
           end
@@ -48,7 +48,7 @@ module Outboxer
               poll_interval: poll_interval,
               logger: logger,
               kernel: kernel,
-            ) do |publishing_message|
+            ) do |queued_message|
               Publisher.stop!
 
               raise standard_error
@@ -74,7 +74,7 @@ module Outboxer
               poll_interval: poll_interval,
               logger: logger,
               kernel: kernel,
-            ) do |publishing_message|
+            ) do |queued_message|
               Publisher.stop!
 
               raise no_memory_error

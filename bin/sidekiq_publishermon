@@ -29,12 +29,12 @@ loop do
   system("clear") || system("cls")
 
   total_backlogged = nil
-  total_publishing = nil
+  total_queued = nil
   total_failed = nil
 
   ActiveRecord::Base.connection_pool.with_connection do
     total_backlogged = Outboxer::Models::Message.backlogged.count
-    total_publishing = Outboxer::Models::Message.publishing.count
+    total_queued = Outboxer::Models::Message.queued.count
     total_failed = Outboxer::Models::Message.failed.count
   end
 
@@ -44,7 +44,7 @@ loop do
   puts Time.now.utc
   puts "\n---- Overview ----"
   puts format("%-15s: %-10s", "Backlogged", total_backlogged)
-  puts format("%-15s: %-10s", "Publishing", total_publishing)
+  puts format("%-15s: %-10s", "Queued", total_queued)
   puts format("%-15s: %-10s", "Failed", total_failed)
 
   if pids.empty?

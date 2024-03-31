@@ -3,16 +3,16 @@ require 'spec_helper'
 module Outboxer
   RSpec.describe Message do
     describe '.published!' do
-      context 'when publishing message' do
-        let!(:publishing_message) { create(:outboxer_message, :publishing) }
+      context 'when queued message' do
+        let!(:queued_message) { create(:outboxer_message, :queued) }
 
-        let!(:published_message) { Message.published!(id: publishing_message.id) }
+        let!(:published_message) { Message.published!(id: queued_message.id) }
 
         it 'returns nil' do
-          expect(published_message).to eq({ 'id' => publishing_message.id })
+          expect(published_message).to eq({ 'id' => queued_message.id })
         end
 
-        it 'deletes publishing message' do
+        it 'deletes queued message' do
           expect(Models::Message.count).to eq(0)
         end
       end

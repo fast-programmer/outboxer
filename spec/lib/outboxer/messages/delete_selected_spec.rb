@@ -5,7 +5,7 @@ module Outboxer
     describe '.delete_selected!' do
       let!(:message_1) { create(:outboxer_message, :backlogged) }
 
-      let!(:message_2) { create(:outboxer_message, :publishing) }
+      let!(:message_2) { create(:outboxer_message, :queued) }
 
       let!(:message_3) { create(:outboxer_message, :failed) }
       let!(:exception_3) { create(:outboxer_exception, message: message_3) }

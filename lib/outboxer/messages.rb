@@ -38,11 +38,11 @@ module Outboxer
             .where(id: ids)
             .update_all(
               updated_at: Time.current,
-              status: Models::Message::Status::PUBLISHING)
+              status: Models::Message::Status::QUEUED)
         end
 
         Models::Message
-          .where(id: ids, status: Models::Message::Status::PUBLISHING)
+          .where(id: ids, status: Models::Message::Status::QUEUED)
           .order(updated_at: :asc)
           .to_a
       end
