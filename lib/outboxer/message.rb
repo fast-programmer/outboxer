@@ -9,6 +9,18 @@ module Outboxer
     class NotFound < Error; end
     class InvalidTransition < Error; end
 
+    def backlog!(messageable_type:, messageable_id:)
+      ActiveRecord::Base.connection_pool.with_connection do
+        ActiveRecord::Base.transaction do
+          message = Models::Message.create!(
+            messageable_id: messageable_id,
+            messageable_type: messageable_type)
+
+          { 'id' => message.id }
+        end
+      end
+    end
+
     def find_by_id!(id:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do

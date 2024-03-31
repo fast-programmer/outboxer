@@ -37,13 +37,15 @@ bin/rails g outboxer:schema
 bin/rake db:migrate
 ```
 
-### include messageable into your event model
+### create an outboxer message in the same transaction as the event record
 
 ```ruby
 class Event < ActiveRecord::Base
-  include Outboxer::Messageable
-
   # ...
+
+  after_create do |event|
+    Outboxer::Message.backlog!(messageable_type: event.class.name, messageable_id: event.id)
+  end
 end
 ```
 
