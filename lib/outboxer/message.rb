@@ -55,14 +55,33 @@ module Outboxer
       raise NotFound, "Couldn't find Outboxer::Models::Message with id #{id}"
     end
 
-    def published!(id:)
+    def publishing!(id:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           message = Models::Message.lock.find_by!(id: id)
 
           if message.status != Models::Message::Status::QUEUED
             raise InvalidTransition,
-              "cannot transition message #{message.id} " \
+              "cannot transition outboxer message #{message.id} " \
+              "from #{message.status} to #{Models::Message::Status::PUBLISHING}"
+          end
+
+          message.update!(status: Models::Message::Status::PUBLISHING)
+
+          { 'id' => id }
+        end
+      end
+    end
+
+
+    def published!(id:)
+      ActiveRecord::Base.connection_pool.with_connection do
+        ActiveRecord::Base.transaction do
+          message = Models::Message.lock.find_by!(id: id)
+
+          if message.status != Models::Message::Status::PUBLISHING
+            raise InvalidTransition,
+              "cannot transition outboxer message #{message.id} " \
               "from #{message.status} to (deleted)"
           end
 
@@ -80,7 +99,7 @@ module Outboxer
         ActiveRecord::Base.transaction do
           message = Models::Message.order(created_at: :asc).lock.find_by!(id: id)
 
-          if message.status != Models::Message::Status::QUEUED
+          if message.status != Models::Message::Status::PUBLISHING
             raise InvalidTransition,
               "cannot transition outboxer message #{id} " \
               "from #{message.status} to #{Models::Message::Status::FAILED}"
