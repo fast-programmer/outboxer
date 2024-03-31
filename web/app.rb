@@ -19,6 +19,22 @@ module Outboxer
     enable :sessions
     use Rack::Flash
 
+    get '/messages' do
+      message_status_counts = Messages.counts_by_status
+
+      messages_publishing = Messages.publishing(
+        sort: :updated_at, order: :asc, page: 1, per_page: 100)
+
+      messages_unpublished = Messages.unpublished(
+        sort: :updated_at, order: :asc, page: 1, per_page: 100)
+
+      erb :home, locals: {
+        message_status_counts: message_status_counts,
+        messages_publishing: messages_publishing,
+        messages_unpublished: messages_unpublished
+      }
+    end
+
     get '/' do
       redirect to('/messages/all')
     end
