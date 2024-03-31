@@ -12,13 +12,13 @@ module Outboxer
         end
 
         context 'when limit is 1' do
-          let!(:publishing_messages) { Messages.queue!(limit: 1) }
+          let!(:queued_messages) { Messages.queue!(limit: 1) }
 
           it 'returns first backlogged message' do
-            expect(publishing_messages.count).to eq(1)
+            expect(queued_messages.count).to eq(1)
 
-            publishing_message = publishing_messages.first
-            expect(publishing_message.status).to eq(Models::Message::Status::PUBLISHING)
+            queued_message = queued_messages.first
+            expect(queued_message.status).to eq(Models::Message::Status::QUEUED)
           end
 
           it 'keeps last backlogged message' do

@@ -9,7 +9,7 @@ module Outboxer
             id: 1, messageable_type: 'Event', messageable_id: 1),
           create(:outboxer_message, :failed,
             id: 2, messageable_type: 'Event', messageable_id: 2),
-          create(:outboxer_message, :publishing,
+          create(:outboxer_message, :queued,
             id: 3, messageable_type: 'Event', messageable_id: 3),
           create(:outboxer_message, :backlogged,
             id: 4, messageable_type: 'Event', messageable_id: 4)
@@ -22,7 +22,7 @@ module Outboxer
         ).to match_array([
           { 'id' => 1, 'status' => 'backlogged', 'messageable' => 'Event::1' },
           { 'id' => 2, 'status' => 'failed', 'messageable' => 'Event::2' },
-          { 'id' => 3, 'status' => 'publishing', 'messageable' => 'Event::3' },
+          { 'id' => 3, 'status' => 'queued', 'messageable' => 'Event::3' },
           { 'id' => 4, 'status' => 'backlogged', 'messageable' => 'Event::4' },
         ])
       end

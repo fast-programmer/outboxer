@@ -65,7 +65,7 @@ module Outboxer
         let(:poll_interval) { 1 }
         let(:kernel) { class_double(Kernel, sleep: nil) }
 
-        let!(:message) { create(:outboxer_message, :publishing) }
+        let!(:message) { create(:outboxer_message, :queued) }
 
         before do
           allow(kernel).to receive(:sleep)

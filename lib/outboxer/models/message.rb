@@ -26,7 +26,7 @@ module Outboxer
         FAILED = 'failed'
       end
 
-      STATUSES = [Status::BACKLOGGED, Status::PUBLISHING, Status::FAILED]
+      STATUSES = [Status::BACKLOGGED, Status::QUEUED, Status::PUBLISHING, Status::FAILED]
 
       scope :backlogged, -> { where(status: Status::BACKLOGGED) }
       scope :queued, -> { where(status: Status::QUEUED) }

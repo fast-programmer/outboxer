@@ -60,7 +60,7 @@ module Outboxer
         ActiveRecord::Base.transaction do
           message = Models::Message.lock.find_by!(id: id)
 
-          if message.status != Models::Message::Status::PUBLISHING
+          if message.status != Models::Message::Status::QUEUED
             raise InvalidTransition,
               "cannot transition message #{message.id} " \
               "from #{message.status} to (deleted)"
@@ -80,7 +80,7 @@ module Outboxer
         ActiveRecord::Base.transaction do
           message = Models::Message.order(created_at: :asc).lock.find_by!(id: id)
 
-          if message.status != Models::Message::Status::PUBLISHING
+          if message.status != Models::Message::Status::QUEUED
             raise InvalidTransition,
               "cannot transition outboxer message #{id} " \
               "from #{message.status} to #{Models::Message::Status::FAILED}"

@@ -7,7 +7,7 @@ module Outboxer
       let!(:exception_1) { create(:outboxer_exception, message: message_1) }
       let!(:frame_1) { create(:outboxer_frame, exception: exception_1) }
 
-      let!(:message_2) { create(:outboxer_message, :publishing) }
+      let!(:message_2) { create(:outboxer_message, :queued) }
       let!(:exception_2) { create(:outboxer_exception, message: message_2) }
       let!(:frame_2) { create(:outboxer_frame, exception: exception_2) }
 
@@ -30,9 +30,9 @@ module Outboxer
         ).to eq(3)
       end
 
-      it 'does not change messages that are publishing' do
+      it 'does not change messages that are queued' do
         expect(
-          Models::Message.where(id: [message_2], status: Models::Message::Status::PUBLISHING).count
+          Models::Message.where(id: [message_2], status: Models::Message::Status::QUEUED).count
         ).to eq(1)
       end
     end
