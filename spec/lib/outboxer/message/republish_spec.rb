@@ -6,40 +6,40 @@ module Outboxer
       context 'when failed message' do
         let!(:failed_message) { create(:outboxer_message, :failed) }
 
-        let!(:unpublished_message) { Message.republish!(id: failed_message.id) }
+        let!(:backlogged_message) { Message.republish!(id: failed_message.id) }
 
-        it 'returns unpublished message' do
-          expect(unpublished_message['id']).to eq(failed_message.id)
+        it 'returns backlogged message' do
+          expect(backlogged_message['id']).to eq(failed_message.id)
         end
 
-        it 'updates failed message status to unpublishied' do
+        it 'updates failed message status to backlogged' do
           failed_message.reload
 
-          expect(failed_message.status).to eq(Models::Message::Status::UNPUBLISHED)
+          expect(failed_message.status).to eq(Models::Message::Status::BACKLOGGED)
         end
       end
 
-      context 'when unpublished messaged' do
-        let(:unpublished_message) { create(:outboxer_message, :unpublished) }
+      context 'when backlogged messaged' do
+        let(:backlogged_message) { create(:outboxer_message, :backlogged) }
 
         it 'raises invalid transition error' do
           expect do
-            Message.republish!(id: unpublished_message.id)
+            Message.republish!(id: backlogged_message.id)
           end.to raise_error(
             Message::InvalidTransition,
-            "cannot transition outboxer message #{unpublished_message.id} " +
-              "from unpublished to unpublished")
+            "cannot transition outboxer message #{backlogged_message.id} " +
+              "from backlogged to backlogged")
         end
 
-        it 'does not delete unpublished message' do
+        it 'does not delete backlogged message' do
           begin
-            Message.published!(id: unpublished_message.id)
+            Message.published!(id: backlogged_message.id)
           rescue Message::InvalidTransition
             # ignore
           end
 
           expect(Models::Message.count).to eq(1)
-          expect(Models::Message.first).to eq(unpublished_message)
+          expect(Models::Message.first).to eq(backlogged_message)
         end
       end
     end

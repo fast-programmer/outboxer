@@ -17,27 +17,27 @@ module Outboxer
         end
       end
 
-      context 'when unpublished messaged' do
-        let(:unpublished_message) { create(:outboxer_message, :unpublished) }
+      context 'when backlogged messaged' do
+        let(:backlogged_message) { create(:outboxer_message, :backlogged) }
 
         it 'raises invalid transition error' do
           expect do
-            Message.published!(id: unpublished_message.id)
+            Message.published!(id: backlogged_message.id)
           end.to raise_error(
             Message::InvalidTransition,
-            "cannot transition message #{unpublished_message.id} " +
-              "from unpublished to (deleted)")
+            "cannot transition message #{backlogged_message.id} " +
+              "from backlogged to (deleted)")
         end
 
-        it 'does not delete unpublished message' do
+        it 'does not delete backlogged message' do
           begin
-            Message.published!(id: unpublished_message.id)
+            Message.published!(id: backlogged_message.id)
           rescue Message::InvalidTransition
             # ignore
           end
 
           expect(Models::Message.count).to eq(1)
-          expect(Models::Message.first).to eq(unpublished_message)
+          expect(Models::Message.first).to eq(backlogged_message)
         end
       end
     end

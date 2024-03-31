@@ -20,18 +20,18 @@ module Outboxer
       self.table_name = :outboxer_messages
 
       module Status
-        UNPUBLISHED = 'unpublished'
+        BACKLOGGED = 'backlogged'
         PUBLISHING = 'publishing'
         FAILED = 'failed'
       end
 
-      STATUSES = [Status::UNPUBLISHED, Status::PUBLISHING, Status::FAILED]
+      STATUSES = [Status::BACKLOGGED, Status::PUBLISHING, Status::FAILED]
 
-      scope :unpublished, -> { where(status: Status::UNPUBLISHED) }
+      scope :backlogged, -> { where(status: Status::BACKLOGGED) }
       scope :publishing, -> { where(status: Status::PUBLISHING) }
       scope :failed, -> { where(status: Status::FAILED) }
 
-      attribute :status, default: -> { Status::UNPUBLISHED }
+      attribute :status, default: -> { Status::BACKLOGGED }
       validates :status, inclusion: { in: STATUSES }, length: { maximum: 255 }
 
       belongs_to :messageable, polymorphic: true
