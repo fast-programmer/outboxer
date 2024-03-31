@@ -41,7 +41,7 @@ module Outboxer
 
         it 'logs the error' do
           expect(logger).to receive(:error)
-            .with("Message processing failed for id: #{message.id}, error: #{error}")
+            .with("Message publishing failed { id: #{message.id}, error: #{error} }")
 
           begin
             Publisher.pop_message!(queue: queue, logger: logger) { |_msg| raise error }

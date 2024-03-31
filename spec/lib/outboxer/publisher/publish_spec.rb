@@ -57,7 +57,7 @@ module Outboxer
 
           it 'logs errors' do
             expect(logger).to have_received(:error).with(
-              "Message processing failed for id: #{message.id}, error: #{standard_error.message}").once
+              "Message publishing failed { id: #{message.id}, error: #{standard_error.message} }").once
 
             expect(logger).to have_received(:error).with(
               "#{standard_error.class.to_s}: #{standard_error.message}").once
@@ -87,7 +87,7 @@ module Outboxer
 
           it 'logs errors' do
             expect(logger).to have_received(:error).with(
-              "Message processing failed for id: #{message.id}, error: #{no_memory_error.message}").once
+              "Message publishing failed { id: #{message.id}, error: #{no_memory_error.message} }").once
 
             expect(logger).to have_received(:fatal)
               .with("#{no_memory_error.class.to_s}: #{no_memory_error.message}").once

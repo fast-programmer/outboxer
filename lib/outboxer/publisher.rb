@@ -20,12 +20,13 @@ module Outboxer
       outboxer_message = queue.pop
       raise ThreadAborted if outboxer_message.nil?
 
-      logger&.debug "Processing message id: #{outboxer_message.id}"
+      Message.publishing!(id: outboxer_message.id)
+      logger&.debug "Message publishing { id: #{outboxer_message.id} }"
 
       begin
         block.call(outboxer_message)
       rescue Exception => exception
-        logger.error "Message processing failed for id: #{outboxer_message.id}, error: #{exception}"
+        logger.error "Message publishing failed { id: #{outboxer_message.id}, error: #{exception} }"
 
         Message.failed!(id: outboxer_message.id, exception: exception)
 
@@ -34,7 +35,7 @@ module Outboxer
 
       Message.published!(id: outboxer_message.id)
 
-      logger&.debug "Message processed successfully for id: #{outboxer_message.id}"
+      logger&.debug "Message published { id: #{outboxer_message.id} }"
     end
 
     def push_messages!(threads:, queue:, queue_size:, poll_interval:, logger:, kernel:)
