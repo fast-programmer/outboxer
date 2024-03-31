@@ -28,8 +28,8 @@ module Outboxer
 
       sort = params[:sort] || Messages::SORT
       order = params[:order] || Messages::ORDER
-      page = params[:page] || Messages::PAGE
-      per_page = params[:per_page] || Messages::PER_PAGE
+      page = params[:page]&.to_i || Messages::PAGE
+      per_page = params[:per_page]&.to_i || Messages::PER_PAGE
 
       messages = Messages.list(sort: sort, order: order, page: page, per_page: per_page)
 
@@ -106,7 +106,7 @@ module Outboxer
     post '/messages/update' do
       ids = params[:ids].map(&:to_i)
 
-      case params[:submit]
+      result = case params[:submit]
       when 'Republish Selected'
         Messages.republish_selected!(ids: ids)
       when 'Delete Selected'
@@ -115,21 +115,23 @@ module Outboxer
         raise "Unknown value: #{params[:submit]}"
       end
 
+      flash[:notice] = "#{result['count']} messages have been updated."
+
       redirect to('/messages/all')
     end
 
     post '/messages/republish_all' do
-      # Messages.republish_all!
+      result = Messages.republish_all!
 
-      republished_count = 0
-
-      flash[:notice] = "#{republished_count} messages have been republished."
+      flash[:notice] = "#{result['count']} messages have been republished."
 
       redirect to('/messages/all')
     end
 
     post '/messages/delete_all' do
-      Messages.delete_all!(batch_size: 100)
+      result = Messages.delete_all!(batch_size: 100)
+
+      flash[:notice] = "#{result['count']} messages have been deleted."
 
       redirect to('/messages/all')
     end
@@ -165,11 +167,15 @@ module Outboxer
     post '/message/:id/republish' do
       Message.republish!(id: params[:id])
 
+      flash[:notice] = "message #{params[:id]} was republished."
+
       redirect to('/messages/all')
     end
 
     post '/message/:id/delete' do
       Message.delete!(id: params[:id])
+
+      flash[:notice] = "message #{params[:id]} was deleted."
 
       redirect to('/messages/all')
     end

@@ -49,7 +49,7 @@ module Outboxer
     SORT = :updated_at
     ORDER = :asc
     PAGE = 1
-    PER_PAGE = 100
+    PER_PAGE = 10
 
     def unpublished(sort: SORT, order: ORDER, page: PAGE, per_page: PER_PAGE)
       list(status: Models::Message::Status::UNPUBLISHED)
@@ -97,19 +97,28 @@ module Outboxer
           message_scope.order(sort.to_sym => order.to_sym)
         end
 
-      messages = ActiveRecord::Base.connection_pool.with_connection do
-        message_scope.page(page).per(per_page)
+      result = {}
+
+      ActiveRecord::Base.connection_pool.with_connection do
+        messages = message_scope.page(page).per(per_page)
+
+        result['data'] = messages.map do |message|
+          {
+            'id' => message.id,
+            'status' => message.status,
+            'messageable' => "#{message.messageable_type}::#{message.messageable_id}",
+            'created_at' => message.created_at.utc.to_s,
+            'updated_at' => message.updated_at.utc.to_s
+          }
+        end
+
+        result['total_pages'] = messages.total_pages
+        result['current_page'] = messages.current_page
+        result['limit_value'] = messages.limit_value
+        result['total_count'] = messages.total_count
       end
 
-      messages.map do |message|
-        {
-          'id' => message.id,
-          'status' => message.status,
-          'messageable' => "#{message.messageable_type}::#{message.messageable_id}",
-          'created_at' => message.created_at.utc.to_s,
-          'updated_at' => message.updated_at.utc.to_s
-        }
-      end
+      result
     end
 
     def republish_all!(batch_size: 100)

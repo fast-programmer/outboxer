@@ -48,28 +48,48 @@
             </div>
         </form>
         <div class="card-body">
+
             <div class="table-responsive">
                 <!-- Table -->
                 <table class="table table-hover">
                     <thead>
-                        <tr>
-                            <th scope="col">
-                                <input type="checkbox" id="checkAll"> <!-- Check All Checkbox -->
-                            </th>
-                            <th scope="col">Id</th>
-                            <th scope="col">Status</th>
-                            <th scope="col">Messageable</th>
-                            <th scope="col">
-                                Created At
-                            </th>
-                            <th scope="col">Updated At
-                                <i class="bi bi-arrow-up"></i> <!-- Up sort icon -->
-                            </th>
-                            <th scope="col">Actions</th>
-                        </tr>
+                        <th scope="col">
+        <input type="checkbox" id="checkAll">
+      </th>
+      <th scope="col">
+        <a href="/messages?sort=id&order=<%= 'id' == sort ? (order == 'asc' ? 'desc' : 'asc') : 'asc' %>" 
+           class="<%= 'id' == sort ? 'text-primary' : '' %>">
+          Id <i class="bi bi-sort-alpha-down-up"></i>
+        </a>
+      </th>
+      <th scope="col">
+        <a href="/messages?sort=status&order=<%= 'status' == sort ? (order == 'asc' ? 'desc' : 'asc') : 'asc' %>"
+           class="<%= 'status' == sort ? 'text-primary' : '' %>">
+          Status <i class="bi bi-sort-alpha-down-up"></i>
+        </a>
+      </th>
+      <th scope="col">
+        <a href="/messages?sort=messageable&order=<%= 'messageable' == sort ? (order == 'asc' ? 'desc' : 'asc') : 'asc' %>"
+           class="<%= 'messageable' == sort ? 'text-primary' : '' %>">
+          Messageable <i class="bi bi-sort-alpha-down-up"></i>
+        </a>
+      </th>
+      <th scope="col">
+        <a href="/messages?sort=created_at&order=<%= 'created_at' == sort ? (order == 'asc' ? 'desc' : 'asc') : 'asc' %>"
+           class="<%= 'created_at' == sort ? 'text-primary' : '' %>">
+          Created At <i class="bi bi-sort-alpha-down-up"></i>
+        </a>
+      </th>
+      <th scope="col">
+        <a href="/messages?sort=updated_at&order=<%= 'updated_at' == sort ? (order == 'asc' ? 'desc' : 'asc') : 'asc' %>"
+           class="<%= 'updated_at' == sort ? 'text-primary' : '' %>">
+          Updated At <i class="bi bi-sort-alpha-down-up"></i>
+        </a>
+      </th>
+</tr>
                     </thead>
                     <tbody>
-                        <% messages.each do |message| %>
+                        <% messages['data'].each do |message| %>
                             <tr>
                                 <td><input type="checkbox" class="individual-check" form="bulkActionForm" name="selectedMessages[]" value="<%= message['id'] %>"></td>
                                 <th scope="row">
@@ -115,11 +135,23 @@
                         <div class="d-flex justify-content-center">
                             <nav aria-label="Page navigation example">
                                 <ul class="pagination mb-0">
-                                    <li class="page-item"><a class="page-link" href="#">Previous</a></li>
-                                    <li class="page-item"><a class="page-link" href="#">1</a></li>
-                                    <li class="page-item"><a class="page-link" href="#">2</a></li>
-                                    <li class="page-item"><a class="page-link" href="#">3</a></li>
-                                    <li class="page-item"><a class="page-link" href="#">Next</a></li>
+                                    <% if messages['current_page'] > 1 %>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page=<%= messages['current_page'] - 1 %>&per_page=<%= per_page %>">Previous</a>
+                                        </li>
+                                    <% end %>
+
+                                    <% 1.upto(messages['total_pages']) do |current_page| %>
+                                        <li class="page-item <%= 'active' if current_page == page %>">
+                                            <a class="page-link" href="?page=<%= current_page %>&per_page=<%= per_page %>"><%= current_page %></a>
+                                        </li>
+                                    <% end %>
+
+                                    <% if messages['current_page'] < messages['total_pages'] %>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page=<%= messages['current_page'] + 1 %>&per_page=<%= per_page %>">Next</a>
+                                        </li>
+                                    <% end %>
                                 </ul>
                             </nav>
                         </div>
@@ -130,6 +162,7 @@
                         <div class="d-flex align-items-center">
                             <label for="perPageSelect" class="me-2">Per&nbsp;page:</label>
                             <select class="form-select form-select-sm" aria-label="Per page" id="perPageSelect" name="per_page" onchange="document.getElementById('perPageForm').submit();">
+                                <option value="10" <%= 'selected' if per_page.to_i == 10 %>>10</option>
                                 <option value="100" <%= 'selected' if per_page.to_i == 100 %>>100</option>
                                 <option value="200" <%= 'selected' if per_page.to_i == 200 %>>200</option>
                                 <option value="500" <%= 'selected' if per_page.to_i == 500 %>>500</option>
