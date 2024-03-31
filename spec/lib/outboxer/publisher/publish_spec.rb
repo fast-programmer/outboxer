@@ -13,7 +13,7 @@ module Outboxer
         allow(logger).to receive(:level=)
       end
 
-      let!(:message) { create(:outboxer_message, :unpublished) }
+      let!(:message) { create(:outboxer_message, :backlogged) }
 
       context 'when message published successfully' do
         before do
@@ -23,10 +23,10 @@ module Outboxer
             poll_interval: poll_interval,
             logger: logger,
             kernel: kernel
-          ) do |publishing_message|
-            expect(publishing_message.messageable_type).to eq('Event')
-            expect(publishing_message.messageable_id).to eq('1')
-            expect(publishing_message.status).to eq(Models::Message::Status::PUBLISHING)
+          ) do |queued_message|
+            expect(queued_message.messageable_type).to eq('Event')
+            expect(queued_message.messageable_id).to eq('1')
+            expect(queued_message.status).to eq(Models::Message::Status::QUEUED)
 
             Publisher.stop!
           end
@@ -48,7 +48,7 @@ module Outboxer
               poll_interval: poll_interval,
               logger: logger,
               kernel: kernel,
-            ) do |publishing_message|
+            ) do |queued_message|
               Publisher.stop!
 
               raise standard_error
@@ -57,7 +57,7 @@ module Outboxer
 
           it 'logs errors' do
             expect(logger).to have_received(:error).with(
-              "Message processing failed for id: #{message.id}, error: #{standard_error.message}").once
+              "Message publishing failed { id: #{message.id}, error: #{standard_error.message} }").once
 
             expect(logger).to have_received(:error).with(
               "#{standard_error.class.to_s}: #{standard_error.message}").once
@@ -74,7 +74,7 @@ module Outboxer
               poll_interval: poll_interval,
               logger: logger,
               kernel: kernel,
-            ) do |publishing_message|
+            ) do |queued_message|
               Publisher.stop!
 
               raise no_memory_error
@@ -87,7 +87,7 @@ module Outboxer
 
           it 'logs errors' do
             expect(logger).to have_received(:error).with(
-              "Message processing failed for id: #{message.id}, error: #{no_memory_error.message}").once
+              "Message publishing failed { id: #{message.id}, error: #{no_memory_error.message} }").once
 
             expect(logger).to have_received(:fatal)
               .with("#{no_memory_error.class.to_s}: #{no_memory_error.message}").once

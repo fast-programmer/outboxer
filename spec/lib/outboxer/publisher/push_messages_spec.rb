@@ -3,7 +3,7 @@ require 'spec_helper'
 module Outboxer
   RSpec.describe Publisher do
     describe '.push_messages!' do
-      context 'when an unpublished message has been created' do
+      context 'when an backlogged message has been created' do
         let(:queue) { Queue.new }
         let(:logger) { instance_double(Logger, debug: true, error: true) }
         let(:threads) { [] }
@@ -11,7 +11,7 @@ module Outboxer
         let(:poll_interval) { 1 }
         let(:kernel) { class_double(Kernel, sleep: nil) }
 
-        let!(:message) { create(:outboxer_message, :unpublished) }
+        let!(:message) { create(:outboxer_message, :backlogged) }
 
         before do
           Publisher.push_messages!(
@@ -65,7 +65,7 @@ module Outboxer
         let(:poll_interval) { 1 }
         let(:kernel) { class_double(Kernel, sleep: nil) }
 
-        let!(:message) { create(:outboxer_message, :publishing) }
+        let!(:message) { create(:outboxer_message, :queued) }
 
         before do
           allow(kernel).to receive(:sleep)

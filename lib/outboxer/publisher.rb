@@ -20,28 +20,27 @@ module Outboxer
       outboxer_message = queue.pop
       raise ThreadAborted if outboxer_message.nil?
 
-      logger&.debug "Processing message id: #{outboxer_message.id}"
+      Message.publishing!(id: outboxer_message.id)
+      logger&.debug "Message publishing { id: #{outboxer_message.id} }"
 
       begin
         block.call(outboxer_message)
       rescue Exception => exception
-        logger.error "Message processing failed for id: #{outboxer_message.id}, error: #{exception}"
-
         Message.failed!(id: outboxer_message.id, exception: exception)
+        logger.error "Message publishing failed { id: #{outboxer_message.id}, error: #{exception} }"
 
         raise
       end
 
       Message.published!(id: outboxer_message.id)
-
-      logger&.debug "Message processed successfully for id: #{outboxer_message.id}"
+      logger&.debug "Message published { id: #{outboxer_message.id} }"
     end
 
     def push_messages!(threads:, queue:, queue_size:, poll_interval:, logger:, kernel:)
       messages = []
 
       queue_remaining = queue_size - queue.length
-      messages = (queue_remaining > 0) ? Outboxer::Messages.unpublished!(limit: queue_remaining) : []
+      messages = (queue_remaining > 0) ? Messages.queue!(limit: queue_remaining) : []
 
       if messages.empty?
         debug_log("Sleeping for #{poll_interval} seconds because there are no messages",
@@ -112,7 +111,7 @@ module Outboxer
 
       logger&.info "Created #{thread_count} worker threads"
 
-      logger&.info 'Publishing messages to queue...'
+      logger&.info 'Publishing messages...'
 
       while @running
         begin

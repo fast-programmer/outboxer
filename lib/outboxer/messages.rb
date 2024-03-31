@@ -23,24 +23,28 @@ module Outboxer
       end
     end
 
-    def unpublished!(limit: 1, order: :asc)
+    def queue!(limit: 1)
       ActiveRecord::Base.connection_pool.with_connection do
         ids = []
 
         ActiveRecord::Base.transaction do
           ids = Models::Message
-            .where(status: Models::Message::Status::UNPUBLISHED)
-            .order(created_at: order)
+            .where(status: Models::Message::Status::BACKLOGGED)
+            .order(updated_at: :asc)
             .lock('FOR UPDATE SKIP LOCKED')
             .limit(limit)
             .pluck(:id)
 
-          Models::Message.where(id: ids).update_all(status: Models::Message::Status::PUBLISHING)
+          Models::Message
+            .where(id: ids)
+            .update_all(
+              updated_at: Time.current,
+              status: Models::Message::Status::QUEUED)
         end
 
         Models::Message
-          .where(id: ids, status: Models::Message::Status::PUBLISHING)
-          .order(created_at: order)
+          .where(id: ids, status: Models::Message::Status::QUEUED)
+          .order(updated_at: :asc)
           .to_a
       end
     end
@@ -51,8 +55,12 @@ module Outboxer
     PAGE = 1
     PER_PAGE = 10
 
-    def unpublished(sort: SORT, order: ORDER, page: PAGE, per_page: PER_PAGE)
-      list(status: Models::Message::Status::UNPUBLISHED)
+    def backlogged(sort: SORT, order: ORDER, page: PAGE, per_page: PER_PAGE)
+      list(status: Models::Message::Status::BACKLOGGED)
+    end
+
+    def queued(sort: SORT, order: ORDER, page: PAGE, per_page: PER_PAGE)
+      list(status: Models::Message::Status::QUEUED)
     end
 
     def publishing(sort: SORT, order: ORDER, page: PAGE, per_page: PER_PAGE)
@@ -137,7 +145,7 @@ module Outboxer
               .pluck(:id)
 
             updated_count = Models::Message.where(id: locked_ids).update_all(
-              status: Models::Message::Status::UNPUBLISHED, updated_at: DateTime.now.utc)
+              status: Models::Message::Status::BACKLOGGED, updated_at: DateTime.now.utc)
           end
 
           updated_total_count += updated_count
@@ -166,7 +174,7 @@ module Outboxer
           end
 
           updated_count = Models::Message.where(id: locked_ids).update_all(
-            status: Models::Message::Status::UNPUBLISHED, updated_at: DateTime.now.utc)
+            status: Models::Message::Status::BACKLOGGED, updated_at: DateTime.now.utc)
         end
       end
 

@@ -25,13 +25,17 @@ module Outboxer
       messages_publishing = Messages.publishing(
         sort: :updated_at, order: :asc, page: 1, per_page: 100)
 
-      messages_unpublished = Messages.unpublished(
+      messages_queued = Messages.queued(
+        sort: :updated_at, order: :asc, page: 1, per_page: 100)
+
+      messages_backlogged = Messages.backlogged(
         sort: :updated_at, order: :asc, page: 1, per_page: 100)
 
       erb :home, locals: {
         message_status_counts: message_status_counts,
         messages_publishing: messages_publishing,
-        messages_unpublished: messages_unpublished
+        messages_queued: messages_queued,
+        messages_backlogged: messages_backlogged
       }
     end
 
@@ -59,7 +63,7 @@ module Outboxer
       }
     end
 
-    get '/messages/unpublished' do
+    get '/messages/backlogged' do
       message_status_counts = Messages.counts_by_status
 
       sort = params[:sort]|| Messages::SORT
@@ -67,7 +71,27 @@ module Outboxer
       page = params[:page] || Messages::PAGE
       per_page = params[:per_page] || Messages::PER_PAGE
 
-      messages = Messages.unpublished(sort: sort, order: order, page: page, per_page: per_page)
+      messages = Messages.backlogged(sort: sort, order: order, page: page, per_page: per_page)
+
+      erb :messages, locals: {
+        message_status_counts: message_status_counts,
+        messages: messages,
+        page: page,
+        per_page: per_page,
+        sort: sort,
+        order: order
+      }
+    end
+
+    get '/messages/queued' do
+      message_status_counts = Messages.counts_by_status
+
+      sort = params[:sort]|| Messages::SORT
+      order = params[:order] || Messages::ORDER
+      page = params[:page] || Messages::PAGE
+      per_page = params[:per_page] || Messages::PER_PAGE
+
+      messages = Messages.queued(sort: sort, order: order, page: page, per_page: per_page)
 
       erb :messages, locals: {
         message_status_counts: message_status_counts,

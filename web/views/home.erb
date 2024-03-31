@@ -42,18 +42,42 @@
                         <% end %>
                     </tbody>
 
-                    <!-- Unpublishing Section -->
+                    <!-- Queued Section -->
                     <tbody>
-                        <tr class="table-secondary" data-bs-toggle="collapse" data-bs-target="#unpublishedSection" aria-expanded="true" aria-controls="unpublishedSection">
+                        <tr class="table-secondary" data-bs-toggle="collapse" data-bs-target="#queuedSection" aria-expanded="true" aria-controls="queuedSection">
                             <th colspan="7">
-                                Unpublished (<%= message_status_counts['unpublished'] %>)
+                                Queued (<%= message_status_counts['queued'] %>)
                             </th>
                         </tr>
                     </tbody>
-                    <tbody id="unpublishedSection" class="collapse show table-group-divider">
-                        <% messages_unpublished['data'].each_with_index do |message, index| %>
+                    <tbody id="queuedSection" class="collapse show table-group-divider">
+                        <% messages_queued['data'].each_with_index do |message, index| %>
                             <tr>
                                 <td><%= messages_publishing['data'].count + index + 1 %></td>
+                                <td>
+                                    <a href="/message/<%= message['id'] %>" class="custom-link">
+                                        <%= message['id'] %>
+                                    </a>
+                                </td>
+                                <td><%= message['messageable'] %></td>
+                                <td><%= message['created_at'] %></td>
+                                <td><%= message['updated_at'] %></td>
+                            </tr>
+                        <% end %>
+                    </tbody>
+
+                    <!-- Backlogged Section -->
+                    <tbody>
+                        <tr class="table-warning" data-bs-toggle="collapse" data-bs-target="#backloggedSection" aria-expanded="true" aria-controls="backloggedSection">
+                            <th colspan="7">
+                                Backlogged (<%= message_status_counts['backlogged'] %>)
+                            </th>
+                        </tr>
+                    </tbody>
+                    <tbody id="backloggedSection" class="collapse show table-group-divider">
+                        <% messages_backlogged['data'].each_with_index do |message, index| %>
+                            <tr>
+                                <td><%= messages_publishing['data'].count + messages_queued['data'].count + index + 1 %></td>
                                 <td>
                                     <a href="/message/<%= message['id'] %>" class="custom-link">
                                         <%= message['id'] %>

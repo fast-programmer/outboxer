@@ -2,11 +2,15 @@ FactoryBot.define do
   factory :outboxer_message, class: 'Outboxer::Models::Message' do
     messageable_type { 'Event' }
     messageable_id { 1 }
-    status { Outboxer::Models::Message::Status::PUBLISHING }
+    status { Outboxer::Models::Message::Status::QUEUED }
     created_at { 1.day.ago }
 
-    trait :unpublished do
-      status { Outboxer::Models::Message::Status::UNPUBLISHED }
+    trait :backlogged do
+      status { Outboxer::Models::Message::Status::BACKLOGGED }
+    end
+
+    trait :queued do
+      status { Outboxer::Models::Message::Status::QUEUED }
     end
 
     trait :publishing do

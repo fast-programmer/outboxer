@@ -1,6 +1,3 @@
-# require_relative '../app/models/message'
-# require_relative '../app/models/outboxer_exception'
-
 now = Time.now
 today = Time.new(now.year, now.month, now.day, 0, 0, 0, now.utc_offset)
 
@@ -15,13 +12,24 @@ today = Time.new(now.year, now.month, now.day, 0, 0, 0, now.utc_offset)
     updated_at: created_at + rand(0..23).hours + rand(0..59).minutes + rand(0..59).seconds)
 end
 
+10.times do |i|
+  created_at = today - (i + 21).days + rand(0..23).hours + rand(0..59).minutes + rand(0..59).seconds
+
+  Outboxer::Models::Message.create!(
+    messageable_type: 'Event',
+    messageable_id: i + 6,
+    status: Outboxer::Models::Message::Status::QUEUED,
+    created_at: created_at,
+    updated_at: created_at + rand(0..23).hours + rand(0..59).minutes + rand(0..59).seconds)
+end
+
 15.times do |i|
   created_at = today - (i + 21).days + rand(0..23).hours + rand(0..59).minutes + rand(0..59).seconds
 
   Outboxer::Models::Message.create!(
     messageable_type: 'Event',
     messageable_id: i + 6,
-    status: Outboxer::Models::Message::Status::UNPUBLISHED,
+    status: Outboxer::Models::Message::Status::BACKLOGGED,
     created_at: created_at,
     updated_at: created_at + rand(0..23).hours + rand(0..59).minutes + rand(0..59).seconds)
 end

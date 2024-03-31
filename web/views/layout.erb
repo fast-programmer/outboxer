@@ -33,7 +33,10 @@
                         <a class="nav-link active" aria-current="page" href="/messages/all">All (<%= message_status_counts['all'] %>)</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/messages/unpublished">Unpublished (<%= message_status_counts['unpublished'] %>)</a>
+                        <a class="nav-link" href="/messages/backlogged">Backlogged (<%= message_status_counts['backlogged'] %>)</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/messages/queued">Queued (<%= message_status_counts['queued'] %>)</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="/messages/publishing">Publishing (<%= message_status_counts['publishing'] %>)</a>

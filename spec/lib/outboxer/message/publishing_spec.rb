@@ -2,18 +2,13 @@ require 'spec_helper'
 
 module Outboxer
   RSpec.describe Message do
-    describe '.published!' do
-      context 'when publishing message' do
-        let!(:publishing_message) { create(:outboxer_message, :publishing) }
+    describe '.publishing!' do
+      context 'when queued message' do
+        let!(:queued_message) { create(:outboxer_message, :queued) }
+        let!(:publishing_message) { Message.publishing!(id: queued_message.id) }
 
-        let!(:published_message) { Message.published!(id: publishing_message.id) }
-
-        it 'returns nil' do
-          expect(published_message).to eq({ 'id' => publishing_message.id })
-        end
-
-        it 'deletes publishing message' do
-          expect(Models::Message.count).to eq(0)
+        it 'returns publishing message' do
+          expect(publishing_message['id']).to eq(Models::Message.publishing.last.id)
         end
       end
 
@@ -22,16 +17,16 @@ module Outboxer
 
         it 'raises invalid transition error' do
           expect do
-            Message.published!(id: backlogged_message.id)
+            Message.publishing!(id: backlogged_message.id)
           end.to raise_error(
             Message::InvalidTransition,
             "cannot transition outboxer message #{backlogged_message.id} " +
-              "from backlogged to (deleted)")
+              "from backlogged to publishing")
         end
 
         it 'does not delete backlogged message' do
           begin
-            Message.published!(id: backlogged_message.id)
+            Message.publishing!(id: backlogged_message.id)
           rescue Message::InvalidTransition
             # ignore
           end

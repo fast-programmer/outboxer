@@ -3,11 +3,11 @@ require 'spec_helper'
 module Outboxer
   RSpec.describe Publisher do
     describe '.pop_message!' do
-      context 'when a publishing message is in the queue' do
+      context 'when a queued message is in the queue' do
         let(:queue) { Queue.new }
         let(:logger) { instance_double(Logger, debug: true, error: true) }
 
-        let(:message) { create(:outboxer_message, :publishing) }
+        let(:message) { create(:outboxer_message, :queued) }
 
         before do
           queue.push(message)
@@ -31,7 +31,7 @@ module Outboxer
         let(:queue) { Queue.new }
         let(:logger) { instance_double(Logger, debug: true, error: true) }
 
-        let(:message) { create(:outboxer_message, :publishing) }
+        let(:message) { create(:outboxer_message, :queued) }
 
         let(:error) { StandardError.new('processing error') }
 
@@ -41,7 +41,7 @@ module Outboxer
 
         it 'logs the error' do
           expect(logger).to receive(:error)
-            .with("Message processing failed for id: #{message.id}, error: #{error}")
+            .with("Message publishing failed { id: #{message.id}, error: #{error} }")
 
           begin
             Publisher.pop_message!(queue: queue, logger: logger) { |_msg| raise error }

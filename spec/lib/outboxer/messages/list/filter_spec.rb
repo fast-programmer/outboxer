@@ -3,16 +3,16 @@ require 'spec_helper'
 module Outboxer
   RSpec.describe Messages do
     before do
-      create(:outboxer_message, :unpublished, id: 4,
+      create(:outboxer_message, :backlogged, id: 4,
         messageable_type: 'Event', messageable_id: 1,
         created_at: 5.minutes.ago, updated_at: 4.minutes.ago)
       create(:outboxer_message, :failed, id: 3,
         messageable_type: 'Event', messageable_id: 2,
         created_at: 4.minutes.ago, updated_at: 3.minutes.ago)
-      create(:outboxer_message, :publishing, id: 2,
+      create(:outboxer_message, :queued, id: 2,
         messageable_type: 'Event', messageable_id: 3,
         created_at: 3.minutes.ago, updated_at: 2.minutes.ago)
-      create(:outboxer_message, :unpublished, id: 1,
+      create(:outboxer_message, :backlogged, id: 1,
         messageable_type: 'Event', messageable_id: 4,
         created_at: 2.minutes.ago, updated_at: 1.minute.ago)
     end
@@ -41,21 +41,21 @@ module Outboxer
             },
             {
               'id' => 2,
-              'status' => 'publishing',
+              'status' => 'queued',
               'messageable' => 'Event::3',
               'created_at' => 3.minutes.ago.utc.to_s,
               'updated_at' => 2.minutes.ago.utc.to_s
             },
             {
               'id' => 4,
-              'status' => 'unpublished',
+              'status' => 'backlogged',
               'messageable' => 'Event::1',
               'created_at' => 5.minutes.ago.utc.to_s,
               'updated_at' => 4.minutes.ago.utc.to_s
             },
             {
               'id' => 1,
-              'status' => 'unpublished',
+              'status' => 'backlogged',
               'messageable' => 'Event::4',
               'created_at' => 2.minutes.ago.utc.to_s,
               'updated_at' => 1.minute.ago.utc.to_s
@@ -64,21 +64,21 @@ module Outboxer
         end
       end
 
-      context 'with unpublished status' do
-        it 'returns unpublished messages' do
+      context 'with backlogged status' do
+        it 'returns backlogged messages' do
           expect(
-            Messages.list(status: :unpublished, sort: :status, order: :asc)
+            Messages.list(status: :backlogged, sort: :status, order: :asc)
           ).to match_array([
             {
               'id' => 4,
-              'status' => 'unpublished',
+              'status' => 'backlogged',
               'messageable' => 'Event::1',
               'created_at' => 5.minutes.ago.utc.to_s,
               'updated_at' => 4.minutes.ago.utc.to_s
             },
             {
               'id' => 1,
-              'status' => 'unpublished',
+              'status' => 'backlogged',
               'messageable' => 'Event::4',
               'created_at' => 2.minutes.ago.utc.to_s,
               'updated_at' => 1.minute.ago.utc.to_s
@@ -87,14 +87,14 @@ module Outboxer
         end
       end
 
-      context 'with publishing status' do
-        it 'returns publishing messages' do
+      context 'with queued status' do
+        it 'returns queued messages' do
           expect(
-            Messages.list(status: :publishing, sort: :status, order: :asc)
+            Messages.list(status: :queued, sort: :status, order: :asc)
           ).to match_array([
             {
               'id' => 2,
-              'status' => 'publishing',
+              'status' => 'queued',
               'messageable' => 'Event::3',
               'created_at' => 3.minutes.ago.utc.to_s,
               'updated_at' => 2.minutes.ago.utc.to_s
