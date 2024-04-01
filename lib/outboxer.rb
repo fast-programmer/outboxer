@@ -11,11 +11,9 @@ require_relative "outboxer/logger"
 
 require_relative "outboxer/models"
 
+require_relative "outboxer/database"
 require_relative "outboxer/message"
 require_relative "outboxer/messages"
-
-require_relative "outboxer/database"
-require_relative "outboxer/publisher"
 
 module Outboxer
 end
