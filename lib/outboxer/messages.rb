@@ -42,7 +42,7 @@ module Outboxer
                 'The number of updated messages does not match the expected number of ids.'
             end
 
-            ids.map { |id| { 'id' => id } }
+            ids.map { |id| { 'id' => id, 'status' => Models::Message::Status::QUEUED } }
           else
             []
           end

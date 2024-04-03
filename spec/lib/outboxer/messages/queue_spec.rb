@@ -18,7 +18,7 @@ module Outboxer
             expect(queued_messages.count).to eq(1)
 
             queued_message = queued_messages.first
-            expect(queued_message.status).to eq(Models::Message::Status::QUEUED)
+            expect(queued_message['status']).to eq(Models::Message::Status::QUEUED)
           end
 
           it 'keeps last backlogged message' do
