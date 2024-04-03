@@ -13,27 +13,24 @@ module Outboxer
         allow(logger).to receive(:level=)
       end
 
-      let!(:message) { create(:outboxer_message, :backlogged) }
+      let!(:backlogged_message) { create(:outboxer_message, :backlogged) }
 
       context 'when message published successfully' do
-        before do
+        it 'deletes existing message' do
           Message.publish!(
             queue: queue,
             threads: threads,
             poll: poll,
             logger: logger,
             kernel: kernel
-          ) do |queued_message|
-            expect(queued_message.messageable_type).to eq('Event')
-            expect(queued_message.messageable_id).to eq('1')
-            expect(queued_message.status).to eq(Models::Message::Status::QUEUED)
+          ) do |message|
+            expect(message['id']).to eq(backlogged_message.id)
+            expect(message['messageable_type']).to eq(backlogged_message.messageable_type)
+            expect(message['messageable_id']).to eq(backlogged_message.messageable_id)
+            expect(message['status']).to eq(Models::Message::Status::PUBLISHING)
 
             Message.stop_publishing!
           end
-        end
-
-        it 'deletes existing message' do
-          Message.stop_publishing!
 
           expect(Models::Message.count).to eq(0)
         end
@@ -50,17 +47,32 @@ module Outboxer
               poll: poll,
               logger: logger,
               kernel: kernel
-            ) do |queued_message|
-              Process.kill('SIGINT', Process.pid)
-              # Message.stop_publishing!
+            ) do |message|
+              Message.stop_publishing!
 
               raise standard_error
             end
           end
 
+          it 'sets message to failed' do
+            backlogged_message.reload
+
+            expect(backlogged_message.status).to eq(Models::Message::Status::FAILED)
+
+            expect(backlogged_message.exceptions.count).to eq(1)
+            expect(backlogged_message.exceptions[0].class_name).to eq(standard_error.class.name)
+            expect(backlogged_message.exceptions[0].message_text).to eq(standard_error.message)
+            expect(backlogged_message.exceptions[0].created_at).not_to be_nil
+
+            expect(backlogged_message.exceptions[0].frames.count).to eq(4)
+            expect(backlogged_message.exceptions[0].frames[0].index).to eq(0)
+            expect(backlogged_message.exceptions[0].frames[0].text).to include(
+              "outboxer/message/publish_spec.rb:53:in `block (6 levels) in <module:Outboxer>'")
+          end
+
           it 'logs errors' do
             expect(logger).to have_received(:error).with(
-              "Message publishing failed { id: #{message.id}, error: #{standard_error.message} }").once
+              "Failed to publish message { id: #{backlogged_message.id}, error: #{standard_error.message} }").once
 
             expect(logger).to have_received(:error).with(
               "#{standard_error.class.to_s}: #{standard_error.message}").once
@@ -78,15 +90,31 @@ module Outboxer
               logger: logger,
               kernel: kernel
             ) do |queued_message|
-              # Process.kill('SIGINT', Process.pid)
+              Message.stop_publishing!
 
               raise no_memory_error
             end
           end
 
+          it 'sets message to failed' do
+            backlogged_message.reload
+
+            expect(backlogged_message.status).to eq(Models::Message::Status::FAILED)
+
+            expect(backlogged_message.exceptions.count).to eq(1)
+            expect(backlogged_message.exceptions[0].class_name).to eq(no_memory_error.class.name)
+            expect(backlogged_message.exceptions[0].message_text).to eq(no_memory_error.message)
+            expect(backlogged_message.exceptions[0].created_at).not_to be_nil
+
+            expect(backlogged_message.exceptions[0].frames.count).to eq(4)
+            expect(backlogged_message.exceptions[0].frames[0].index).to eq(0)
+            expect(backlogged_message.exceptions[0].frames[0].text).to include(
+              "outboxer/message/publish_spec.rb:95:in `block (6 levels) in <module:Outboxer>'")
+          end
+
           it 'logs errors' do
             expect(logger).to have_received(:error).with(
-              "Message publishing failed { id: #{message.id}, error: #{no_memory_error.message} }").once
+              "Failed to publish message { id: #{backlogged_message.id}, error: #{no_memory_error.message} }").once
 
             expect(logger).to have_received(:fatal)
               .with("#{no_memory_error.class.to_s}: #{no_memory_error.message}").once

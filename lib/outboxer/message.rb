@@ -68,7 +68,12 @@ module Outboxer
 
           message.update!(status: Models::Message::Status::PUBLISHING)
 
-          { 'id' => id }
+          {
+            'id' => id,
+            'status' => message.status,
+            'messageable_type' => message.messageable_type,
+            'messageable_id' => message.messageable_id
+          }
         end
       end
     end
@@ -163,7 +168,8 @@ module Outboxer
       ruby_queue = Queue.new
 
       @publishing = true
-      original_handler = trap('INT') { @publishing = false }
+
+      trap('INT') { @publishing = false }
 
       logger.info "Creating #{threads} publisher threads"
 
@@ -180,7 +186,7 @@ module Outboxer
               end
 
               logger.info "Publishing message (id: #{message['id']}) }"
-              Message.publishing!(id: message['id'])
+              message = Message.publishing!(id: message['id'])
 
               begin
                 block.call(message)
@@ -237,9 +243,9 @@ module Outboxer
 
       logger.info "Stopped publishing queued messages"
 
-      Database.disconnect!
+      # Database.disconnect!
 
-      trap('INT', original_handler)
+      # trap('INT', original_handler)
 
       logger.info "Shut down gracefully"
     end

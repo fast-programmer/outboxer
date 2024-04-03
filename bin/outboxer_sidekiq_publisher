@@ -10,6 +10,8 @@ Sidekiq.configure_client do |config|
   config.redis = { url: ENV['REDIS_URL'], size: 5 }
 end
 
+Signal.trap('INT') { Outboxer::Message.stop_publishing! }
+
 Outboxer::Message.publish!(threads: 5, queue: 10, poll: 5) do |message|
   case message['messageable_type']
   when 'Event'
