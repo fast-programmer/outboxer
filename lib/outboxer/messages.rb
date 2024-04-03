@@ -24,8 +24,6 @@ module Outboxer
 
     def queue!(limit: 1)
       ActiveRecord::Base.connection_pool.with_connection do
-        ids = []
-
         ActiveRecord::Base.transaction do
           ids = Models::Message
             .where(status: Models::Message::Status::BACKLOGGED)
@@ -34,17 +32,21 @@ module Outboxer
             .limit(limit)
             .pluck(:id)
 
-          Models::Message
-            .where(id: ids)
-            .update_all(
-              updated_at: Time.current,
-              status: Models::Message::Status::QUEUED)
-        end
+          if ids.present?
+            updated_rows = Models::Message
+              .where(id: ids)
+              .update_all(updated_at: Time.current, status: Models::Message::Status::QUEUED)
 
-        Models::Message
-          .where(id: ids, status: Models::Message::Status::QUEUED)
-          .order(updated_at: :asc)
-          .to_a
+            if updated_rows != ids.size
+              raise Error,
+                'The number of updated messages does not match the expected number of ids.'
+            end
+
+            ids.map { |id| { 'id' => id, 'status' => Models::Message::Status::QUEUED } }
+          else
+            []
+          end
+        end
       end
     end
 
@@ -112,8 +114,11 @@ module Outboxer
               .lock('FOR UPDATE')
               .pluck(:id)
 
-            updated_count = Models::Message.where(id: locked_ids).update_all(
-              status: Models::Message::Status::BACKLOGGED, updated_at: DateTime.now.utc)
+            updated_count = locked_ids.empty? ? 0 : Models::Message
+              .where(id: locked_ids)
+              .update_all(
+                status: Models::Message::Status::BACKLOGGED,
+                updated_at: DateTime.now.utc)
           end
 
           updated_total_count += updated_count

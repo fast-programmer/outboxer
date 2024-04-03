@@ -68,7 +68,12 @@ module Outboxer
 
           message.update!(status: Models::Message::Status::PUBLISHING)
 
-          { 'id' => id }
+          {
+            'id' => id,
+            'status' => message.status,
+            'messageable_type' => message.messageable_type,
+            'messageable_id' => message.messageable_id
+          }
         end
       end
     end
@@ -149,6 +154,100 @@ module Outboxer
           { 'id' => id }
         end
       end
+    end
+
+    def stop_publishing!
+      @publishing = false
+    end
+
+    def publish!(threads: 5, queue: 10, poll: 1,
+                 logger: Logger.new($stdout, level: ::Logger::INFO),
+                 kernel: Kernel, &block)
+      Database.connect!(config: Database.config, logger: logger) unless Database.connected?
+
+      ruby_queue = Queue.new
+
+      @publishing = true
+
+      trap('INT') { @publishing = false }
+
+      logger.info "Creating #{threads} publisher threads"
+
+      ruby_threads = threads.times.map do
+        Thread.new do
+          loop do
+            begin
+              message = ruby_queue.pop
+
+              if message.nil?
+                logger.info 'Shutting down publisher thread'
+
+                break
+              end
+
+              logger.info "Publishing message (id: #{message['id']}) }"
+              message = Message.publishing!(id: message['id'])
+
+              begin
+                block.call(message)
+              rescue Exception => exception
+                logger.error "Failed to publish message { id: #{message['id']}, error: #{exception} }"
+                Message.failed!(id: message['id'], exception: exception)
+
+                raise
+              end
+
+              logger.info "Published message { id: #{message['id']} }"
+              Message.published!(id: message['id'])
+            rescue => exception
+              logger.error "#{exception.class}: #{exception.message}"
+            rescue Exception => exception
+              logger.fatal "#{exception.class}: #{exception.message}"
+
+              @publishing = false
+
+              break
+            end
+          end
+
+          logger.info 'Shut down publisher thread'
+        end
+      end
+
+      logger.info "Created #{threads} publisher threads"
+
+      logger.info 'Queuing backlogged messages...'
+
+      while @publishing
+        begin
+          messages = []
+
+          queue_remaining = queue - ruby_queue.length
+          messages = (queue_remaining > 0) ? Messages.queue!(limit: queue_remaining) : []
+          messages.each { |message| ruby_queue.push({ 'id' => message['id'] }) }
+
+          kernel.sleep(poll) if messages.empty? || (ruby_queue.length >= queue)
+        rescue => exception
+          logger.error "#{exception.class}: #{exception.message}"
+        rescue Exception => exception
+          logger.fatal ("#{exception.class}: #{exception.message}")
+
+          @publishing = false
+        end
+      end
+
+      logger.info "Stopped queueing backlogged messages"
+
+      ruby_threads.length.times { ruby_queue.push(nil) }
+      ruby_threads.each(&:join)
+
+      logger.info "Stopped publishing queued messages"
+
+      # Database.disconnect!
+
+      # trap('INT', original_handler)
+
+      logger.info "Shut down gracefully"
     end
   end
 end
