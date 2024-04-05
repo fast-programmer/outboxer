@@ -169,8 +169,6 @@ module Outboxer
 
       @publishing = true
 
-      trap('INT') { @publishing = false }
-
       logger.info "Creating #{threads} publisher threads"
 
       ruby_threads = threads.times.map do
@@ -243,9 +241,7 @@ module Outboxer
 
       logger.info "Stopped publishing queued messages"
 
-      # Database.disconnect!
-
-      # trap('INT', original_handler)
+      Database.disconnect!
 
       logger.info "Shut down gracefully"
     end
