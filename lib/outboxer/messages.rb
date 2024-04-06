@@ -101,12 +101,12 @@ module Outboxer
           message_scope.order(sort.to_sym => order.to_sym)
         end
 
-      result = {}
+      messages = ActiveRecord::Base.connection_pool.with_connection do
+        message_scope.page(page).per(per_page)
+      end
 
-      ActiveRecord::Base.connection_pool.with_connection do
-        messages = message_scope.page(page).per(per_page)
-
-        result[:data] = messages.map do |message|
+      {
+        data: messages.map do |message|
           {
             id: message.id,
             status: message.status,
@@ -115,15 +115,12 @@ module Outboxer
             created_at: message.created_at.utc.to_s,
             updated_at: message.updated_at.utc.to_s
           }
-        end
-
-        result[:total_pages] = messages.total_pages
-        result[:current_page] = messages.current_page
-        result[:limit_value] = messages.limit_value
-        result[:total_count] = messages.total_count
-      end
-
-      result
+        end,
+        total_pages: messages.total_pages,
+        current_page: messages.current_page,
+        limit_value: messages.limit_value,
+        total_count: messages.total_count
+      }
     end
 
     def republish_all(batch_size: 100)
