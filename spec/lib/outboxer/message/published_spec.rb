@@ -9,7 +9,7 @@ module Outboxer
         let!(:published_message) { Message.published(id: publishing_message.id) }
 
         it 'returns nil' do
-          expect(published_message).to eq({ 'id' => publishing_message.id })
+          expect(published_message).to eq({ id: publishing_message.id })
         end
 
         it 'deletes publishing message' do
@@ -18,7 +18,7 @@ module Outboxer
       end
 
       context 'when backlogged messaged' do
-        let(:backlogged_message) { create(:outboxer_message, :backlogged) }
+        let!(:backlogged_message) { create(:outboxer_message, :backlogged) }
 
         it 'raises invalid transition error' do
           expect do

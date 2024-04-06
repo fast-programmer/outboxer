@@ -8,7 +8,7 @@ module Outboxer
       end
 
       it 'returns backlogged message' do
-        expect(backlogged_message['id']).to eq(Models::Message.backlogged.first.id)
+        expect(backlogged_message[:id]).to eq(Models::Message.backlogged.first.id)
       end
     end
   end

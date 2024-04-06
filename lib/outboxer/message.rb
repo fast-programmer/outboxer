@@ -17,7 +17,7 @@ module Outboxer
             messageable_type: messageable_type,
             status: Models::Message::Status::BACKLOGGED)
 
-          { 'id' => message.id }
+          { id: message.id }
         end
       end
     end
@@ -28,22 +28,22 @@ module Outboxer
           message = Models::Message.includes(exceptions: :frames).find_by!(id: id)
 
           {
-            'id' => message.id,
-            'status' => message.status,
-            'messageable' => "#{message.messageable_type}::#{message.messageable_id}",
-            'created_at' => message.created_at.utc.to_s,
-            'updated_at' => message.updated_at.utc.to_s,
-            'exceptions' => message.exceptions.map do |exception|
+            id: message.id,
+            status: message.status,
+            messageable: "#{message.messageable_type}::#{message.messageable_id}",
+            created_at: message.created_at.utc.to_s,
+            updated_at: message.updated_at.utc.to_s,
+            exceptions: message.exceptions.map do |exception|
               {
-                'id' => exception.id,
-                'class_name' => exception.class_name,
-                'message_text' => exception.message_text,
-                'created_at' => exception.created_at.utc.to_s,
-                'frames' => exception.frames.map do |frame|
+                id: exception.id,
+                class_name: exception.class_name,
+                message_text: exception.message_text,
+                created_at: exception.created_at.utc.to_s,
+                frames: exception.frames.map do |frame|
                   {
-                    'id' => frame.id,
-                    'index' => frame.index,
-                    'text' => frame.text
+                    id: frame.id,
+                    index: frame.index,
+                    text: frame.text
                   }
                 end
               }
@@ -69,10 +69,10 @@ module Outboxer
           message.update!(status: Models::Message::Status::PUBLISHING)
 
           {
-            'id' => id,
-            'status' => message.status,
-            'messageable_type' => message.messageable_type,
-            'messageable_id' => message.messageable_id
+            id: id,
+            status: message.status,
+            messageable_type: message.messageable_type,
+            messageable_id: message.messageable_id
           }
         end
       end
@@ -94,7 +94,7 @@ module Outboxer
           message.exceptions.delete_all
           message.delete
 
-          { 'id' => id }
+          { id: id }
         end
       end
     end
@@ -119,7 +119,7 @@ module Outboxer
             outboxer_exception.frames.create!(index: index, text: frame)
           end
 
-          { 'id' => id }
+          { id: id }
         end
       end
     end
@@ -133,7 +133,7 @@ module Outboxer
           message.exceptions.delete_all
           message.delete
 
-          { 'id' => id }
+          { id: id }
         end
       end
     end
@@ -151,7 +151,7 @@ module Outboxer
 
           message.update!(status: Models::Message::Status::BACKLOGGED)
 
-          { 'id' => id }
+          { id: id }
         end
       end
     end
@@ -161,7 +161,7 @@ module Outboxer
     end
 
     def publish(threads: 5, queue: 10, poll: 1,
-                 logger: Logger.new($stdout, level: ::Logger::INFO),
+                 logger: Logger.new($stdout, level: ::Logger::DEBUG),
                  kernel: Kernel, &block)
       Database.connect(config: Database.config, logger: logger) unless Database.connected?
 
@@ -183,20 +183,20 @@ module Outboxer
                 break
               end
 
-              logger.info "Publishing message (id: #{message['id']}) }"
-              message = Message.publishing(id: message['id'])
+              logger.info "Publishing message (id: #{message[:id]}) }"
+              message = Message.publishing(id: message[:id])
 
               begin
                 block.call(message)
               rescue Exception => exception
-                logger.error "Failed to publish message { id: #{message['id']}, error: #{exception} }"
-                Message.failed(id: message['id'], exception: exception)
+                logger.error "Failed to publish message { id: #{message[:id]}, error: #{exception} }"
+                Message.failed(id: message[:id], exception: exception)
 
                 raise
               end
 
-              logger.info "Published message { id: #{message['id']} }"
-              Message.published(id: message['id'])
+              logger.info "Published message { id: #{message[:id]} }"
+              Message.published(id: message[:id])
             rescue => exception
               logger.error "#{exception.class}: #{exception.message}"
             rescue Exception => exception
@@ -222,7 +222,7 @@ module Outboxer
 
           queue_remaining = queue - ruby_queue.length
           messages = (queue_remaining > 0) ? Messages.queue(limit: queue_remaining) : []
-          messages.each { |message| ruby_queue.push({ 'id' => message['id'] }) }
+          messages.each { |message| ruby_queue.push({ id: message[:id] }) }
 
           kernel.sleep(poll) if messages.empty? || (ruby_queue.length >= queue)
         rescue => exception

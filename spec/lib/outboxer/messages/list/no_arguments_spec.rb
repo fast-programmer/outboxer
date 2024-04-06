@@ -18,12 +18,12 @@ module Outboxer
 
       it 'returns all messages ordered by last updated at asc' do
         expect(
-          Messages.list.map { |message| message.slice('id', 'status', 'messageable') }
+          Messages.list.map { |message| message.slice(:id, :status, :messageable) }
         ).to match_array([
-          { 'id' => 1, 'status' => 'backlogged', 'messageable' => 'Event::1' },
-          { 'id' => 2, 'status' => 'failed', 'messageable' => 'Event::2' },
-          { 'id' => 3, 'status' => 'queued', 'messageable' => 'Event::3' },
-          { 'id' => 4, 'status' => 'backlogged', 'messageable' => 'Event::4' },
+          { id: 1, status: 'backlogged', messageable: 'Event::1' },
+          { id: 2, status: 'failed', messageable: 'Event::2' },
+          { id: 3, status: 'queued', messageable: 'Event::3' },
+          { id: 4, status: 'backlogged', messageable: 'Event::4' },
         ])
       end
     end

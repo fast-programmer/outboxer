@@ -24,7 +24,7 @@ module Outboxer
         end
 
         it 'returns count' do
-          expect(result['count']).to eq(ids.count)
+          expect(result[:count]).to eq(ids.count)
         end
       end
 

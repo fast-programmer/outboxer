@@ -9,7 +9,7 @@ module Outboxer
         let!(:backlogged_message) { Message.republish(id: failed_message.id) }
 
         it 'returns backlogged message' do
-          expect(backlogged_message['id']).to eq(failed_message.id)
+          expect(backlogged_message[:id]).to eq(failed_message.id)
         end
 
         it 'updates failed message status to backlogged' do

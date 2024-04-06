@@ -11,11 +11,11 @@ module Outboxer
     def counts_by_status
       ActiveRecord::Base.connection_pool.with_connection do
         status_counts = Models::Message::STATUSES.each_with_object({}) do |status, hash|
-          hash[status.to_s] = 0
+          hash[status.to_sym] = 0
         end
 
         Models::Message.group(:status).count.each do |status, count|
-          status_counts[status.to_s] = count
+          status_counts[status.to_sym] = count
         end
 
         status_counts
@@ -42,7 +42,7 @@ module Outboxer
                 'The number of updated messages does not match the expected number of ids.'
             end
 
-            ids.map { |id| { 'id' => id, 'status' => Models::Message::Status::QUEUED } }
+            ids.map { |id| { id: id, status: Models::Message::Status::QUEUED } }
           else
             []
           end
@@ -90,11 +90,11 @@ module Outboxer
 
       messages.map do |message|
         {
-          'id' => message.id,
-          'status' => message.status,
-          'messageable' => "#{message.messageable_type}::#{message.messageable_id}",
-          'created_at' => message.created_at.utc.to_s,
-          'updated_at' => message.updated_at.utc.to_s
+          id: message.id,
+          status: message.status,
+          messageable: "#{message.messageable_type}::#{message.messageable_id}",
+          created_at: message.created_at.utc.to_s,
+          updated_at: message.updated_at.utc.to_s
         }
       end
     end
@@ -127,7 +127,7 @@ module Outboxer
         end
       end
 
-      { 'count' => updated_total_count }
+      { count: updated_total_count }
     end
 
     def republish_selected(ids:)
@@ -151,7 +151,7 @@ module Outboxer
         end
       end
 
-      { 'count' => updated_count }
+      { count: updated_count }
     end
 
     def delete_all(batch_size: 100)
@@ -181,7 +181,7 @@ module Outboxer
         end
       end
 
-      { 'count' => deleted_total_count }
+      { count: deleted_total_count }
     end
 
     def delete_selected(ids:)
@@ -207,7 +207,7 @@ module Outboxer
         end
       end
 
-      { 'count' => deleted_count }
+      { count: deleted_count }
     end
   end
 end

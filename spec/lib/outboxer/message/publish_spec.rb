@@ -24,10 +24,10 @@ module Outboxer
             logger: logger,
             kernel: kernel
           ) do |message|
-            expect(message['id']).to eq(backlogged_message.id)
-            expect(message['messageable_type']).to eq(backlogged_message.messageable_type)
-            expect(message['messageable_id']).to eq(backlogged_message.messageable_id)
-            expect(message['status']).to eq(Models::Message::Status::PUBLISHING)
+            expect(message[:id]).to eq(backlogged_message.id)
+            expect(message[:messageable_type]).to eq(backlogged_message.messageable_type)
+            expect(message[:messageable_id]).to eq(backlogged_message.messageable_id)
+            expect(message[:status]).to eq(Models::Message::Status::PUBLISHING)
 
             Message.stop_publishing
           end

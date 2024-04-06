@@ -37,8 +37,8 @@ module Outboxer
         end
 
         it 'ensures no overlap between first and second page' do
-          first_page_ids = first_page.map { |message| message['id'] }
-          second_page_ids = second_page.map { |message| message['id'] }
+          first_page_ids = first_page.map { |message| message[:id] }
+          second_page_ids = second_page.map { |message| message[:id] }
           expect(first_page_ids & second_page_ids).to be_empty
         end
       end
