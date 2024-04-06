@@ -155,9 +155,9 @@ module Outboxer
     end
 
     def publish(threads: 5, queue: 10, poll: 1,
-                 logger: Logger.new($stdout, level: ::Logger::DEBUG),
-                 kernel: Kernel, &block)
-      Database.connect(config: Database.config, logger: logger) unless Database.connected?
+                logger: Logger.new($stdout, level: Logger::DEBUG),
+                kernel: Kernel, &block)
+      Database.connect(config: Database.config) unless Database.connected?
 
       ruby_queue = Queue.new
 
