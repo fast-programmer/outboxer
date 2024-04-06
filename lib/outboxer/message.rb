@@ -163,21 +163,23 @@ module Outboxer
 
       @publishing = true
 
-      logger.info "Creating #{threads} publisher threads"
+      logger.info "Creating #{threads} worker threads"
 
       ruby_threads = threads.times.map do
         Thread.new do
+          thread_id = SecureRandom.hex(3)
+
           loop do
             begin
               message = ruby_queue.pop
 
               if message.nil?
-                logger.info 'Shutting down publisher thread'
+                logger.info "Shutting down worker thread"
 
                 break
               end
 
-              logger.info "Publishing message (id: #{message[:id]}) }"
+              logger.info "Publishing message { id: #{message[:id]} } }"
               message = Message.publishing(id: message[:id])
 
               begin
@@ -202,28 +204,46 @@ module Outboxer
             end
           end
 
-          logger.info 'Shut down publisher thread'
+          logger.info "Shut down worker thread"
         end
       end
 
       logger.info "Created #{threads} publisher threads"
 
-      logger.info 'Queuing backlogged messages...'
+      logger.info "Queuing backlogged messages..."
 
       while @publishing
         begin
           messages = []
 
-          queue_remaining = queue - ruby_queue.length
-          messages = (queue_remaining > 0) ? Messages.queue(limit: queue_remaining) : []
-          messages.each { |message| ruby_queue.push({ id: message[:id] }) }
+          queue_available = queue - ruby_queue.length
+          queue_stats = { total: queue, current: ruby_queue.length, available: queue_available }
+          logger.debug "Queue Stats: #{queue_stats}"
 
-          kernel.sleep(poll) if messages.empty? || (ruby_queue.length >= queue)
+          logger.debug "Pool Stats: #{ActiveRecord::Base.connection_pool.stat}"
+
+          messages = (queue_available > 0) ? Messages.queue(limit: queue_available) : []
+          logger.debug "Fetched #{messages.length} backlogged messages for queuing."
+
+          messages.each { |message| ruby_queue.push({ id: message[:id] }) }
+          logger.debug "Pushed #{messages.length} backlogged messages to queue."
+
+          if messages.empty?
+            logger.debug "No new backlogged messages fetched. Sleeping for #{poll} seconds..."
+
+            kernel.sleep(poll)
+          elsif ruby_queue.length >= queue
+            logger.debug "Queue is full. Sleeping for #{poll} seconds..."
+
+            kernel.sleep(poll)
+          else
+            logger.debug "Continuing to queue messages."
+          end
         rescue => exception
           logger.error "#{exception.class}: #{exception.message}"
         rescue Exception => exception
-          logger.fatal ("#{exception.class}: #{exception.message}")
-
+          logger.fatal "#{exception.class}: #{exception.message}"
+          logger.fatal "An unexpected error occurred, stopping the publishing process."
           @publishing = false
         end
       end
