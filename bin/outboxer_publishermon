@@ -4,16 +4,26 @@ require 'bundler/setup'
 require 'outboxer'
 require 'sidekiq'
 
+def cpu_cores
+  if RUBY_PLATFORM.include?("darwin")
+    `sysctl -n hw.ncpu`.to_i
+  else
+    `nproc`.to_i
+  end
+end
+
 def fetch_process_stats(pid)
+  cores = cpu_cores
   stats = `ps -p #{pid} -o rss=,pcpu=,etime=,vsz=`.strip
   rss, cpu, elapsed, vsz = stats.split(" ")
   rss_mb = rss.to_i / 1024
   vsz_mb = vsz.to_i / 1024
-  { pid: pid, rss_mb: rss_mb, cpu: cpu, elapsed: elapsed, vsz_mb: vsz_mb }
+  cpu_per_core = cpu.to_f / cores
+  { pid: pid, rss_mb: rss_mb, cpu: cpu, cpu_per_core: cpu_per_core.round(2), elapsed: elapsed, vsz_mb: vsz_mb }
 end
 
 def sidekiq_publisher_pids
-  `pgrep -f bin/sidekiq_publisher$`.strip.split("\n")
+  `pgrep -f bin/outboxer_publisher$`.strip.split("\n")
 end
 
 environment = ENV['RAILS_ENV'] || 'development'
@@ -30,12 +40,16 @@ loop do
 
   total_backlogged = nil
   total_queued = nil
+  total_publishing = nil
   total_failed = nil
 
-  ActiveRecord::Base.connection_pool.with_connection do
-    total_backlogged = Outboxer::Models::Message.backlogged.count
-    total_queued = Outboxer::Models::Message.queued.count
-    total_failed = Outboxer::Models::Message.failed.count
+  ActiveRecord::Base.connection_pool.with_connection do |connection|
+    connection.transaction(isolation: :repeatable_read) do
+      total_backlogged = Outboxer::Models::Message.backlogged.count
+      total_queued = Outboxer::Models::Message.queued.count
+      total_publishing = Outboxer::Models::Message.publishing.count
+      total_failed = Outboxer::Models::Message.failed.count
+    end
   end
 
   pids = sidekiq_publisher_pids.sort
@@ -45,22 +59,24 @@ loop do
   puts "\n---- Overview ----"
   puts format("%-15s: %-10s", "Backlogged", total_backlogged)
   puts format("%-15s: %-10s", "Queued", total_queued)
+  puts format("%-15s: %-10s", "Publishing", total_publishing)
   puts format("%-15s: %-10s", "Failed", total_failed)
 
   if pids.empty?
-    puts "\nbin/sidekiq_publisher processes not found."
+    puts "\nbin/outboxer_publisher processes not found."
   else
     puts "\n---- Process Stats ----"
     pids.each do |pid|
       stats = fetch_process_stats(pid)
       puts "PID #{stats[:pid]}:"
       puts format("  %-15s: %-10s MB", "Memory Usage", stats[:rss_mb])
-      puts format("  %-15s: %-10s %%", "CPU Usage", stats[:cpu])
+      puts format("  %-15s: %-10s %%", "CPU Total", stats[:cpu])
+      puts format("  %-15s: %-10s %% per core", "CPU per Core", stats[:cpu_per_core])
       puts format("  %-15s: %-10s", "Running Time", stats[:elapsed])
       puts format("  %-15s: %-10s MB", "Virtual Memory", stats[:vsz_mb])
       puts
     end
   end
 
-  sleep(1)
+  sleep(0.5)
 end

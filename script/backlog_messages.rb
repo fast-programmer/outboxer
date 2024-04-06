@@ -18,19 +18,17 @@ Signal.trap('INT') do
   exit
 end
 
-threads = num_threads.times.map do
-  Thread.new do
+# threads = num_threads.times.map do
+#   Thread.new do
     loop do
-      messageable_id = rand(1..100_000)
-      next if mutex.synchronize { !used_ids.add?(messageable_id).nil? }
+      messageable_id = SecureRandom.hex(3)
+      # next if mutex.synchronize { !used_ids.add?(messageable_id).nil? }
 
       Outboxer::Message.backlog!(messageable_type: 'Event', messageable_id: messageable_id)
       puts "backlogged message for Event::#{messageable_id}"
-
-      sleep rand
     end
-  end
-end
+#   end
+# end
 
-threads.each(&:join)
+# threads.each(&:join)
 puts "All tasks completed."

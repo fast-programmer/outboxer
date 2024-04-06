@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'bundler/setup'
+
 require 'sidekiq'
 require 'outboxer'
 
@@ -12,11 +13,16 @@ end
 
 Signal.trap('INT') { Outboxer::Message.stop_publishing! }
 
-Outboxer::Message.publish!(threads: 5, queue: 10, poll: 5) do |message|
+Outboxer::Message.publish!(
+  threads: 25, queue: 100, poll: 0.1,
+  logger: Logger.new($stdout, level: Logger::INFO)
+) do |message|
   case message['messageable_type']
   when 'Event'
     EventCreatedJob.perform_async({ 'id' => message['messageable_id'] })
+
+    # sleep rand
   end
 end
 
-# bin/outboxer_sidekiq_publisher
+# bin/outboxer_publisher

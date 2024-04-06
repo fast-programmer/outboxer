@@ -160,7 +160,7 @@ module Outboxer
       @publishing = false
     end
 
-    def publish!(threads: 5, queue: 10, poll: 1,
+    def publish!(threads: 5, queue: 100, poll: 1,
                  logger: Logger.new($stdout, level: ::Logger::INFO),
                  kernel: Kernel, &block)
       Database.connect!(config: Database.config, logger: logger) unless Database.connected?
@@ -221,15 +221,31 @@ module Outboxer
           messages = []
 
           queue_remaining = queue - ruby_queue.length
-          messages = (queue_remaining > 0) ? Messages.queue!(limit: queue_remaining) : []
-          messages.each { |message| ruby_queue.push({ 'id' => message['id'] }) }
+          logger.info "Queue: #{queue} total size."
+          logger.info "Queue: #{ruby_queue.length} current size."
+          logger.info "Queue: #{queue_remaining} slots available."
+          logger.info ActiveRecord::Base.connection_pool.stat
 
-          kernel.sleep(poll) if messages.empty? || (ruby_queue.length >= queue)
+          messages = (queue_remaining > 0) ? Messages.queue!(limit: queue_remaining) : []
+          logger.info "#{messages.length} messages fetched for queuing."
+
+          messages.each { |message| ruby_queue.push({ 'id' => message['id'] }) }
+          logger.info "#{messages.length} messages pushed to the Ruby queue."
+
+          if messages.empty?
+            logger.info "No new messages were fetched. Sleeping for #{poll} seconds..."
+            kernel.sleep(poll)
+          elsif ruby_queue.length >= queue
+            logger.info "Ruby queue is full. Sleeping for #{poll} seconds..."
+            kernel.sleep(poll)
+          else
+            logger.info "Continuing to queue messages."
+          end
         rescue => exception
           logger.error "#{exception.class}: #{exception.message}"
         rescue Exception => exception
-          logger.fatal ("#{exception.class}: #{exception.message}")
-
+          logger.fatal "#{exception.class}: #{exception.message}"
+          logger.fatal "An unexpected error occurred, stopping the publishing process."
           @publishing = false
         end
       end
