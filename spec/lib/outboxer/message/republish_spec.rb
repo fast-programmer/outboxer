@@ -2,14 +2,14 @@ require 'spec_helper'
 
 module Outboxer
   RSpec.describe Message do
-    describe '.republish!' do
+    describe '.republish' do
       context 'when failed message' do
         let!(:failed_message) { create(:outboxer_message, :failed) }
 
-        let!(:backlogged_message) { Message.republish!(id: failed_message.id) }
+        let!(:backlogged_message) { Message.republish(id: failed_message.id) }
 
         it 'returns backlogged message' do
-          expect(backlogged_message['id']).to eq(failed_message.id)
+          expect(backlogged_message[:id]).to eq(failed_message.id)
         end
 
         it 'updates failed message status to backlogged' do
@@ -24,17 +24,17 @@ module Outboxer
 
         it 'raises invalid transition error' do
           expect do
-            Message.republish!(id: backlogged_message.id)
+            Message.republish(id: backlogged_message.id)
           end.to raise_error(
-            Message::InvalidTransition,
+            InvalidTransition,
             "cannot transition outboxer message #{backlogged_message.id} " +
               "from backlogged to backlogged")
         end
 
         it 'does not delete backlogged message' do
           begin
-            Message.published!(id: backlogged_message.id)
-          rescue Message::InvalidTransition
+            Message.published(id: backlogged_message.id)
+          rescue InvalidTransition
             # ignore
           end
 

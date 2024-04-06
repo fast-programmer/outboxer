@@ -12,7 +12,7 @@ require 'pry-byebug'
 
 environment = ENV['RAILS_ENV'] || 'development'
 config = Outboxer::Database.config(environment: environment)
-Outboxer::Database.connect!(config: config.merge('pool' => 5))
+Outboxer::Database.connect(config: config.merge('pool' => 5))
 
 module Outboxer
   class App < Sinatra::Base

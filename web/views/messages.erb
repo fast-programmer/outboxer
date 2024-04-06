@@ -89,23 +89,23 @@
 </tr>
                     </thead>
                     <tbody>
-                        <% messages['data'].each do |message| %>
+                        <% messages[:data].each do |message| %>
                             <tr>
-                                <td><input type="checkbox" class="individual-check" form="bulkActionForm" name="selectedMessages[]" value="<%= message['id'] %>"></td>
+                                <td><input type="checkbox" class="individual-check" form="bulkActionForm" name="selectedMessages[]" value="<%= message[:id] %>"></td>
                                 <th scope="row">
-                                    <a href="/message/<%= message['id'] %>" class="custom-link">
-                                    <%= message['id'] %>
+                                    <a href="/message/<%= message[:id] %>" class="custom-link">
+                                    <%= message[:id] %>
                                     </a>
                                 </th>
-                                <td><%= message['status'] %></td>
-                                <td><%= message['messageable'] %></td>
-                                <td><%= message['created_at'] %></td>
-                                <td><%= message['updated_at'] %></td>
+                                <td><%= message[:status] %></td>
+                                <td><%= message[:messageable_type] %>::<%= message[:messageable_id] %></td>
+                                <td><%= message[:created_at] %></td>
+                                <td><%= message[:updated_at] %></td>
                                 <td>
                                     <!-- Action buttons -->
                                     <div class="d-flex">
                                     <!-- Republish Button Form -->
-                                    <form action="/message/<%= message['id'] %>/republish" method="post">
+                                    <form action="/message/<%= message[:id] %>/republish" method="post">
                                         <button type="submit" class="btn btn-sm btn-outline-secondary me-1 d-flex align-items-center justify-content-center">
                                         <i class="bi bi-arrow-clockwise me-1"></i>
                                         <span>Republish</span>
@@ -113,7 +113,7 @@
                                     </form>
 
                                     <!-- Delete Button Form -->
-                                    <form action="/message/<%= message['id'] %>/delete" method="post">
+                                    <form action="/message/<%= message[:id] %>/delete" method="post">
                                         <button type="submit" class="btn btn-sm btn-outline-danger ms-1 d-flex align-items-center justify-content-center">
                                         <i class="bi bi-trash me-1"></i>
                                         <span>Delete</span>
@@ -135,21 +135,21 @@
                         <div class="d-flex justify-content-center">
                             <nav aria-label="Page navigation example">
                                 <ul class="pagination mb-0">
-                                    <% if messages['current_page'] > 1 %>
+                                    <% if messages[:current_page] > 1 %>
                                         <li class="page-item">
-                                            <a class="page-link" href="?page=<%= messages['current_page'] - 1 %>&per_page=<%= per_page %>">Previous</a>
+                                            <a class="page-link" href="?page=<%= messages[:current_page] - 1 %>&per_page=<%= per_page %>">Previous</a>
                                         </li>
                                     <% end %>
 
-                                    <% 1.upto(messages['total_pages']) do |current_page| %>
+                                    <% 1.upto(messages[:total_pages]) do |current_page| %>
                                         <li class="page-item <%= 'active' if current_page == page %>">
                                             <a class="page-link" href="?page=<%= current_page %>&per_page=<%= per_page %>"><%= current_page %></a>
                                         </li>
                                     <% end %>
 
-                                    <% if messages['current_page'] < messages['total_pages'] %>
+                                    <% if messages[:current_page] < messages[:total_pages] %>
                                         <li class="page-item">
-                                            <a class="page-link" href="?page=<%= messages['current_page'] + 1 %>&per_page=<%= per_page %>">Next</a>
+                                            <a class="page-link" href="?page=<%= messages[:current_page] + 1 %>&per_page=<%= per_page %>">Next</a>
                                         </li>
                                     <% end %>
                                 </ul>

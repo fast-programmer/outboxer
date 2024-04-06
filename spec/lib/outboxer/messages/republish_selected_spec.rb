@@ -2,7 +2,7 @@ require 'spec_helper'
 
 module Outboxer
   RSpec.describe Messages do
-    describe '.republish_selected!' do
+    describe '.republish_selected' do
       let!(:message_1) { create(:outboxer_message, :failed) }
       let!(:exception_1) { create(:outboxer_exception, message: message_1) }
       let!(:frame_1) { create(:outboxer_frame, exception: exception_1) }
@@ -12,7 +12,7 @@ module Outboxer
       let!(:frame_2) { create(:outboxer_frame, exception: exception_2) }
 
       let!(:ids) { [message_1.id, message_2.id] }
-      let!(:result) { Messages.republish_selected!(ids: ids) }
+      let!(:result) { Messages.republish_selected(ids: ids) }
 
       describe 'when ids exist' do
         it 'sets message status to backlogged' do
@@ -25,7 +25,7 @@ module Outboxer
         end
 
         it 'returns count' do
-          expect(result['count']).to eq(ids.count)
+          expect(result[:count]).to eq(ids.count)
         end
       end
 
@@ -33,7 +33,7 @@ module Outboxer
         let(:nonexistent_id) { 5 }
 
         it 'raises NotFound' do
-          expect { Messages.republish_selected!(ids: [nonexistent_id]) }
+          expect { Messages.republish_selected(ids: [nonexistent_id]) }
             .to raise_error(NotFound, "Some IDs could not be found: #{nonexistent_id}")
         end
 

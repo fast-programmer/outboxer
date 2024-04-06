@@ -1,13 +1,13 @@
 #!/usr/bin/env ruby
 
 require 'bundler/setup'
-require 'outboxer'
 
+require 'outboxer'
 require 'sidekiq'
 
 environment = ENV['RAILS_ENV'] || 'development'
 config = Outboxer::Database.config(environment: environment)
-Outboxer::Database.connect!(config: config.merge(pool: 1))
+Outboxer::Database.connect(config: config.merge(pool: 1))
 
 Sidekiq.configure_client do |config|
   redis_url = ENV['REDIS_URL'] || 'redis://localhost:6379/0'

@@ -7,17 +7,15 @@
 
 Outboxer is an ActiveRecord implementation of the [transactional outbox pattern](https://microservices.io/patterns/data/transactional-outbox.html).
 
-It helps you quickly migrate conventional Rails apps to an eventually consistent, event driven architecture based on best practice domain driven design (DDD) principles.
-
 ## Installation
 
-### add the gem to your application's gemfile
+### 1. add gem to your application's gemfile
 
 ```
 gem 'outboxer'
 ```
 
-### install the gem
+### 2. install gem
 
 ```
 bundle install
@@ -25,31 +23,33 @@ bundle install
 
 ## Usage
 
-### generate the schema
+### 1. generate schema
 
 ```bash
 bin/rails g outboxer:schema
 ```
 
-### migrate the schema
+### 2. migrate schema
 
 ```bash
 bin/rake db:migrate
 ```
 
-### create an outboxer message in the same transaction as the event record
+###  3. backlog message when event created
 
 ```ruby
 class Event < ActiveRecord::Base
   # ...
 
   after_create do |event|
-    Outboxer::Message.backlog!(messageable_type: event.class.name, messageable_id: event.id)
+    Outboxer::Message.backlog(
+      messageable_type: event.class.name,
+      messageable_id: event.id)
   end
 end
 ```
 
-### define an event created job
+### 4. define event created job
 
 ```ruby
 class EventCreatedJob
@@ -63,28 +63,27 @@ class EventCreatedJob
 end
 ```
 
-### generate the sidekiq publisher
+### 5. generate message publisher
 
 ```bash
-bin/rails g outboxer:sidekiq_publisher
+bin/rails g outboxer:message_publisher
 ```
 
-
-### update the publish block to add an event created job
+### 6. update publish block to queue event created job
 
 ```ruby
-Outboxer::Publisher.publish! do |outboxer_message|
-  case outboxer_message.messageable_type
+Outboxer::Publisher.publish do |message|
+  case message[:messageable_type]
   when 'Event'
-    EventCreatedJob.perform_async({ 'id' => outboxer_message.messageable_id })
+    EventCreatedJob.perform_async({ 'id' => message[:messageable_id] })
   end
 end
 ```
 
-### run the sidekiq publisher
+### 6. run message publisher
 
 ```bash
-bin/sidekiq_publisher
+bin/outboxer_message_publisher
 ```
 
 ## Motivation

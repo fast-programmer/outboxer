@@ -1,5 +1,3 @@
-require "active_record"
-
 module Outboxer
   module Models
     # Represents a message in the outbox.

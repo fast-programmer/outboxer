@@ -33,32 +33,36 @@ module Outboxer
             Messages.list(sort: :status, order: :asc)
           ).to match_array([
             {
-              'id' => 3,
-              'status' => 'failed',
-              'messageable' => 'Event::2',
-              'created_at' => 4.minutes.ago.utc.to_s,
-              'updated_at' => 3.minutes.ago.utc.to_s
+              id: 3,
+              status: 'failed',
+              messageable_type: 'Event',
+              messageable_id: '2',
+              created_at: 4.minutes.ago.utc.to_s,
+              updated_at: 3.minutes.ago.utc.to_s
             },
             {
-              'id' => 2,
-              'status' => 'queued',
-              'messageable' => 'Event::3',
-              'created_at' => 3.minutes.ago.utc.to_s,
-              'updated_at' => 2.minutes.ago.utc.to_s
+              id: 2,
+              status: 'queued',
+              messageable_type: 'Event',
+              messageable_id: '3',
+              created_at: 3.minutes.ago.utc.to_s,
+              updated_at: 2.minutes.ago.utc.to_s
             },
             {
-              'id' => 4,
-              'status' => 'backlogged',
-              'messageable' => 'Event::1',
-              'created_at' => 5.minutes.ago.utc.to_s,
-              'updated_at' => 4.minutes.ago.utc.to_s
+              id: 4,
+              status: 'backlogged',
+              messageable_type: 'Event',
+              messageable_id: '1',
+              created_at: 5.minutes.ago.utc.to_s,
+              updated_at: 4.minutes.ago.utc.to_s
             },
             {
-              'id' => 1,
-              'status' => 'backlogged',
-              'messageable' => 'Event::4',
-              'created_at' => 2.minutes.ago.utc.to_s,
-              'updated_at' => 1.minute.ago.utc.to_s
+              id: 1,
+              status: 'backlogged',
+              messageable_type: 'Event',
+              messageable_id: '4',
+              created_at: 2.minutes.ago.utc.to_s,
+              updated_at: 1.minute.ago.utc.to_s
             }
           ])
         end
@@ -70,18 +74,20 @@ module Outboxer
             Messages.list(status: :backlogged, sort: :status, order: :asc)
           ).to match_array([
             {
-              'id' => 4,
-              'status' => 'backlogged',
-              'messageable' => 'Event::1',
-              'created_at' => 5.minutes.ago.utc.to_s,
-              'updated_at' => 4.minutes.ago.utc.to_s
+              id: 4,
+              status: 'backlogged',
+              messageable_type: 'Event',
+              messageable_id: '1',
+              created_at: 5.minutes.ago.utc.to_s,
+              updated_at: 4.minutes.ago.utc.to_s
             },
             {
-              'id' => 1,
-              'status' => 'backlogged',
-              'messageable' => 'Event::4',
-              'created_at' => 2.minutes.ago.utc.to_s,
-              'updated_at' => 1.minute.ago.utc.to_s
+              id: 1,
+              status: 'backlogged',
+              messageable_type: 'Event',
+              messageable_id: '4',
+              created_at: 2.minutes.ago.utc.to_s,
+              updated_at: 1.minute.ago.utc.to_s
             }
           ])
         end
@@ -93,11 +99,12 @@ module Outboxer
             Messages.list(status: :queued, sort: :status, order: :asc)
           ).to match_array([
             {
-              'id' => 2,
-              'status' => 'queued',
-              'messageable' => 'Event::3',
-              'created_at' => 3.minutes.ago.utc.to_s,
-              'updated_at' => 2.minutes.ago.utc.to_s
+              id: 2,
+              status: 'queued',
+              messageable_type: 'Event',
+              messageable_id: '3',
+              created_at: 3.minutes.ago.utc.to_s,
+              updated_at: 2.minutes.ago.utc.to_s
             }
           ])
         end
@@ -109,11 +116,12 @@ module Outboxer
             Messages.list(status: :failed, sort: :status, order: :asc)
           ).to match_array([
             {
-              'id' => 3,
-              'status' => 'failed',
-              'messageable' => 'Event::2',
-              'created_at' => 4.minutes.ago.utc.to_s,
-              'updated_at' => 3.minutes.ago.utc.to_s
+              id: 3,
+              status: 'failed',
+              messageable_type: 'Event',
+              messageable_id: '2',
+              created_at: 4.minutes.ago.utc.to_s,
+              updated_at: 3.minutes.ago.utc.to_s
             }
           ])
         end
