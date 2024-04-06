@@ -58,16 +58,16 @@ module Outboxer
           expect(
             Messages
               .list(sort: :messageable, order: :asc)
-              .map { |message| message[:messageable] }
-          ).to eq(['Event::1', 'Event::2', 'Event::3', 'Event::4'])
+              .map { |message| [message[:messageable_type], message[:messageable_id]] }
+          ).to eq([['Event', '1'], ['Event', '2'], ['Event', '3'], ['Event', '4']])
         end
 
         it 'sorts messages by messageable in descending order' do
           expect(
             Messages
               .list(sort: :messageable, order: :desc)
-              .map { |message| message[:messageable] }
-          ).to eq(['Event::4', 'Event::3', 'Event::2', 'Event::1'])
+              .map { |message| [message[:messageable_type], message[:messageable_id]] }
+          ).to eq([['Event', '4'], ['Event', '3'], ['Event', '2'], ['Event', '1']])
         end
       end
 
