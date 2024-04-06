@@ -41,14 +41,6 @@ module Outboxer
                foreign_key: 'message_id',
                class_name: "Outboxer::Models::Exception",
                dependent: :destroy
-
-      def self.ransackable_attributes(auth_object = nil)
-        ["created_at", "id", "id_value", "messageable_id", "messageable_type", "status", "updated_at"]
-      end
-
-      def self.ransackable_associations(auth_object = nil)
-        ["messageable", "outboxer_exceptions"]
-      end
     end
   end
 end

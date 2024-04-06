@@ -3,7 +3,6 @@ require 'bundler/setup'
 require 'outboxer'
 require 'sinatra/base'
 require 'kaminari'
-require 'ransack'
 require 'uri'
 require 'rack/flash'
 
