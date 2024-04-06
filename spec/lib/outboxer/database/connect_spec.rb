@@ -1,7 +1,5 @@
 require 'spec_helper'
 
-require './lib/outboxer'
-
 module Outboxer
   RSpec.describe Database do
     describe '.connect' do
