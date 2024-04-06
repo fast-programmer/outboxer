@@ -155,7 +155,7 @@ module Outboxer
     end
 
     def publish(threads: 5, queue: 10, poll: 1,
-                logger: Logger.new($stdout, level: Logger::DEBUG),
+                logger: Logger.new($stdout, level: Logger::INFO),
                 kernel: Kernel, &block)
       Database.connect(config: Database.config) unless Database.connected?
 
