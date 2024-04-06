@@ -13,9 +13,7 @@ module Outboxer
 
     class ConnectError < Error; end
 
-    def connect(config:, logger: nil)
-      ActiveRecord::Base.logger = logger if logger
-
+    def connect(config:)
       ActiveRecord::Base.establish_connection(config)
 
       ActiveRecord::Base.connection_pool.with_connection {}
