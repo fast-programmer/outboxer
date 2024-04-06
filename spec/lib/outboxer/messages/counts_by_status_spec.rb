@@ -7,7 +7,7 @@ module Outboxer
         it 'returns 0 for all statuses' do
           expect(
             Outboxer::Messages.counts_by_status
-          ).to eq({ 'backlogged' => 0, 'queued' => 0, 'publishing' => 0, 'failed' => 0 })
+          ).to eq({ backlogged: 0, queued: 0, publishing: 0, failed: 0 })
         end
       end
 
@@ -22,7 +22,7 @@ module Outboxer
         it 'returns correct counts for each status' do
           expect(
             Messages.counts_by_status
-          ).to eq({ 'backlogged' => 2, 'queued' => 3, 'publishing' => 5, 'failed' => 4 })
+          ).to eq({ backlogged: 2, queued: 3, publishing: 5, failed: 4 })
         end
       end
     end

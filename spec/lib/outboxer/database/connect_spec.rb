@@ -1,15 +1,13 @@
-require './lib/outboxer'
-
 require 'spec_helper'
 
 module Outboxer
   RSpec.describe Database do
-    describe '.connect!' do
-      before(:each) { Database.disconnect! }
+    describe '.connect' do
+      before(:each) { Database.disconnect }
 
       after(:all) do
         config = Database.config(environment: 'test')
-        Database.connect!(config: config)
+        Database.connect(config: config)
       end
 
       context 'when db config not valid' do
@@ -23,13 +21,13 @@ module Outboxer
 
         it 'establishes a connection without errors' do
           expect do
-            Database.connect!(config: config)
+            Database.connect(config: config)
           end.to raise_error(Database::ConnectError)
         end
 
         it 'does not connect to the database' do
           begin
-            Database.connect!(config: config)
+            Database.connect(config: config)
           rescue Database::ConnectError
             # ignore
           end
@@ -42,11 +40,11 @@ module Outboxer
         let(:config) { Database.config(environment: 'test') }
 
         it 'establishes a connection without errors' do
-          expect { Database.connect!(config: config) }.not_to raise_error
+          expect { Database.connect(config: config) }.not_to raise_error
         end
 
         it 'actually connects to the database' do
-          Database.connect!(config: config)
+          Database.connect(config: config)
 
           expect(Database.connected?).to be true
         end

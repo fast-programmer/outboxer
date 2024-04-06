@@ -5,19 +5,15 @@ module Outboxer
   module Database
     extend self
 
-    class Error < Outboxer::Error; end
-
-    class ConnectError < Error; end
-
     def config(environment: ENV['RAILS_ENV'] || 'development', path: 'config/database.yml')
       db_config_content = File.read(path)
       db_config_erb_result = ERB.new(db_config_content).result
       YAML.safe_load(db_config_erb_result, aliases: true)[environment]
     end
 
-    def connect!(config:, logger: nil)
-      ActiveRecord::Base.logger = logger if logger
+    class ConnectError < Error; end
 
+    def connect(config:)
       ActiveRecord::Base.establish_connection(config)
 
       ActiveRecord::Base.connection_pool.with_connection {}
@@ -33,7 +29,7 @@ module Outboxer
 
     class DisconnectError < Error; end
 
-    def disconnect!
+    def disconnect
       ActiveRecord::Base.connection_handler.clear_active_connections!
       ActiveRecord::Base.connection_handler.connection_pool_list.each(&:disconnect!)
     rescue => error

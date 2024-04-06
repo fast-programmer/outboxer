@@ -1,34 +1,21 @@
 require 'bundler/setup'
 
-require 'thread'
-require 'set'
-
 require 'outboxer'
 
-num_threads = 5
-used_ids = Set.new
-mutex = Mutex.new
-
 db_config = Outboxer::Database.config(environment: 'development')
-Outboxer::Database.connect!(config: db_config)
+Outboxer::Database.connect(config: db_config)
 
 Signal.trap('INT') do
   puts 'Shutting down...';
 
-  exit
+  $backlogging = false
 end
 
-# threads = num_threads.times.map do
-#   Thread.new do
-    loop do
-      messageable_id = SecureRandom.hex(3)
-      # next if mutex.synchronize { !used_ids.add?(messageable_id).nil? }
+$backlogging = true
 
-      Outboxer::Message.backlog!(messageable_type: 'Event', messageable_id: messageable_id)
-      puts "backlogged message for Event::#{messageable_id}"
-    end
-#   end
-# end
+while $backlogging
+  messageable_id = SecureRandom.hex(3)
 
-# threads.each(&:join)
-puts "All tasks completed."
+  Outboxer::Message.backlog(messageable_type: 'Event', messageable_id: messageable_id)
+  puts "backlogged message for Event::#{messageable_id}"
+end

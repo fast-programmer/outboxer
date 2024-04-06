@@ -2,7 +2,7 @@ require 'spec_helper'
 
 module Outboxer
   RSpec.describe Messages do
-    describe '.republish_all!' do
+    describe '.republish_all' do
       let!(:message_1) { create(:outboxer_message, :backlogged) }
       let!(:exception_1) { create(:outboxer_exception, message: message_1) }
       let!(:frame_1) { create(:outboxer_frame, exception: exception_1) }
@@ -19,7 +19,7 @@ module Outboxer
       let!(:exception_4) { create(:outboxer_exception, message: message_4) }
       let!(:frame_4) { create(:outboxer_frame, exception: exception_4) }
 
-      let!(:result) { Messages.republish_all!(batch_size: 1) }
+      let!(:result) { Messages.republish_all(batch_size: 1) }
 
       it 'sets failed messages to backlogged' do
         expect(

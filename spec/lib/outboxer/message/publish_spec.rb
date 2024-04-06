@@ -2,7 +2,7 @@ require 'spec_helper'
 
 module Outboxer
   RSpec.describe Message do
-    describe '.publish!' do
+    describe '.publish' do
       let(:queue) { 1 }
       let(:threads) { 1 }
       let(:poll) { 1 }
@@ -17,19 +17,19 @@ module Outboxer
 
       context 'when message published successfully' do
         it 'deletes existing message' do
-          Message.publish!(
+          Message.publish(
             queue: queue,
             threads: threads,
             poll: poll,
             logger: logger,
             kernel: kernel
           ) do |message|
-            expect(message['id']).to eq(backlogged_message.id)
-            expect(message['messageable_type']).to eq(backlogged_message.messageable_type)
-            expect(message['messageable_id']).to eq(backlogged_message.messageable_id)
-            expect(message['status']).to eq(Models::Message::Status::PUBLISHING)
+            expect(message[:id]).to eq(backlogged_message.id)
+            expect(message[:messageable_type]).to eq(backlogged_message.messageable_type)
+            expect(message[:messageable_id]).to eq(backlogged_message.messageable_id)
+            expect(message[:status]).to eq(Models::Message::Status::PUBLISHING)
 
-            Message.stop_publishing!
+            Message.stop_publishing
           end
 
           expect(Models::Message.count).to eq(0)
@@ -41,14 +41,14 @@ module Outboxer
           let(:standard_error) { StandardError.new('some error') }
 
           before do
-            Message.publish!(
+            Message.publish(
               queue: queue,
               threads: threads,
               poll: poll,
               logger: logger,
               kernel: kernel
             ) do |message|
-              Message.stop_publishing!
+              Message.stop_publishing
 
               raise standard_error
             end
@@ -83,14 +83,14 @@ module Outboxer
           let(:no_memory_error) { NoMemoryError.new }
 
           before do
-            Message.publish!(
+            Message.publish(
               queue: queue,
               threads: threads,
               poll: poll,
               logger: logger,
               kernel: kernel
             ) do |queued_message|
-              Message.stop_publishing!
+              Message.stop_publishing
 
               raise no_memory_error
             end

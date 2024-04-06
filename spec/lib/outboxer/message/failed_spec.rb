@@ -2,7 +2,7 @@ require 'spec_helper'
 
 module Outboxer
   RSpec.describe Message do
-    describe '.failed!' do
+    describe '.failed' do
       let(:exception) do
         def raise_exception
           begin
@@ -18,10 +18,10 @@ module Outboxer
       context 'when published message' do
         let!(:publishing_message) { create(:outboxer_message, :publishing) }
 
-        let!(:failed_message) { Message.failed!(id: publishing_message.id, exception: exception) }
+        let!(:failed_message) { Message.failed(id: publishing_message.id, exception: exception) }
 
         it 'returns updated message' do
-          expect(failed_message['id']).to eq(publishing_message.id)
+          expect(failed_message[:id]).to eq(publishing_message.id)
         end
 
         it 'updates message status to failed' do
@@ -54,17 +54,17 @@ module Outboxer
 
         it 'raises invalid transition error' do
           expect do
-            Message.failed!(id: backlogged_message.id, exception: exception)
+            Message.failed(id: backlogged_message.id, exception: exception)
           end.to raise_error(
-            Message::InvalidTransition,
+            InvalidTransition,
             "cannot transition outboxer message #{backlogged_message.id} " +
               "from backlogged to failed")
         end
 
         it 'does not delete backlogged message' do
           begin
-            Message.failed!(id: backlogged_message.id, exception: exception)
-          rescue Message::InvalidTransition
+            Message.failed(id: backlogged_message.id, exception: exception)
+          rescue InvalidTransition
             # ignore
           end
 

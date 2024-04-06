@@ -2,7 +2,7 @@ require 'spec_helper'
 
 module Outboxer
   RSpec.describe Messages do
-    describe '.delete_all!' do
+    describe '.delete_all' do
       let!(:message_1) { create(:outboxer_message, :failed) }
       let!(:exception_1) { create(:outboxer_exception, message: message_1) }
       let!(:frame_1) { create(:outboxer_frame, exception: exception_1) }
@@ -11,7 +11,7 @@ module Outboxer
       let!(:exception_2) { create(:outboxer_exception, message: message_2) }
       let!(:frame) { create(:outboxer_frame, exception: exception_2) }
 
-      let!(:result) { Messages.delete_all! }
+      let!(:result) { Messages.delete_all }
 
       it 'deletes all messages' do
         expect(Models::Message.count).to eq(0)
@@ -26,7 +26,7 @@ module Outboxer
       end
 
       it 'returns count' do
-        expect(result['count']).to eq(2)
+        expect(result[:count]).to eq(2)
       end
     end
   end

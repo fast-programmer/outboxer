@@ -2,14 +2,14 @@ require 'spec_helper'
 
 module Outboxer
   RSpec.describe Database do
-    describe '.disconnect!' do
+    describe '.disconnect' do
       context 'when successful' do
         it 'does not raise an error' do
-          expect { Database.disconnect! }.not_to raise_error
+          expect { Database.disconnect }.not_to raise_error
         end
 
         it 'returns connected false' do
-          Database.disconnect!
+          Database.disconnect
 
           expect(Database.connected?).to be false
         end
@@ -22,7 +22,7 @@ module Outboxer
         end
 
         it 'raises a DisconnectError' do
-          expect { Database.disconnect! }.to raise_error(Database::DisconnectError)
+          expect { Database.disconnect }.to raise_error(Database::DisconnectError)
         end
       end
     end

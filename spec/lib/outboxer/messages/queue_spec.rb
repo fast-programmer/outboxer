@@ -2,7 +2,7 @@ require 'spec_helper'
 
 module Outboxer
   RSpec.describe Messages do
-    describe '.queue!' do
+    describe '.queue' do
       context 'when there are 2 backlogged messages' do
         let!(:backlogged_messages) do
           [
@@ -12,13 +12,13 @@ module Outboxer
         end
 
         context 'when limit is 1' do
-          let!(:queued_messages) { Messages.queue!(limit: 1) }
+          let!(:queued_messages) { Messages.queue(limit: 1) }
 
           it 'returns first backlogged message' do
             expect(queued_messages.count).to eq(1)
 
             queued_message = queued_messages.first
-            expect(queued_message['status']).to eq(Models::Message::Status::QUEUED)
+            expect(queued_message[:id]).to eq(backlogged_messages[0].id)
           end
 
           it 'keeps last backlogged message' do

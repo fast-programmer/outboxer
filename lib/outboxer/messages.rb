@@ -1,28 +1,22 @@
-require "logger"
-require "active_record"
-
 module Outboxer
   module Messages
     extend self
 
-    class Error < Outboxer::Error; end;
-    class InvalidTransition < Error; end
-
     def counts_by_status
       ActiveRecord::Base.connection_pool.with_connection do
         status_counts = Models::Message::STATUSES.each_with_object({}) do |status, hash|
-          hash[status.to_s] = 0
+          hash[status.to_sym] = 0
         end
 
         Models::Message.group(:status).count.each do |status, count|
-          status_counts[status.to_s] = count
+          status_counts[status.to_sym] = count
         end
 
         status_counts
       end
     end
 
-    def queue!(limit: 1)
+    def queue(limit: 1)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           ids = Models::Message
@@ -42,7 +36,7 @@ module Outboxer
                 'The number of updated messages does not match the expected number of ids.'
             end
 
-            ids.map { |id| { 'id' => id, 'status' => Models::Message::Status::QUEUED } }
+            ids.map { |id| { id: id } }
           else
             []
           end
@@ -90,16 +84,17 @@ module Outboxer
 
       messages.map do |message|
         {
-          'id' => message.id,
-          'status' => message.status,
-          'messageable' => "#{message.messageable_type}::#{message.messageable_id}",
-          'created_at' => message.created_at.utc.to_s,
-          'updated_at' => message.updated_at.utc.to_s
+          id: message.id,
+          status: message.status,
+          messageable_type: message.messageable_type,
+          messageable_id: message.messageable_id,
+          created_at: message.created_at.utc.to_s,
+          updated_at: message.updated_at.utc.to_s
         }
       end
     end
 
-    def republish_all!(batch_size: 100)
+    def republish_all(batch_size: 100)
       updated_total_count = 0
 
       ActiveRecord::Base.connection_pool.with_connection do
@@ -127,10 +122,10 @@ module Outboxer
         end
       end
 
-      { 'count' => updated_total_count }
+      { count: updated_total_count }
     end
 
-    def republish_selected!(ids:)
+    def republish_selected(ids:)
       updated_count = 0
 
       ActiveRecord::Base.connection_pool.with_connection do
@@ -151,10 +146,10 @@ module Outboxer
         end
       end
 
-      { 'count' => updated_count }
+      { count: updated_count }
     end
 
-    def delete_all!(batch_size: 100)
+    def delete_all(batch_size: 100)
       deleted_total_count = 0
 
       ActiveRecord::Base.connection_pool.with_connection do
@@ -181,10 +176,10 @@ module Outboxer
         end
       end
 
-      { 'count' => deleted_total_count }
+      { count: deleted_total_count }
     end
 
-    def delete_selected!(ids:)
+    def delete_selected(ids:)
       deleted_count = 0
 
       ActiveRecord::Base.connection_pool.with_connection do
@@ -207,7 +202,7 @@ module Outboxer
         end
       end
 
-      { 'count' => deleted_count }
+      { count: deleted_count }
     end
   end
 end

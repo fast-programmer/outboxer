@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'bundler/setup'
+
 require 'outboxer'
 require 'sidekiq'
 
@@ -22,13 +23,13 @@ def fetch_process_stats(pid)
   { pid: pid, rss_mb: rss_mb, cpu: cpu, cpu_per_core: cpu_per_core.round(2), elapsed: elapsed, vsz_mb: vsz_mb }
 end
 
-def sidekiq_publisher_pids
-  `pgrep -f bin/outboxer_publisher$`.strip.split("\n")
+def outboxer_message_publisher_pids
+  `pgrep -f bin/outboxer_message_publisher$`.strip.split("\n")
 end
 
 environment = ENV['RAILS_ENV'] || 'development'
 config = Outboxer::Database.config(environment: environment)
-Outboxer::Database.connect!(config: config.merge('pool' => 1))
+Outboxer::Database.connect(config: config.merge('pool' => 1))
 
 Signal.trap("SIGINT") do
   puts "\nExiting gracefully..."
@@ -52,7 +53,7 @@ loop do
     end
   end
 
-  pids = sidekiq_publisher_pids.sort
+  pids = outboxer_message_publisher_pids.sort
 
   puts "Outboxer Report"
   puts Time.now.utc
@@ -63,7 +64,7 @@ loop do
   puts format("%-15s: %-10s", "Failed", total_failed)
 
   if pids.empty?
-    puts "\nbin/outboxer_publisher processes not found."
+    puts "\nbin/outboxer_message_publisher processes not found."
   else
     puts "\n---- Process Stats ----"
     pids.each do |pid|

@@ -1,15 +1,8 @@
-require "logger"
-require "active_record"
-
 module Outboxer
   module Message
     extend self
 
-    class Error < Outboxer::Error; end;
-    class NotFound < Error; end
-    class InvalidTransition < Error; end
-
-    def backlog!(messageable_type:, messageable_id:)
+    def backlog(messageable_type:, messageable_id:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           message = Models::Message.create!(
@@ -17,33 +10,34 @@ module Outboxer
             messageable_type: messageable_type,
             status: Models::Message::Status::BACKLOGGED)
 
-          { 'id' => message.id }
+          { id: message.id }
         end
       end
     end
 
-    def find_by_id!(id:)
+    def find_by_id(id:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           message = Models::Message.includes(exceptions: :frames).find_by!(id: id)
 
           {
-            'id' => message.id,
-            'status' => message.status,
-            'messageable' => "#{message.messageable_type}::#{message.messageable_id}",
-            'created_at' => message.created_at.utc.to_s,
-            'updated_at' => message.updated_at.utc.to_s,
-            'exceptions' => message.exceptions.map do |exception|
+            id: message.id,
+            status: message.status,
+            messageable_type: message.messageable_type,
+            messageable_id: message.messageable_id,
+            created_at: message.created_at.utc.to_s,
+            updated_at: message.updated_at.utc.to_s,
+            exceptions: message.exceptions.map do |exception|
               {
-                'id' => exception.id,
-                'class_name' => exception.class_name,
-                'message_text' => exception.message_text,
-                'created_at' => exception.created_at.utc.to_s,
-                'frames' => exception.frames.map do |frame|
+                id: exception.id,
+                class_name: exception.class_name,
+                message_text: exception.message_text,
+                created_at: exception.created_at.utc.to_s,
+                frames: exception.frames.map do |frame|
                   {
-                    'id' => frame.id,
-                    'index' => frame.index,
-                    'text' => frame.text
+                    id: frame.id,
+                    index: frame.index,
+                    text: frame.text
                   }
                 end
               }
@@ -55,7 +49,7 @@ module Outboxer
       raise NotFound, "Couldn't find Outboxer::Models::Message with id #{id}"
     end
 
-    def publishing!(id:)
+    def publishing(id:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           message = Models::Message.lock.find_by!(id: id)
@@ -69,17 +63,17 @@ module Outboxer
           message.update!(status: Models::Message::Status::PUBLISHING)
 
           {
-            'id' => id,
-            'status' => message.status,
-            'messageable_type' => message.messageable_type,
-            'messageable_id' => message.messageable_id
+            id: id,
+            status: message.status,
+            messageable_type: message.messageable_type,
+            messageable_id: message.messageable_id
           }
         end
       end
     end
 
 
-    def published!(id:)
+    def published(id:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           message = Models::Message.lock.find_by!(id: id)
@@ -94,12 +88,12 @@ module Outboxer
           message.exceptions.delete_all
           message.delete
 
-          { 'id' => id }
+          { id: id }
         end
       end
     end
 
-    def failed!(id:, exception:)
+    def failed(id:, exception:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           message = Models::Message.order(created_at: :asc).lock.find_by!(id: id)
@@ -119,12 +113,12 @@ module Outboxer
             outboxer_exception.frames.create!(index: index, text: frame)
           end
 
-          { 'id' => id }
+          { id: id }
         end
       end
     end
 
-    def delete!(id:)
+    def delete(id:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           message = Models::Message.includes(exceptions: :frames).lock.find_by!(id: id)
@@ -133,12 +127,12 @@ module Outboxer
           message.exceptions.delete_all
           message.delete
 
-          { 'id' => id }
+          { id: id }
         end
       end
     end
 
-    def republish!(id:)
+    def republish(id:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           message = Models::Message.lock.find_by!(id: id)
@@ -151,19 +145,19 @@ module Outboxer
 
           message.update!(status: Models::Message::Status::BACKLOGGED)
 
-          { 'id' => id }
+          { id: id }
         end
       end
     end
 
-    def stop_publishing!
+    def stop_publishing
       @publishing = false
     end
 
-    def publish!(threads: 5, queue: 100, poll: 1,
-                 logger: Logger.new($stdout, level: ::Logger::INFO),
-                 kernel: Kernel, &block)
-      Database.connect!(config: Database.config, logger: logger) unless Database.connected?
+    def publish(threads: 5, queue: 10, poll: 1,
+                logger: Logger.new($stdout, level: Logger::INFO),
+                kernel: Kernel, &block)
+      Database.connect(config: Database.config) unless Database.connected?
 
       ruby_queue = Queue.new
 
@@ -183,20 +177,20 @@ module Outboxer
                 break
               end
 
-              logger.info "Publishing message (id: #{message['id']}) }"
-              message = Message.publishing!(id: message['id'])
+              logger.info "Publishing message (id: #{message[:id]}) }"
+              message = Message.publishing(id: message[:id])
 
               begin
                 block.call(message)
               rescue Exception => exception
-                logger.error "Failed to publish message { id: #{message['id']}, error: #{exception} }"
-                Message.failed!(id: message['id'], exception: exception)
+                logger.error "Failed to publish message { id: #{message[:id]}, error: #{exception} }"
+                Message.failed(id: message[:id], exception: exception)
 
                 raise
               end
 
-              logger.info "Published message { id: #{message['id']} }"
-              Message.published!(id: message['id'])
+              logger.info "Published message { id: #{message[:id]} }"
+              Message.published(id: message[:id])
             rescue => exception
               logger.error "#{exception.class}: #{exception.message}"
             rescue Exception => exception
@@ -221,15 +215,16 @@ module Outboxer
           messages = []
 
           queue_remaining = queue - ruby_queue.length
+
           logger.info "Queue: #{queue} total size."
           logger.info "Queue: #{ruby_queue.length} current size."
           logger.info "Queue: #{queue_remaining} slots available."
           logger.info ActiveRecord::Base.connection_pool.stat
 
-          messages = (queue_remaining > 0) ? Messages.queue!(limit: queue_remaining) : []
+          messages = (queue_remaining > 0) ? Messages.queue(limit: queue_remaining) : []
           logger.info "#{messages.length} messages fetched for queuing."
 
-          messages.each { |message| ruby_queue.push({ 'id' => message['id'] }) }
+          messages.each { |message| ruby_queue.push({ id: message[:id] }) }
           logger.info "#{messages.length} messages pushed to the Ruby queue."
 
           if messages.empty?
@@ -257,7 +252,7 @@ module Outboxer
 
       logger.info "Stopped publishing queued messages"
 
-      Database.disconnect!
+      Database.disconnect
 
       logger.info "Shut down gracefully"
     end
