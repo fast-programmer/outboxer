@@ -9,7 +9,7 @@ module Outboxer
     class NotFound < Error; end
     class InvalidTransition < Error; end
 
-    def backlog!(messageable_type:, messageable_id:)
+    def backlog(messageable_type:, messageable_id:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           message = Models::Message.create!(
@@ -22,7 +22,7 @@ module Outboxer
       end
     end
 
-    def find_by_id!(id:)
+    def find_by_id(id:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           message = Models::Message.includes(exceptions: :frames).find_by!(id: id)
@@ -55,7 +55,7 @@ module Outboxer
       raise NotFound, "Couldn't find Outboxer::Models::Message with id #{id}"
     end
 
-    def publishing!(id:)
+    def publishing(id:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           message = Models::Message.lock.find_by!(id: id)
@@ -79,7 +79,7 @@ module Outboxer
     end
 
 
-    def published!(id:)
+    def published(id:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           message = Models::Message.lock.find_by!(id: id)
@@ -99,7 +99,7 @@ module Outboxer
       end
     end
 
-    def failed!(id:, exception:)
+    def failed(id:, exception:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           message = Models::Message.order(created_at: :asc).lock.find_by!(id: id)
@@ -124,7 +124,7 @@ module Outboxer
       end
     end
 
-    def delete!(id:)
+    def delete(id:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           message = Models::Message.includes(exceptions: :frames).lock.find_by!(id: id)
@@ -138,7 +138,7 @@ module Outboxer
       end
     end
 
-    def republish!(id:)
+    def republish(id:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           message = Models::Message.lock.find_by!(id: id)
@@ -156,14 +156,14 @@ module Outboxer
       end
     end
 
-    def stop_publishing!
+    def stop_publishing
       @publishing = false
     end
 
-    def publish!(threads: 5, queue: 10, poll: 1,
+    def publish(threads: 5, queue: 10, poll: 1,
                  logger: Logger.new($stdout, level: ::Logger::INFO),
                  kernel: Kernel, &block)
-      Database.connect!(config: Database.config, logger: logger) unless Database.connected?
+      Database.connect(config: Database.config, logger: logger) unless Database.connected?
 
       ruby_queue = Queue.new
 
@@ -184,19 +184,19 @@ module Outboxer
               end
 
               logger.info "Publishing message (id: #{message['id']}) }"
-              message = Message.publishing!(id: message['id'])
+              message = Message.publishing(id: message['id'])
 
               begin
                 block.call(message)
               rescue Exception => exception
                 logger.error "Failed to publish message { id: #{message['id']}, error: #{exception} }"
-                Message.failed!(id: message['id'], exception: exception)
+                Message.failed(id: message['id'], exception: exception)
 
                 raise
               end
 
               logger.info "Published message { id: #{message['id']} }"
-              Message.published!(id: message['id'])
+              Message.published(id: message['id'])
             rescue => exception
               logger.error "#{exception.class}: #{exception.message}"
             rescue Exception => exception
@@ -221,7 +221,7 @@ module Outboxer
           messages = []
 
           queue_remaining = queue - ruby_queue.length
-          messages = (queue_remaining > 0) ? Messages.queue!(limit: queue_remaining) : []
+          messages = (queue_remaining > 0) ? Messages.queue(limit: queue_remaining) : []
           messages.each { |message| ruby_queue.push({ 'id' => message['id'] }) }
 
           kernel.sleep(poll) if messages.empty? || (ruby_queue.length >= queue)
@@ -241,7 +241,7 @@ module Outboxer
 
       logger.info "Stopped publishing queued messages"
 
-      Database.disconnect!
+      Database.disconnect
 
       logger.info "Shut down gracefully"
     end

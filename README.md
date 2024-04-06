@@ -37,14 +37,16 @@ bin/rails g outboxer:schema
 bin/rake db:migrate
 ```
 
-### create an outboxer message in the same transaction as the event record
+###  when an event is created, backlog an outboxer message (in same transaction)
 
 ```ruby
 class Event < ActiveRecord::Base
   # ...
 
   after_create do |event|
-    Outboxer::Message.backlog!(messageable_type: event.class.name, messageable_id: event.id)
+    Outboxer::Message.backlog(
+      messageable_type: event.class.name,
+      messageable_id: event.id)
   end
 end
 ```
@@ -73,10 +75,10 @@ bin/rails g outboxer:sidekiq_publisher
 ### update the publish block to add an event created job
 
 ```ruby
-Outboxer::Publisher.publish! do |outboxer_message|
-  case outboxer_message.messageable_type
+Outboxer::Publisher.publish do |outboxer_message|
+  case outboxer_message['messageable_type']
   when 'Event'
-    EventCreatedJob.perform_async({ 'id' => outboxer_message.messageable_id })
+    EventCreatedJob.perform_async({ 'id' => outboxer_message['messageable_id'] })
   end
 end
 ```

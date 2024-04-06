@@ -7,7 +7,7 @@ module Outboxer
       let!(:exception) { create(:outboxer_exception, message: message) }
       let!(:frame) { create(:outboxer_frame, exception: exception) }
 
-      let!(:result) { Message.delete!(id: message.id) }
+      let!(:result) { Message.delete(id: message.id) }
 
       it 'deletes the message' do
         expect(Models::Message).not_to exist(message.id)
