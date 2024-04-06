@@ -35,7 +35,7 @@ bin/rails g outboxer:schema
 bin/rake db:migrate
 ```
 
-###  3. backlog outboxer message when event created
+###  3. backlog message when event created
 
 ```ruby
 class Event < ActiveRecord::Base
@@ -63,27 +63,27 @@ class EventCreatedJob
 end
 ```
 
-### 5. generate sidekiq publisher
+### 5. generate message publisher
 
 ```bash
-bin/rails g outboxer:sidekiq_publisher
+bin/rails g outboxer:message_publisher
 ```
 
 ### 6. update publish block to queue event created job
 
 ```ruby
-Outboxer::Publisher.publish do |outboxer_message|
-  case outboxer_message[:messageable_type]
+Outboxer::Publisher.publish do |message|
+  case message[:messageable_type]
   when 'Event'
-    EventCreatedJob.perform_async({ 'id' => outboxer_message[:messageable_id] })
+    EventCreatedJob.perform_async({ 'id' => message[:messageable_id] })
   end
 end
 ```
 
-### 6. run sidekiq publisher
+### 6. run message publisher
 
 ```bash
-bin/sidekiq_publisher
+bin/outboxer_message_publisher
 ```
 
 ## Motivation

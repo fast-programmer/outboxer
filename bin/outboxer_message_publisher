@@ -20,4 +20,4 @@ Outboxer::Message.publish(threads: 5, queue: 10, poll: 5) do |message|
   end
 end
 
-# bin/outboxer_sidekiq_publisher
+# bin/outboxer_message_publisher
