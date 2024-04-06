@@ -18,7 +18,7 @@ end
 
 environment = ENV['RAILS_ENV'] || 'development'
 config = Outboxer::Database.config(environment: environment)
-Outboxer::Database.connect!(config: config.merge('pool' => 1))
+Outboxer::Database.connect(config: config.merge('pool' => 1))
 
 Signal.trap("SIGINT") do
   puts "\nExiting gracefully..."

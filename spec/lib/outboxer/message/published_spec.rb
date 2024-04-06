@@ -18,7 +18,7 @@ module Outboxer
       end
 
       context 'when backlogged messaged' do
-        let(:backlogged_message) { create(:outboxer_message, :backlogged) }
+        let!(:backlogged_message) { create(:outboxer_message, :backlogged) }
 
         it 'raises invalid transition error' do
           expect do
