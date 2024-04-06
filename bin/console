@@ -1,9 +1,9 @@
 #!/usr/bin/env ruby
 
 require 'bundler/setup'
-require 'outboxer'
 
 require 'sidekiq'
+require 'outboxer'
 
 environment = ENV['RAILS_ENV'] || 'development'
 config = Outboxer::Database.config(environment: environment)

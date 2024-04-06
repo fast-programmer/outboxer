@@ -1,6 +1,3 @@
-require 'outboxer'
-require 'rails'
-
 module Outboxer
   class Railtie < Rails::Railtie
     railtie_name :outboxer
