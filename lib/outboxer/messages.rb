@@ -5,9 +5,6 @@ module Outboxer
   module Messages
     extend self
 
-    class Error < Outboxer::Error; end;
-    class InvalidTransition < Error; end
-
     def counts_by_status
       ActiveRecord::Base.connection_pool.with_connection do
         status_counts = Models::Message::STATUSES.each_with_object({}) do |status, hash|

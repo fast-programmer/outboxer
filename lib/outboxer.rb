@@ -6,6 +6,8 @@ require_relative "outboxer/railtie" if defined?(Rails)
 
 require_relative "outboxer/error"
 require_relative "outboxer/argument_error"
+require_relative "outboxer/not_found"
+require_relative "outboxer/invalid_transition"
 
 require_relative "outboxer/logger"
 
