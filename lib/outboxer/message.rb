@@ -216,25 +216,25 @@ module Outboxer
 
           queue_remaining = queue - ruby_queue.length
 
-          logger.info "Queue: #{queue} total size."
-          logger.info "Queue: #{ruby_queue.length} current size."
-          logger.info "Queue: #{queue_remaining} slots available."
-          logger.info ActiveRecord::Base.connection_pool.stat
+          logger.debug "Queue: #{queue} total size."
+          logger.debug "Queue: #{ruby_queue.length} current size."
+          logger.debug "Queue: #{queue_remaining} slots available."
+          logger.debug ActiveRecord::Base.connection_pool.stat
 
           messages = (queue_remaining > 0) ? Messages.queue(limit: queue_remaining) : []
-          logger.info "#{messages.length} messages fetched for queuing."
+          logger.debug "#{messages.length} messages fetched for queuing."
 
           messages.each { |message| ruby_queue.push({ id: message[:id] }) }
-          logger.info "#{messages.length} messages pushed to the Ruby queue."
+          logger.debug "#{messages.length} messages pushed to the Ruby queue."
 
           if messages.empty?
-            logger.info "No new messages were fetched. Sleeping for #{poll} seconds..."
+            logger.debug "No new messages were fetched. Sleeping for #{poll} seconds..."
             kernel.sleep(poll)
           elsif ruby_queue.length >= queue
-            logger.info "Ruby queue is full. Sleeping for #{poll} seconds..."
+            logger.debug "Ruby queue is full. Sleeping for #{poll} seconds..."
             kernel.sleep(poll)
           else
-            logger.info "Continuing to queue messages."
+            logger.debug "Continuing to queue messages."
           end
         rescue => exception
           logger.error "#{exception.class}: #{exception.message}"
