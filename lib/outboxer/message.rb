@@ -5,10 +5,6 @@ module Outboxer
   module Message
     extend self
 
-    class Error < Outboxer::Error; end;
-    class NotFound < Error; end
-    class InvalidTransition < Error; end
-
     def backlog(messageable_type:, messageable_id:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do

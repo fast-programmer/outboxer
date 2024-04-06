@@ -26,7 +26,7 @@ module Outboxer
 
       context 'when the message does not exist' do
         it 'raises a NotFound error' do
-          expect { Message.find_by_id(id: -1) }.to raise_error(Message::NotFound)
+          expect { Message.find_by_id(id: -1) }.to raise_error(NotFound)
         end
       end
     end
