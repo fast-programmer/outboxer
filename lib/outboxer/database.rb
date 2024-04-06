@@ -5,15 +5,13 @@ module Outboxer
   module Database
     extend self
 
-    class Error < Outboxer::Error; end
-
-    class ConnectError < Error; end
-
     def config(environment: ENV['RAILS_ENV'] || 'development', path: 'config/database.yml')
       db_config_content = File.read(path)
       db_config_erb_result = ERB.new(db_config_content).result
       YAML.safe_load(db_config_erb_result, aliases: true)[environment]
     end
+
+    class ConnectError < Error; end
 
     def connect(config:, logger: nil)
       ActiveRecord::Base.logger = logger if logger
