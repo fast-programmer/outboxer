@@ -30,7 +30,8 @@ module Outboxer
           {
             id: message.id,
             status: message.status,
-            messageable: "#{message.messageable_type}::#{message.messageable_id}",
+            messageable_type: message.messageable_type,
+            messageable_id: message.messageable_id,
             created_at: message.created_at.utc.to_s,
             updated_at: message.updated_at.utc.to_s,
             exceptions: message.exceptions.map do |exception|
