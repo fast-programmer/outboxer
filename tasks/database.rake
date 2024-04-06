@@ -11,7 +11,7 @@ namespace :outboxer do
 
       ActiveRecord::Base.establish_connection(db_config.merge('database' => 'postgres'))
       ActiveRecord::Base.connection.drop_database(db_config['database'])
-      ActiveRecord::Base.connection.disconnect!
+      ActiveRecord::Base.connection.disconnect
     end
 
     task :create do
@@ -20,7 +20,7 @@ namespace :outboxer do
 
       ActiveRecord::Base.establish_connection(db_config.merge('database' => 'postgres'))
       ActiveRecord::Base.connection.create_database(db_config['database'])
-      ActiveRecord::Base.connection.disconnect!
+      ActiveRecord::Base.connection.disconnect
     end
 
     task :migrate do
@@ -37,7 +37,7 @@ namespace :outboxer do
       require_relative "../db/migrate/create_outboxer_frames"
       CreateOutboxerFrames.new.up
 
-      ActiveRecord::Base.connection.disconnect!
+      ActiveRecord::Base.connection.disconnect
     end
 
     task :seed do
@@ -47,7 +47,7 @@ namespace :outboxer do
 
       require_relative "../db/seeds"
 
-      ActiveRecord::Base.connection.disconnect!
+      ActiveRecord::Base.connection.disconnect
     end
 
     task :setup => [:create, :migrate, :seed]

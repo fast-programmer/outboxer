@@ -22,7 +22,7 @@ module Outboxer
       end
     end
 
-    def queue!(limit: 1)
+    def queue(limit: 1)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           ids = Models::Message
@@ -99,7 +99,7 @@ module Outboxer
       end
     end
 
-    def republish_all!(batch_size: 100)
+    def republish_all(batch_size: 100)
       updated_total_count = 0
 
       ActiveRecord::Base.connection_pool.with_connection do
@@ -130,7 +130,7 @@ module Outboxer
       { 'count' => updated_total_count }
     end
 
-    def republish_selected!(ids:)
+    def republish_selected(ids:)
       updated_count = 0
 
       ActiveRecord::Base.connection_pool.with_connection do
@@ -154,7 +154,7 @@ module Outboxer
       { 'count' => updated_count }
     end
 
-    def delete_all!(batch_size: 100)
+    def delete_all(batch_size: 100)
       deleted_total_count = 0
 
       ActiveRecord::Base.connection_pool.with_connection do
@@ -184,7 +184,7 @@ module Outboxer
       { 'count' => deleted_total_count }
     end
 
-    def delete_selected!(ids:)
+    def delete_selected(ids:)
       deleted_count = 0
 
       ActiveRecord::Base.connection_pool.with_connection do

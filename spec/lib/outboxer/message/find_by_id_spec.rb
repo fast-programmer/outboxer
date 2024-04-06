@@ -2,14 +2,14 @@ require 'spec_helper'
 
 module Outboxer
   RSpec.describe Message do
-    describe '.find_by_id!' do
+    describe '.find_by_id' do
       context 'when a failed message exists' do
         let!(:message) { create(:outboxer_message, :failed) }
         let!(:exception) { create(:outboxer_exception, message: message) }
         let!(:frame) { create(:outboxer_frame, exception: exception) }
 
         it 'returns the message, exceptions and frames' do
-          result = Message.find_by_id!(id: message.id)
+          result = Message.find_by_id(id: message.id)
 
           expect(result['id']).to eq(message.id)
           expect(result['status']).to eq('failed')
@@ -26,7 +26,7 @@ module Outboxer
 
       context 'when the message does not exist' do
         it 'raises a NotFound error' do
-          expect { Message.find_by_id!(id: -1) }.to raise_error(Message::NotFound)
+          expect { Message.find_by_id(id: -1) }.to raise_error(Message::NotFound)
         end
       end
     end

@@ -15,7 +15,7 @@ module Outboxer
       YAML.safe_load(db_config_erb_result, aliases: true)[environment]
     end
 
-    def connect!(config:, logger: nil)
+    def connect(config:, logger: nil)
       ActiveRecord::Base.logger = logger if logger
 
       ActiveRecord::Base.establish_connection(config)
@@ -33,7 +33,7 @@ module Outboxer
 
     class DisconnectError < Error; end
 
-    def disconnect!
+    def disconnect
       ActiveRecord::Base.connection_handler.clear_active_connections!
       ActiveRecord::Base.connection_handler.connection_pool_list.each(&:disconnect!)
     rescue => error
