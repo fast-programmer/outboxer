@@ -9,7 +9,7 @@ module Outboxer
         let!(:published_message) { Message.published(id: publishing_message.id) }
 
         it 'returns nil' do
-          expect(published_message).to eq({ 'id' => publishing_message.id })
+          expect(published_message).to eq({ id: publishing_message.id })
         end
 
         it 'deletes publishing message' do

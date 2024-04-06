@@ -8,7 +8,7 @@ module Outboxer
         let!(:publishing_message) { Message.publishing(id: queued_message.id) }
 
         it 'returns publishing message' do
-          expect(publishing_message['id']).to eq(Models::Message.publishing.last.id)
+          expect(publishing_message[:id]).to eq(Models::Message.publishing.last.id)
         end
       end
 

@@ -14,7 +14,7 @@ module Outboxer
       end
 
       it 'returns the message id' do
-        expect(result['id']).to eq(message.id)
+        expect(result[:id]).to eq(message.id)
       end
     end
   end

@@ -40,7 +40,7 @@ module Outboxer
           expect(
             Messages
               .list(sort: :status, order: :asc)
-              .map { |message| message['status'] }
+              .map { |message| message[:status] }
           ).to eq(['backlogged', 'backlogged', 'failed', 'queued'])
         end
 
@@ -48,7 +48,7 @@ module Outboxer
           expect(
             Messages
               .list(sort: :status, order: :desc)
-              .map { |message| message['status'] }
+              .map { |message| message[:status] }
           ).to eq(['queued', 'failed', 'backlogged', 'backlogged'])
         end
       end
@@ -58,7 +58,7 @@ module Outboxer
           expect(
             Messages
               .list(sort: :messageable, order: :asc)
-              .map { |message| message['messageable'] }
+              .map { |message| message[:messageable] }
           ).to eq(['Event::1', 'Event::2', 'Event::3', 'Event::4'])
         end
 
@@ -66,7 +66,7 @@ module Outboxer
           expect(
             Messages
               .list(sort: :messageable, order: :desc)
-              .map { |message| message['messageable'] }
+              .map { |message| message[:messageable] }
           ).to eq(['Event::4', 'Event::3', 'Event::2', 'Event::1'])
         end
       end
@@ -76,7 +76,7 @@ module Outboxer
           expect(
             Messages
               .list(sort: :created_at, order: :asc)
-              .map { |message| message['id'] }
+              .map { |message| message[:id] }
           ).to eq([4, 3, 2, 1])
         end
 
@@ -84,7 +84,7 @@ module Outboxer
           expect(
             Messages
               .list(sort: :created_at, order: :desc)
-              .map { |message| message['id'] }
+              .map { |message| message[:id] }
           ).to eq([1, 2, 3, 4])
         end
       end
@@ -94,7 +94,7 @@ module Outboxer
           expect(
             Messages
               .list(sort: :updated_at, order: :asc)
-              .map { |message| message['id'] }
+              .map { |message| message[:id] }
           ).to eq([4, 3, 2, 1])
         end
 
@@ -102,7 +102,7 @@ module Outboxer
           expect(
             Messages
               .list(sort: :updated_at, order: :desc)
-              .map { |message| message['id'] }
+              .map { |message| message[:id] }
           ).to eq([1, 2, 3, 4])
         end
       end
