@@ -163,38 +163,42 @@ module Outboxer
 
       @publishing = true
 
-      logger.info "Creating #{threads} publisher threads"
+      main_thread_id = SecureRandom.hex(3)
+
+      logger.info "[TID-#{main_thread_id}] Creating #{threads} worker threads"
 
       ruby_threads = threads.times.map do
         Thread.new do
+          thread_id = SecureRandom.hex(3)
+
           loop do
             begin
               message = ruby_queue.pop
 
               if message.nil?
-                logger.info 'Shutting down publisher thread'
+                logger.info "[TID-#{thread_id}] > Shutting down worker thread"
 
                 break
               end
 
-              logger.info "Publishing message (id: #{message[:id]}) }"
+              logger.info "[TID-#{thread_id}] > Publishing message { id: #{message[:id]} } }"
               message = Message.publishing(id: message[:id])
 
               begin
                 block.call(message)
               rescue Exception => exception
-                logger.error "Failed to publish message { id: #{message[:id]}, error: #{exception} }"
+                logger.error "[TID-#{thread_id}] > Failed to publish message { id: #{message[:id]}, error: #{exception} }"
                 Message.failed(id: message[:id], exception: exception)
 
                 raise
               end
 
-              logger.info "Published message { id: #{message[:id]} }"
+              logger.info "[TID-#{thread_id}] > Published message { id: #{message[:id]} }"
               Message.published(id: message[:id])
             rescue => exception
-              logger.error "#{exception.class}: #{exception.message}"
+              logger.error "[TID-#{thread_id}] > #{exception.class}: #{exception.message}"
             rescue Exception => exception
-              logger.fatal "#{exception.class}: #{exception.message}"
+              logger.fatal "[TID-#{thread_id}] > #{exception.class}: #{exception.message}"
 
               @publishing = false
 
@@ -202,59 +206,60 @@ module Outboxer
             end
           end
 
-          logger.info 'Shut down publisher thread'
+          logger.info "[TID-#{thread_id}] > Shut down worker thread"
         end
       end
 
-      logger.info "Created #{threads} publisher threads"
+      logger.info "[TID-#{main_thread_id}] Created #{threads} publisher threads"
 
-      logger.info 'Queuing backlogged messages...'
+      logger.info "[TID-#{main_thread_id}] Queuing backlogged messages..."
 
       while @publishing
         begin
           messages = []
 
-          queue_remaining = queue - ruby_queue.length
+          queue_available = queue - ruby_queue.length
+          queue_stats = { total: queue, current: ruby_queue.length, available: queue_available }
+          logger.debug "[TID-#{main_thread_id}] Queue Stats: #{queue_stats}"
 
-          logger.debug "Queue: #{queue} total size."
-          logger.debug "Queue: #{ruby_queue.length} current size."
-          logger.debug "Queue: #{queue_remaining} slots available."
-          logger.debug ActiveRecord::Base.connection_pool.stat
+          logger.debug "[TID-#{main_thread_id}] Pool Stats: #{ActiveRecord::Base.connection_pool.stat}"
 
-          messages = (queue_remaining > 0) ? Messages.queue(limit: queue_remaining) : []
-          logger.debug "#{messages.length} messages fetched for queuing."
+          messages = (queue_available > 0) ? Messages.queue(limit: queue_available) : []
+          logger.debug "[TID-#{main_thread_id}] Fetched #{messages.length} backlogged messages for queuing."
 
           messages.each { |message| ruby_queue.push({ id: message[:id] }) }
-          logger.debug "#{messages.length} messages pushed to the Ruby queue."
+          logger.debug "[TID-#{main_thread_id}] Pushed #{messages.length} backlogged messages to queue."
 
           if messages.empty?
-            logger.debug "No new messages were fetched. Sleeping for #{poll} seconds..."
+            logger.debug "[TID-#{main_thread_id}] No new backlogged messages fetched. Sleeping for #{poll} seconds..."
+
             kernel.sleep(poll)
           elsif ruby_queue.length >= queue
-            logger.debug "Ruby queue is full. Sleeping for #{poll} seconds..."
+            logger.debug "[TID-#{main_thread_id}] Queue is full. Sleeping for #{poll} seconds..."
+
             kernel.sleep(poll)
           else
-            logger.debug "Continuing to queue messages."
+            logger.debug "[TID-#{main_thread_id}] Continuing to queue messages."
           end
         rescue => exception
-          logger.error "#{exception.class}: #{exception.message}"
+          logger.error "[TID-#{main_thread_id}] #{exception.class}: #{exception.message}"
         rescue Exception => exception
-          logger.fatal "#{exception.class}: #{exception.message}"
-          logger.fatal "An unexpected error occurred, stopping the publishing process."
+          logger.fatal "[TID-#{main_thread_id}] #{exception.class}: #{exception.message}"
+          logger.fatal "[TID-#{main_thread_id}] An unexpected error occurred, stopping the publishing process."
           @publishing = false
         end
       end
 
-      logger.info "Stopped queueing backlogged messages"
+      logger.info "[TID-#{main_thread_id}] Stopped queueing backlogged messages"
 
       ruby_threads.length.times { ruby_queue.push(nil) }
       ruby_threads.each(&:join)
 
-      logger.info "Stopped publishing queued messages"
+      logger.info "[TID-#{main_thread_id}] Stopped publishing queued messages"
 
       Database.disconnect
 
-      logger.info "Shut down gracefully"
+      logger.info "[TID-#{main_thread_id}] Shut down gracefully"
     end
   end
 end
