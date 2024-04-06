@@ -1,6 +1,3 @@
-require "logger"
-require "active_record"
-
 module Outboxer
   module Message
     extend self

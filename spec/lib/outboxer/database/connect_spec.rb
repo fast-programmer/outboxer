@@ -1,5 +1,3 @@
-require './lib/outboxer'
-
 require 'spec_helper'
 
 module Outboxer
