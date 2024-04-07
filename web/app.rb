@@ -147,30 +147,30 @@ module Outboxer
 
       result = case params[:submit]
       when 'Republish Selected'
-        Messages.republish_selected!(ids: ids)
+        Messages.republish_selected(ids: ids)
       when 'Delete Selected'
-        Messages.delete_selected!(ids: ids)
+        Messages.delete_selected(ids: ids)
       else
         raise "Unknown value: #{params[:submit]}"
       end
 
-      flash[:notice] = "#{result['count']} messages have been updated."
+      flash[:notice] = "#{result[:count]} messages have been updated."
 
       redirect to('/messages/all')
     end
 
     post '/messages/republish_all' do
-      result = Messages.republish_all!
+      result = Messages.republish_all
 
-      flash[:notice] = "#{result['count']} messages have been republished."
+      flash[:notice] = "#{result[:count]} messages have been republished."
 
       redirect to('/messages/all')
     end
 
     post '/messages/delete_all' do
-      result = Messages.delete_all!(batch_size: 100)
+      result = Messages.delete_all(batch_size: 100)
 
-      flash[:notice] = "#{result['count']} messages have been deleted."
+      flash[:notice] = "#{result[:count]} messages have been deleted."
 
       redirect to('/messages/all')
     end
@@ -193,7 +193,7 @@ module Outboxer
     get '/message/:id' do
       message_status_counts = Messages.counts_by_status
 
-      message = Message.find_by_id!(id: params[:id].to_i)
+      message = Message.find_by_id(id: params[:id].to_i)
 
       halt 404, "Message not found" unless message
 
@@ -204,7 +204,7 @@ module Outboxer
     end
 
     post '/message/:id/republish' do
-      Message.republish!(id: params[:id])
+      Message.republish(id: params[:id])
 
       flash[:notice] = "message #{params[:id]} was republished."
 
@@ -212,7 +212,7 @@ module Outboxer
     end
 
     post '/message/:id/delete' do
-      Message.delete!(id: params[:id])
+      Message.delete(id: params[:id])
 
       flash[:notice] = "message #{params[:id]} was deleted."
 
