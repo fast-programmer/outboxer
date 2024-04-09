@@ -157,42 +157,54 @@ module Outboxer
     def publish(threads: 5, queue: 10, poll: 1,
                 logger: Logger.new($stdout, level: Logger::INFO),
                 kernel: Kernel, &block)
+      logger.formatter = proc do |severity, datetime, progname, msg|
+        "#{msg}\n"
+      end
+
+      logger.info  "              _   _                        "
+      logger.info  "             | | | |                       "
+      logger.info  "   ___  _   _| |_| |__   _____  _____ _ __ "
+      logger.info  "  / _ \\| | | | __| '_ \\ / _ \\ \\/ / _ \\ '__|"
+      logger.info  " | (_) | |_| | |_| |_) | (_) >  <  __/ |   "
+      logger.info  "  \\___/ \\__,_|\\__|_.__/ \\___/_/\\_\\___|_|   "
+      logger.info  "                                           "
+      logger.info  "                                           "
+
+      logger.info "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{Process.pid} " \
+        "tid=#{Thread.current.object_id} INFO: Running in ruby #{RUBY_VERSION} " \
+        "(#{RUBY_RELEASE_DATE} revision #{RUBY_REVISION[0, 10]}) [#{RUBY_PLATFORM}]"
+
       Database.connect(config: Database.config) unless Database.connected?
 
       ruby_queue = Queue.new
 
-      @publishing = true
-
-      logger.info "Creating #{threads} worker threads"
+      pid = Process.pid
 
       ruby_threads = threads.times.map do
         Thread.new do
-          thread_id = SecureRandom.hex(3)
+          tid = Thread.current.object_id.to_s(36)
 
           loop do
             begin
               message = ruby_queue.pop
+              break if message.nil?
 
-              if message.nil?
-                logger.info "Shutting down worker thread"
+              start_time = message[:start_time]
 
-                break
-              end
-
-              logger.info "Publishing message { id: #{message[:id]} } }"
               message = Message.publishing(id: message[:id])
+              logger.info "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{pid} tid=#{tid} mid=#{message[:id]} messageable=#{message[:messageable_type]}::#{message[:messageable_id]} INFO: message publishing in #{(Time.now.utc - start_time).round(3)}s"
 
               begin
                 block.call(message)
               rescue Exception => exception
-                logger.error "Failed to publish message { id: #{message[:id]}, error: #{exception} }"
                 Message.failed(id: message[:id], exception: exception)
+                logger.info "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{pid} tid=#{tid} mid=#{message[:id]} messageable=#{message[:messageable_type]}::#{message[:messageable_id]} INFO: message publishing failed in #{(Time.now.utc - start_time).round(3)}s"
 
                 raise
               end
 
-              logger.info "Published message { id: #{message[:id]} }"
               Message.published(id: message[:id])
+              logger.info "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{pid} tid=#{tid} mid=#{message[:id]} messageable=#{message[:messageable_type]}::#{message[:messageable_id]} INFO: message published in #{(Time.now.utc - start_time).round(3)}s"
             rescue => exception
               logger.error "#{exception.class}: #{exception.message}"
             rescue Exception => exception
@@ -203,14 +215,14 @@ module Outboxer
               break
             end
           end
-
-          logger.info "Shut down worker thread"
         end
       end
 
-      logger.info "Created #{threads} publisher threads"
+      logger.info "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{Process.pid} " \
+        "tid=#{Thread.current.object_id} INFO: Starting message publishing with " \
+        "threads: #{threads}, queue: #{queue}, poll: #{poll}"
 
-      logger.info "Queuing backlogged messages..."
+      @publishing = true
 
       while @publishing
         begin
@@ -225,7 +237,11 @@ module Outboxer
           messages = (queue_available > 0) ? Messages.queue(limit: queue_available) : []
           logger.debug "Fetched #{messages.length} backlogged messages for queuing."
 
-          messages.each { |message| ruby_queue.push({ id: message[:id] }) }
+          messages.each do |message|
+            logger.info "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{pid} tid=#{Thread.current.object_id.to_s(36)} mid=#{message[:id]} messageable=#{message[:messageable_type]}::#{message[:messageable_id]} INFO: message queuing"
+            ruby_queue.push({ id: message[:id], start_time: Time.now.utc })
+          end
+
           logger.debug "Pushed #{messages.length} backlogged messages to queue."
 
           if messages.empty?
@@ -248,16 +264,22 @@ module Outboxer
         end
       end
 
-      logger.info "Stopped queueing backlogged messages"
+      logger.info "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{Process.pid} " \
+        "tid=#{Thread.current.object_id} INFO: Shutting down" \
+
+      logger.info "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{Process.pid} " \
+        "tid=#{Thread.current.object_id} INFO: Terminating #{threads} worker threads" \
 
       ruby_threads.length.times { ruby_queue.push(nil) }
       ruby_threads.each(&:join)
 
-      logger.info "Stopped publishing queued messages"
+      logger.info "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{Process.pid} " \
+        "tid=#{Thread.current.object_id} INFO: Disconnecting from database" \
 
       Database.disconnect
 
-      logger.info "Shut down gracefully"
+      logger.info "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{Process.pid} " \
+        "tid=#{Thread.current.object_id} INFO: Shut down"
     end
   end
 end
