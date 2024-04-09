@@ -174,11 +174,22 @@ module Outboxer
         "tid=#{Thread.current.object_id} INFO: Running in ruby #{RUBY_VERSION} " \
         "(#{RUBY_RELEASE_DATE} revision #{RUBY_REVISION[0, 10]}) [#{RUBY_PLATFORM}]"
 
-      Database.connect(config: Database.config) unless Database.connected?
+      unless Database.connected?
+        logger.info "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{Process.pid} " \
+          "tid=#{Thread.current.object_id} INFO: Connecting to database"
+
+        Database.connect(config: Database.config) unless Database.connected?
+
+        logger.info "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{Process.pid} " \
+          "tid=#{Thread.current.object_id} INFO: Connected to database"
+      end
 
       ruby_queue = Queue.new
 
       pid = Process.pid
+
+      logger.info "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{Process.pid} " \
+        "tid=#{Thread.current.object_id} INFO: Initializing #{threads} worker threads"
 
       ruby_threads = threads.times.map do
         Thread.new do
@@ -192,23 +203,25 @@ module Outboxer
               start_time = message[:start_time]
 
               message = Message.publishing(id: message[:id])
-              logger.info "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{pid} tid=#{tid} mid=#{message[:id]} messageable=#{message[:messageable_type]}::#{message[:messageable_id]} INFO: message publishing in #{(Time.now.utc - start_time).round(3)}s"
+              logger.info "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{pid} tid=#{tid} INFO: Publishing message #{message[:id]} for #{message[:messageable_type]}::#{message[:messageable_id]} in #{(Time.now.utc - start_time).round(3)}s"
 
               begin
                 block.call(message)
               rescue Exception => exception
                 Message.failed(id: message[:id], exception: exception)
-                logger.info "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{pid} tid=#{tid} mid=#{message[:id]} messageable=#{message[:messageable_type]}::#{message[:messageable_id]} INFO: message publishing failed in #{(Time.now.utc - start_time).round(3)}s"
+                logger.info "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{pid} tid=#{tid} INFO: Failed to publish message #{message[:id]} for #{message[:messageable_type]}::#{message[:messageable_id]} in #{(Time.now.utc - start_time).round(3)}s"
 
                 raise
               end
 
               Message.published(id: message[:id])
-              logger.info "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{pid} tid=#{tid} mid=#{message[:id]} messageable=#{message[:messageable_type]}::#{message[:messageable_id]} INFO: message published in #{(Time.now.utc - start_time).round(3)}s"
+              logger.info "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{pid} tid=#{tid} INFO: Published message #{message[:id]} for #{message[:messageable_type]}::#{message[:messageable_id]} in #{(Time.now.utc - start_time).round(3)}s"
             rescue => exception
-              logger.error "#{exception.class}: #{exception.message}"
+              logger.error "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{pid} tid=#{tid} ERROR: #{exception.class}: #{exception.message} in #{(Time.now.utc - start_time).round(3)}s"
+              exception.backtrace.each { |line| logger.error line }
             rescue Exception => exception
-              logger.fatal "#{exception.class}: #{exception.message}"
+              logger.fatal "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{pid} tid=#{tid} FATAL: #{exception.class}: #{exception.message} in #{(Time.now.utc - start_time).round(3)}s"
+              exception.backtrace.each { |line| logger.error line }
 
               @publishing = false
 
@@ -219,10 +232,12 @@ module Outboxer
       end
 
       logger.info "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{Process.pid} " \
-        "tid=#{Thread.current.object_id} INFO: Starting message publishing with " \
-        "threads: #{threads}, queue: #{queue}, poll: #{poll}"
+        "tid=#{Thread.current.object_id} INFO: Initialized #{threads} worker threads"
 
       @publishing = true
+
+      logger.info "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{Process.pid} " \
+        "tid=#{Thread.current.object_id} INFO: Queuing up to #{queue} messages every #{poll}s"
 
       while @publishing
         begin
@@ -238,7 +253,7 @@ module Outboxer
           logger.debug "Fetched #{messages.length} backlogged messages for queuing."
 
           messages.each do |message|
-            logger.info "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{pid} tid=#{Thread.current.object_id.to_s(36)} mid=#{message[:id]} messageable=#{message[:messageable_type]}::#{message[:messageable_id]} INFO: message queuing"
+            logger.info "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{pid} tid=#{Thread.current.object_id.to_s(36)} INFO: Queuing message #{message[:id]} for #{message[:messageable_type]}::#{message[:messageable_id]} "
             ruby_queue.push({ id: message[:id], start_time: Time.now.utc })
           end
 
@@ -260,6 +275,7 @@ module Outboxer
         rescue Exception => exception
           logger.fatal "#{exception.class}: #{exception.message}"
           logger.fatal "An unexpected error occurred, stopping the publishing process."
+
           @publishing = false
         end
       end
@@ -274,9 +290,15 @@ module Outboxer
       ruby_threads.each(&:join)
 
       logger.info "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{Process.pid} " \
+        "tid=#{Thread.current.object_id} INFO: Terminated #{threads} worker threads" \
+
+      logger.info "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{Process.pid} " \
         "tid=#{Thread.current.object_id} INFO: Disconnecting from database" \
 
       Database.disconnect
+
+      logger.info "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{Process.pid} " \
+        "tid=#{Thread.current.object_id} INFO: Disconnected from database" \
 
       logger.info "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{Process.pid} " \
         "tid=#{Thread.current.object_id} INFO: Shut down"
