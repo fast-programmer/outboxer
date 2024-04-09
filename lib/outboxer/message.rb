@@ -157,10 +157,6 @@ module Outboxer
     def publish(threads: 5, queue: 10, poll: 1,
                 logger: Logger.new($stdout, level: Logger::INFO),
                 kernel: Kernel, &block)
-      logger.formatter = proc do |severity, datetime, progname, msg|
-        "#{msg}\n"
-      end
-
       logger.info  "              _   _                        "
       logger.info  "             | | | |                       "
       logger.info  "   ___  _   _| |_| |__   _____  _____ _ __ "
@@ -170,57 +166,50 @@ module Outboxer
       logger.info  "                                           "
       logger.info  "                                           "
 
-      logger.info "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{Process.pid} " \
-        "tid=#{Thread.current.object_id} INFO: Running in ruby #{RUBY_VERSION} " \
+      logger.info "Running in ruby #{RUBY_VERSION} " \
         "(#{RUBY_RELEASE_DATE} revision #{RUBY_REVISION[0, 10]}) [#{RUBY_PLATFORM}]"
 
       unless Database.connected?
-        logger.info "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{Process.pid} " \
-          "tid=#{Thread.current.object_id} INFO: Connecting to database"
-
-        Database.connect(config: Database.config) unless Database.connected?
-
-        logger.info "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{Process.pid} " \
-          "tid=#{Thread.current.object_id} INFO: Connected to database"
+        logger.info "Connecting to database"
+        Database.connect(config: Database.config)
+        logger.info "Connected to database"
       end
 
       ruby_queue = Queue.new
 
-      pid = Process.pid
-
-      logger.info "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{Process.pid} " \
-        "tid=#{Thread.current.object_id} INFO: Initializing #{threads} worker threads"
+      logger.info "Initializing #{threads} worker threads"
 
       ruby_threads = threads.times.map do
         Thread.new do
-          tid = Thread.current.object_id.to_s(36)
-
           loop do
             begin
               message = ruby_queue.pop
               break if message.nil?
 
-              start_time = message[:start_time]
+              queued_at = message[:queued_at]
 
               message = Message.publishing(id: message[:id])
-              logger.info "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{pid} tid=#{tid} INFO: Publishing message #{message[:id]} for #{message[:messageable_type]}::#{message[:messageable_id]} in #{(Time.now.utc - start_time).round(3)}s"
+              logger.info "Publishing message #{message[:id]} for #{message[:messageable_type]}::#{message[:messageable_id]} in #{(Time.now.utc - queued_at).round(3)}s"
 
               begin
                 block.call(message)
               rescue Exception => exception
                 Message.failed(id: message[:id], exception: exception)
-                logger.info "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{pid} tid=#{tid} INFO: Failed to publish message #{message[:id]} for #{message[:messageable_type]}::#{message[:messageable_id]} in #{(Time.now.utc - start_time).round(3)}s"
+
+                logger.info "Failed to publish message #{message[:id]} for #{message[:messageable_type]}::#{message[:messageable_id]} in #{(Time.now.utc - queued_at).round(3)}s"
 
                 raise
               end
 
               Message.published(id: message[:id])
-              logger.info "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{pid} tid=#{tid} INFO: Published message #{message[:id]} for #{message[:messageable_type]}::#{message[:messageable_id]} in #{(Time.now.utc - start_time).round(3)}s"
+
+              logger.info "Published message #{message[:id]} for #{message[:messageable_type]}::#{message[:messageable_id]} in #{(Time.now.utc - queued_at).round(3)}s"
             rescue => exception
-              logger.error "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{pid} tid=#{tid} ERROR: #{exception.class}: #{exception.message} in #{(Time.now.utc - start_time).round(3)}s"
-              exception.backtrace.each { |line| logger.error line }
+              logger.error "#{exception.class}: #{exception.message} in #{(Time.now.utc - queued_at).round(3)}s"
+
+              exception.backtrace.each { |frame| logger.error frame }
             rescue Exception => exception
-              logger.fatal "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{pid} tid=#{tid} FATAL: #{exception.class}: #{exception.message} in #{(Time.now.utc - start_time).round(3)}s"
+              logger.fatal "#{exception.class}: #{exception.message} in #{(Time.now.utc - queued_at).round(3)}s"
               exception.backtrace.each { |line| logger.error line }
 
               @publishing = false
@@ -231,13 +220,11 @@ module Outboxer
         end
       end
 
-      logger.info "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{Process.pid} " \
-        "tid=#{Thread.current.object_id} INFO: Initialized #{threads} worker threads"
+      logger.info "Initialized #{threads} worker threads"
 
       @publishing = true
 
-      logger.info "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{Process.pid} " \
-        "tid=#{Thread.current.object_id} INFO: Queuing up to #{queue} messages every #{poll}s"
+      logger.info "Queuing up to #{queue} messages every #{poll}s"
 
       while @publishing
         begin
@@ -253,14 +240,15 @@ module Outboxer
           logger.debug "Fetched #{messages.length} backlogged messages for queuing."
 
           messages.each do |message|
-            logger.info "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{pid} tid=#{Thread.current.object_id.to_s(36)} INFO: Queuing message #{message[:id]} for #{message[:messageable_type]}::#{message[:messageable_id]} "
-            ruby_queue.push({ id: message[:id], start_time: Time.now.utc })
+            logger.info "Queuing message #{message[:id]} for #{message[:messageable_type]}::#{message[:messageable_id]} "
+
+            ruby_queue.push({ id: message[:id], queued_at: Time.now.utc })
           end
 
-          logger.debug "Pushed #{messages.length} backlogged messages to queue."
+          logger.debug "Pushed #{messages.length} messages to queue."
 
           if messages.empty?
-            logger.debug "No new backlogged messages fetched. Sleeping for #{poll} seconds..."
+            logger.debug "No messages fetched from backlog. Sleeping for #{poll} seconds..."
 
             kernel.sleep(poll)
           elsif ruby_queue.length >= queue
@@ -274,34 +262,23 @@ module Outboxer
           logger.error "#{exception.class}: #{exception.message}"
         rescue Exception => exception
           logger.fatal "#{exception.class}: #{exception.message}"
-          logger.fatal "An unexpected error occurred, stopping the publishing process."
 
           @publishing = false
         end
       end
 
-      logger.info "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{Process.pid} " \
-        "tid=#{Thread.current.object_id} INFO: Shutting down" \
+      logger.info "Shutting down"
 
-      logger.info "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{Process.pid} " \
-        "tid=#{Thread.current.object_id} INFO: Terminating #{threads} worker threads" \
-
+      logger.info "Terminating #{threads} worker threads"
       ruby_threads.length.times { ruby_queue.push(nil) }
       ruby_threads.each(&:join)
+      logger.info "Terminated #{threads} worker threads"
 
-      logger.info "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{Process.pid} " \
-        "tid=#{Thread.current.object_id} INFO: Terminated #{threads} worker threads" \
-
-      logger.info "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{Process.pid} " \
-        "tid=#{Thread.current.object_id} INFO: Disconnecting from database" \
-
+      logger.info "Disconnecting from database"
       Database.disconnect
+      logger.info "Disconnected from database"
 
-      logger.info "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{Process.pid} " \
-        "tid=#{Thread.current.object_id} INFO: Disconnected from database" \
-
-      logger.info "#{Time.now.strftime('%Y-%m-%dT%H:%M:%S.%LZ')} pid=#{Process.pid} " \
-        "tid=#{Thread.current.object_id} INFO: Shut down"
+      logger.info "Shut down"
     end
   end
 end
