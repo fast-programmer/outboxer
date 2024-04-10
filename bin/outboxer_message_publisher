@@ -13,10 +13,12 @@ end
 
 Signal.trap('INT') { Outboxer::Message.stop_publishing }
 
-Outboxer::Message.publish(threads: 25, queue: 100, poll: 0.1) do |message|
+Outboxer::Message.publish(threads: 25, queue: 100, poll: 1) do |message|
   case message[:messageable_type]
   when 'Event'
     EventCreatedJob.perform_async({ 'id' => message[:messageable_id] })
+
+    sleep 10
   end
 end
 

@@ -179,6 +179,8 @@ module Outboxer
 
       logger.info "Initializing #{threads} worker threads"
 
+      @publishing = true
+
       ruby_threads = threads.times.map do
         Thread.new do
           loop do
@@ -188,20 +190,39 @@ module Outboxer
 
               queued_at = message[:queued_at]
 
-              message = Message.publishing(id: message[:id])
+              begin
+                message = Message.publishing(id: message[:id])
+              rescue StandardError
+                logger.error "Failed to update message #{message[:id]} to publishing"
+
+                @publishing ? sleep(poll) && retry : break
+              end
+
               logger.info "Publishing message #{message[:id]} for #{message[:messageable_type]}::#{message[:messageable_id]} in #{(Time.now.utc - queued_at).round(3)}s"
 
               begin
                 block.call(message)
               rescue Exception => exception
-                Message.failed(id: message[:id], exception: exception)
+                begin
+                  Message.failed(id: message[:id], exception: exception)
+                rescue StandardError
+                  logger.error "Failed to update message #{message[:id]} to failed"
+
+                  @publishing ? sleep(poll) && retry : break
+                end
 
                 logger.info "Failed to publish message #{message[:id]} for #{message[:messageable_type]}::#{message[:messageable_id]} in #{(Time.now.utc - queued_at).round(3)}s"
 
                 raise
               end
 
-              Message.published(id: message[:id])
+              begin
+                Message.published(id: message[:id])
+              rescue StandardError
+                logger.error "Failed to update message #{message[:id]} to published"
+
+                @publishing ? sleep(poll) && retry : break
+              end
 
               logger.info "Published message #{message[:id]} for #{message[:messageable_type]}::#{message[:messageable_id]} in #{(Time.now.utc - queued_at).round(3)}s"
             rescue => exception
@@ -222,8 +243,6 @@ module Outboxer
 
       logger.info "Initialized #{threads} worker threads"
 
-      @publishing = true
-
       logger.info "Queuing up to #{queue} messages every #{poll}s"
 
       while @publishing
@@ -231,13 +250,13 @@ module Outboxer
           messages = []
 
           queue_available = queue - ruby_queue.length
-          queue_stats = { total: queue, current: ruby_queue.length, available: queue_available }
-          logger.debug "Queue Stats: #{queue_stats}"
+          queue_stats = { total: queue, available: queue_available, current: ruby_queue.length }
+          logger.debug "Queue: #{queue_stats}"
 
-          logger.debug "Pool Stats: #{ActiveRecord::Base.connection_pool.stat}"
+          logger.debug "Connection pool: #{ActiveRecord::Base.connection_pool.stat}"
 
           messages = (queue_available > 0) ? Messages.queue(limit: queue_available) : []
-          logger.debug "Fetched #{messages.length} backlogged messages for queuing."
+          logger.debug "Updated #{messages.length} messages from backlogged to queued"
 
           messages.each do |message|
             logger.info "Queuing message #{message[:id]} for #{message[:messageable_type]}::#{message[:messageable_id]} "
@@ -248,11 +267,11 @@ module Outboxer
           logger.debug "Pushed #{messages.length} messages to queue."
 
           if messages.empty?
-            logger.debug "No messages fetched from backlog. Sleeping for #{poll} seconds..."
+            logger.debug "Sleeping for #{poll} seconds because no backlogged messages were queued..."
 
             kernel.sleep(poll)
           elsif ruby_queue.length >= queue
-            logger.debug "Queue is full. Sleeping for #{poll} seconds..."
+            logger.debug "Sleeping for #{poll} seconds because queue is full..."
 
             kernel.sleep(poll)
           else
@@ -260,6 +279,8 @@ module Outboxer
           end
         rescue => exception
           logger.error "#{exception.class}: #{exception.message}"
+
+          kernel.sleep(poll)
         rescue Exception => exception
           logger.fatal "#{exception.class}: #{exception.message}"
 
