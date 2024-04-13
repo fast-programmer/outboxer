@@ -192,8 +192,14 @@ module Outboxer
 
               begin
                 message = Message.publishing(id: message[:id])
+              rescue NotAvailable
+                logger.error "Raised not available error whilst attempting to update message #{message[:id]} to publishing"
+              rescue InvalidTransition
+                logger.error "Raised invalid transition error whilst attempting to update message #{message[:id]} to publishing"
+              rescue NotFound
+                logger.error "Raised not found error whilst attempting to update message #{message[:id]} to publishing"
               rescue StandardError
-                logger.error "Failed to update message #{message[:id]} to publishing"
+                logger.error "Raised error whilst attempting to update message #{message[:id]} to publishing"
 
                 @publishing ? sleep(poll) && retry : break
               end
@@ -205,8 +211,14 @@ module Outboxer
               rescue Exception => exception
                 begin
                   Message.failed(id: message[:id], exception: exception)
+                rescue NotAvailable
+                  logger.error "Raised not available error whilst attempting to update message #{message[:id]} to publishing"
+                rescue InvalidTransition
+                  logger.error "Raised invalid transition error whilst attempting to update message #{message[:id]} to failed"
+                rescue NotFound
+                  logger.error "Raised not found error whilst attempting to update message #{message[:id]} to failed"
                 rescue StandardError
-                  logger.error "Failed to update message #{message[:id]} to failed"
+                  logger.error "Raised error whilst attempting to update message #{message[:id]} to failed"
 
                   @publishing ? sleep(poll) && retry : break
                 end
@@ -218,8 +230,12 @@ module Outboxer
 
               begin
                 Message.published(id: message[:id])
+              rescue InvalidTransition
+                logger.error "Raised invalid transition error whilst attempting to delete message #{message[:id]}"
+              rescue NotFound
+                logger.error "Raised not found error whilst attempting to delete message #{message[:id]}"
               rescue StandardError
-                logger.error "Failed to update message #{message[:id]} to published"
+                logger.error "Raised error whilst attempting to delete message #{message[:id]}"
 
                 @publishing ? sleep(poll) && retry : break
               end
