@@ -4,26 +4,39 @@ on:
   push:
     branches:
       - master
-
   pull_request:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    name: Ruby ${{ matrix.ruby }}
+    name: Ruby ${{ matrix.ruby }} with ${{ matrix.database }}
     strategy:
       matrix:
         ruby:
           - '3.3.0'
+        include:
+          - database: 'PostgreSQL'
+            db_image: 'postgres:latest'
+            db_env:
+              POSTGRES_USER: outboxer_developer
+              POSTGRES_PASSWORD: outboxer_password
+              POSTGRES_DB: outboxer_test
+          - database: 'MySQL'
+            db_image: 'mysql:latest'
+            db_env:
+              MYSQL_ROOT_PASSWORD: password
+              MYSQL_DATABASE: outboxer_test
+          - database: 'MariaDB'
+            db_image: 'mariadb:latest'
+            db_env:
+              MARIADB_ROOT_PASSWORD: password
+              MARIADB_DATABASE: outboxer_test
     services:
-      postgres:
-        image: postgres:latest
-        env:
-          POSTGRES_USER: outboxer_developer
-          POSTGRES_PASSWORD: outboxer_password
-          POSTGRES_DB: outboxer_test
-        ports: ['5432:5432']
-        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+      db:
+        image: ${{ matrix.db_image }}
+        env: ${{ matrix.db_env }}
+        ports: ['3306:3306']
+        options: --health-cmd "mysqladmin ping -h localhost" --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
     - uses: actions/checkout@v3
     - name: Set up Ruby
@@ -31,11 +44,11 @@ jobs:
       with:
         ruby-version: ${{ matrix.ruby }}
         bundler-cache: true
-    - name: Check PostgreSQL
+    - name: Check Database
       run: |
-        sudo apt-get -qq install -y postgresql-client
-        export PGPASSWORD=outboxer_password
-        psql -h localhost -U outboxer_developer -d outboxer_test -c 'SELECT version();'
+        sudo apt-get -qq install -y mysql-client
+        export MYSQL_PWD=${{ matrix.db_env.MYSQL_ROOT_PASSWORD || matrix.db_env.MARIADB_ROOT_PASSWORD }}
+        mysql -h 127.0.0.1 -u root -e "SHOW DATABASES;"
     - name: Run Database Migrations
       run: RAILS_ENV=test bin/rake outboxer:db:migrate
     - name: Run the default task
