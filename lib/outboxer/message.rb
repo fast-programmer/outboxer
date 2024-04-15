@@ -199,9 +199,9 @@ module Outboxer
               rescue NotFound
                 logger.error "Raised not found error whilst attempting to update message #{message[:id]} to publishing"
               rescue StandardError
-                logger.error "Raised error whilst attempting to update message #{message[:id]} to publishing"
+                logger.error "Raised unhandled error whilst attempting to update message #{message[:id]} to publishing"
 
-                @publishing ? sleep(poll) && retry : break
+                @publishing ? kernel.sleep(poll) && retry : break
               end
 
               logger.info "Publishing message #{message[:id]} for #{message[:messageable_type]}::#{message[:messageable_id]} in #{(Time.now.utc - queued_at).round(3)}s"
@@ -212,15 +212,15 @@ module Outboxer
                 begin
                   Message.failed(id: message[:id], exception: exception)
                 rescue NotAvailable
-                  logger.error "Raised not available error whilst attempting to update message #{message[:id]} to publishing"
+                  logger.error "Raised not available error whilst attempting to update message #{message[:id]} to failed"
                 rescue InvalidTransition
                   logger.error "Raised invalid transition error whilst attempting to update message #{message[:id]} to failed"
                 rescue NotFound
                   logger.error "Raised not found error whilst attempting to update message #{message[:id]} to failed"
                 rescue StandardError
-                  logger.error "Raised error whilst attempting to update message #{message[:id]} to failed"
+                  logger.error "Raised unhandled error whilst attempting to update message #{message[:id]} to failed"
 
-                  @publishing ? sleep(poll) && retry : break
+                  @publishing ? kernel.sleep(poll) && retry : break
                 end
 
                 logger.info "Failed to publish message #{message[:id]} for #{message[:messageable_type]}::#{message[:messageable_id]} in #{(Time.now.utc - queued_at).round(3)}s"
@@ -230,14 +230,16 @@ module Outboxer
 
               begin
                 Message.published(id: message[:id])
+              rescue NotAvailable
+                logger.error "Raised not available error whilst attempting to delete message #{message[:id]}"
               rescue InvalidTransition
                 logger.error "Raised invalid transition error whilst attempting to delete message #{message[:id]}"
               rescue NotFound
                 logger.error "Raised not found error whilst attempting to delete message #{message[:id]}"
               rescue StandardError
-                logger.error "Raised error whilst attempting to delete message #{message[:id]}"
+                logger.error "Raised unhandled error whilst attempting to delete message #{message[:id]}"
 
-                @publishing ? sleep(poll) && retry : break
+                @publishing ? kernel.sleep(poll) && retry : break
               end
 
               logger.info "Published message #{message[:id]} for #{message[:messageable_type]}::#{message[:messageable_id]} in #{(Time.now.utc - queued_at).round(3)}s"
@@ -283,15 +285,13 @@ module Outboxer
           logger.debug "Pushed #{messages.length} messages to queue."
 
           if messages.empty?
-            logger.debug "Sleeping for #{poll} seconds because no backlogged messages were queued..."
+            logger.debug "Sleeping for #{poll} seconds because no messages were queued..."
 
             kernel.sleep(poll)
           elsif ruby_queue.length >= queue
-            logger.debug "Sleeping for #{poll} seconds because queue is full..."
+            logger.debug "Sleeping for #{poll} seconds because queue was full..."
 
             kernel.sleep(poll)
-          else
-            logger.debug "Continuing to queue messages."
           end
         rescue => exception
           logger.error "#{exception.class}: #{exception.message}"
