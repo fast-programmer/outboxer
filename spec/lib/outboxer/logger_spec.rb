@@ -9,37 +9,17 @@ module Outboxer
 
     describe 'logging' do
       it 'logs messages with correct format' do
-        datetime = Time.now.strftime("%Y-%m-%d %H:%M:%S")
-        severity = 'INFO'
-        progname = 'test_program'
         message = 'test message'
-
-        logger.info(progname) { message }
+        logger.info { message }
 
         log_output = output.string
-        expect(log_output).to include(datetime)
-        expect(log_output).to include(severity)
-        expect(log_output).to include(progname)
-        expect(log_output).to include(message)
-      end
+        log_lines = log_output.strip.split("\n")
 
-      it 'assigns colors to threads' do
-        threads = []
-        messages = []
-
-        5.times do |i|
-          threads << Thread.new do
-            logger.info("Thread #{i}") { "Message #{i}" }
-            messages << output.string
-          end
+        log_lines.each do |line|
+          expect(line.length).to be <= 100
+          expect(line).to match(
+            /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z pid=\d+ tid=\w+ INFO: #{message}\n?/)
         end
-
-        threads.each(&:join)
-
-        # Check if color codes are present and different for each thread
-        colors = messages.map { |msg| msg[/\e\[\d+m/] }.uniq
-        expect(colors.size).to be <= 5
-        expect(colors.all? { |color| Outboxer::Logger::COLORS.include?(color) }).to be true
       end
     end
   end
