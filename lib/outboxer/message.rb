@@ -185,70 +185,39 @@ module Outboxer
         Thread.new do
           loop do
             begin
-              message = ruby_queue.pop
-              break if message.nil?
+              queued_message = ruby_queue.pop
+              break if queued_message.nil?
 
-              queued_at = message[:queued_at]
+              queued_at = queued_message[:queued_at]
 
-              begin
-                message = Message.publishing(id: message[:id])
-              rescue NotAvailable
-                logger.error "Raised not available error whilst attempting to update message #{message[:id]} to publishing"
-              rescue InvalidTransition
-                logger.error "Raised invalid transition error whilst attempting to update message #{message[:id]} to publishing"
-              rescue NotFound
-                logger.error "Raised not found error whilst attempting to update message #{message[:id]} to publishing"
-              rescue StandardError
-                logger.error "Raised unhandled error whilst attempting to update message #{message[:id]} to publishing"
-
-                @publishing ? kernel.sleep(poll) && retry : break
-              end
-
-              logger.info "Publishing message #{message[:id]} for #{message[:messageable_type]}::#{message[:messageable_id]} in #{(Time.now.utc - queued_at).round(3)}s"
+              message = Message.publishing(id: queued_message[:id])
+              logger.info "Publishing message #{message[:id]} for " \
+                "#{message[:messageable_type]}::#{message[:messageable_id]} " \
+                "in #{(Time.now.utc - queued_at).round(3)}s"
 
               begin
                 block.call(message)
               rescue Exception => exception
-                begin
-                  Message.failed(id: message[:id], exception: exception)
-                rescue NotAvailable
-                  logger.error "Raised not available error whilst attempting to update message #{message[:id]} to failed"
-                rescue InvalidTransition
-                  logger.error "Raised invalid transition error whilst attempting to update message #{message[:id]} to failed"
-                rescue NotFound
-                  logger.error "Raised not found error whilst attempting to update message #{message[:id]} to failed"
-                rescue StandardError
-                  logger.error "Raised unhandled error whilst attempting to update message #{message[:id]} to failed"
-
-                  @publishing ? kernel.sleep(poll) && retry : break
-                end
-
-                logger.info "Failed to publish message #{message[:id]} for #{message[:messageable_type]}::#{message[:messageable_id]} in #{(Time.now.utc - queued_at).round(3)}s"
+                Message.failed(id: message[:id], exception: exception)
+                logger.error "Failed to publish message #{message[:id]} for " \
+                  "#{message[:messageable_type]}::#{message[:messageable_id]} " \
+                  "in #{(Time.now.utc - queued_at).round(3)}s"
 
                 raise
               end
 
-              begin
-                Message.published(id: message[:id])
-              rescue NotAvailable
-                logger.error "Raised not available error whilst attempting to delete message #{message[:id]}"
-              rescue InvalidTransition
-                logger.error "Raised invalid transition error whilst attempting to delete message #{message[:id]}"
-              rescue NotFound
-                logger.error "Raised not found error whilst attempting to delete message #{message[:id]}"
-              rescue StandardError
-                logger.error "Raised unhandled error whilst attempting to delete message #{message[:id]}"
-
-                @publishing ? kernel.sleep(poll) && retry : break
-              end
-
-              logger.info "Published message #{message[:id]} for #{message[:messageable_type]}::#{message[:messageable_id]} in #{(Time.now.utc - queued_at).round(3)}s"
+              Message.published(id: message[:id])
+              logger.info "Published message #{message[:id]} for " \
+                "#{message[:messageable_type]}::#{message[:messageable_id]} " \
+                "in #{(Time.now.utc - queued_at).round(3)}s"
             rescue => exception
-              logger.error "#{exception.class}: #{exception.message} in #{(Time.now.utc - queued_at).round(3)}s"
+              logger.error "#{exception.class}: #{exception.message} " \
+                "in #{(Time.now.utc - queued_at).round(3)}s"
 
               exception.backtrace.each { |frame| logger.error frame }
             rescue Exception => exception
-              logger.fatal "#{exception.class}: #{exception.message} in #{(Time.now.utc - queued_at).round(3)}s"
+              logger.fatal "#{exception.class}: #{exception.message} " \
+                "in #{(Time.now.utc - queued_at).round(3)}s"
               exception.backtrace.each { |line| logger.error line }
 
               @publishing = false
@@ -277,7 +246,8 @@ module Outboxer
           logger.debug "Updated #{messages.length} messages from backlogged to queued"
 
           messages.each do |message|
-            logger.info "Queuing message #{message[:id]} for #{message[:messageable_type]}::#{message[:messageable_id]} "
+            logger.info "Queuing message #{message[:id]} for " \
+              "#{message[:messageable_type]}::#{message[:messageable_id]}"
 
             ruby_queue.push({ id: message[:id], queued_at: Time.now.utc })
           end

@@ -72,10 +72,13 @@ module Outboxer
 
           it 'logs errors' do
             expect(logger).to have_received(:error).with(
-              "Failed to publish message { id: #{backlogged_message.id}, error: #{standard_error.message} }").once
+              a_string_matching(/^StandardError: some error/)
+            ).once
 
             expect(logger).to have_received(:error).with(
-              "#{standard_error.class.to_s}: #{standard_error.message}").once
+              a_string_matching("Failed to publish message #{backlogged_message.id} for " \
+                "#{backlogged_message[:messageable_type]}::#{backlogged_message[:messageable_id]}")
+            ).once
           end
         end
 
@@ -108,16 +111,19 @@ module Outboxer
 
             expect(backlogged_message.exceptions[0].frames.count).to eq(4)
             expect(backlogged_message.exceptions[0].frames[0].index).to eq(0)
-            expect(backlogged_message.exceptions[0].frames[0].text).to include(
-              "outboxer/message/publish_spec.rb:95:in `block (6 levels) in <module:Outboxer>'")
+            expect(backlogged_message.exceptions[0].frames[0].text).to match(
+              /outboxer\/message\/publish_spec.rb:\d+:in `block \(6 levels\) in <module:Outboxer>'/)
           end
 
           it 'logs errors' do
             expect(logger).to have_received(:error).with(
-              "Failed to publish message { id: #{backlogged_message.id}, error: #{no_memory_error.message} }").once
+              a_string_matching("Failed to publish message #{backlogged_message.id} for " \
+                "#{backlogged_message[:messageable_type]}::#{backlogged_message[:messageable_id]}")
+            ).once
 
-            expect(logger).to have_received(:fatal)
-              .with("#{no_memory_error.class.to_s}: #{no_memory_error.message}").once
+            expect(logger).to have_received(:fatal).with(
+              a_string_matching("#{no_memory_error.class.to_s}: #{no_memory_error.message}")
+            ).once
           end
         end
       end
