@@ -20,11 +20,11 @@ module Outboxer
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           messages = Models::Message
-                      .where(status: Models::Message::Status::BACKLOGGED)
-                      .order(updated_at: :asc)
-                      .lock('FOR UPDATE SKIP LOCKED')
-                      .limit(limit)
-                      .select(:id, :messageable_type, :messageable_id)
+            .where(status: Models::Message::Status::BACKLOGGED)
+            .order(updated_at: :asc)
+            .lock('FOR UPDATE SKIP LOCKED')
+            .limit(limit)
+            .select(:id, :messageable_type, :messageable_id)
 
           if messages.present?
             ids = messages.map { |message| message[:id] }
@@ -35,7 +35,7 @@ module Outboxer
 
             if updated_rows != messages.size
               raise Error,
-                    'The number of updated messages does not match the expected number of ids.'
+                'The number of updated messages does not match the expected number of ids.'
             end
 
             messages.map do |message|
