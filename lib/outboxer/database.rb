@@ -30,25 +30,17 @@ module Outboxer
       ActiveRecord::Base.establish_connection(config)
       ActiveRecord::Base.connection_pool.with_connection {}
       logger&.info "Connected to database"
-    rescue ActiveRecord::DatabaseConnectionError => error
-      raise ConnectError.new(error.message)
-    rescue ActiveRecord::ConnectionNotEstablished => error
-      raise ConnectError.new(error.message)
     end
 
     def connected?
       ActiveRecord::Base.connected?
     end
 
-    class DisconnectError < Error; end
-
     def disconnect(logger: Logger.new($stdout, level: Logger::INFO))
       logger&.info "Disconnecting from database"
       ActiveRecord::Base.connection_handler.clear_active_connections!
       ActiveRecord::Base.connection_handler.connection_pool_list.each(&:disconnect!)
       logger&.info "Disconnected from database"
-    rescue => error
-      raise DisconnectError.new(error.message)
     end
   end
 end

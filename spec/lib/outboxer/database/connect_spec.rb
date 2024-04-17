@@ -10,32 +10,6 @@ module Outboxer
         Database.connect(config: config, logger: nil)
       end
 
-      context 'when db config not valid' do
-        let(:config) do
-          {
-            'adapter' => 'postgresql',
-            'username' => 'bad',
-            'database' => 'outboxer_test'
-          }
-        end
-
-        it 'establishes a connection without errors' do
-          expect do
-            Database.connect(config: config, logger: nil)
-          end.to raise_error(Database::ConnectError)
-        end
-
-        it 'does not connect to the database' do
-          begin
-            Database.connect(config: config, logger: nil)
-          rescue Database::ConnectError
-            # ignore
-          end
-
-          expect(Database.connected?).to be false
-        end
-      end
-
       context 'when db config valid' do
         let(:config) { Database.config(environment: 'test') }
 
