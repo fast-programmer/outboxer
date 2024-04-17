@@ -14,22 +14,22 @@ module Outboxer
     class ConnectError < Error; end
 
     def connect(config:, logger: Logger.new($stdout, level: Logger::INFO))
-      logger.info  "              _   _                        "
-      logger.info  "             | | | |                       "
-      logger.info  "   ___  _   _| |_| |__   _____  _____ _ __ "
-      logger.info  "  / _ \\| | | | __| '_ \\ / _ \\ \\/ / _ \\ '__|"
-      logger.info  " | (_) | |_| | |_| |_) | (_) >  <  __/ |   "
-      logger.info  "  \\___/ \\__,_|\\__|_.__/ \\___/_/\\_\\___|_|   "
-      logger.info  "                                           "
-      logger.info  "                                           "
+      logger&.info  "              _   _                        "
+      logger&.info  "             | | | |                       "
+      logger&.info  "   ___  _   _| |_| |__   _____  _____ _ __ "
+      logger&.info  "  / _ \\| | | | __| '_ \\ / _ \\ \\/ / _ \\ '__|"
+      logger&.info  " | (_) | |_| | |_| |_) | (_) >  <  __/ |   "
+      logger&.info  "  \\___/ \\__,_|\\__|_.__/ \\___/_/\\_\\___|_|   "
+      logger&.info  "                                           "
+      logger&.info  "                                           "
 
-      logger.info "Running in ruby #{RUBY_VERSION} " \
+      logger&.info "Running in ruby #{RUBY_VERSION} " \
         "(#{RUBY_RELEASE_DATE} revision #{RUBY_REVISION[0, 10]}) [#{RUBY_PLATFORM}]"
 
-      logger.info "Connecting to database"
+      logger&.info "Connecting to database"
       ActiveRecord::Base.establish_connection(config)
       ActiveRecord::Base.connection_pool.with_connection {}
-      logger.info "Connected to database"
+      logger&.info "Connected to database"
     rescue ActiveRecord::DatabaseConnectionError => error
       raise ConnectError.new(error.message)
     rescue ActiveRecord::ConnectionNotEstablished => error
@@ -43,10 +43,10 @@ module Outboxer
     class DisconnectError < Error; end
 
     def disconnect(logger: Logger.new($stdout, level: Logger::INFO))
-      logger.info "Disconnecting from database"
+      logger&.info "Disconnecting from database"
       ActiveRecord::Base.connection_handler.clear_active_connections!
       ActiveRecord::Base.connection_handler.connection_pool_list.each(&:disconnect!)
-      logger.info "Disconnected from database"
+      logger&.info "Disconnected from database"
     rescue => error
       raise DisconnectError.new(error.message)
     end
