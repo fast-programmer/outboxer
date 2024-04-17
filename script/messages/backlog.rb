@@ -20,4 +20,6 @@ while $backlogging
 
   Outboxer::Message.backlog(messageable_type: 'Event', messageable_id: messageable_id)
   puts "backlogged message for Event::#{messageable_id}"
+
+  # sleep 1
 end

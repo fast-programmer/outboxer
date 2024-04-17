@@ -157,107 +157,109 @@ module Outboxer
     def publish(threads: 5, queue: 10, poll: 1,
                 logger: Logger.new($stdout, level: Logger::INFO),
                 kernel: Kernel, &block)
-      Database.connect(config: Database.config) unless Database.connected?
-
       ruby_queue = Queue.new
 
       @publishing = true
 
-      logger.info "Creating #{threads} worker threads"
-
+      logger.info "Initializing #{threads} worker threads"
       ruby_threads = threads.times.map do
         Thread.new do
-          thread_id = SecureRandom.hex(3)
-
           loop do
             begin
-              message = ruby_queue.pop
+              queued_message = ruby_queue.pop
+              break if queued_message.nil?
 
-              if message.nil?
-                logger.info "Shutting down worker thread"
+              queued_at = queued_message[:queued_at]
 
-                break
-              end
-
-              logger.info "Publishing message { id: #{message[:id]} } }"
-              message = Message.publishing(id: message[:id])
+              message = Message.publishing(id: queued_message[:id])
+              logger.info "Publishing message #{message[:id]} for " \
+                "#{message[:messageable_type]}::#{message[:messageable_id]} " \
+                "in #{(Time.now.utc - queued_at).round(3)}s"
 
               begin
                 block.call(message)
               rescue Exception => exception
-                logger.error "Failed to publish message { id: #{message[:id]}, error: #{exception} }"
                 Message.failed(id: message[:id], exception: exception)
+                logger.error "Failed to publish message #{message[:id]} for " \
+                  "#{message[:messageable_type]}::#{message[:messageable_id]} " \
+                  "in #{(Time.now.utc - queued_at).round(3)}s"
 
                 raise
               end
 
-              logger.info "Published message { id: #{message[:id]} }"
               Message.published(id: message[:id])
-            rescue => exception
-              logger.error "#{exception.class}: #{exception.message}"
+              logger.info "Published message #{message[:id]} for " \
+                "#{message[:messageable_type]}::#{message[:messageable_id]} " \
+                "in #{(Time.now.utc - queued_at).round(3)}s"
+            rescue StandardError => exception
+              logger.error "#{exception.class}: #{exception.message} " \
+                "in #{(Time.now.utc - queued_at).round(3)}s"
+
+              exception.backtrace.each { |frame| logger.error frame }
             rescue Exception => exception
-              logger.fatal "#{exception.class}: #{exception.message}"
+              logger.fatal "#{exception.class}: #{exception.message} " \
+                "in #{(Time.now.utc - queued_at).round(3)}s"
+              exception.backtrace.each { |frame| logger.error frame }
 
               @publishing = false
 
               break
             end
           end
-
-          logger.info "Shut down worker thread"
         end
       end
+      logger.info "Initialized #{threads} worker threads"
 
-      logger.info "Created #{threads} publisher threads"
-
-      logger.info "Queuing backlogged messages..."
-
+      logger.info "Queuing up to #{queue} messages every #{poll}s"
       while @publishing
         begin
           messages = []
 
           queue_available = queue - ruby_queue.length
-          queue_stats = { total: queue, current: ruby_queue.length, available: queue_available }
-          logger.debug "Queue Stats: #{queue_stats}"
+          queue_stats = { total: queue, available: queue_available, current: ruby_queue.length }
+          logger.debug "Queue: #{queue_stats}"
 
-          logger.debug "Pool Stats: #{ActiveRecord::Base.connection_pool.stat}"
+          logger.debug "Connection pool: #{ActiveRecord::Base.connection_pool.stat}"
 
           messages = (queue_available > 0) ? Messages.queue(limit: queue_available) : []
-          logger.debug "Fetched #{messages.length} backlogged messages for queuing."
+          logger.debug "Updated #{messages.length} messages from backlogged to queued"
 
-          messages.each { |message| ruby_queue.push({ id: message[:id] }) }
-          logger.debug "Pushed #{messages.length} backlogged messages to queue."
+          messages.each do |message|
+            logger.info "Queuing message #{message[:id]} for " \
+              "#{message[:messageable_type]}::#{message[:messageable_id]}"
+
+            ruby_queue.push({ id: message[:id], queued_at: Time.now.utc })
+          end
+
+          logger.debug "Pushed #{messages.length} messages to queue."
 
           if messages.empty?
-            logger.debug "No new backlogged messages fetched. Sleeping for #{poll} seconds..."
+            logger.debug "Sleeping for #{poll} seconds because no messages were queued..."
 
             kernel.sleep(poll)
           elsif ruby_queue.length >= queue
-            logger.debug "Queue is full. Sleeping for #{poll} seconds..."
+            logger.debug "Sleeping for #{poll} seconds because queue was full..."
 
             kernel.sleep(poll)
-          else
-            logger.debug "Continuing to queue messages."
           end
-        rescue => exception
+        rescue StandardError => exception
           logger.error "#{exception.class}: #{exception.message}"
+          exception.backtrace.each { |frame| logger.error frame }
+
+          kernel.sleep(poll)
         rescue Exception => exception
           logger.fatal "#{exception.class}: #{exception.message}"
-          logger.fatal "An unexpected error occurred, stopping the publishing process."
+          exception.backtrace.each { |frame| logger.fatal frame }
+
           @publishing = false
         end
       end
+      logger.info "Stopped queueing messages"
 
-      logger.info "Stopped queueing backlogged messages"
-
+      logger.info "Shutting down #{threads} worker threads"
       ruby_threads.length.times { ruby_queue.push(nil) }
       ruby_threads.each(&:join)
-
-      logger.info "Stopped publishing queued messages"
-
-      Database.disconnect
-
-      logger.info "Shut down gracefully"
+      logger.info "Shut down #{threads} worker threads"
     end
   end
 end
