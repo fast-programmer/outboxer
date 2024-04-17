@@ -191,7 +191,7 @@ module Outboxer
               logger.info "Published message #{message[:id]} for " \
                 "#{message[:messageable_type]}::#{message[:messageable_id]} " \
                 "in #{(Time.now.utc - queued_at).round(3)}s"
-            rescue => exception
+            rescue StandardError => exception
               logger.error "#{exception.class}: #{exception.message} " \
                 "in #{(Time.now.utc - queued_at).round(3)}s"
 
