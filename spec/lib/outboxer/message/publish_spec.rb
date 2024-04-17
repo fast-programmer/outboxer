@@ -126,6 +126,52 @@ module Outboxer
             ).once
           end
         end
+
+        context 'when Messages.queue raises a StandardError' do
+          it 'logs the error and continues processing' do
+            call_count = 0
+
+            allow(Messages).to receive(:queue) do
+              call_count += 1
+
+              case call_count
+              when 1
+                raise StandardError, 'queue error'
+              else
+                Message.stop_publishing
+
+                []
+              end
+            end
+
+            expect(logger).to receive(:error).with(include('StandardError: queue error')).once
+
+            Message.publish(
+              queue: queue,
+              threads: threads,
+              poll: poll,
+              logger: logger,
+              kernel: kernel
+            )
+          end
+        end
+
+        context 'when Messages.queue raises an Exception' do
+          it 'logs the exception and shuts down' do
+            allow(Messages).to receive(:queue).and_raise(NoMemoryError, 'failed to allocate memory')
+
+            expect(logger).to receive(:fatal)
+              .with(include('NoMemoryError: failed to allocate memory'))
+              .once
+
+            Message.publish(
+              queue: queue,
+              threads: threads,
+              poll: poll,
+              logger: logger,
+              kernel: kernel)
+          end
+        end
       end
     end
   end
