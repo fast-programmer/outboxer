@@ -199,7 +199,7 @@ module Outboxer
             rescue Exception => exception
               logger.fatal "#{exception.class}: #{exception.message} " \
                 "in #{(Time.now.utc - queued_at).round(3)}s"
-              exception.backtrace.each { |line| logger.error line }
+              exception.backtrace.each { |frame| logger.error frame }
 
               @publishing = false
 
@@ -244,10 +244,12 @@ module Outboxer
           end
         rescue StandardError => exception
           logger.error "#{exception.class}: #{exception.message}"
+          exception.backtrace.each { |frame| logger.error frame }
 
           kernel.sleep(poll)
         rescue Exception => exception
           logger.fatal "#{exception.class}: #{exception.message}"
+          exception.backtrace.each { |frame| logger.fatal frame }
 
           @publishing = false
         end
