@@ -157,30 +157,11 @@ module Outboxer
     def publish(threads: 5, queue: 10, poll: 1,
                 logger: Logger.new($stdout, level: Logger::INFO),
                 kernel: Kernel, &block)
-      logger.info  "              _   _                        "
-      logger.info  "             | | | |                       "
-      logger.info  "   ___  _   _| |_| |__   _____  _____ _ __ "
-      logger.info  "  / _ \\| | | | __| '_ \\ / _ \\ \\/ / _ \\ '__|"
-      logger.info  " | (_) | |_| | |_| |_) | (_) >  <  __/ |   "
-      logger.info  "  \\___/ \\__,_|\\__|_.__/ \\___/_/\\_\\___|_|   "
-      logger.info  "                                           "
-      logger.info  "                                           "
-
-      logger.info "Running in ruby #{RUBY_VERSION} " \
-        "(#{RUBY_RELEASE_DATE} revision #{RUBY_REVISION[0, 10]}) [#{RUBY_PLATFORM}]"
-
-      unless Database.connected?
-        logger.info "Connecting to database"
-        Database.connect(config: Database.config)
-        logger.info "Connected to database"
-      end
-
       ruby_queue = Queue.new
-
-      logger.info "Initializing #{threads} worker threads"
 
       @publishing = true
 
+      logger.info "Initializing #{threads} worker threads"
       ruby_threads = threads.times.map do
         Thread.new do
           loop do
@@ -227,11 +208,9 @@ module Outboxer
           end
         end
       end
-
       logger.info "Initialized #{threads} worker threads"
 
       logger.info "Queuing up to #{queue} messages every #{poll}s"
-
       while @publishing
         begin
           messages = []
@@ -263,7 +242,7 @@ module Outboxer
 
             kernel.sleep(poll)
           end
-        rescue => exception
+        rescue StandardError => exception
           logger.error "#{exception.class}: #{exception.message}"
 
           kernel.sleep(poll)
@@ -273,19 +252,12 @@ module Outboxer
           @publishing = false
         end
       end
+      logger.info "Stopped queueing messages"
 
-      logger.info "Shutting down"
-
-      logger.info "Terminating #{threads} worker threads"
+      logger.info "Shutting down #{threads} worker threads"
       ruby_threads.length.times { ruby_queue.push(nil) }
       ruby_threads.each(&:join)
-      logger.info "Terminated #{threads} worker threads"
-
-      logger.info "Disconnecting from database"
-      Database.disconnect
-      logger.info "Disconnected from database"
-
-      logger.info "Shut down"
+      logger.info "Shut down #{threads} worker threads"
     end
   end
 end

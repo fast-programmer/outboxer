@@ -27,26 +27,17 @@ module Outboxer
             .select(:id, :messageable_type, :messageable_id)
 
           if messages.present?
-            ids = messages.map { |message| message[:id] }
-
-            updated_rows = Models::Message
-              .where(id: ids)
+            Models::Message
+              .where(id: messages.map { |message| message[:id] })
               .update_all(updated_at: Time.current, status: Models::Message::Status::QUEUED)
+          end
 
-            if updated_rows != messages.size
-              raise Error,
-                'The number of updated messages does not match the expected number of ids.'
-            end
-
-            messages.map do |message|
-              {
-                id: message.id,
-                messageable_type: message.messageable_type,
-                messageable_id: message.messageable_id
-              }
-            end
-          else
-            []
+          messages.map do |message|
+            {
+              id: message.id,
+              messageable_type: message.messageable_type,
+              messageable_id: message.messageable_id
+            }
           end
         end
       end
