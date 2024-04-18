@@ -21,7 +21,7 @@ RSpec.configure do |config|
 
   config.before(:all) do
     db_config = Outboxer::Database.config(environment: 'test')
-    Outboxer::Database.connect(config: db_config)
+    Outboxer::Database.connect(config: db_config, logger: nil)
 
     DatabaseCleaner.strategy = :truncation
   end

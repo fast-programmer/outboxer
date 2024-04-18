@@ -20,26 +20,25 @@ module Outboxer
     def queue(limit: 1)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          ids = Models::Message
+          messages = Models::Message
             .where(status: Models::Message::Status::BACKLOGGED)
             .order(updated_at: :asc)
             .lock('FOR UPDATE SKIP LOCKED')
             .limit(limit)
-            .pluck(:id)
+            .select(:id, :messageable_type, :messageable_id)
 
-          if ids.present?
-            updated_rows = Models::Message
-              .where(id: ids)
+          if messages.present?
+            Models::Message
+              .where(id: messages.map { |message| message[:id] })
               .update_all(updated_at: Time.current, status: Models::Message::Status::QUEUED)
+          end
 
-            if updated_rows != ids.size
-              raise Error,
-                'The number of updated messages does not match the expected number of ids.'
-            end
-
-            ids.map { |id| { id: id } }
-          else
-            []
+          messages.map do |message|
+            {
+              id: message.id,
+              messageable_type: message.messageable_type,
+              messageable_id: message.messageable_id
+            }
           end
         end
       end
