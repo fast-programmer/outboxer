@@ -18,6 +18,8 @@ jobs:
       postgres:
         image: postgres:latest
         env:
+          DATABASE_ADAPTER: postgresql
+          DATABASE_PORT: 5432
           POSTGRES_USER: outboxer_developer
           POSTGRES_PASSWORD: outboxer_password
           POSTGRES_DB: outboxer_test
@@ -52,12 +54,14 @@ jobs:
       mysql:
         image: mysql:latest
         env:
+          DATABASE_ADAPTER: mysql2
+          DATABASE_PORT: 3306
           MYSQL_ROOT_PASSWORD: outboxer_password
           MYSQL_DATABASE: outboxer_test
           MYSQL_USER: outboxer_developer
           MYSQL_PASSWORD: outboxer_password
         ports:
-          - 5432:5432
+          - 3306:3306
         options: >-
           --health-cmd="mysqladmin ping --silent"
           --health-interval=10s
@@ -74,7 +78,7 @@ jobs:
       run: |
         sudo apt-get -qq install -y mysql-client
         export MYSQL_PWD=outboxer_password
-        mysql -h localhost -P 5432 -u outboxer_developer -poutboxer_password outboxer_test -e 'SELECT VERSION();'
+        mysql -h localhost -P 3306 -u outboxer_developer -poutboxer_password outboxer_test -e 'SELECT VERSION();'
     - name: Run Database Migrations
       run: RAILS_ENV=test bin/rake outboxer:db:migrate
     - name: Run Tests
