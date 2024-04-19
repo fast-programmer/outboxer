@@ -79,6 +79,7 @@ jobs:
         sudo apt-get -qq install -y mysql-client
         export MYSQL_PWD=outboxer_password
         mysql -h 127.0.0.1 -P 3306 -u outboxer_developer -poutboxer_password outboxer_test -e 'SELECT VERSION();'
+        mysql -h 127.0.0.1 -P 3306 -u outboxer_developer -poutboxer_password outboxer_test -e 'SHOW DATABASES;'
     - name: Run Database Migrations
       env:
         RAILS_ENV: test
