@@ -96,16 +96,16 @@ module Outboxer
     def republish_all(batch_size: 100)
       updated_total_count = 0
 
-      ActiveRecord::Base.connection_pool.with_connection do
+      loop do
         updated_count = 0
 
-        loop do
+        ActiveRecord::Base.connection_pool.with_connection do
           ActiveRecord::Base.transaction do
             locked_ids = Models::Message
               .where(status: Models::Message::Status::FAILED)
               .order(updated_at: :asc)
               .limit(batch_size)
-              .lock('FOR UPDATE')
+              .lock('FOR UPDATE SKIP LOCKED')
               .pluck(:id)
 
             updated_count = locked_ids.empty? ? 0 : Models::Message
@@ -114,50 +114,44 @@ module Outboxer
                 status: Models::Message::Status::BACKLOGGED,
                 updated_at: DateTime.now.utc)
           end
-
-          updated_total_count += updated_count
-
-          break if updated_count < batch_size
         end
+
+        updated_total_count += updated_count
+
+        break if updated_count < batch_size
       end
 
       { count: updated_total_count }
     end
 
     def republish_selected(ids:)
-      updated_count = 0
-
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           locked_ids = Models::Message
-            .where(id: ids, status: Models::Message::Status::FAILED)
+            .where(id: ids)
             .order(updated_at: :asc)
-            .lock('FOR UPDATE')
+            .lock('FOR UPDATE SKIP LOCKED')
             .pluck(:id)
 
-          missing_ids = ids - locked_ids
-          if missing_ids.any?
-            raise NotFound, "Some IDs could not be found: #{missing_ids.join(', ')}"
-          end
+          republished_count = Models::Message
+            .where(id: locked_ids)
+            .update_all(status: Models::Message::Status::BACKLOGGED, updated_at: DateTime.now.utc)
 
-          updated_count = Models::Message.where(id: locked_ids).update_all(
-            status: Models::Message::Status::BACKLOGGED, updated_at: DateTime.now.utc)
+          { republished_count: republished_count, not_republished_ids: ids - locked_ids }
         end
       end
-
-      { count: updated_count }
     end
 
     def delete_all(batch_size: 100)
       deleted_total_count = 0
 
-      ActiveRecord::Base.connection_pool.with_connection do
-        loop do
-          deleted_count = 0
+      loop do
+        deleted_count = 0
 
+        ActiveRecord::Base.connection_pool.with_connection do
           ActiveRecord::Base.transaction do
             locked_ids = Models::Message
-              .order(:updated_at).limit(batch_size).lock('FOR UPDATE').pluck(:id)
+              .order(:updated_at).limit(batch_size).lock('FOR UPDATE SKIP LOCKED').pluck(:id)
 
             Models::Frame
               .joins(:exception)
@@ -168,11 +162,11 @@ module Outboxer
 
             deleted_count = Models::Message.where(id: locked_ids).delete_all
           end
-
-          deleted_total_count += deleted_count
-
-          break if deleted_count < batch_size
         end
+
+        deleted_total_count += deleted_count
+
+        break if deleted_count < batch_size
       end
 
       { count: deleted_total_count }
@@ -183,12 +177,7 @@ module Outboxer
 
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          locked_ids = Models::Message.where(id: ids).lock('FOR UPDATE').pluck(:id)
-
-          missing_ids = ids - locked_ids
-          if missing_ids.any?
-            raise NotFound, "Some IDs could not be found: #{missing_ids.join(', ')}"
-          end
+          locked_ids = Models::Message.where(id: ids).lock('FOR UPDATE SKIP LOCKED').pluck(:id)
 
           Models::Frame
             .joins(:exception)
@@ -198,10 +187,10 @@ module Outboxer
           Models::Exception.where(message_id: locked_ids).delete_all
 
           deleted_count = Models::Message.where(id: locked_ids).delete_all
+
+          { deleted_count: deleted_count, not_deleted_ids: ids - locked_ids }
         end
       end
-
-      { count: deleted_count }
     end
   end
 end
