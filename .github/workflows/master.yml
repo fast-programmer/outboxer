@@ -37,7 +37,7 @@ jobs:
         export PGPASSWORD=outboxer_password
         psql -h localhost -U outboxer_developer -d outboxer_test -c 'SELECT version();'
     - name: Run Database Migrations
-      run: RAILS_ENV=test bin/rake db:migrate
+      run: RAILS_ENV=test bin/rake outboxer:db:migrate
     - name: Run Tests
       run: RAILS_ENV=test bin/rspec spec
 
@@ -59,7 +59,7 @@ jobs:
         ports:
           - 3306:3306
         options: >-
-          --health-cmd='mysqladmin ping'
+          --health-cmd="mysqladmin ping --silent"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
@@ -76,6 +76,6 @@ jobs:
         export MYSQL_PWD=outboxer_password
         mysql -h localhost -u outboxer_developer outboxer_test -e 'SELECT VERSION();'
     - name: Run Database Migrations
-      run: RAILS_ENV=test bin/rake db:migrate
+      run: RAILS_ENV=test bin/rake outboxer:db:migrate
     - name: Run Tests
       run: RAILS_ENV=test bin/rspec spec
