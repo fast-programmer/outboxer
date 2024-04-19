@@ -177,7 +177,10 @@ module Outboxer
     def delete_selected(ids:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          locked_ids = Models::Message.where(id: ids).lock('FOR UPDATE SKIP LOCKED').pluck(:id)
+          locked_ids = Models::Message
+            .where(id: ids)
+            .lock('FOR UPDATE SKIP LOCKED')
+            .pluck(:id)
 
           Models::Frame
             .joins(:exception)
