@@ -7,20 +7,18 @@ namespace :outboxer do
   namespace :db do
     task :drop do
       environment = ENV['RAILS_ENV'] || 'development'
-      database_name = ENV['DATABASE_NAME_DEFAULT'] || 'postgres'
       db_config = Outboxer::Database.config(environment: environment)
 
-      ActiveRecord::Base.establish_connection(db_config.merge('database' => database_name))
+      ActiveRecord::Base.establish_connection(db_config.merge('database' => 'postgres'))
       ActiveRecord::Base.connection.drop_database(db_config['database'])
       ActiveRecord::Base.connection.disconnect!
     end
 
     task :create do
       environment = ENV['RAILS_ENV'] || 'development'
-      database_name = ENV['DATABASE_NAME_DEFAULT'] || 'postgres'
       db_config = Outboxer::Database.config(environment: environment)
 
-      ActiveRecord::Base.establish_connection(db_config.merge('database' => database_name))
+      ActiveRecord::Base.establish_connection(db_config.merge('database' => 'postgres'))
       ActiveRecord::Base.connection.create_database(db_config['database'])
       ActiveRecord::Base.connection.disconnect!
     end

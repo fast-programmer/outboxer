@@ -79,16 +79,13 @@ jobs:
         sudo apt-get -qq install -y mysql-client
         export MYSQL_PWD=outboxer_password
         mysql -h 127.0.0.1 -P 3306 -u outboxer_developer -poutboxer_password outboxer_test -e 'SELECT VERSION();'
-        mysql -h 127.0.0.1 -P 3306 -u outboxer_developer -poutboxer_password outboxer_test -e 'SHOW DATABASES;'
     - name: Run Database Migrations
       env:
         RAILS_ENV: test
         DATABASE_ADAPTER: mysql2
         DATABASE_HOST: 127.0.0.1
         DATABASE_PORT: 3306
-        DATABASE_NAME_DEFAULT: 'postgres'
       run: |
-        bin/rake outboxer:db:create
         bin/rake outboxer:db:migrate
     - name: Run Tests
       env:
