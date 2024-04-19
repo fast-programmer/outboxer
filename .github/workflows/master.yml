@@ -10,7 +10,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    name: Ruby ${{ matrix.ruby }}
+    name: Ruby ${{ matrix.ruby }} with ${{ matrix.database }}
     strategy:
       matrix:
         ruby:
@@ -25,9 +25,10 @@ jobs:
           POSTGRES_USER: outboxer_developer
           POSTGRES_PASSWORD: outboxer_password
           POSTGRES_DB: outboxer_test
-        ports: ['5432:5432']
+        ports:
+          - 5432:5432
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-        if: matrix.database == 'postgres'
+        if: ${{ matrix.database == 'postgres' }}
       mysql:
         image: mysql:latest
         env:
@@ -35,13 +36,14 @@ jobs:
           MYSQL_DATABASE: outboxer_test
           MYSQL_USER: outboxer_developer
           MYSQL_PASSWORD: outboxer_password
-        ports: ['3306:3306']
+        ports:
+          - 3306:3306
         options: >-
           --health-cmd='mysqladmin ping'
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
-        if: matrix.database == 'mysql'
+        if: ${{ matrix.database == 'mysql' }}
     steps:
     - uses: actions/checkout@v3
     - name: Set up Ruby
@@ -55,13 +57,17 @@ jobs:
           sudo apt-get -qq install -y postgresql-client
           export PGPASSWORD=outboxer_password
           psql -h localhost -U outboxer_developer -d outboxer_test -c 'SELECT version();'
-        else
+        elif [ "${{ matrix.database }}" == "mysql" ]; then
           sudo apt-get -qq install -y mysql-client
           export MYSQL_PWD=outboxer_password
           mysql -h localhost -u outboxer_developer outboxer_test -e 'SELECT VERSION();'
         fi
     - name: Run Database Migrations
       run: |
-        RAILS_ENV=test bin/rake outboxer:db:migrate
-    - name: Run the default task
+        if [ "${{ matrix.database }}" == "postgres" ]; then
+          RAILS_ENV=test bin/rake db:migrate
+        elif [ "${{ matrix.database }}" == "mysql" ]; then
+          RAILS_ENV=test bin/rake db:migrate
+        fi
+    - name: Run Tests
       run: RAILS_ENV=test bin/rspec spec
