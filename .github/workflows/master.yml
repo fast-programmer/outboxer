@@ -4,31 +4,44 @@ on:
   push:
     branches:
       - master
+
   pull_request:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    name: Ruby ${{ matrix.ruby }} with ${{ matrix.database }}
+    name: Ruby ${{ matrix.ruby }}
     strategy:
       matrix:
         ruby:
           - '3.3.0'
-        include:
-          - database: 'PostgreSQL'
-            db_image: 'postgres:latest'
-            db_env:
-              POSTGRES_USER: outboxer_developer
-              POSTGRES_PASSWORD: outboxer_password
-              POSTGRES_DB: outboxer_test
-            db_port: ['5432:5432']
-            health_cmd: 'pg_isready -U outboxer_developer'
+        database:
+          - postgres
+          - mysql
     services:
-      db:
-        image: ${{ matrix.db_image }}
-        env: ${{ matrix.db_env }}
-        ports: ${{ matrix.db_port }}
-        options: --health-cmd "${{ matrix.health_cmd }}" --health-interval 10s --health-timeout 5s --health-retries 5
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_USER: outboxer_developer
+          POSTGRES_PASSWORD: outboxer_password
+          POSTGRES_DB: outboxer_test
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+        if: matrix.database == 'postgres'
+      mysql:
+        image: mysql:latest
+        env:
+          MYSQL_ROOT_PASSWORD: outboxer_password
+          MYSQL_DATABASE: outboxer_test
+          MYSQL_USER: outboxer_developer
+          MYSQL_PASSWORD: outboxer_password
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd='mysqladmin ping'
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+        if: matrix.database == 'mysql'
     steps:
     - uses: actions/checkout@v3
     - name: Set up Ruby
@@ -38,24 +51,17 @@ jobs:
         bundler-cache: true
     - name: Check Database
       run: |
-        case "${{ matrix.database }}" in
-          PostgreSQL)
-            sudo apt-get -qq install -y postgresql-client
-            export PGPASSWORD=$DB_PASSWORD
-            psql -h localhost -U $DB_USER -d $DB_NAME -c 'SELECT version();'
-            ;;
-          MySQL)
-            sudo apt-get -qq install -y mysql-client
-            export MYSQL_PWD=$DB_PASSWORD
-            mysql -h 127.0.0.1 -u $DB_USER --password=$DB_PASSWORD -D $DB_NAME -e "SHOW DATABASES;"
-            ;;
-          MariaDB)
-            sudo apt-get -qq install -y mariadb-client
-            export MYSQL_PWD=$DB_PASSWORD
-            mysql -h 127.0.0.1 -u $DB_USER --password=$DB_PASSWORD -D $DB_NAME -e "SHOW DATABASES;"
-            ;;
-        esac
+        if [ "${{ matrix.database }}" == "postgres" ]; then
+          sudo apt-get -qq install -y postgresql-client
+          export PGPASSWORD=outboxer_password
+          psql -h localhost -U outboxer_developer -d outboxer_test -c 'SELECT version();'
+        else
+          sudo apt-get -qq install -y mysql-client
+          export MYSQL_PWD=outboxer_password
+          mysql -h localhost -u outboxer_developer outboxer_test -e 'SELECT VERSION();'
+        fi
     - name: Run Database Migrations
-      run: RAILS_ENV=test bin/rake outboxer:db:migrate
+      run: |
+        RAILS_ENV=test bin/rake outboxer:db:migrate
     - name: Run the default task
       run: RAILS_ENV=test bin/rspec spec
