@@ -57,7 +57,7 @@ jobs:
           MYSQL_USER: outboxer_developer
           MYSQL_PASSWORD: outboxer_password
         ports:
-          - 3306:3306
+          - 5432:5432
         options: >-
           --health-cmd="mysqladmin ping --silent"
           --health-interval=10s
@@ -74,8 +74,7 @@ jobs:
       run: |
         sudo apt-get -qq install -y mysql-client
         export MYSQL_PWD=outboxer_password
-        mysql -h 127.0.0.1 -P 3306 -u outboxer_developer -poutboxer_password outboxer_test -e 'SELECT VERSION();'
-
+        mysql -h 127.0.0.1 -P 5432 -u outboxer_developer -poutboxer_password outboxer_test -e 'SELECT VERSION();'
     - name: Run Database Migrations
       run: RAILS_ENV=test bin/rake outboxer:db:migrate
     - name: Run Tests
