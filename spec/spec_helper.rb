@@ -31,7 +31,9 @@ RSpec.configure do |config|
       DatabaseCleaner.clean
 
       ActiveRecord::Base.connection.tables.each do |table|
-        ActiveRecord::Base.connection.reset_pk_sequence!(table)
+        if ActiveRecord::Base.connection.adapter_name == 'PostgreSQL'
+          ActiveRecord::Base.connection.reset_pk_sequence!(table)
+        end
       end
     rescue ActiveRecord::DatabaseConnectionError,
         ActiveRecord::ConnectionNotEstablished,
