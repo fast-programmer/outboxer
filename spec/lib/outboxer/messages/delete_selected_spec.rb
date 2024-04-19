@@ -23,23 +23,23 @@ module Outboxer
           expect(Models::Message.order(id: :asc).pluck(:id)).to eq([message_4.id])
         end
 
-        it 'returns count' do
-          expect(result[:count]).to eq(ids.count)
+        it 'returns correct result' do
+          expect(result).to eq({ deleted_count: ids.count, not_deleted_ids: [] })
         end
       end
 
       describe 'when an id does not exist' do
-        let(:nonexistent_id) { 5 }
-
-        it 'raises NotFound' do
-          expect { Messages.delete_selected(ids: [message_1.id, nonexistent_id]) }
-            .to raise_error(NotFound, "Some IDs could not be found: #{nonexistent_id}")
-        end
+        let(:non_existent_id) { 5 }
+        let(:result) { Messages.delete_selected(ids: [message_1.id, non_existent_id]) }
 
         it 'does not delete selected messages' do
           expect(Models::Frame.count).to eq(1)
           expect(Models::Exception.count).to eq(1)
           expect(Models::Message.count).to eq(4)
+        end
+
+        it 'returns correct result' do
+          expect(result).to eq({ deleted_count: 1, not_deleted_ids: [non_existent_id]  })
         end
       end
     end

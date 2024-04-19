@@ -12,9 +12,10 @@ module Outboxer
       let!(:frame_2) { create(:outboxer_frame, exception: exception_2) }
 
       let!(:ids) { [message_1.id, message_2.id] }
-      let!(:result) { Messages.republish_selected(ids: ids) }
 
       describe 'when ids exist' do
+        let!(:result) { Messages.republish_selected(ids: ids) }
+
         it 'sets message status to backlogged' do
           expect(
             Models::Message
@@ -24,23 +25,23 @@ module Outboxer
           ).to eq(ids)
         end
 
-        it 'returns count' do
-          expect(result[:count]).to eq(ids.count)
+        it 'returns correct result' do
+          expect(result).to eq({ republished_count: ids.count, not_republished_ids: [] })
         end
       end
 
       describe 'when an id does not exist' do
-        let(:nonexistent_id) { 5 }
-
-        it 'raises NotFound' do
-          expect { Messages.republish_selected(ids: [nonexistent_id]) }
-            .to raise_error(NotFound, "Some IDs could not be found: #{nonexistent_id}")
-        end
+        let(:non_existent_id) { 5 }
+        let(:result) { Messages.republish_selected(ids: [non_existent_id]) }
 
         it 'does not delete selected messages' do
           expect(Models::Frame.count).to eq(2)
           expect(Models::Exception.count).to eq(2)
           expect(Models::Message.count).to eq(2)
+        end
+
+        it 'returns correct result' do
+          expect(result).to eq({ republished_count: 0, not_republished_ids: [non_existent_id]  })
         end
       end
     end
