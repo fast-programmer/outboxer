@@ -1,19 +1,19 @@
 development:
-  adapter: postgresql
-  encoding: unicode
-  host: localhost
-  port: 5432
+  adapter: <%= ENV.fetch('DATABASE_ADAPTER') { 'postgresql' } %>
+  encoding: utf8
+  host: <%= ENV.fetch('DATABASE_HOST') { 'localhost' } %>
+  port: <%= ENV.fetch('DATABASE_PORT') { 5432 } %>
   username: outboxer_developer
   password: outboxer_password
   database: outboxer_development
-  pool: <%= ENV.fetch('RAILS_MAX_THREADS') { 26 } %>
+  pool: <%= ENV.fetch('DATABASE_POOL') { 5 } %>
 
 test:
-  adapter: postgresql
-  encoding: unicode
-  host: localhost
-  port: 5432
+  adapter: <%= ENV.fetch('DATABASE_ADAPTER') { 'postgresql' } %>
+  encoding: utf8
+  host: <%= ENV.fetch('DATABASE_HOST') { 'localhost' } %>
+  port: <%= ENV.fetch('DATABASE_PORT') { 5432 } %>
   username: outboxer_developer
   password: outboxer_password
   database: outboxer_test
-  pool: <%= ENV.fetch('RAILS_MAX_THREADS') { 26 } %>
+  pool: <%= ENV.fetch('DATABASE_POOL') { 5 } %>
