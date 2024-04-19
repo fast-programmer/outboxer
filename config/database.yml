@@ -1,5 +1,5 @@
 development:
-  adapter: <%= ENV.fetch('DATABASE_ADAPTER') { postgresql } %>
+  adapter: <%= ENV.fetch('DATABASE_ADAPTER') { 'postgresql' } %>
   encoding: unicode
   host: localhost
   port: <%= ENV.fetch('DATABASE_PORT') { 5432 } %>
@@ -9,7 +9,7 @@ development:
   pool: <%= ENV.fetch('DATABASE_POOL') { 5 } %>
 
 test:
-  adapter: <%= ENV.fetch('DATABASE_ADAPTER') { postgresql } %>
+  adapter: <%= ENV.fetch('DATABASE_ADAPTER') { 'postgresql' } %>
   encoding: unicode
   host: localhost
   port: <%= ENV.fetch('DATABASE_PORT') { 5432 } %>
