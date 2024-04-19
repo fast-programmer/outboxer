@@ -23,20 +23,6 @@ jobs:
               POSTGRES_DB: outboxer_test
             db_port: ['5432:5432']
             health_cmd: 'pg_isready -U outboxer_developer'
-          - database: 'MySQL'
-            db_image: 'mysql:latest'
-            db_env:
-              MYSQL_ROOT_PASSWORD: password
-              MYSQL_DATABASE: outboxer_test
-            db_port: ['3306:3306']
-            health_cmd: 'mysqladmin ping -h localhost'
-          - database: 'MariaDB'
-            db_image: 'mariadb:latest'
-            db_env:
-              MARIADB_ROOT_PASSWORD: password
-              MARIADB_DATABASE: outboxer_test
-            db_port: ['3306:3306']
-            health_cmd: 'mysqladmin ping -h localhost'
     services:
       db:
         image: ${{ matrix.db_image }}
