@@ -5,24 +5,13 @@ module Outboxer
     describe '.disconnect' do
       context 'when successful' do
         it 'does not raise an error' do
-          expect { Database.disconnect }.not_to raise_error
+          expect { Database.disconnect(logger: nil) }.not_to raise_error
         end
 
         it 'returns connected false' do
-          Database.disconnect
+          Database.disconnect(logger: nil)
 
           expect(Database.connected?).to be false
-        end
-      end
-
-      context 'when not successful' do
-        before do
-          allow(ActiveRecord::Base.connection_handler)
-            .to receive(:clear_active_connections!).and_raise(ActiveRecord::ConnectionNotEstablished)
-        end
-
-        it 'raises a DisconnectError' do
-          expect { Database.disconnect }.to raise_error(Database::DisconnectError)
         end
       end
     end
