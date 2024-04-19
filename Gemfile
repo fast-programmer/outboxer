@@ -10,6 +10,7 @@ gem "rubocop", "~> 1.55"
 gem "yard", "~> 0.9.34"
 
 gem "pg", "~> 1.5"
+gem 'mysql2', '~> 0.5.6'
 gem "activerecord", "~> 7.1", ">= 7.1.2"
 
 gem "sidekiq", "~> 7.2"
