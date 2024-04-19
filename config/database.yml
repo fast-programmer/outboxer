@@ -1,6 +1,6 @@
 development:
   adapter: <%= ENV.fetch('DATABASE_ADAPTER') { 'postgresql' } %>
-  encoding: unicode
+  encoding: utf8
   host: localhost
   port: <%= ENV.fetch('DATABASE_PORT') { 5432 } %>
   username: outboxer_developer
@@ -10,7 +10,7 @@ development:
 
 test:
   adapter: <%= ENV.fetch('DATABASE_ADAPTER') { 'postgresql' } %>
-  encoding: unicode
+  encoding: utf8
   host: localhost
   port: <%= ENV.fetch('DATABASE_PORT') { 5432 } %>
   username: outboxer_developer
