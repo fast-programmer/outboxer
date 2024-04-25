@@ -45,8 +45,8 @@ module Outboxer
     end
 
     DEFAULT_STATUS = nil
-    DEFAULT_SORT = :updated_at
-    DEFAULT_ORDER = :asc
+    DEFAULT_SORT = 'updated_at'
+    DEFAULT_ORDER = 'asc'
     DEFAULT_PAGE = 1
     DEFAULT_PER_PAGE = 100
 
@@ -57,13 +57,13 @@ module Outboxer
         raise ArgumentError, "status must be #{Models::Message::STATUSES.join(' ')}"
       end
 
-      sort_options = [:id, :status, :messageable, :created_at, :updated_at]
-      if !sort_options.include?(sort.to_sym)
+      sort_options = ['id', 'status', 'messageable', 'created_at', 'updated_at']
+      if !sort_options.include?(sort)
         raise ArgumentError, "sort must be #{sort_options.join(' ')}"
       end
 
-      order_options = [:asc, :desc]
-      if !order_options.include?(order.to_sym)
+      order_options = ['asc', 'desc']
+      if !order_options.include?(order)
         raise ArgumentError, "order must be #{order_options.join(' ')}"
       end
 
@@ -80,10 +80,10 @@ module Outboxer
       message_scope = status.nil? ? message_scope.all : message_scope.where(status: status)
 
       message_scope =
-        if sort.to_sym == :messageable
-          message_scope.order(messageable_type: order.to_sym, messageable_id: order.to_sym)
+        if sort == 'messageable'
+          message_scope.order(messageable_type: order, messageable_id: order)
         else
-          message_scope.order(sort.to_sym => order.to_sym)
+          message_scope.order(sort => order)
         end
 
       messages = ActiveRecord::Base.connection_pool.with_connection do
