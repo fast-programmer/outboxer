@@ -18,7 +18,7 @@ module Outboxer
     enable :sessions
     use Rack::Flash
 
-    get '/messages' do
+    get '/' do
       message_status_counts = Messages.counts_by_status
 
       messages_publishing = Messages.publishing(
@@ -38,108 +38,153 @@ module Outboxer
       }
     end
 
-    get '/' do
-      redirect to('/messages/all')
-    end
-
-    get '/messages/all' do
+    get '/messages' do
       message_status_counts = Messages.counts_by_status
 
-      sort = params[:sort] || Messages::SORT
-      order = params[:order] || Messages::ORDER
-      page = params[:page]&.to_i || Messages::PAGE
-      per_page = params[:per_page]&.to_i || Messages::PER_PAGE
+      denormalised_params = denormalise_params(
+        status: params[:status],
+        sort: params[:sort],
+        order: params[:order],
+        page: params[:page]&.to_i,
+        per_page: params[:per_page]&.to_i)
 
-      messages = Messages.list(sort: sort, order: order, page: page, per_page: per_page)
+      paginated_messages = Messages.paginate(
+        status: denormalised_params[:status],
+        sort: denormalised_params[:sort],
+        order: denormalised_params[:order],
+        page: denormalised_params[:page]&.to_i,
+        per_page: denormalised_params[:per_page]&.to_i)
+
+      pagination = generate_pagination(
+        current_page: paginated_messages[:current_page],
+        total_pages: paginated_messages[:total_pages],
+        params: denormalised_params)
 
       erb :messages, locals: {
         message_status_counts: message_status_counts,
-        messages: messages,
-        page: page,
-        per_page: per_page,
-        sort: sort,
-        order: order
+        messages: paginated_messages[:messages],
+        headers: generate_headers(params: denormalised_params),
+        pagination: pagination,
+        per_page: params[:per_page]&.to_i || Messages::DEFAULT_PER_PAGE
       }
     end
 
-    get '/messages/backlogged' do
-      message_status_counts = Messages.counts_by_status
+    HEADERS = {
+      'id' => 'Id',
+      'status' => 'Status',
+      'messageable' => 'Messageable',
+      'created_at' => 'Created At',
+      'updated_at' => 'Updated At'
+    }
 
-      sort = params[:sort]|| Messages::SORT
-      order = params[:order] || Messages::ORDER
-      page = params[:page] || Messages::PAGE
-      per_page = params[:per_page] || Messages::PER_PAGE
+    def generate_pagination(current_page:, total_pages:, params:)
+      previous_page = nil
+      pages = []
+      next_page = nil
 
-      messages = Messages.backlogged(sort: sort, order: order, page: page, per_page: per_page)
+      if current_page > 1
+        previous_page = {
+          text: 'Previous',
+          href: "/messages" + normalise_params(
+            status: params[:status], sort: params[:sort], order: params[:order],
+            page: current_page - 1, per_page: params[:per_page])
+        }
+      end
 
-      erb :messages, locals: {
-        message_status_counts: message_status_counts,
-        messages: messages,
-        page: page,
-        per_page: per_page,
-        sort: sort,
-        order: order
+      pages = (([current_page - 4, 1].max)..([current_page + 4, total_pages].min)).map do |page|
+        {
+          text: page,
+          href: "/messages" + normalise_params(
+            status: params[:status], sort: params[:sort], order: params[:order], page: page,
+            per_page: params[:per_page]),
+          is_active: current_page == page
+        }
+      end
+
+      if current_page < total_pages
+        next_page = {
+          text: 'Next',
+          href: "/messages" + normalise_params(
+            status: params[:status], sort: params[:sort], order: params[:order],
+            page: current_page + 1, per_page: params[:per_page])
+        }
+      end
+
+      { previous_page: previous_page, pages: pages, next_page: next_page }
+    end
+
+    def generate_headers(params:)
+      HEADERS.map do |header_key, header_text|
+        if params[:sort] == header_key
+          if params[:order] == 'asc'
+            {
+              text: header_text,
+              icon_class: 'bi bi-arrow-up',
+              href: 'messages' + normalise_params(
+                status: params[:status],
+                order: 'desc',
+                sort: header_key,
+                page: 1,
+                per_page: params[:per_page]
+              )
+            }
+          else
+            {
+              text: header_text,
+              icon_class: 'bi bi-arrow-down',
+              href: 'messages' + normalise_params(
+                status: params[:status],
+                order: 'asc',
+                sort: header_key,
+                page: 1,
+                per_page: params[:per_page]
+              )
+            }
+          end
+        else
+          {
+            text: header_text,
+            icon_class: 'bi bi-arrow-down-up',
+            href: 'messages' + normalise_params(
+              status: params[:status],
+              order: 'asc',
+              sort: header_key,
+              page: 1,
+              per_page: params[:per_page]
+            )
+          }
+        end
+      end
+    end
+
+    def denormalise_params(status: Messages::DEFAULT_STATUS,
+                           sort: Messages::DEFAULT_SORT,
+                           order: Messages::DEFAULT_ORDER,
+                           page: Messages::DEFAULT_PAGE,
+                           per_page: Messages::DEFAULT_PER_PAGE)
+      {
+        status: params[:status] || Messages::DEFAULT_STATUS,
+        sort: params[:sort] || Messages::DEFAULT_SORT,
+        order: params[:order] || Messages::DEFAULT_ORDER,
+        page: params[:page]&.to_i || Messages::DEFAULT_PAGE,
+        per_page: params[:per_page]&.to_i || Messages::DEFAULT_PER_PAGE
       }
     end
 
-    get '/messages/queued' do
-      message_status_counts = Messages.counts_by_status
+    def normalise_params(status: Messages::DEFAULT_STATUS,
+                        sort: Messages::DEFAULT_SORT,
+                        order: Messages::DEFAULT_ORDER,
+                        page: Messages::DEFAULT_PAGE,
+                        per_page: Messages::DEFAULT_PER_PAGE)
+      normalised_params = {
+        status: status == Messages::DEFAULT_STATUS ? nil : status,
+        sort: sort == Messages::DEFAULT_SORT ? nil : sort,
+        order: order == Messages::DEFAULT_ORDER ? nil : order,
+        page: page == Messages::DEFAULT_PAGE ? nil : page,
+        per_page: per_page == Messages::DEFAULT_PER_PAGE ? nil : per_page
+      }.compact
 
-      sort = params[:sort]|| Messages::SORT
-      order = params[:order] || Messages::ORDER
-      page = params[:page] || Messages::PAGE
-      per_page = params[:per_page] || Messages::PER_PAGE
-
-      messages = Messages.queued(sort: sort, order: order, page: page, per_page: per_page)
-
-      erb :messages, locals: {
-        message_status_counts: message_status_counts,
-        messages: messages,
-        page: page,
-        per_page: per_page,
-        sort: sort,
-        order: order
-      }
-    end
-
-    get '/messages/publishing' do
-      message_status_counts = Messages.counts_by_status
-
-      sort = params[:sort]|| Messages::SORT
-      order = params[:order] || Messages::ORDER
-      page = params[:page] || Messages::PAGE
-      per_page = params[:per_page] || Messages::PER_PAGE
-
-      messages = Messages.publishing(sort: sort, order: order, page: page, per_page: per_page)
-
-      erb :messages, locals: {
-        message_status_counts: message_status_counts,
-        messages: messages,
-        page: page,
-        per_page: per_page,
-        sort: sort,
-        order: order
-      }
-    end
-
-    get '/messages/failed' do
-      message_status_counts = Messages.counts_by_status
-
-      sort = params[:sort]|| Messages::SORT
-      order = params[:order] || Messages::ORDER
-      page = params[:page] || Messages::PAGE
-      per_page = params[:per_page] || Messages::PER_PAGE
-
-      messages = Messages.failed(sort: sort, order: order, page: page, per_page: per_page)
-
-      erb :messages, locals: {
-        message_status_counts: message_status_counts,
-        messages: messages,
-        page: page,
-        per_page: per_page,
-        sort: sort,
-        order: order
-      }
+      normalised_params.empty? ? '' : "?#{URI.encode_www_form(normalised_params)}"
     end
 
     post '/messages/update' do
@@ -160,7 +205,7 @@ module Outboxer
     end
 
     post '/messages/republish_all' do
-      result = Messages.republish_all
+      result = Messages.republish_all_failed
 
       flash[:notice] = "#{result[:count]} messages have been republished."
 
@@ -168,26 +213,29 @@ module Outboxer
     end
 
     post '/messages/delete_all' do
-      result = Messages.delete_all(batch_size: 100)
+      result = Messages.delete_all_failed(batch_size: 100)
 
       flash[:notice] = "#{result[:count]} messages have been deleted."
 
       redirect to('/messages/all')
     end
 
-    post '/messages/per_page' do
-      params_hash = {
-        'order' => params[:order],
-        'sort' => params[:sort],
-        'page' => params[:page],
-        'per_page' => params[:per_page]
-      }
+    post '/messages/update_per_page' do
+      status = params[:status] || Messages::DEFAULT_STATUS
+      sort = params[:sort] || Messages::DEFAULT_SORT
+      order = params[:order] || Messages::DEFAULT_ORDER
+      page = params[:page]&.to_i || Messages::DEFAULT_PAGE
+      per_page = params[:per_page]&.to_i || Messages::DEFAULT_PER_PAGE
 
-      filtered_params = params_hash.reject { |_, value| value.nil? || value.strip.empty? }
+      query_params = URI.encode_www_form({
+        status: status == Messages::DEFAULT_STATUS ? nil : status,
+        sort: sort == Messages::DEFAULT_SORT ? nil : sort,
+        order: order == Messages::DEFAULT_ORDER ? nil : order,
+        page: page == Messages::DEFAULT_PAGE ? nil : order,
+        per_page: per_page == Messages::DEFAULT_PER_PAGE ? nil : per_page
+      }.compact)
 
-      query_string = URI.encode_www_form(filtered_params)
-
-      redirect "/messages/all?#{query_string}"
+      redirect "/messages?#{query_params}"
     end
 
     get '/message/:id' do

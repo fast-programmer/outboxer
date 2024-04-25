@@ -44,29 +44,15 @@ module Outboxer
       end
     end
 
-    STATUS = nil
-    SORT = :updated_at
-    ORDER = :asc
-    PAGE = 1
-    PER_PAGE = 10
+    DEFAULT_STATUS = nil
+    DEFAULT_SORT = :updated_at
+    DEFAULT_ORDER = :asc
+    DEFAULT_PAGE = 1
+    DEFAULT_PER_PAGE = 100
 
-    def backlogged(sort: SORT, order: ORDER, page: PAGE, per_page: PER_PAGE)
-      list(status: Models::Message::Status::BACKLOGGED)
-    end
-
-    def queued(sort: SORT, order: ORDER, page: PAGE, per_page: PER_PAGE)
-      list(status: Models::Message::Status::QUEUED)
-    end
-
-    def publishing(sort: SORT, order: ORDER, page: PAGE, per_page: PER_PAGE)
-      list(status: Models::Message::Status::PUBLISHING)
-    end
-
-    def failed(sort: SORT, order: ORDER, page: PAGE, per_page: PER_PAGE)
-      list(status: Models::Message::Status::FAILED)
-    end
-
-    def list(status: STATUS, sort: SORT, order: ORDER, page: PAGE, per_page: PER_PAGE)
+    def paginate(status: DEFAULT_STATUS,
+                 sort: DEFAULT_SORT, order: DEFAULT_ORDER,
+                 page: DEFAULT_PAGE, per_page: DEFAULT_PER_PAGE)
       if !status.nil? && !Models::Message::STATUSES.include?(status.to_s)
         raise ArgumentError, "status must be #{Models::Message::STATUSES.join(' ')}"
       end
@@ -105,7 +91,7 @@ module Outboxer
       end
 
       {
-        data: messages.map do |message|
+        messages: messages.map do |message|
           {
             id: message.id,
             status: message.status,

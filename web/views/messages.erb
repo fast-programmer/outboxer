@@ -56,40 +56,18 @@
                         <th scope="col">
         <input type="checkbox" id="checkAll">
       </th>
-      <th scope="col">
-        <a href="/messages?sort=id&order=<%= 'id' == sort ? (order == 'asc' ? 'desc' : 'asc') : 'asc' %>" 
-           class="<%= 'id' == sort ? 'text-primary' : '' %>">
-          Id <i class="bi bi-sort-alpha-down-up"></i>
-        </a>
-      </th>
-      <th scope="col">
-        <a href="/messages?sort=status&order=<%= 'status' == sort ? (order == 'asc' ? 'desc' : 'asc') : 'asc' %>"
-           class="<%= 'status' == sort ? 'text-primary' : '' %>">
-          Status <i class="bi bi-sort-alpha-down-up"></i>
-        </a>
-      </th>
-      <th scope="col">
-        <a href="/messages?sort=messageable&order=<%= 'messageable' == sort ? (order == 'asc' ? 'desc' : 'asc') : 'asc' %>"
-           class="<%= 'messageable' == sort ? 'text-primary' : '' %>">
-          Messageable <i class="bi bi-sort-alpha-down-up"></i>
-        </a>
-      </th>
-      <th scope="col">
-        <a href="/messages?sort=created_at&order=<%= 'created_at' == sort ? (order == 'asc' ? 'desc' : 'asc') : 'asc' %>"
-           class="<%= 'created_at' == sort ? 'text-primary' : '' %>">
-          Created At <i class="bi bi-sort-alpha-down-up"></i>
-        </a>
-      </th>
-      <th scope="col">
-        <a href="/messages?sort=updated_at&order=<%= 'updated_at' == sort ? (order == 'asc' ? 'desc' : 'asc') : 'asc' %>"
-           class="<%= 'updated_at' == sort ? 'text-primary' : '' %>">
-          Updated At <i class="bi bi-sort-alpha-down-up"></i>
-        </a>
-      </th>
+
+        <% headers.each do |header| %>
+            <th scope="col">
+                <a href="<%= header[:href] %>">
+                    <%= header[:text] %> <i class="<%= header[:icon_class] %>"></i>
+                </a>
+            </th>
+        <% end %>
 </tr>
                     </thead>
                     <tbody>
-                        <% messages[:data].each do |message| %>
+                        <% messages.each do |message| %>
                             <tr>
                                 <td><input type="checkbox" class="individual-check" form="bulkActionForm" name="selectedMessages[]" value="<%= message[:id] %>"></td>
                                 <th scope="row">
@@ -127,52 +105,52 @@
                 </table>
             </div>
         </div>
-        <div class="card-footer">
-            <div class="container-fluid">
-                <div class="row align-items-center">
-                    <!-- Navigation now takes up full width on xs to sm, then 2/3 on md and larger screens -->
-                    <div class="col-12 col-md-8 mb-2 mb-md-0">
-                        <div class="d-flex justify-content-center">
-                            <nav aria-label="Page navigation example">
-                                <ul class="pagination mb-0">
-                                    <% if messages[:current_page] > 1 %>
-                                        <li class="page-item">
-                                            <a class="page-link" href="?page=<%= messages[:current_page] - 1 %>&per_page=<%= per_page %>">Previous</a>
-                                        </li>
-                                    <% end %>
-
-                                    <% 1.upto(messages[:total_pages]) do |current_page| %>
-                                        <li class="page-item <%= 'active' if current_page == page %>">
-                                            <a class="page-link" href="?page=<%= current_page %>&per_page=<%= per_page %>"><%= current_page %></a>
-                                        </li>
-                                    <% end %>
-
-                                    <% if messages[:current_page] < messages[:total_pages] %>
-                                        <li class="page-item">
-                                            <a class="page-link" href="?page=<%= messages[:current_page] + 1 %>&per_page=<%= per_page %>">Next</a>
-                                        </li>
-                                    <% end %>
-                                </ul>
-                            </nav>
-                        </div>
-                    </div>
-                    <!-- "Per page" selection now right-aligned and takes up 1/3 on md and larger screens -->
-                    <form action="/messages/per_page" method="post" id="perPageForm">
-                    <div class="col-12 col-md-4 d-flex justify-content-end justify-content-md-end">
-                        <div class="d-flex align-items-center">
-                            <label for="perPageSelect" class="me-2">Per&nbsp;page:</label>
-                            <select class="form-select form-select-sm" aria-label="Per page" id="perPageSelect" name="per_page" onchange="document.getElementById('perPageForm').submit();">
-                                <option value="10" <%= 'selected' if per_page.to_i == 10 %>>10</option>
-                                <option value="100" <%= 'selected' if per_page.to_i == 100 %>>100</option>
-                                <option value="200" <%= 'selected' if per_page.to_i == 200 %>>200</option>
-                                <option value="500" <%= 'selected' if per_page.to_i == 500 %>>500</option>
-                                <option value="1000" <%= 'selected' if per_page.to_i == 1000 %>>1000</option>
-                            </select>
-                        </div>
-                    </div>
-                    </form>
-                </div>
+<div class="card-footer">
+    <div class="container-fluid">
+        <div class="row align-items-center justify-content-center">
+            <div class="col-auto">
+                <!-- Pagination -->
+                <nav aria-label="Page navigation example" class="d-flex align-items-center">
+                    <ul class="pagination mb-0">
+                        <% if pagination[:previous_page] %>
+                            <li class="page-item">
+                                <a class="page-link" href="<%= pagination[:previous_page][:href] %>"
+                                   aria-label="<%= pagination[:previous_page][:text] %>">
+                                    <%= pagination[:previous_page][:text] %>
+                                </a>
+                            </li>
+                        <% end %>
+                        <% pagination[:pages].each do |page| %>
+                            <li class="page-item <%= 'active' if page[:is_active] %>">
+                                <a class="page-link" href="<%= page[:href] %>"><%= page[:text] %></a>
+                            </li>
+                        <% end %>
+                        <% if pagination[:next_page] %>
+                            <li class="page-item">
+                                <a class="page-link" href="<%= pagination[:next_page][:href] %>"
+                                   aria-label="Next: <%= pagination[:next_page][:text] %>">
+                                    <%= pagination[:next_page][:text] %>
+                                </a>
+                            </li>
+                        <% end %>
+                    </ul>
+                </nav>
+            </div>
+            <div class="col-auto">
+                <!-- "Per page" selection -->
+                <form action="/messages/update_per_page" method="post" id="perPageForm" class="d-flex align-items-center">
+                    <label for="perPageSelect" class="me-2">Per&nbsp;page:</label>
+                    <select class="form-select form-select-sm" aria-label="Per page" id="perPageSelect" name="per_page" onchange="document.getElementById('perPageForm').submit();">
+                        <option value="10" <%= 'selected' if per_page.to_i == 10 %>>10</option>
+                        <option value="100" <%= 'selected' if per_page.to_i == 100 %>>100</option>
+                        <option value="200" <%= 'selected' if per_page.to_i == 200 %>>200</option>
+                        <option value="500" <%= 'selected' if per_page.to_i == 500 %>>500</option>
+                        <option value="1000" <%= 'selected' if per_page.to_i == 1000 %>>1000</option>
+                    </select>
+                </form>
             </div>
         </div>
+    </div>
+</div>
     </div>
 </div>
