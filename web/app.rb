@@ -221,21 +221,21 @@ module Outboxer
     end
 
     post '/messages/update_per_page' do
-      status = params[:status] || Messages::DEFAULT_STATUS
-      sort = params[:sort] || Messages::DEFAULT_SORT
-      order = params[:order] || Messages::DEFAULT_ORDER
-      page = params[:page]&.to_i || Messages::DEFAULT_PAGE
-      per_page = params[:per_page]&.to_i || Messages::DEFAULT_PER_PAGE
+      denormalised_params = denormalise_params(
+        status: params[:status],
+        sort: params[:sort],
+        order: params[:order],
+        page: params[:page]&.to_i,
+        per_page: params[:per_page]&.to_i)
 
-      query_params = URI.encode_www_form({
-        status: status == Messages::DEFAULT_STATUS ? nil : status,
-        sort: sort == Messages::DEFAULT_SORT ? nil : sort,
-        order: order == Messages::DEFAULT_ORDER ? nil : order,
-        page: page == Messages::DEFAULT_PAGE ? nil : order,
-        per_page: per_page == Messages::DEFAULT_PER_PAGE ? nil : per_page
-      }.compact)
+      normalised_params = normalise_params(
+        status: denormalised_params[:status],
+        sort: denormalised_params[:sort],
+        order: denormalised_params[:order],
+        page: denormalised_params[:page],
+        per_page: denormalised_params[:per_page])
 
-      redirect "/messages?#{query_params}"
+      redirect "/messages#{normalised_params}"
     end
 
     get '/message/:id' do
