@@ -35,7 +35,7 @@ module Outboxer
 
       context 'when status is publishing' do
         before do
-          Messages.republish_all(status: Models::Message::Status::PUBLISHING, batch_size: 1)
+          Messages.republish_all(status: Message::Status::PUBLISHING, batch_size: 1)
         end
 
         it 'sets publishing messages to backlogged' do
