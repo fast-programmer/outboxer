@@ -19,6 +19,13 @@ module Outboxer
     use Rack::Flash
 
     get '/' do
+      denormalised_params = denormalise_params(
+        status: params[:status],
+        sort: params[:sort],
+        order: params[:order],
+        page: params[:page]&.to_i,
+        per_page: params[:per_page]&.to_i)
+
       message_status_counts = Messages.counts_by_status
 
       messages_publishing = Messages.paginate(
@@ -31,6 +38,7 @@ module Outboxer
         status: 'backlogged', sort: 'updated_at', order: 'asc', page: 1, per_page: 100)
 
       erb :home, locals: {
+        denormalised_params: denormalised_params,
         message_status_counts: message_status_counts,
         messages_publishing: messages_publishing,
         messages_queued: messages_queued,
