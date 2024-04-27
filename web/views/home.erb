@@ -13,7 +13,7 @@
                             <th scope="col">Messageable</th>
                             <th scope="col">Created At</th>
                             <th scope="col">
-                                Updated At <i class="bi bi-sort-up"></i>
+                                Updated At <i class="bi bi-arrow-up"></i>
                             </th>
                         </tr>
                     </thead>
@@ -21,72 +21,96 @@
                     <!-- Publishing Section -->
                     <tbody>
                         <tr class="table-primary" data-bs-toggle="collapse" data-bs-target="#publishingSection" aria-expanded="true" aria-controls="publishingSection">
-                            <th colspan="7">
-                                Publishing (<%= message_status_counts[:publishing] %>)
+                            <th colspan="5">
+                                <button class="btn btn-link p-0 text-decoration-none text-dark fw-bold" type="button">
+                                    Publishing (<%= message_status_counts[:publishing] %>)
+                                </button>
                             </th>
                         </tr>
                     </tbody>
-                    <tbody id="publishingSection" class="collapse show table-group-divider">
-                        <% messages_publishing[:messages].each_with_index do |message, index| %>
+                    <tbody id="publishingSection" class="collapse table-group-divider">
+                        <% if messages_publishing[:messages].empty? %>
                             <tr>
-                                <td><%= index + 1 %></td>
-                                <td>
-                                    <a href="/message/<%= message[:id] %>" class="custom-link">
-                                        <%= message[:id] %>
-                                    </a>
-                                </td>
-                                <td><%= message[:messageable_type] %>::<%= message[:messageable_id] %></td>
-                                <td><%= message[:created_at] %></td>
-                                <td><%= message[:updated_at] %></td>
+                                <td colspan="5" class="text-center fw-bold">No messages are currently publishing.</td>
                             </tr>
+                        <% else %>
+                            <% messages_publishing[:messages].each_with_index do |message, index| %>
+                                <tr>
+                                    <td><%= index + 1 %></td>
+                                    <td>
+                                        <a href="/message/<%= message[:id] %>" class="custom-link">
+                                            <%= message[:id] %>
+                                        </a>
+                                    </td>
+                                    <td><%= message[:messageable_type] %>::<%= message[:messageable_id] %></td>
+                                    <td><%= message[:created_at] %></td>
+                                    <td><%= message[:updated_at] %></td>
+                                </tr>
+                            <% end %>
                         <% end %>
                     </tbody>
 
                     <!-- Queued Section -->
                     <tbody>
                         <tr class="table-secondary" data-bs-toggle="collapse" data-bs-target="#queuedSection" aria-expanded="true" aria-controls="queuedSection">
-                            <th colspan="7">
-                                Queued (<%= message_status_counts[:queued] %>)
+                            <th colspan="5">
+                                <button class="btn btn-link p-0 text-decoration-none text-dark fw-bold" type="button">
+                                    Queued (<%= message_status_counts[:queued] %>)
+                                </button>
                             </th>
                         </tr>
                     </tbody>
-                    <tbody id="queuedSection" class="collapse show table-group-divider">
-                        <% messages_queued[:messages].each_with_index do |message, index| %>
+                    <tbody id="queuedSection" class="collapse table-group-divider">
+                        <% if messages_queued[:messages].empty? %>
                             <tr>
-                                <td><%= messages_publishing[:data].count + index + 1 %></td>
-                                <td>
-                                    <a href="/message/<%= message[:id] %>" class="custom-link">
-                                        <%= message[:id] %>
-                                    </a>
-                                </td>
-                                <td><%= message[:messageable_type] %>::<%= message[:messageable_id] %></td>
-                                <td><%= message[:created_at] %></td>
-                                <td><%= message[:updated_at] %></td>
+                                <td colspan="5" class="text-center fw-bold">No messages are currently queued.</td>
                             </tr>
+                        <% else %>
+                            <% messages_queued[:messages].each_with_index do |message, index| %>
+                                <tr>
+                                    <td><%= messages_publishing[:messages].count + index + 1 %></td>
+                                    <td>
+                                        <a href="/message/<%= message[:id] %>" class="custom-link">
+                                            <%= message[:id] %>
+                                        </a>
+                                    </td>
+                                    <td><%= message[:messageable_type] %>::<%= message[:messageable_id] %></td>
+                                    <td><%= message[:created_at] %></td>
+                                    <td><%= message[:updated_at] %></td>
+                                </tr>
+                            <% end %>
                         <% end %>
                     </tbody>
 
                     <!-- Backlogged Section -->
                     <tbody>
                         <tr class="table-warning" data-bs-toggle="collapse" data-bs-target="#backloggedSection" aria-expanded="true" aria-controls="backloggedSection">
-                            <th colspan="7">
-                                Backlogged (<%= message_status_counts[:backlogged] %>)
+                            <th colspan="5">
+                                <button class="btn btn-link p-0 text-decoration-none text-dark fw-bold" type="button">
+                                    Backlogged (<%= message_status_counts[:backlogged] %>)
+                                </button>
                             </th>
                         </tr>
                     </tbody>
-                    <tbody id="backloggedSection" class="collapse show table-group-divider">
-                        <% messages_backlogged[:messages].each_with_index do |message, index| %>
+                    <tbody id="backloggedSection" class="collapse table-group-divider">
+                        <% if messages_backlogged[:messages].empty? %>
                             <tr>
-                                <td><%= messages_publishing[:messages].count + messages_queued[:messages].count + index + 1 %></td>
-                                <td>
-                                    <a href="/message/<%= message[:id] %>" class="custom-link">
-                                        <%= message[:id] %>
-                                    </a>
-                                </td>
-                                <td><%= message[:messageable_type] %>::<%= message[:messageable_id] %></td>
-                                <td><%= message[:created_at] %></td>
-                                <td><%= message[:updated_at] %></td>
+                                <td colspan="5" class="text-center fw-bold">No messages are currently backlogged.</td>
                             </tr>
+                        <% else %>
+                            <% messages_backlogged[:messages].each_with_index do |message, index| %>
+                                <tr>
+                                    <td><%= messages_publishing[:messages].count + messages_queued[:messages].count + index + 1 %></td>
+                                    <td>
+                                        <a href="/message/<%= message[:id] %>" class="custom-link">
+                                            <%= message[:id] %>
+                                        </a>
+                                    </td>
+                                    <td><%= message[:messageable_type] %>::<%= message[:messageable_id] %></td>
+                                    <td><%= message[:created_at] %></td>
+                                    <td><%= message[:updated_at] %></td>
+                                </tr>
+                            <% end %>
                         <% end %>
                     </tbody>
                 </table>

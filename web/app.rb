@@ -193,14 +193,34 @@ module Outboxer
 
       result = case params[:action]
       when 'republish_selected'
-        Messages.republish_selected(ids: ids)
-      when 'delete_selected'
-        Messages.delete_selected(ids: ids)
-      else
-        raise "Unknown value: #{params[:submit]}"
-      end
+        result = Messages.republish_selected(ids: ids)
 
-      flash[:notice] = "#{result[:count]} messages have been updated."
+        if result[:republished_count] > 0
+          flash[:primary] = "Republished #{result[:republished_count]} messages"
+        end
+
+        unless result[:not_republished_ids].empty?
+          flash[:warning] = "Could not republish messages with ids " +
+            "#{result[:not_republished_ids].join(', ')}"
+        end
+
+        result
+      when 'delete_selected'
+        result = Messages.delete_selected(ids: ids)
+
+        if result[:deleted_count] > 0
+          flash[:primary] = "Deleted #{result[:deleted_count]} messages"
+        end
+
+        unless result[:not_deleted_ids].empty?
+          flash[:warning] = "Could not delete messages with ids " +
+            "#{result[:not_deleted_ids].join(', ')}"
+        end
+
+        result
+      else
+        raise "Unknown action: #{params[:action]}"
+      end
 
       redirect to('/messages')
     end
@@ -208,7 +228,7 @@ module Outboxer
     post '/messages/republish_all' do
       result = Messages.republish_all_failed
 
-      flash[:notice] = "#{result[:count]} messages have been republished."
+      flash[:primary] = "#{result[:count]} messages have been republished"
 
       redirect to('/messages')
     end
@@ -216,7 +236,7 @@ module Outboxer
     post '/messages/delete_all' do
       result = Messages.delete_all_failed(batch_size: 100)
 
-      flash[:notice] = "#{result[:count]} messages have been deleted."
+      flash[:primary] = "#{result[:count]} messages have been deleted"
 
       redirect to('/messages')
     end
@@ -255,7 +275,7 @@ module Outboxer
     post '/message/:id/republish' do
       Message.republish(id: params[:id])
 
-      flash[:notice] = "message #{params[:id]} was republished."
+      flash[:primary] = "Message #{params[:id]} was republished"
 
       redirect to('/messages')
     end
@@ -263,7 +283,7 @@ module Outboxer
     post '/message/:id/delete' do
       Message.delete(id: params[:id])
 
-      flash[:notice] = "message #{params[:id]} was deleted."
+      flash[:primary] = "Message #{params[:id]} was deleted"
 
       redirect to('/messages')
     end

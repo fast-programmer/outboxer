@@ -6,7 +6,7 @@ development:
   username: outboxer_developer
   password: outboxer_password
   database: outboxer_development
-  pool: <%= ENV.fetch('DATABASE_POOL') { 5 } %>
+  pool: <%= ENV.fetch('DATABASE_POOL') { 2 } %>
 
 test:
   adapter: <%= ENV.fetch('DATABASE_ADAPTER') { 'postgresql' } %>
@@ -16,4 +16,4 @@ test:
   username: outboxer_developer
   password: outboxer_password
   database: outboxer_test
-  pool: <%= ENV.fetch('DATABASE_POOL') { 5 } %>
+  pool: <%= ENV.fetch('DATABASE_POOL') { 2 } %>

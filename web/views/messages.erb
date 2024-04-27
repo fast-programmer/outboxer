@@ -48,66 +48,68 @@
             </div>
         </form>
         <div class="card-body">
-
-            <div class="table-responsive">
-                <!-- Table -->
-                <table class="table table-hover">
-                    <thead>
-                        <th scope="col">
-        <input type="checkbox" id="checkAll">
-      </th>
-
-        <% headers.each do |header| %>
-            <th scope="col">
-                <a href="<%= header[:href] %>">
-                    <%= header[:text] %> <i class="<%= header[:icon_class] %>"></i>
-                </a>
-            </th>
-        <% end %>
-
-        <th scope="col">
-            Actions
-        </th>
-</tr>
-                    </thead>
-                    <tbody>
-                        <% messages.each do |message| %>
+            <% if messages.empty? %>
+                <div class="text-center mt-4 mb-4">
+                    <p class="fw-bold">There are no messages to display.</p>
+                </div>
+            <% else %>
+                <div class="table-responsive">
+                    <!-- Table -->
+                    <table class="table table-hover">
+                        <thead>
                             <tr>
-                                <td><input type="checkbox" class="individual-check" form="bulkActionForm" name="selected_ids[]" value="<%= message[:id] %>"></td>
-                                <td scope="row">
-                                    <a href="/message/<%= message[:id] %>" class="custom-link">
-                                    <%= message[:id] %>
-                                    </a>
-                                </td>
-                                <td><%= message[:status] %></td>
-                                <td><%= message[:messageable_type] %>::<%= message[:messageable_id] %></td>
-                                <td><%= message[:created_at] %></td>
-                                <td><%= message[:updated_at] %></td>
-                                <td>
-                                    <!-- Action buttons -->
-                                    <div class="d-flex">
-                                    <!-- Republish Button Form -->
-                                    <form action="/message/<%= message[:id] %>/republish" method="post">
-                                        <button type="submit" class="btn btn-sm btn-outline-secondary me-1 d-flex align-items-center justify-content-center">
-                                        <i class="bi bi-arrow-clockwise me-1"></i>
-                                        <span>Republish</span>
-                                        </button>
-                                    </form>
-
-                                    <!-- Delete Button Form -->
-                                    <form action="/message/<%= message[:id] %>/delete" method="post">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger ms-1 d-flex align-items-center justify-content-center">
-                                        <i class="bi bi-trash me-1"></i>
-                                        <span>Delete</span>
-                                        </button>
-                                    </form>
-                                    </div>
-                                </td>
+                                <th scope="col">
+                                    <input type="checkbox" id="checkAll">
+                                </th>
+                                <% headers.each do |header| %>
+                                    <th scope="col">
+                                        <a href="<%= header[:href] %>">
+                                            <%= header[:text] %> <i class="<%= header[:icon_class] %>"></i>
+                                        </a>
+                                    </th>
+                                <% end %>
+                                <th scope="col">Actions</th>
                             </tr>
-                        <% end %>
-                    </tbody>
-                </table>
-            </div>
+                        </thead>
+                        <tbody>
+                            <% messages.each do |message| %>
+                                <tr>
+                                    <td><input type="checkbox" class="individual-check" form="bulkActionForm" name="selected_ids[]" value="<%= message[:id] %>"></td>
+                                    <td scope="row">
+                                        <a href="/message/<%= message[:id] %>" class="custom-link">
+                                        <%= message[:id] %>
+                                        </a>
+                                    </td>
+                                    <td><%= message[:status] %></td>
+                                    <td><%= message[:messageable_type] %>::<%= message[:messageable_id] %></td>
+                                    <td><%= message[:created_at] %></td>
+                                    <td><%= message[:updated_at] %></td>
+                                    <td>
+                                        <!-- Action buttons -->
+                                        <div class="d-flex">
+                                        <!-- Republish Button Form -->
+                                        <form action="/message/<%= message[:id] %>/republish" method="post">
+                                            <button type="submit" class="btn btn-sm btn-outline-secondary me-1 d-flex align-items-center justify-content-center">
+                                            <i class="bi bi-arrow-clockwise me-1"></i>
+                                            <span>Republish</span>
+                                            </button>
+                                        </form>
+
+                                        <!-- Delete Button Form -->
+                                        <form action="/message/<%= message[:id] %>/delete" method="post">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger ms-1 d-flex align-items-center justify-content-center">
+                                            <i class="bi bi-trash me-1"></i>
+                                            <span>Delete</span>
+                                            </button>
+                                        </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <% end %>
+                        </tbody>
+                    </table>
+                </div>
+            <% end %>
         </div>
 <div class="card-footer">
     <div class="container-fluid">
@@ -146,13 +148,13 @@
                     class="d-flex align-items-center">
                     <% [:status, :sort, :order, :page].each do |param| %>
                         <% if normalised_params[param] %>
-                            <input type="hidden" name="<%= param %>" 
+                            <input type="hidden" name="<%= param %>"
                                 value="<%= normalised_params[param] %>">
                         <% end %>
                     <% end %>
                     <label for="perPageSelect" class="me-2">Per&nbsp;page:</label>
-                    <select class="form-select form-select-sm" aria-label="Per page" 
-                            id="perPageSelect" name="per_page" 
+                    <select class="form-select form-select-sm" aria-label="Per page"
+                            id="perPageSelect" name="per_page"
                             onchange="document.getElementById('perPageForm').submit();">
                         <% [10, 100, 200, 500, 1000].each do |number| %>
                             <option value="<%= number %>"

@@ -10,7 +10,7 @@ environment = ENV['RAILS_ENV'] || 'development'
 require_relative '../app/jobs/event/created_job'
 
 Sidekiq.configure_client do |config|
-  config.redis = { url: ENV['REDIS_URL'], size: 25 }
+  config.redis = { url: ENV['REDIS_URL'], size: 2 }
 end
 
 logger = Outboxer::Logger.new($stdout, level: Logger::INFO)
@@ -20,7 +20,9 @@ Outboxer::Database.connect(config: db_config, logger: logger)
 
 Signal.trap('INT') { Outboxer::Message.stop_publishing }
 
-Outboxer::Message.publish(threads: 1, queue: 10, poll: 5, logger: logger) do |message|
+Outboxer::Message.publish(threads: 1, queue: 10, poll: 1, logger: logger) do |message|
+  sleep (0.5)
+
   case message[:messageable_type]
   when 'Event'
     Event::CreatedJob.perform_async({ 'id' => message[:messageable_id] })
