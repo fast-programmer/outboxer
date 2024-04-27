@@ -169,7 +169,7 @@ module Outboxer
       end
     end
 
-    def delete_all_failed(batch_size: 100)
+    def delete_all(status: nil, batch_size: 100)
       deleted_count = 0
 
       loop do
@@ -177,9 +177,9 @@ module Outboxer
 
         ActiveRecord::Base.connection_pool.with_connection do
           ActiveRecord::Base.transaction do
-            locked_ids = Models::Message
-              .where(status: Models::Message::Status::FAILED)
-              .order(:updated_at)
+            query = Models::Message.all
+            query = query.where(status: status) unless status.nil?
+            locked_ids = query.order(:updated_at)
               .limit(batch_size)
               .lock('FOR UPDATE SKIP LOCKED')
               .pluck(:id)
