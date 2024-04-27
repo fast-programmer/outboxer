@@ -2,6 +2,8 @@ module Outboxer
   module Message
     extend self
 
+    Status = Models::Message::Status
+
     def backlog(messageable_type:, messageable_id:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
