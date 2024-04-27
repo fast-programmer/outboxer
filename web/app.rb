@@ -249,7 +249,14 @@ module Outboxer
     end
 
     post '/messages/delete_all' do
-      result = Messages.delete_all_failed(batch_size: 100)
+      denormalised_params = denormalise_params(
+        status: params[:status],
+        sort: params[:sort],
+        order: params[:order],
+        page: params[:page]&.to_i,
+        per_page: params[:per_page]&.to_i)
+
+      result = Messages.delete_all(status: denormalised_params[:status])
 
       flash[:primary] = "#{result[:deleted_count]} messages have been deleted"
 

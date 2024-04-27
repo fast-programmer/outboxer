@@ -20,7 +20,7 @@ Outboxer::Database.connect(config: db_config, logger: logger)
 
 Signal.trap('INT') { Outboxer::Message.stop_publishing }
 
-Outboxer::Message.publish(threads: 1, queue: 10, poll: 1, logger: logger) do |message|
+Outboxer::Message.publish(threads: 25, queue: 200, poll: 1, logger: logger) do |message|
   sleep (0.5)
 
   case message[:messageable_type]

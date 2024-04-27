@@ -12,17 +12,22 @@
 
                     <!-- Buttons aligned to right -->
                     <div class="col d-flex justify-content-end"> <!-- Adjust alignment to end -->
-                        <form id="republishAllForm" action="/messages/republish_all" method="post" class="me-2">
-                            <input type="hidden" name="action" value="republish_all">
+                        <% if Outboxer::Messages.can_republish_all?(status: denormalised_params[:status]) %>
+                            <form id="republishAllForm" action="/messages/republish_all" method="post" class="me-2">
+                                <input type="hidden" name="action" value="republish_all">
+                                <% if denormalised_params[:status] %>
+                                    <input type="hidden" name="status" value="<%= denormalised_params[:status] %>">
+                                <% end %>
+                                <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                    <i class="bi bi-arrow-clockwise"></i> Republish All
+                                </button>
+                            </form>
+                        <% end %>
+                        <form id="deleteAllForm" action="/messages/delete_all" method="post">
+                            <input type="hidden" name="action" value="delete_all">
                             <% if denormalised_params[:status] %>
                                 <input type="hidden" name="status" value="<%= denormalised_params[:status] %>">
                             <% end %>
-                            <button type="submit" class="btn btn-sm btn-outline-secondary">
-                                <i class="bi bi-arrow-clockwise"></i> Republish All
-                            </button>
-                        </form>
-                        <form id="deleteAllForm" action="/messages/delete_all" method="post">
-                            <input type="hidden" name="action" value="delete_all">
                             <button type="submit" class="btn btn-sm btn-outline-danger">
                                 <i class="bi bi-trash"></i> Delete All
                             </button>
