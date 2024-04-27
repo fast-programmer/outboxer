@@ -93,7 +93,16 @@ module Outboxer
       end
     end
 
-    def republish_all_failed(batch_size: 100)
+    def republish_all(status:, batch_size: 100)
+      republish_statuses = [
+        Message::Status::QUEUED,
+        Message::Status::PUBLISHING,
+        Message::Status::FAILED]
+
+      unless republish_statuses.include?(status)
+        raise ArgumentError, "Status must be one of #{republish_statuses.join(', ')}"
+      end
+
       republished_count = 0
 
       loop do
@@ -102,7 +111,7 @@ module Outboxer
         ActiveRecord::Base.connection_pool.with_connection do
           ActiveRecord::Base.transaction do
             locked_ids = Models::Message
-              .where(status: Models::Message::Status::FAILED)
+              .where(status: status)
               .order(updated_at: :asc)
               .limit(batch_size)
               .lock('FOR UPDATE SKIP LOCKED')
