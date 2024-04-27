@@ -95,9 +95,9 @@ module Outboxer
 
     def republish_all(status:, batch_size: 100)
       republish_statuses = [
-        Message::Status::QUEUED,
-        Message::Status::PUBLISHING,
-        Message::Status::FAILED]
+        Models::Message::Status::QUEUED,
+        Models::Message::Status::PUBLISHING,
+        Models::Message::Status::FAILED]
 
       unless republish_statuses.include?(status)
         raise ArgumentError, "Status must be one of #{republish_statuses.join(', ')}"
