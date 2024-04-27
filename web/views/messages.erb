@@ -13,13 +13,13 @@
                     <!-- Buttons aligned to right -->
                     <div class="col d-flex justify-content-end"> <!-- Adjust alignment to end -->
                         <form id="republishAllForm" action="/messages/republish_all" method="post" class="me-2">
-                            <input type="hidden" name="action" value="republishAll">
+                            <input type="hidden" name="action" value="republish_all">
                             <button type="submit" class="btn btn-sm btn-outline-secondary">
                                 <i class="bi bi-arrow-clockwise"></i> Republish All
                             </button>
                         </form>
                         <form id="deleteAllForm" action="/messages/delete_all" method="post">
-                            <input type="hidden" name="action" value="deleteAll">
+                            <input type="hidden" name="action" value="delete_all">
                             <button type="submit" class="btn btn-sm btn-outline-danger">
                                 <i class="bi bi-trash"></i> Delete All
                             </button>
@@ -35,11 +35,11 @@
                     <div class="row justify-content-start">
                         <div class="col-auto">
                             <!-- Republish Selected Button -->
-                            <button class="btn btn-sm btn-outline-secondary me-2" type="submit" name="action" value="republishSelected" data-bs-toggle="tooltip" data-bs-placement="top" title="Republish selected">
+                            <button class="btn btn-sm btn-outline-secondary me-2" type="submit" name="action" value="republish_selected" data-bs-toggle="tooltip" data-bs-placement="top" title="Republish selected">
                                 <i class="bi bi-arrow-clockwise"></i> Republish Selected
                             </button>
                             <!-- Delete Selected Button -->
-                            <button class="btn btn-sm btn-outline-danger" type="submit" name="action" value="deleteSelected" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete selected">
+                            <button class="btn btn-sm btn-outline-danger" type="submit" name="action" value="delete_selected" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete selected">
                                 <i class="bi bi-trash"></i> Delete Selected
                             </button>
                         </div>
@@ -64,17 +64,21 @@
                 </a>
             </th>
         <% end %>
+
+        <th scope="col">
+            Actions
+        </th>
 </tr>
                     </thead>
                     <tbody>
                         <% messages.each do |message| %>
                             <tr>
-                                <td><input type="checkbox" class="individual-check" form="bulkActionForm" name="selectedMessages[]" value="<%= message[:id] %>"></td>
-                                <th scope="row">
+                                <td><input type="checkbox" class="individual-check" form="bulkActionForm" name="selected_ids[]" value="<%= message[:id] %>"></td>
+                                <td scope="row">
                                     <a href="/message/<%= message[:id] %>" class="custom-link">
                                     <%= message[:id] %>
                                     </a>
-                                </th>
+                                </td>
                                 <td><%= message[:status] %></td>
                                 <td><%= message[:messageable_type] %>::<%= message[:messageable_id] %></td>
                                 <td><%= message[:created_at] %></td>
@@ -138,14 +142,24 @@
             </div>
             <div class="col-auto">
                 <!-- "Per page" selection -->
-                <form action="/messages/update_per_page" method="post" id="perPageForm" class="d-flex align-items-center">
+                <form action="/messages/update_per_page" method="post" id="perPageForm"
+                    class="d-flex align-items-center">
+                    <% [:status, :sort, :order, :page].each do |param| %>
+                        <% if normalised_params[param] %>
+                            <input type="hidden" name="<%= param %>" 
+                                value="<%= normalised_params[param] %>">
+                        <% end %>
+                    <% end %>
                     <label for="perPageSelect" class="me-2">Per&nbsp;page:</label>
-                    <select class="form-select form-select-sm" aria-label="Per page" id="perPageSelect" name="per_page" onchange="document.getElementById('perPageForm').submit();">
-                        <option value="10" <%= 'selected' if per_page.to_i == 10 %>>10</option>
-                        <option value="100" <%= 'selected' if per_page.to_i == 100 %>>100</option>
-                        <option value="200" <%= 'selected' if per_page.to_i == 200 %>>200</option>
-                        <option value="500" <%= 'selected' if per_page.to_i == 500 %>>500</option>
-                        <option value="1000" <%= 'selected' if per_page.to_i == 1000 %>>1000</option>
+                    <select class="form-select form-select-sm" aria-label="Per page" 
+                            id="perPageSelect" name="per_page" 
+                            onchange="document.getElementById('perPageForm').submit();">
+                        <% [10, 100, 200, 500, 1000].each do |number| %>
+                            <option value="<%= number %>"
+                                    <%= 'selected' if normalised_params[:per_page]&.to_i == number %>>
+                                <%= number %>
+                            </option>
+                        <% end %>
                     </select>
                 </form>
             </div>

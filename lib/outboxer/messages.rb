@@ -125,7 +125,7 @@ module Outboxer
 
             republished_count_batch = Models::Message
               .where(id: locked_ids)
-              .update_all(status: Models::Message::Status::BACKLOGGED, updated_at: DateTime.now.utc)
+              .update_all(status: Models::Message::Status::BACKLOGGED, updated_at: Time.now.utc)
 
             republished_count += republished_count_batch
           end
@@ -148,7 +148,7 @@ module Outboxer
 
           republished_count = Models::Message
             .where(id: locked_ids)
-            .update_all(status: Models::Message::Status::BACKLOGGED, updated_at: DateTime.now.utc)
+            .update_all(status: Models::Message::Status::BACKLOGGED, updated_at: Time.now.utc)
 
           { republished_count: republished_count, not_republished_ids: ids - locked_ids }
         end

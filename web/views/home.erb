@@ -27,7 +27,7 @@
                         </tr>
                     </tbody>
                     <tbody id="publishingSection" class="collapse show table-group-divider">
-                        <% messages_publishing[:data].each_with_index do |message, index| %>
+                        <% messages_publishing[:messages].each_with_index do |message, index| %>
                             <tr>
                                 <td><%= index + 1 %></td>
                                 <td>
@@ -51,7 +51,7 @@
                         </tr>
                     </tbody>
                     <tbody id="queuedSection" class="collapse show table-group-divider">
-                        <% messages_queued[:data].each_with_index do |message, index| %>
+                        <% messages_queued[:messages].each_with_index do |message, index| %>
                             <tr>
                                 <td><%= messages_publishing[:data].count + index + 1 %></td>
                                 <td>
@@ -75,9 +75,9 @@
                         </tr>
                     </tbody>
                     <tbody id="backloggedSection" class="collapse show table-group-divider">
-                        <% messages_backlogged[:data].each_with_index do |message, index| %>
+                        <% messages_backlogged[:messages].each_with_index do |message, index| %>
                             <tr>
-                                <td><%= messages_publishing[:data].count + messages_queued[:data].count + index + 1 %></td>
+                                <td><%= messages_publishing[:messages].count + messages_queued[:messages].count + index + 1 %></td>
                                 <td>
                                     <a href="/message/<%= message[:id] %>" class="custom-link">
                                         <%= message[:id] %>

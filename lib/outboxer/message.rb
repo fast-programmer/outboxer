@@ -5,10 +5,14 @@ module Outboxer
     def backlog(messageable_type:, messageable_id:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
+          current_time = Time.now.utc
+
           message = Models::Message.create!(
             messageable_id: messageable_id,
             messageable_type: messageable_type,
-            status: Models::Message::Status::BACKLOGGED)
+            status: Models::Message::Status::BACKLOGGED,
+            created_at: current_time,
+            updated_at: current_time)
 
           { id: message.id }
         end
@@ -60,7 +64,9 @@ module Outboxer
               "from #{message.status} to #{Models::Message::Status::PUBLISHING}"
           end
 
-          message.update!(status: Models::Message::Status::PUBLISHING)
+          message.update!(
+            status: Models::Message::Status::PUBLISHING,
+            updated_at: Time.now.utc)
 
           {
             id: id,
@@ -104,7 +110,9 @@ module Outboxer
               "from #{message.status} to #{Models::Message::Status::FAILED}"
           end
 
-          message.update!(status: Models::Message::Status::FAILED)
+          message.update!(
+            status: Models::Message::Status::FAILED,
+            updated_at: Time.now.utc)
 
           outboxer_exception = message.exceptions.create!(
             class_name: exception.class.name, message_text: exception.message)
@@ -137,13 +145,9 @@ module Outboxer
         ActiveRecord::Base.transaction do
           message = Models::Message.lock.find_by!(id: id)
 
-          if message.status != Models::Message::Status::FAILED
-            raise InvalidTransition,
-              "cannot transition outboxer message #{id} " \
-              "from #{message.status} to #{Models::Message::Status::BACKLOGGED}"
-          end
-
-          message.update!(status: Models::Message::Status::BACKLOGGED)
+          message.update!(
+            status: Models::Message::Status::BACKLOGGED,
+            updated_at: Time.now.utc)
 
           { id: id }
         end

@@ -21,14 +21,14 @@ module Outboxer
     get '/' do
       message_status_counts = Messages.counts_by_status
 
-      messages_publishing = Messages.publishing(
-        sort: :updated_at, order: :asc, page: 1, per_page: 100)
+      messages_publishing = Messages.paginate(
+        status: 'publishing', sort: 'updated_at', order: 'asc', page: 1, per_page: 100)
 
-      messages_queued = Messages.queued(
-        sort: :updated_at, order: :asc, page: 1, per_page: 100)
+      messages_queued = Messages.paginate(
+        status: 'queued', sort: 'updated_at', order: 'asc', page: 1, per_page: 100)
 
-      messages_backlogged = Messages.backlogged(
-        sort: :updated_at, order: :asc, page: 1, per_page: 100)
+      messages_backlogged = Messages.paginate(
+        status: 'backlogged', sort: 'updated_at', order: 'asc', page: 1, per_page: 100)
 
       erb :home, locals: {
         message_status_counts: message_status_counts,
@@ -65,6 +65,7 @@ module Outboxer
         messages: paginated_messages[:messages],
         headers: generate_headers(params: denormalised_params),
         pagination: pagination,
+        normalised_params: denormalised_params,
         per_page: params[:per_page]&.to_i || Messages::DEFAULT_PER_PAGE
       }
     end
@@ -144,7 +145,7 @@ module Outboxer
         else
           {
             text: header_text,
-            icon_class: 'bi bi-arrow-down-up',
+            icon_class: '',
             href: 'messages' + normalise_params(
               status: params[:status],
               order: 'asc',
@@ -188,12 +189,12 @@ module Outboxer
     end
 
     post '/messages/update' do
-      ids = params[:ids].map(&:to_i)
+      ids = params[:selected_ids].map(&:to_i)
 
-      result = case params[:submit]
-      when 'Republish Selected'
+      result = case params[:action]
+      when 'republish_selected'
         Messages.republish_selected(ids: ids)
-      when 'Delete Selected'
+      when 'delete_selected'
         Messages.delete_selected(ids: ids)
       else
         raise "Unknown value: #{params[:submit]}"
@@ -201,7 +202,7 @@ module Outboxer
 
       flash[:notice] = "#{result[:count]} messages have been updated."
 
-      redirect to('/messages/all')
+      redirect to('/messages')
     end
 
     post '/messages/republish_all' do
@@ -209,7 +210,7 @@ module Outboxer
 
       flash[:notice] = "#{result[:count]} messages have been republished."
 
-      redirect to('/messages/all')
+      redirect to('/messages')
     end
 
     post '/messages/delete_all' do
@@ -217,7 +218,7 @@ module Outboxer
 
       flash[:notice] = "#{result[:count]} messages have been deleted."
 
-      redirect to('/messages/all')
+      redirect to('/messages')
     end
 
     post '/messages/update_per_page' do
@@ -256,7 +257,7 @@ module Outboxer
 
       flash[:notice] = "message #{params[:id]} was republished."
 
-      redirect to('/messages/all')
+      redirect to('/messages')
     end
 
     post '/message/:id/delete' do
@@ -264,7 +265,7 @@ module Outboxer
 
       flash[:notice] = "message #{params[:id]} was deleted."
 
-      redirect to('/messages/all')
+      redirect to('/messages')
     end
   end
 end
