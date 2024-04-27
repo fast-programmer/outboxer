@@ -48,12 +48,19 @@ module Outboxer
         page: params[:page]&.to_i,
         per_page: params[:per_page]&.to_i)
 
-      paginated_messages = Messages.paginate(
+      normalised_params = normalise_params(
         status: denormalised_params[:status],
         sort: denormalised_params[:sort],
         order: denormalised_params[:order],
         page: denormalised_params[:page]&.to_i,
         per_page: denormalised_params[:per_page]&.to_i)
+
+      paginated_messages = Messages.paginate(
+        status: denormalised_params[:status],
+          sort: denormalised_params[:sort],
+          order: denormalised_params[:order],
+          page: denormalised_params[:page]&.to_i,
+          per_page: denormalised_params[:per_page]&.to_i)
 
       pagination = generate_pagination(
         current_page: paginated_messages[:current_page],
@@ -65,7 +72,8 @@ module Outboxer
         messages: paginated_messages[:messages],
         headers: generate_headers(params: denormalised_params),
         pagination: pagination,
-        normalised_params: denormalised_params,
+        denormalised_params: denormalised_params,
+        normalised_params: normalised_params,
         per_page: params[:per_page]&.to_i || Messages::DEFAULT_PER_PAGE
       }
     end
@@ -173,10 +181,10 @@ module Outboxer
     end
 
     def normalise_params(status: Messages::DEFAULT_STATUS,
-                        sort: Messages::DEFAULT_SORT,
-                        order: Messages::DEFAULT_ORDER,
-                        page: Messages::DEFAULT_PAGE,
-                        per_page: Messages::DEFAULT_PER_PAGE)
+                         sort: Messages::DEFAULT_SORT,
+                         order: Messages::DEFAULT_ORDER,
+                         page: Messages::DEFAULT_PAGE,
+                         per_page: Messages::DEFAULT_PER_PAGE)
       normalised_params = {
         status: status == Messages::DEFAULT_STATUS ? nil : status,
         sort: sort == Messages::DEFAULT_SORT ? nil : sort,
@@ -226,9 +234,16 @@ module Outboxer
     end
 
     post '/messages/republish_all' do
-      result = Messages.republish_all_failed
+      denormalised_params = denormalise_params(
+        status: params[:status],
+        sort: params[:sort],
+        order: params[:order],
+        page: params[:page]&.to_i,
+        per_page: params[:per_page]&.to_i)
 
-      flash[:primary] = "#{result[:count]} messages have been republished"
+      result = Messages.republish_all(status: denormalised_params[:status])
+
+      flash[:primary] = "#{result[:republished_count]} messages have been republished"
 
       redirect to('/messages')
     end
@@ -236,7 +251,7 @@ module Outboxer
     post '/messages/delete_all' do
       result = Messages.delete_all_failed(batch_size: 100)
 
-      flash[:primary] = "#{result[:count]} messages have been deleted"
+      flash[:primary] = "#{result[:deleted_count]} messages have been deleted"
 
       redirect to('/messages')
     end

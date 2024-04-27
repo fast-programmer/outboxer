@@ -14,6 +14,9 @@
                     <div class="col d-flex justify-content-end"> <!-- Adjust alignment to end -->
                         <form id="republishAllForm" action="/messages/republish_all" method="post" class="me-2">
                             <input type="hidden" name="action" value="republish_all">
+                            <% if denormalised_params[:status] %>
+                                <input type="hidden" name="status" value="<%= denormalised_params[:status] %>">
+                            <% end %>
                             <button type="submit" class="btn btn-sm btn-outline-secondary">
                                 <i class="bi bi-arrow-clockwise"></i> Republish All
                             </button>
@@ -147,9 +150,9 @@
                 <form action="/messages/update_per_page" method="post" id="perPageForm"
                     class="d-flex align-items-center">
                     <% [:status, :sort, :order, :page].each do |param| %>
-                        <% if normalised_params[param] %>
+                        <% if denormalised_params[param] %>
                             <input type="hidden" name="<%= param %>"
-                                value="<%= normalised_params[param] %>">
+                                   value="<%= denormalised_params[param] %>">
                         <% end %>
                     <% end %>
                     <label for="perPageSelect" class="me-2">Per&nbsp;page:</label>
@@ -158,7 +161,7 @@
                             onchange="document.getElementById('perPageForm').submit();">
                         <% [10, 100, 200, 500, 1000].each do |number| %>
                             <option value="<%= number %>"
-                                    <%= 'selected' if normalised_params[:per_page]&.to_i == number %>>
+                                    <%= 'selected' if denormalised_params[:per_page]&.to_i == number %>>
                                 <%= number %>
                             </option>
                         <% end %>
