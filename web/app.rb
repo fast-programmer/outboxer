@@ -212,7 +212,7 @@ module Outboxer
         result = Messages.republish_selected(ids: ids)
 
         if result[:republished_count] > 0
-          flash[:primary] = "Republished #{result[:republished_count]} messages"
+          flash[:primary] = "Backlogged #{result[:republished_count]} messages"
         end
 
         unless result[:not_republished_ids].empty?
@@ -251,7 +251,7 @@ module Outboxer
 
       result = Messages.republish_all(status: denormalised_params[:status])
 
-      flash[:primary] = "#{result[:republished_count]} messages have been republished"
+      flash[:primary] = "#{result[:republished_count]} messages have been backlogged"
 
       redirect to('/messages')
     end
@@ -305,7 +305,7 @@ module Outboxer
     post '/message/:id/republish' do
       Message.republish(id: params[:id])
 
-      flash[:primary] = "Message #{params[:id]} was republished"
+      flash[:primary] = "Message #{params[:id]} was backlogged"
 
       redirect to('/messages')
     end
