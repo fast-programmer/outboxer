@@ -296,8 +296,16 @@ module Outboxer
 
       halt 404, "Message not found" unless message
 
+      denormalised_params = denormalise_params(
+        status: params[:status],
+        sort: params[:sort],
+        order: params[:order],
+        page: params[:page]&.to_i,
+        per_page: params[:per_page]&.to_i)
+
       erb :message, locals: {
         message_status_counts: message_status_counts,
+        denormalised_params: denormalised_params,
         message: message
       }
     end

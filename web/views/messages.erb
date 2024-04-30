@@ -90,8 +90,12 @@
                                     </td>
                                     <td><%= message[:status] %></td>
                                     <td><%= message[:messageable_type] %>::<%= message[:messageable_id] %></td>
-                                    <td><%= message[:created_at] %></td>
-                                    <td><%= message[:updated_at] %></td>
+                                    <td>
+                                        <%= message[:created_at].in_time_zone('UTC').strftime('%Y-%m-%d %H:%M:%S %Z') %>
+                                    </td>
+                                    <td>
+                                        <%= message[:updated_at].in_time_zone('UTC').strftime('%Y-%m-%d %H:%M:%S %Z') %>
+                                    </td>
                                     <td>
                                         <!-- Action buttons -->
                                         <div class="d-flex">
