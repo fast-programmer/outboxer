@@ -1,7 +1,7 @@
 now = Time.now
 today = Time.new(now.year, now.month, now.day, 0, 0, 0, now.utc_offset)
 
-5.times do |i|
+15.times do |i|
   created_at = today - (i + 1).days + rand(0..23).hours + rand(0..59).minutes + rand(0..59).seconds
 
   Outboxer::Models::Message.create!(
@@ -12,7 +12,7 @@ today = Time.new(now.year, now.month, now.day, 0, 0, 0, now.utc_offset)
     updated_at: created_at + rand(0..23).hours + rand(0..59).minutes + rand(0..59).seconds)
 end
 
-10.times do |i|
+25.times do |i|
   created_at = today - (i + 21).days + rand(0..23).hours + rand(0..59).minutes + rand(0..59).seconds
 
   Outboxer::Models::Message.create!(
@@ -23,7 +23,7 @@ end
     updated_at: created_at + rand(0..23).hours + rand(0..59).minutes + rand(0..59).seconds)
 end
 
-15.times do |i|
+35.times do |i|
   created_at = today - (i + 21).days + rand(0..23).hours + rand(0..59).minutes + rand(0..59).seconds
 
   Outboxer::Models::Message.create!(
@@ -34,7 +34,7 @@ end
     updated_at: created_at + rand(0..23).hours + rand(0..59).minutes + rand(0..59).seconds)
 end
 
-5.times do |i|
+45.times do |i|
   created_at = today - (i + 30).days + rand(0..23).hours + rand(0..59).minutes + rand(0..59).seconds
 
   failed_message = Outboxer::Models::Message.create!(

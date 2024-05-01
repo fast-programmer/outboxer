@@ -20,30 +20,84 @@ module Outboxer
 
     get '/' do
       denormalised_params = denormalise_params(
+        status: nil,
+        sort: 'updated_at',
+        order: 'asc',
+        page: 1,
+        per_page: params[:per_page]&.to_i)
+
+      message_status_counts = Messages.counts_by_status
+
+      messages_publishing = Messages.paginate(
+        status: 'publishing',
+        sort: 'updated_at',
+        order: 'asc',
+        page: 1,
+        per_page: denormalised_params[:per_page])
+
+      messages_publishing_link = '/messages' + normalise_params(
+        status: 'publishing',
+        sort: denormalised_params[:sort],
+        order: denormalised_params[:order],
+        page: denormalised_params[:page],
+        per_page: denormalised_params[:per_page])
+
+      messages_queued = Messages.paginate(
+        status: 'queued',
+        sort: 'updated_at',
+        order: 'asc',
+        page: 1,
+        per_page: denormalised_params[:per_page])
+
+      messages_queued_link = '/messages' + normalise_params(
+        status: 'queued',
+        sort: denormalised_params[:sort],
+        order: denormalised_params[:order],
+        page: denormalised_params[:page],
+        per_page: denormalised_params[:per_page])
+
+      messages_backlogged = Messages.paginate(
+        status: 'backlogged',
+        sort: 'updated_at',
+        order: 'asc',
+        page: 1,
+        per_page: denormalised_params[:per_page])
+
+      messages_backlogged_link = '/messages' + normalise_params(
+        status: 'backlogged',
+        sort: denormalised_params[:sort],
+        order: denormalised_params[:order],
+        page: denormalised_params[:page],
+        per_page: denormalised_params[:per_page])
+
+      erb :home, locals: {
+        denormalised_params: denormalised_params,
+        message_status_counts: message_status_counts,
+        messages_publishing: messages_publishing,
+        messages_publishing_link: messages_publishing_link,
+        messages_queued: messages_queued,
+        messages_queued_link: messages_queued_link,
+        messages_backlogged: messages_backlogged,
+        messages_backlogged_link: messages_backlogged_link
+      }
+    end
+
+    post '/update_per_page' do
+      denormalised_params = denormalise_params(
         status: params[:status],
         sort: params[:sort],
         order: params[:order],
         page: params[:page]&.to_i,
         per_page: params[:per_page]&.to_i)
 
-      message_status_counts = Messages.counts_by_status
+      normalised_params = normalise_params(
+        status: denormalised_params[:status],
+        sort: denormalised_params[:sort],
+        order: denormalised_params[:order],
+        page: denormalised_params[:page],
+        per_page: denormalised_params[:per_page])
 
-      messages_publishing = Messages.paginate(
-        status: 'publishing', sort: 'updated_at', order: 'asc', page: 1, per_page: 100)
-
-      messages_queued = Messages.paginate(
-        status: 'queued', sort: 'updated_at', order: 'asc', page: 1, per_page: 100)
-
-      messages_backlogged = Messages.paginate(
-        status: 'backlogged', sort: 'updated_at', order: 'asc', page: 1, per_page: 100)
-
-      erb :home, locals: {
-        denormalised_params: denormalised_params,
-        message_status_counts: message_status_counts,
-        messages_publishing: messages_publishing,
-        messages_queued: messages_queued,
-        messages_backlogged: messages_backlogged
-      }
+      redirect normalised_params
     end
 
     get '/messages' do

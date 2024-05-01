@@ -1,9 +1,19 @@
 <div class="container mt-4">
     <div class="card">
-        <div class="card-header">
+        <div class="card-header d-flex justify-content-between align-items-center">
             <h3 class="mb-0">Messages</h3>
-        </div>
-        <div class="card-body">
+            <form action="/update_per_page" method="post" id="perPageForm" class="d-flex align-items-center">
+                <label for="perPageSelect" class="me-2">Per&nbsp;page:</label>
+                <select class="form-select form-select-sm" aria-label="Per page" id="perPageSelect" name="per_page">
+                    <% [10, 100, 200, 500, 1000].each do |number| %>
+                        <option value="<%= number %>" <%= 'selected' if denormalised_params[:per_page]&.to_i == number %>>
+                            <%= number %>
+                        </option>
+                    <% end %>
+                </select>
+                <button type="submit" class="btn btn-sm btn-secondary ms-2" id="submitBtn">Update</button>
+            </form>
+        </div>        <div class="card-body">
             <div class="table-responsive">
                 <table class="table table-hover">
                     <thead>
@@ -28,7 +38,7 @@
                             </th>
                         </tr>
                     </tbody>
-                    <tbody id="publishingSection" class="collapse table-group-divider">
+                    <tbody id="publishingSection" class="table-group-divider">
                         <% if messages_publishing[:messages].empty? %>
                             <tr>
                                 <td colspan="5" class="text-center fw-bold">No messages are currently publishing.</td>
@@ -47,6 +57,15 @@
                                     <td><%= message[:updated_at] %></td>
                                 </tr>
                             <% end %>
+                            <% if messages_publishing[:total_count] > messages_publishing[:messages].count %>
+                                <tr>
+                                    <td colspan="5" class="text-center">
+                                        <a href="<%= messages_publishing_link %>">
+                                            and <%= messages_publishing[:total_count] - messages_publishing[:messages].count %> more messages...
+                                        </a>
+                                    </td>
+                                </tr>
+                            <% end %>
                         <% end %>
                     </tbody>
 
@@ -60,7 +79,7 @@
                             </th>
                         </tr>
                     </tbody>
-                    <tbody id="queuedSection" class="collapse table-group-divider">
+                    <tbody id="queuedSection" class="table-group-divider">
                         <% if messages_queued[:messages].empty? %>
                             <tr>
                                 <td colspan="5" class="text-center fw-bold">No messages are currently queued.</td>
@@ -68,7 +87,7 @@
                         <% else %>
                             <% messages_queued[:messages].each_with_index do |message, index| %>
                                 <tr>
-                                    <td><%= messages_publishing[:messages].count + index + 1 %></td>
+                                    <td><%= messages_queued[:messages].count + index + 1 %></td>
                                     <td>
                                         <a href="/message/<%= message[:id] %>" class="custom-link">
                                             <%= message[:id] %>
@@ -77,6 +96,16 @@
                                     <td><%= message[:messageable_type] %>::<%= message[:messageable_id] %></td>
                                     <td><%= message[:created_at] %></td>
                                     <td><%= message[:updated_at] %></td>
+                                </tr>
+                            <% end %>
+
+                            <% if messages_queued[:total_count] > messages_queued[:messages].count %>
+                                <tr>
+                                    <td colspan="5" class="text-center">
+                                        <a href="<%= messages_queued_link %>">
+                                            and <%= messages_queued[:total_count] - messages_queued[:messages].count %> more messages...
+                                        </a>
+                                    </td>
                                 </tr>
                             <% end %>
                         <% end %>
@@ -92,7 +121,7 @@
                             </th>
                         </tr>
                     </tbody>
-                    <tbody id="backloggedSection" class="collapse table-group-divider">
+                    <tbody id="backloggedSection" class="table-group-divider">
                         <% if messages_backlogged[:messages].empty? %>
                             <tr>
                                 <td colspan="5" class="text-center fw-bold">No messages are currently backlogged.</td>
@@ -111,6 +140,16 @@
                                     <td><%= message[:updated_at] %></td>
                                 </tr>
                             <% end %>
+                        <% end %>
+
+                        <% if messages_backlogged[:total_count] > messages_backlogged[:messages].count %>
+                            <tr>
+                                <td colspan="5" class="text-center">
+                                    <a href="<%= messages_backlogged_link %>">
+                                        and <%= messages_backlogged[:total_count] - messages_backlogged[:messages].count %> more messages...
+                                    </a>
+                                </td>
+                            </tr>
                         <% end %>
                     </tbody>
                 </table>
