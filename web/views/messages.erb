@@ -165,9 +165,7 @@
                         <% end %>
                     <% end %>
                     <label for="perPageSelect" class="me-2">Per&nbsp;page:</label>
-                    <select class="form-select form-select-sm" aria-label="Per page"
-                            id="perPageSelect" name="per_page"
-                            onchange="document.getElementById('perPageForm').submit();">
+                    <select class="form-select form-select-sm" aria-label="Per page" id="perPageSelect" name="per_page">
                         <% [10, 100, 200, 500, 1000].each do |number| %>
                             <option value="<%= number %>"
                                     <%= 'selected' if denormalised_params[:per_page]&.to_i == number %>>
@@ -175,6 +173,7 @@
                             </option>
                         <% end %>
                     </select>
+                    <button type="submit" class="btn btn-sm btn-secondary ms-2" id="submitBtn">Update</button>
                 </form>
             </div>
         </div>
