@@ -261,6 +261,20 @@ module Outboxer
     post '/messages/update' do
       ids = params[:selected_ids].map(&:to_i)
 
+      denormalised_params = denormalise_params(
+        status: params[:status],
+        sort: params[:sort],
+        order: params[:order],
+        page: params[:page]&.to_i,
+        per_page: params[:per_page]&.to_i)
+
+      normalised_params = normalise_params(
+        status: denormalised_params[:status],
+        sort: denormalised_params[:sort],
+        order: denormalised_params[:order],
+        page: denormalised_params[:page],
+        per_page: denormalised_params[:per_page])
+
       result = case params[:action]
       when 'republish_selected'
         result = Messages.republish_selected(ids: ids)
@@ -292,7 +306,7 @@ module Outboxer
         raise "Unknown action: #{params[:action]}"
       end
 
-      redirect to('/messages')
+      redirect to("/messages#{normalised_params}")
     end
 
     post '/messages/republish_all' do
@@ -303,11 +317,18 @@ module Outboxer
         page: params[:page]&.to_i,
         per_page: params[:per_page]&.to_i)
 
+      normalised_params = normalise_params(
+        status: denormalised_params[:status],
+        sort: denormalised_params[:sort],
+        order: denormalised_params[:order],
+        page: denormalised_params[:page],
+        per_page: denormalised_params[:per_page])
+
       result = Messages.republish_all(status: denormalised_params[:status])
 
       flash[:primary] = "#{result[:republished_count]} messages have been backlogged"
 
-      redirect to('/messages')
+      redirect to("/messages#{normalised_params}")
     end
 
     post '/messages/delete_all' do
@@ -318,11 +339,18 @@ module Outboxer
         page: params[:page]&.to_i,
         per_page: params[:per_page]&.to_i)
 
+      normalised_params = normalise_params(
+        status: denormalised_params[:status],
+        sort: denormalised_params[:sort],
+        order: denormalised_params[:order],
+        page: denormalised_params[:page],
+        per_page: denormalised_params[:per_page])
+
       result = Messages.delete_all(status: denormalised_params[:status])
 
       flash[:primary] = "#{result[:deleted_count]} messages have been deleted"
 
-      redirect to('/messages')
+      redirect to("/messages#{normalised_params}")
     end
 
     post '/messages/update_per_page' do

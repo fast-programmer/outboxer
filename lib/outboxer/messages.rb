@@ -97,8 +97,8 @@ module Outboxer
             status: message.status,
             messageable_type: message.messageable_type,
             messageable_id: message.messageable_id,
-            created_at: message.created_at.utc.to_s,
-            updated_at: message.updated_at.utc.to_s
+            created_at: message.created_at.utc,
+            updated_at: message.updated_at.utc
           }
         end,
         total_pages: messages.total_pages,

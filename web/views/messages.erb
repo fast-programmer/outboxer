@@ -42,6 +42,13 @@
                 <div class="container">
                     <div class="row justify-content-start">
                         <div class="col-auto">
+                            <% [:status, :sort, :order, :page, :per_page].each do |param| %>
+                                <% if denormalised_params[param] %>
+                                    <input type="hidden" name="<%= param %>"
+                                        value="<%= denormalised_params[param] %>">
+                                <% end %>
+                            <% end %>
+
                             <!-- Republish Selected Button -->
                             <button class="btn btn-sm btn-outline-secondary me-2" type="submit" name="action" value="republish_selected" data-bs-toggle="tooltip" data-bs-placement="top" title="Republish selected">
                                 <i class="bi bi-arrow-clockwise"></i> Republish Selected
@@ -91,10 +98,10 @@
                                     <td><%= message[:status] %></td>
                                     <td><%= message[:messageable_type] %>::<%= message[:messageable_id] %></td>
                                     <td>
-                                        <%= message[:created_at].in_time_zone('UTC').strftime('%Y-%m-%d %H:%M:%S %Z') %>
+                                        <%= message[:created_at] %>
                                     </td>
                                     <td>
-                                        <%= message[:updated_at].in_time_zone('UTC').strftime('%Y-%m-%d %H:%M:%S %Z') %>
+                                        <%= message[:updated_at] %>
                                     </td>
                                     <td>
                                         <!-- Action buttons -->
@@ -140,12 +147,12 @@
                         <% end %>
                         <% pagination[:pages].each do |page| %>
                             <li class="page-item <%= 'active' if page[:is_active] %>">
-                                <a class="page-link" href="<%= page[:href] %>"><%= page[:text] %></a>
+                                <a class="page-link btn btn-sm" href="<%= page[:href] %>"><%= page[:text] %></a>
                             </li>
                         <% end %>
                         <% if pagination[:next_page] %>
                             <li class="page-item">
-                                <a class="page-link" href="<%= pagination[:next_page][:href] %>"
+                                <a class="page-link " href="<%= pagination[:next_page][:href] %>"
                                    aria-label="Next: <%= pagination[:next_page][:text] %>">
                                     <%= pagination[:next_page][:text] %>
                                 </a>
