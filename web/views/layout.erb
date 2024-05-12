@@ -22,6 +22,11 @@
      .alert {
          margin-bottom: 0; /* Removes the bottom margin from alerts */
      }
+     .pagination .page-link.btn-sm {
+         padding: 0.25rem 0.5rem; /* Adjust padding to match btn-sm */
+         font-size: 0.875rem; /* Standard font size for btn-sm */
+     }
+
     </style>
 </head>
 <body>
@@ -68,56 +73,5 @@
 
     <!-- Bootstrap Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- JavaScript for Check All functionality -->
-    <script>
-     document.addEventListener('DOMContentLoaded', function () {
-         const checkboxes = document.querySelectorAll('.individual-check');
-         const checkAll = document.getElementById('checkAll');
-         const bulkActionsToolbar = document.getElementById('bulkActionsToolbar');
-
-         // Function to check the state of individual checkboxes and toggle the toolbar
-         function toggleBulkActionsToolbar() {
-             const anyChecked = Array.from(checkboxes).some(checkbox => checkbox.checked);
-             bulkActionsToolbar.classList.toggle('d-none', !anyChecked);
-         }
-
-         // Event listener for individual checkboxes
-         checkboxes.forEach(checkbox => {
-             checkbox.addEventListener('change', toggleBulkActionsToolbar);
-         });
-
-         // Event listener for the "Check All" checkbox
-         checkAll.addEventListener('change', function () {
-             toggleBulkActionsToolbar();
-         });
-
-         // Confirm before delete all
-         deleteAllBtn.addEventListener('click', function(e) {
-             e.preventDefault(); // Prevent the form from submitting if necessary
-             const confirmation = confirm('Are you sure you want to delete all?');
-             if (!confirmation) {
-                 return false; // Stop the function if the user clicks "Cancel"
-             }
-             // Place the code to delete all here if they click "OK"
-         });
-
-         // Confirm before retry all
-         retryAllBtn.addEventListener('click', function(e) {
-             e.preventDefault(); // Prevent the form from submitting if necessary
-             const confirmation = confirm('Are you sure you want to retry all?');
-             if (!confirmation) {
-                 return false; // Stop the function if the user clicks "Cancel"
-             }
-             // Place the code to retry all here if they click "OK"
-         });
-     });
-
-     document.getElementById('checkAll').addEventListener('change', function (e) {
-         var checkboxes = document.querySelectorAll('.individual-check');
-         for (var i = 0; i < checkboxes.length; i++) {
-             checkboxes[i].checked = e.target.checked;
-         }
-     });
-    </script>
 </body>
 </html>

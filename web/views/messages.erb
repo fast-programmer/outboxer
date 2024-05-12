@@ -147,12 +147,12 @@
                         <% end %>
                         <% pagination[:pages].each do |page| %>
                             <li class="page-item <%= 'active' if page[:is_active] %>">
-                                <a class="page-link btn btn-sm" href="<%= page[:href] %>"><%= page[:text] %></a>
+                                <a class="page-link" href="<%= page[:href] %>"><%= page[:text] %></a>
                             </li>
                         <% end %>
                         <% if pagination[:next_page] %>
                             <li class="page-item">
-                                <a class="page-link " href="<%= pagination[:next_page][:href] %>"
+                                <a class="page-link" href="<%= pagination[:next_page][:href] %>"
                                    aria-label="Next: <%= pagination[:next_page][:text] %>">
                                     <%= pagination[:next_page][:text] %>
                                 </a>
@@ -188,3 +188,55 @@
 </div>
     </div>
 </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const checkboxes = document.querySelectorAll('.individual-check');
+            const checkAll = document.getElementById('checkAll');
+            const bulkActionsToolbar = document.getElementById('bulkActionsToolbar');
+
+            function toggleBulkActionsToolbar() {
+                const anyChecked = Array.from(checkboxes).some(checkbox => checkbox.checked);
+                bulkActionsToolbar.classList.toggle('d-none', !anyChecked);
+            }
+
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', toggleBulkActionsToolbar);
+            });
+
+            checkAll.addEventListener('change', function () {
+                toggleBulkActionsToolbar();
+            });
+
+            const deleteAllBtn = document.getElementById('deleteAllBtn');
+
+            if (deleteAllBtn) {
+                deleteAllBtn.addEventListener('click', function(e) {
+                    const confirmation = confirm('Are you sure you want to delete all?');
+                    if (!confirmation) {
+                        e.preventDefault();
+                        return false;
+                    }
+                });
+            }
+
+            const retryAllBtn = document.getElementById('retryAllBtn');
+
+            if (retryAllBtn) {
+                retryAllBtn.addEventListener('click', function(e) {
+                    const confirmation = confirm('Are you sure you want to retry all?');
+                    if (!confirmation) {
+                        e.preventDefault();
+                        return false;
+                    }
+                });
+            }
+        });
+
+        document.getElementById('checkAll').addEventListener('change', function (e) {
+            var checkboxes = document.querySelectorAll('.individual-check');
+            for (var i = 0; i < checkboxes.length; i++) {
+                checkboxes[i].checked = e.target.checked;
+            }
+        });
+    </script>
