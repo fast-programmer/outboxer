@@ -4,36 +4,48 @@
         <div class="card-header">
             <!-- Controls Row -->
             <div class="container-fluid">
-                <div class="row justify-content-between align-items-center"> <!-- Use 'justify-content-between' to push content to the sides -->
-                    <!-- Title aligned to left -->
-                    <div class="col">
-                        <h3 class="mb-0">Messages</h3>
-                    </div>
+<div class="row justify-content-between align-items-center">
+    <!-- Title aligned to left -->
+    <div class="col">
+        <h3 class="mb-0">Messages</h3>
+    </div>
 
-                    <!-- Buttons aligned to right -->
-                    <div class="col d-flex justify-content-end"> <!-- Adjust alignment to end -->
-                        <% if Outboxer::Messages.can_republish_all?(status: denormalised_params[:status]) %>
-                            <form id="republishAllForm" action="/messages/republish_all" method="post" class="me-2">
-                                <input type="hidden" name="action" value="republish_all">
-                                <% if denormalised_params[:status] %>
-                                    <input type="hidden" name="status" value="<%= denormalised_params[:status] %>">
-                                <% end %>
-                                <button type="submit" class="btn btn-sm btn-outline-secondary">
-                                    <i class="bi bi-arrow-clockwise"></i> Republish All
-                                </button>
-                            </form>
-                        <% end %>
-                        <form id="deleteAllForm" action="/messages/delete_all" method="post">
-                            <input type="hidden" name="action" value="delete_all">
-                            <% if denormalised_params[:status] %>
-                                <input type="hidden" name="status" value="<%= denormalised_params[:status] %>">
-                            <% end %>
-                            <button type="submit" class="btn btn-sm btn-outline-danger">
-                                <i class="bi bi-trash"></i> Delete All
-                            </button>
-                        </form>
-                    </div>
-                </div>
+    <!-- Buttons aligned to right on larger screens, hidden on smallest screens -->
+    <div class="col d-none d-sm-flex justify-content-end">
+        <form id="republishAllForm" action="/messages/republish_all" method="post" class="me-2">
+            <input type="hidden" name="action" value="republish_all">
+            <input type="hidden" name="status" value="publishing">
+            <button type="submit" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-clockwise"></i> Republish All
+            </button>
+        </form>
+        <form id="deleteAllForm" action="/messages/delete_all" method="post">
+            <input type="hidden" name="action" value="delete_all">
+            <input type="hidden" name="status" value="publishing">
+            <button type="submit" class="btn btn-sm btn-outline-danger">
+                <i class="bi bi-trash"></i> Delete All
+            </button>
+        </form>
+    </div>
+
+    <!-- Buttons aligned underneath the header on the smallest screens -->
+    <div class="col-12 d-sm-none mt-2">
+        <form id="republishAllForm" action="/messages/republish_all" method="post" class="mb-2">
+            <input type="hidden" name="action" value="republish_all">
+            <input type="hidden" name="status" value="publishing">
+            <button type="submit" class="btn btn-sm btn-outline-secondary w-100">
+                <i class="bi bi-arrow-clockwise"></i> Republish All
+            </button>
+        </form>
+        <form id="deleteAllForm" action="/messages/delete_all" method="post">
+            <input type="hidden" name="action" value="delete_all">
+            <input type="hidden" name="status" value="publishing">
+            <button type="submit" class="btn btn-sm btn-outline-danger w-100">
+                <i class="bi bi-trash"></i> Delete All
+            </button>
+        </form>
+    </div>
+</div>
             </div>
         </div>
         <!-- Bulk Actions Form -->
@@ -98,10 +110,10 @@
                                     <td><%= message[:status] %></td>
                                     <td><%= message[:messageable_type] %>::<%= message[:messageable_id] %></td>
                                     <td>
-                                        <%= message[:created_at] %>
+                                        <%= message[:updated_at] %>
                                     </td>
                                     <td>
-                                        <%= message[:updated_at] %>
+                                        <%= message[:created_at] %>
                                     </td>
                                     <td>
                                         <!-- Action buttons -->
@@ -130,62 +142,57 @@
                 </div>
             <% end %>
         </div>
-        <div class="card-footer">
-            <div class="container-fluid">
-                <div class="row align-items-center justify-content-center">
-                    <div class="col-auto">
-                        <!-- Pagination -->
-                        <nav aria-label="Page navigation example" class="d-flex align-items-center">
-                            <ul class="pagination mb-0">
-                                <% if pagination[:previous_page] %>
-                                    <li class="page-item">
-                                        <a class="page-link" href="<%= pagination[:previous_page][:href] %>"
-                                        aria-label="<%= pagination[:previous_page][:text] %>">
-                                            <%= pagination[:previous_page][:text] %>
-                                        </a>
-                                    </li>
-                                <% end %>
-                                <% pagination[:pages].each do |page| %>
-                                    <li class="page-item <%= 'active' if page[:is_active] %>">
-                                        <a class="page-link" href="<%= page[:href] %>"><%= page[:text] %></a>
-                                    </li>
-                                <% end %>
-                                <% if pagination[:next_page] %>
-                                    <li class="page-item">
-                                        <a class="page-link" href="<%= pagination[:next_page][:href] %>"
-                                        aria-label="Next: <%= pagination[:next_page][:text] %>">
-                                            <%= pagination[:next_page][:text] %>
-                                        </a>
-                                    </li>
-                                <% end %>
-                            </ul>
-                        </nav>
+<div class="card-footer">
+    <div class="container-fluid">
+        <div class="row align-items-center justify-content-center">
+            <div class="col-auto mt-1 mb-1">
+                <!-- Pagination -->
+                <nav aria-label="Page navigation example" class="d-flex align-items-center">
+                    <div class="btn-group btn-group-sm" role="group">
+                        <% if pagination[:previous_page] %>
+                            <a class="btn btn-secondary" href="<%= pagination[:previous_page][:href] %>"
+                            aria-label="<%= pagination[:previous_page][:text] %>">
+                                <%= pagination[:previous_page][:text] %>
+                            </a>
+                        <% end %>
+                        <% pagination[:pages].each do |page| %>
+                            <a class="btn btn-secondary <%= 'active' if page[:is_active] %>" href="<%= page[:href] %>">
+                                <%= page[:text] %>
+                            </a>
+                        <% end %>
+                        <% if pagination[:next_page] %>
+                            <a class="btn btn-secondary" href="<%= pagination[:next_page][:href] %>"
+                            aria-label="Next: <%= pagination[:next_page][:text] %>">
+                                <%= pagination[:next_page][:text] %>
+                            </a>
+                        <% end %>
                     </div>
-                    <div class="col-auto">
-                        <!-- "Per page" selection -->
-                        <form action="/messages/update_per_page" method="post" id="perPageForm"
-                            class="d-flex align-items-center">
-                            <% [:status, :sort, :order, :page].each do |param| %>
-                                <% if denormalised_params[param] %>
-                                    <input type="hidden" name="<%= param %>"
-                                        value="<%= denormalised_params[param] %>">
-                                <% end %>
-                            <% end %>
-                            <label for="perPageSelect" class="me-2">Per&nbsp;page:</label>
-                            <select class="form-select form-select-sm" aria-label="Per page" id="perPageSelect" name="per_page">
-                                <% [10, 100, 200, 500, 1000].each do |number| %>
-                                    <option value="<%= number %>"
-                                            <%= 'selected' if denormalised_params[:per_page]&.to_i == number %>>
-                                        <%= number %>
-                                    </option>
-                                <% end %>
-                            </select>
-                            <button type="submit" class="btn btn-sm btn-secondary ms-2" id="submitBtn">Update</button>
-                        </form>
-                    </div>
-                </div>
+                </nav>
+            </div>
+            <div class="col-auto mb-1 mt-1">
+                <!-- "Per page" selection -->
+                <form action="/messages/update_per_page" method="post" id="perPageForm"
+                    class="d-flex align-items-center">
+                    <% [:status, :sort, :order, :page].each do |param| %>
+                        <% if denormalised_params[param] %>
+                            <input type="hidden" name="<%= param %>" value="<%= denormalised_params[param] %>">
+                        <% end %>
+                    <% end %>
+                    <label for="perPageSelect" class="me-2">Per&nbsp;page:</label>
+                    <select class="form-select form-select-sm" aria-label="Per page" id="perPageSelect" name="per_page">
+                        <% [10, 100, 200, 500, 1000].each do |number| %>
+                            <option value="<%= number %>"
+                                    <%= 'selected' if denormalised_params[:per_page]&.to_i == number %>>
+                                <%= number %>
+                            </option>
+                        <% end %>
+                    </select>
+                    <button type="submit" class="btn btn-sm btn-secondary ms-2" id="submitBtn">Update</button>
+                </form>
             </div>
         </div>
+    </div>
+</div>
     </div>
 </div>
 <script>

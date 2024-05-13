@@ -144,8 +144,8 @@ module Outboxer
       'id' => 'Id',
       'status' => 'Status',
       'messageable' => 'Messageable',
-      'created_at' => 'Created At',
-      'updated_at' => 'Updated At'
+      'updated_at' => 'Updated At',
+      'created_at' => 'Created At'
     }
 
     def generate_pagination(current_page:, total_pages:, params:)
@@ -279,12 +279,14 @@ module Outboxer
       when 'republish_selected'
         result = Messages.republish_selected(ids: ids)
 
+        message_text = result[:republished_count] == 1 ? 'message' : 'messages'
+
         if result[:republished_count] > 0
-          flash[:primary] = "Backlogged #{result[:republished_count]} messages"
+          flash[:primary] = "Backlogged #{result[:republished_count]} #{message_text}"
         end
 
         unless result[:not_republished_ids].empty?
-          flash[:warning] = "Could not republish messages with ids " +
+          flash[:warning] = "Could not republish #{message_text} with ids " +
             "#{result[:not_republished_ids].join(', ')}"
         end
 
@@ -292,12 +294,14 @@ module Outboxer
       when 'delete_selected'
         result = Messages.delete_selected(ids: ids)
 
+        message_text = result[:deleted_count] == 1 ? 'message' : 'messages'
+
         if result[:deleted_count] > 0
-          flash[:primary] = "Deleted #{result[:deleted_count]} messages"
+          flash[:primary] = "Deleted #{result[:deleted_count]} #{message_text}"
         end
 
         unless result[:not_deleted_ids].empty?
-          flash[:warning] = "Could not delete messages with ids " +
+          flash[:warning] = "Could not delete #{message_text} with ids " +
             "#{result[:not_deleted_ids].join(', ')}"
         end
 
@@ -326,7 +330,8 @@ module Outboxer
 
       result = Messages.republish_all(status: denormalised_params[:status])
 
-      flash[:primary] = "#{result[:republished_count]} messages have been backlogged"
+      message_text = result[:republished_count] == 1 ? 'message' : 'messages'
+      flash[:primary] = "#{result[:republished_count]} #{message_text} have been backlogged"
 
       redirect to("/messages#{normalised_params}")
     end
@@ -348,7 +353,8 @@ module Outboxer
 
       result = Messages.delete_all(status: denormalised_params[:status])
 
-      flash[:primary] = "#{result[:deleted_count]} messages have been deleted"
+      message_text = result[:deleted_count] == 1 ? 'message' : 'messages'
+      flash[:primary] = "#{result[:deleted_count]} #{message_text} have been deleted"
 
       redirect to("/messages#{normalised_params}")
     end
