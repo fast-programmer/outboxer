@@ -6,7 +6,7 @@ require 'kaminari'
 require 'uri'
 require 'rack/flash'
 
-require 'sinatra/reloader'
+# require 'sinatra/reloader'
 require 'pry-byebug'
 
 environment = ENV['RAILS_ENV'] || 'development'
@@ -14,9 +14,16 @@ config = Outboxer::Database.config(environment: environment)
 Outboxer::Database.connect(config: config.merge('pool' => 5))
 
 module Outboxer
-  class App < Sinatra::Base
+  class Web < Sinatra::Base
     enable :sessions
     use Rack::Flash
+    set :views, File.expand_path('../web/views', __FILE__)
+
+    helpers do
+      def outboxer_path(path)
+        "#{request.script_name}#{path}"
+      end
+    end
 
     get '/' do
       denormalised_params = denormalise_params(
@@ -35,12 +42,12 @@ module Outboxer
         page: 1,
         per_page: denormalised_params[:per_page])
 
-      messages_publishing_link = '/messages' + normalise_params(
+      messages_publishing_link = outboxer_path('/messages' + normalise_params(
         status: 'publishing',
         sort: denormalised_params[:sort],
         order: denormalised_params[:order],
         page: denormalised_params[:page],
-        per_page: denormalised_params[:per_page])
+        per_page: denormalised_params[:per_page]))
 
       messages_queued = Messages.paginate(
         status: 'queued',
@@ -49,12 +56,12 @@ module Outboxer
         page: 1,
         per_page: denormalised_params[:per_page])
 
-      messages_queued_link = '/messages' + normalise_params(
+      messages_queued_link = outboxer_path('/messages' + normalise_params(
         status: 'queued',
         sort: denormalised_params[:sort],
         order: denormalised_params[:order],
         page: denormalised_params[:page],
-        per_page: denormalised_params[:per_page])
+        per_page: denormalised_params[:per_page]))
 
       messages_backlogged = Messages.paginate(
         status: 'backlogged',
@@ -63,12 +70,12 @@ module Outboxer
         page: 1,
         per_page: denormalised_params[:per_page])
 
-      messages_backlogged_link = '/messages' + normalise_params(
+      messages_backlogged_link = outboxer_path('/messages' + normalise_params(
         status: 'backlogged',
         sort: denormalised_params[:sort],
         order: denormalised_params[:order],
         page: denormalised_params[:page],
-        per_page: denormalised_params[:per_page])
+        per_page: denormalised_params[:per_page]))
 
       erb :home, locals: {
         denormalised_params: denormalised_params,
@@ -97,7 +104,7 @@ module Outboxer
         page: denormalised_params[:page],
         per_page: denormalised_params[:per_page])
 
-      redirect normalised_params
+      redirect outboxer_path(normalised_params)
     end
 
     get '/messages' do
@@ -156,18 +163,18 @@ module Outboxer
       if current_page > 1
         previous_page = {
           text: 'Previous',
-          href: "/messages" + normalise_params(
+          href: outboxer_path("/messages" + normalise_params(
             status: params[:status], sort: params[:sort], order: params[:order],
-            page: current_page - 1, per_page: params[:per_page])
+            page: current_page - 1, per_page: params[:per_page]))
         }
       end
 
       pages = (([current_page - 4, 1].max)..([current_page + 4, total_pages].min)).map do |page|
         {
           text: page,
-          href: "/messages" + normalise_params(
+          href: outboxer_path("/messages" + normalise_params(
             status: params[:status], sort: params[:sort], order: params[:order], page: page,
-            per_page: params[:per_page]),
+            per_page: params[:per_page])),
           is_active: current_page == page
         }
       end
@@ -175,9 +182,9 @@ module Outboxer
       if current_page < total_pages
         next_page = {
           text: 'Next',
-          href: "/messages" + normalise_params(
+          href: outboxer_path("/messages" + normalise_params(
             status: params[:status], sort: params[:sort], order: params[:order],
-            page: current_page + 1, per_page: params[:per_page])
+            page: current_page + 1, per_page: params[:per_page]))
         }
       end
 
@@ -191,38 +198,37 @@ module Outboxer
             {
               text: header_text,
               icon_class: 'bi bi-arrow-up',
-              href: 'messages' + normalise_params(
+              href: outboxer_path('/messages' + normalise_params(
                 status: params[:status],
                 order: 'desc',
                 sort: header_key,
                 page: 1,
                 per_page: params[:per_page]
-              )
+              ))
             }
           else
             {
               text: header_text,
               icon_class: 'bi bi-arrow-down',
-              href: 'messages' + normalise_params(
+              href: outboxer_path('/messages' + normalise_params(
                 status: params[:status],
                 order: 'asc',
                 sort: header_key,
                 page: 1,
                 per_page: params[:per_page]
-              )
+              ))
             }
           end
         else
           {
             text: header_text,
             icon_class: '',
-            href: 'messages' + normalise_params(
+            href: outboxer_path('/messages' + normalise_params(
               status: params[:status],
               order: 'asc',
               sort: header_key,
               page: 1,
-              per_page: params[:per_page]
-            )
+              per_page: params[:per_page]))
           }
         end
       end
@@ -374,7 +380,7 @@ module Outboxer
         page: denormalised_params[:page],
         per_page: denormalised_params[:per_page])
 
-      redirect "/messages#{normalised_params}"
+      redirect to("/messages#{normalised_params}")
     end
 
     get '/message/:id' do
@@ -415,7 +421,3 @@ module Outboxer
     end
   end
 end
-
-Outboxer::App.run!
-
-# bundle exec rerun 'ruby web/app.rb'

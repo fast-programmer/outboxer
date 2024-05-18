@@ -14,14 +14,14 @@
     <% if messages.present? %>
         <!-- Buttons aligned to right on larger screens, hidden on smallest screens -->
         <div class="col d-none d-sm-flex justify-content-end">
-            <form id="republishAllForm" action="/messages/republish_all" method="post" class="me-2">
+            <form id="republishAllForm" action="<%= outboxer_path("/messages/republish_all") %>" method="post" class="me-2">
                 <input type="hidden" name="action" value="republish_all">
                 <input type="hidden" name="status" value="publishing">
                 <button type="submit" class="btn btn-sm btn-outline-secondary">
                     <i class="bi bi-arrow-clockwise"></i> Republish All
                 </button>
             </form>
-            <form id="deleteAllForm" action="/messages/delete_all" method="post">
+            <form id="deleteAllForm" action="<%= outboxer_path("/messages/delete_all") %>" method="post">
                 <input type="hidden" name="action" value="delete_all">
                 <input type="hidden" name="status" value="publishing">
                 <button type="submit" class="btn btn-sm btn-outline-danger">
@@ -32,14 +32,14 @@
 
         <!-- Buttons aligned underneath the header on the smallest screens -->
         <div class="col-12 d-sm-none mt-2">
-            <form id="republishAllForm" action="/messages/republish_all" method="post" class="mb-2">
+            <form id="republishAllForm" action="<%= outboxer_path("/messages/republish_all") %>" method="post" class="mb-2">
                 <input type="hidden" name="action" value="republish_all">
                 <input type="hidden" name="status" value="publishing">
                 <button type="submit" class="btn btn-sm btn-outline-secondary w-100">
                     <i class="bi bi-arrow-clockwise"></i> Republish All
                 </button>
             </form>
-            <form id="deleteAllForm" action="/messages/delete_all" method="post">
+            <form id="deleteAllForm" action="<%= outboxer_path("/messages/delete_all") %>" method="post">
                 <input type="hidden" name="action" value="delete_all">
                 <input type="hidden" name="status" value="publishing">
                 <button type="submit" class="btn btn-sm btn-outline-danger w-100">
@@ -52,7 +52,7 @@
             </div>
         </div>
         <!-- Bulk Actions Form -->
-        <form id="bulkActionForm" action="/messages/update" method="post">
+        <form id="bulkActionForm" action="<%= outboxer_path("/messages/update") %>" method="post">
             <div class="card-toolbar py-2 d-none" id="bulkActionsToolbar" style="border-top: 1px solid #eee; border-bottom: 1px solid #eee; background-color: #E9F5FB;">
                 <div class="container">
                     <div class="row justify-content-start">
@@ -106,7 +106,7 @@
                                 <tr>
                                     <td><input type="checkbox" class="individual-check" form="bulkActionForm" name="selected_ids[]" value="<%= message[:id] %>"></td>
                                     <td scope="row">
-                                        <a href="/message/<%= message[:id] %>" class="custom-link">
+                                        <a href="<%= outboxer_path("/message/#{message[:id]}") %>" class="custom-link">
                                         <%= message[:id] %>
                                         </a>
                                     </td>
@@ -122,7 +122,8 @@
                                         <!-- Action buttons -->
                                         <div class="d-flex">
                                         <!-- Republish Button Form -->
-                                        <form action="/message/<%= message[:id] %>/republish" method="post">
+                                        <form action="<%= outboxer_path("/message/#{message[:id]}/republish") %>" method="post">
+
                                             <button type="submit" class="btn btn-sm btn-outline-secondary me-1 d-flex align-items-center justify-content-center">
                                             <i class="bi bi-arrow-clockwise me-1"></i>
                                             <span>Republish</span>
@@ -130,7 +131,7 @@
                                         </form>
 
                                         <!-- Delete Button Form -->
-                                        <form action="/message/<%= message[:id] %>/delete" method="post">
+                                        <form action="<%= outboxer_path("/message/#{message[:id]}/delete") %>" method="post">
                                             <button type="submit" class="btn btn-sm btn-outline-danger ms-1 d-flex align-items-center justify-content-center">
                                             <i class="bi bi-trash me-1"></i>
                                             <span>Delete</span>
@@ -174,7 +175,8 @@
             </div>
             <div class="col-auto mb-1 mt-1">
                 <!-- "Per page" selection -->
-                <form action="/messages/update_per_page" method="post" id="perPageForm"
+
+                <form action="<%= outboxer_path("/messages/update_per_page") %>" method="post" id="perPageForm"
                     class="d-flex align-items-center">
                     <% [:status, :sort, :order, :page].each do |param| %>
                         <% if denormalised_params[param] %>
