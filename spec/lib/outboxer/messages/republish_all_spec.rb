@@ -49,7 +49,7 @@ module Outboxer
         it 'raises ArgumentError with message' do
           expect do
             Messages.republish_all(status: nil, batch_size: 1)
-          end.to raise_error(ArgumentError, "Status must be one of queued, publishing, failed")
+          end.to raise_error(ArgumentError, "Status nil must be one of queued, publishing, failed")
         end
       end
     end

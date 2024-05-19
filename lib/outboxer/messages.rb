@@ -124,8 +124,11 @@ module Outboxer
     end
 
     def republish_all(status:, batch_size: 100)
-      unless can_republish_all?(status: status)
-        raise ArgumentError, "Status #{status} is not one of #{REPUBLISH_ALL_STATUSES.join(', ')}"
+      if !can_republish_all?(status: status)
+        status_formatted = status.nil? ? 'nil' : status
+
+        raise ArgumentError,
+          "Status #{status_formatted} must be one of #{REPUBLISH_ALL_STATUSES.join(', ')}"
       end
 
       republished_count = 0
