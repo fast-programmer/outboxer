@@ -27,50 +27,50 @@ module Outboxer
     get '/' do
       denormalised_params = denormalise_params(
         status: nil,
-        sort: 'updated_at',
-        order: 'asc',
+        sort: :updated_at,
+        order: :asc,
         page: 1,
         per_page: params[:per_page]&.to_i)
 
       message_status_counts = Messages.counts_by_status
 
       messages_publishing = Messages.list(
-        status: 'publishing',
-        sort: 'updated_at',
-        order: 'asc',
+        status: :publishing,
+        sort: :updated_at,
+        order: :asc,
         page: 1,
         per_page: denormalised_params[:per_page])
 
       messages_publishing_link = outboxer_path('/messages' + normalise_params(
-        status: 'publishing',
+        status: :publishing,
         sort: denormalised_params[:sort],
         order: denormalised_params[:order],
         page: denormalised_params[:page],
         per_page: denormalised_params[:per_page]))
 
       messages_queued = Messages.list(
-        status: 'queued',
-        sort: 'updated_at',
-        order: 'asc',
+        status: :queued,
+        sort: :updated_at,
+        order: :asc,
         page: 1,
         per_page: denormalised_params[:per_page])
 
       messages_queued_link = outboxer_path('/messages' + normalise_params(
-        status: 'queued',
+        status: :queued,
         sort: denormalised_params[:sort],
         order: denormalised_params[:order],
         page: denormalised_params[:page],
         per_page: denormalised_params[:per_page]))
 
       messages_backlogged = Messages.list(
-        status: 'backlogged',
-        sort: 'updated_at',
-        order: 'asc',
+        status: :backlogged,
+        sort: :updated_at,
+        order: :asc,
         page: 1,
         per_page: denormalised_params[:per_page])
 
       messages_backlogged_link = outboxer_path('/messages' + normalise_params(
-        status: 'backlogged',
+        status: :backlogged,
         sort: denormalised_params[:sort],
         order: denormalised_params[:order],
         page: denormalised_params[:page],
@@ -125,10 +125,10 @@ module Outboxer
 
       paginated_messages = Messages.list(
         status: denormalised_params[:status],
-          sort: denormalised_params[:sort],
-          order: denormalised_params[:order],
-          page: denormalised_params[:page]&.to_i,
-          per_page: denormalised_params[:per_page]&.to_i)
+        sort: denormalised_params[:sort],
+        order: denormalised_params[:order],
+        page: denormalised_params[:page]&.to_i,
+        per_page: denormalised_params[:per_page]&.to_i)
 
       pagination = generate_pagination(
         current_page: paginated_messages[:current_page],
@@ -142,7 +142,7 @@ module Outboxer
         pagination: pagination,
         denormalised_params: denormalised_params,
         normalised_params: normalised_params,
-        per_page: params[:per_page]&.to_i || Messages::DEFAULT_PER_PAGE
+        per_page: params[:per_page]&.to_i || Messages::LIST_PER_PAGE_DEFAULT
       }
     end
 
@@ -233,31 +233,31 @@ module Outboxer
       end
     end
 
-    def denormalise_params(status: Messages::DEFAULT_STATUS,
-                           sort: Messages::DEFAULT_SORT,
-                           order: Messages::DEFAULT_ORDER,
-                           page: Messages::DEFAULT_PAGE,
-                           per_page: Messages::DEFAULT_PER_PAGE)
+    def denormalise_params(status: Messages::LIST_STATUS_DEFAULT,
+                           sort: Messages::LIST_SORT_DEFAULT,
+                           order: Messages::LIST_ORDER_DEFAULT,
+                           page: Messages::LIST_PAGE_DEFAULT,
+                           per_page: Messages::LIST_PER_PAGE_DEFAULT)
       {
-        status: params[:status] || Messages::DEFAULT_STATUS,
-        sort: params[:sort] || Messages::DEFAULT_SORT,
-        order: params[:order] || Messages::DEFAULT_ORDER,
-        page: params[:page]&.to_i || Messages::DEFAULT_PAGE,
-        per_page: params[:per_page]&.to_i || Messages::DEFAULT_PER_PAGE
+        status: params[:status] || Messages::LIST_STATUS_DEFAULT,
+        sort: params[:sort] || Messages::LIST_SORT_DEFAULT,
+        order: params[:order] || Messages::LIST_ORDER_DEFAULT,
+        page: params[:page]&.to_i || Messages::LIST_PAGE_DEFAULT,
+        per_page: params[:per_page]&.to_i || Messages::LIST_PER_PAGE_DEFAULT
       }
     end
 
-    def normalise_params(status: Messages::DEFAULT_STATUS,
-                         sort: Messages::DEFAULT_SORT,
-                         order: Messages::DEFAULT_ORDER,
-                         page: Messages::DEFAULT_PAGE,
-                         per_page: Messages::DEFAULT_PER_PAGE)
+    def normalise_params(status: Messages::LIST_STATUS_DEFAULT,
+                         sort: Messages::LIST_SORT_DEFAULT,
+                         order: Messages::LIST_ORDER_DEFAULT,
+                         page: Messages::LIST_PAGE_DEFAULT,
+                         per_page: Messages::LIST_PER_PAGE_DEFAULT)
       normalised_params = {
-        status: status == Messages::DEFAULT_STATUS ? nil : status,
-        sort: sort == Messages::DEFAULT_SORT ? nil : sort,
-        order: order == Messages::DEFAULT_ORDER ? nil : order,
-        page: page == Messages::DEFAULT_PAGE ? nil : page,
-        per_page: per_page == Messages::DEFAULT_PER_PAGE ? nil : per_page
+        status: status == Messages::LIST_STATUS_DEFAULT ? nil : status,
+        sort: sort == Messages::LIST_SORT_DEFAULT ? nil : sort,
+        order: order == Messages::LIST_ORDER_DEFAULT ? nil : order,
+        page: page == Messages::LIST_PAGE_DEFAULT ? nil : page,
+        per_page: per_page == Messages::LIST_PER_PAGE_DEFAULT ? nil : per_page
       }.compact
 
       normalised_params.empty? ? '' : "?#{URI.encode_www_form(normalised_params)}"
@@ -407,8 +407,6 @@ module Outboxer
       Message.republish(id: params[:id])
 
       flash[:primary] = "Message #{params[:id]} was backlogged"
-
-      # binding.pry
 
       redirect to('/messages')
     end

@@ -69,7 +69,7 @@ module Outboxer
         raise ArgumentError, "sort must be #{LIST_SORT_OPTIONS.join(' ')}"
       end
 
-      if !LIST_ORDER_OPTIONS.include?(order)
+      if !LIST_ORDER_OPTIONS.include?(order.to_sym)
         raise ArgumentError, "order must be #{LIST_ORDER_OPTIONS.join(' ')}"
       end
 
