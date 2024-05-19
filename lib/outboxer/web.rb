@@ -34,7 +34,7 @@ module Outboxer
 
       message_status_counts = Messages.counts_by_status
 
-      messages_publishing = Messages.paginate(
+      messages_publishing = Messages.list(
         status: 'publishing',
         sort: 'updated_at',
         order: 'asc',
@@ -48,7 +48,7 @@ module Outboxer
         page: denormalised_params[:page],
         per_page: denormalised_params[:per_page]))
 
-      messages_queued = Messages.paginate(
+      messages_queued = Messages.list(
         status: 'queued',
         sort: 'updated_at',
         order: 'asc',
@@ -62,7 +62,7 @@ module Outboxer
         page: denormalised_params[:page],
         per_page: denormalised_params[:per_page]))
 
-      messages_backlogged = Messages.paginate(
+      messages_backlogged = Messages.list(
         status: 'backlogged',
         sort: 'updated_at',
         order: 'asc',
@@ -123,7 +123,7 @@ module Outboxer
         page: denormalised_params[:page]&.to_i,
         per_page: denormalised_params[:per_page]&.to_i)
 
-      paginated_messages = Messages.paginate(
+      paginated_messages = Messages.list(
         status: denormalised_params[:status],
           sort: denormalised_params[:sort],
           order: denormalised_params[:order],

@@ -44,43 +44,48 @@ module Outboxer
       end
     end
 
-    DEFAULT_STATUS = nil
-    DEFAULT_SORT = 'updated_at'
-    DEFAULT_ORDER = 'asc'
-    DEFAULT_PAGE = 1
-    DEFAULT_PER_PAGE = 100
+    LIST_STATUS_OPTIONS = [nil, :backlogged, :queued, :publishing, :failed]
+    LIST_STATUS_DEFAULT = nil
 
-    def paginate(status: DEFAULT_STATUS,
-                 sort: DEFAULT_SORT, order: DEFAULT_ORDER,
-                 page: DEFAULT_PAGE, per_page: DEFAULT_PER_PAGE)
-      if !status.nil? && !Models::Message::STATUSES.include?(status.to_s)
-        raise ArgumentError, "status must be #{Models::Message::STATUSES.join(' ')}"
+    LIST_SORT_OPTIONS = [:id, :status, :messageable, :created_at, :updated_at]
+    LIST_SORT_DEFAULT = :updated_at
+
+    LIST_ORDER_OPTIONS = [:asc, :desc]
+    LIST_ORDER_DEFAULT = :asc
+
+    LIST_PAGE_DEFAULT = 1
+
+    LIST_PER_PAGE_OPTIONS = [10, 100, 200, 500, 1000]
+    LIST_PER_PAGE_DEFAULT = 100
+
+    def list(status: LIST_STATUS_DEFAULT,
+             sort: LIST_SORT_DEFAULT, order: LIST_ORDER_DEFAULT,
+             page: LIST_PAGE_DEFAULT, per_page: LIST_PER_PAGE_DEFAULT)
+      if !status.nil? && !LIST_STATUS_OPTIONS.include?(status.to_sym)
+        raise ArgumentError, "status must be #{LIST_STATUS_OPTIONS.join(' ')}"
       end
 
-      sort_options = ['id', 'status', 'messageable', 'created_at', 'updated_at']
-      if !sort_options.include?(sort)
-        raise ArgumentError, "sort must be #{sort_options.join(' ')}"
+      if !LIST_SORT_OPTIONS.include?(sort.to_sym)
+        raise ArgumentError, "sort must be #{LIST_SORT_OPTIONS.join(' ')}"
       end
 
-      order_options = ['asc', 'desc']
-      if !order_options.include?(order)
-        raise ArgumentError, "order must be #{order_options.join(' ')}"
+      if !LIST_ORDER_OPTIONS.include?(order)
+        raise ArgumentError, "order must be #{LIST_ORDER_OPTIONS.join(' ')}"
       end
 
       if !page.is_a?(Integer) || page <= 0
         raise ArgumentError, "page must be >= 1"
       end
 
-      per_page_options = [10, 100, 200, 500, 1000]
-      if !per_page_options.include?(per_page.to_i)
-        raise ArgumentError, "per_page must be #{per_page_options.join(' ')}"
+      if !LIST_PER_PAGE_OPTIONS.include?(per_page.to_i)
+        raise ArgumentError, "per_page must be #{LIST_PER_PAGE_OPTIONS.join(' ')}"
       end
 
       message_scope = Models::Message
       message_scope = status.nil? ? message_scope.all : message_scope.where(status: status)
 
       message_scope =
-        if sort == 'messageable'
+        if sort.to_sym == :messageable
           message_scope.order(messageable_type: order, messageable_id: order)
         else
           message_scope.order(sort => order)
@@ -94,7 +99,7 @@ module Outboxer
         messages: messages.map do |message|
           {
             id: message.id,
-            status: message.status,
+            status: message.status.to_sym,
             messageable_type: message.messageable_type,
             messageable_id: message.messageable_id,
             created_at: message.created_at.utc,
