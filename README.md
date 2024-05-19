@@ -88,7 +88,7 @@ bin/outboxer_message_publisher
 
 ### 7. manage messages
 
-mount outboxer's web ui to manage backlogged, queued, publishing and failed messages
+manage backlogged, queued, publishing and failed messages with outboxer's web ui
 
 #### rails
 
