@@ -16,6 +16,7 @@ module Outboxer
   class Web < Sinatra::Base
     use Rack::Flash
     set :views, File.expand_path('../web/views', __FILE__)
+    set :public_folder, File.expand_path('../web/public', __FILE__)
 
     helpers do
       def outboxer_path(path)
