@@ -35,7 +35,7 @@ bin/rails g outboxer:schema
 bin/rake db:migrate
 ```
 
-###  3. after event created, create outbox(er) message
+###  3. after event created, backlog message
 
 ```ruby
 class Event < ActiveRecord::Base
@@ -69,7 +69,7 @@ end
 bin/rails g outboxer:message_publisher
 ```
 
-### 6. update publish block to queue event created job
+### 6. update publish block to perform event created job async
 
 ```ruby
 Outboxer::Publisher.publish do |message|
@@ -86,9 +86,9 @@ end
 bin/outboxer_message_publisher
 ```
 
-### 7. mount the ui
+### 7. manage messages
 
-manage and monitor outboxer messages
+mount outboxer's web ui to manage backlogged, queued, publishing and failed messages
 
 #### rails
 
