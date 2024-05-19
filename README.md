@@ -35,7 +35,7 @@ bin/rails g outboxer:schema
 bin/rake db:migrate
 ```
 
-###  3. backlog message when event created
+###  3. after event created, create outbox(er) message
 
 ```ruby
 class Event < ActiveRecord::Base
@@ -49,7 +49,7 @@ class Event < ActiveRecord::Base
 end
 ```
 
-### 4. define event created job
+### 4. add event created job
 
 ```ruby
 class EventCreatedJob
@@ -84,6 +84,34 @@ end
 
 ```bash
 bin/outboxer_message_publisher
+```
+
+### 7. mount the ui
+
+manage and monitor outboxer messages
+
+#### rails
+
+##### config/routes.rb
+
+```ruby
+require 'outboxer/web'
+
+Rails.application.routes.draw do
+  mount Outboxer::Web, at: '/outboxer'
+end
+```
+
+#### rack
+
+##### config.ru
+
+```ruby
+require 'outboxer/web'
+
+map '/outboxer' do
+  run Outboxer::Web
+end
 ```
 
 ## Motivation
