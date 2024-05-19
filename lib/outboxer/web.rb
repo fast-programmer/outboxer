@@ -6,7 +6,6 @@ require 'kaminari'
 require 'uri'
 require 'rack/flash'
 
-# require 'sinatra/reloader'
 require 'pry-byebug'
 
 environment = ENV['RAILS_ENV'] || 'development'
@@ -15,7 +14,6 @@ Outboxer::Database.connect(config: config.merge('pool' => 5))
 
 module Outboxer
   class Web < Sinatra::Base
-    enable :sessions
     use Rack::Flash
     set :views, File.expand_path('../web/views', __FILE__)
 
