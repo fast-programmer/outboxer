@@ -88,7 +88,9 @@ bin/outboxer_message_publisher
 
 ### 7. manage messages
 
-manage backlogged, queued, publishing and failed messages with outboxer's web ui
+manage backlogged, queued, publishing and failed messages with the web ui
+
+<img width="1257" alt="Screenshot 2024-05-20 at 8 47 57 pm" src="https://github.com/fast-programmer/outboxer/assets/394074/0446bc7e-9d5f-4fe1-b210-ff394bdacdd6">
 
 #### rails
 
@@ -112,6 +114,16 @@ require 'outboxer/web'
 map '/outboxer' do
   run Outboxer::Web
 end
+```
+
+### 8. monitor message publisher
+
+understanding how much memory and cpu is required by the message publisher
+
+<img width="310" alt="Screenshot 2024-05-20 at 10 41 57 pm" src="https://github.com/fast-programmer/outboxer/assets/394074/1222ad47-15e3-44d1-bb45-6abc6b3e4325">
+
+```bash
+run bin/outboxer_message_publishermon
 ```
 
 ## Motivation
