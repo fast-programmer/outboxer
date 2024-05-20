@@ -59,7 +59,7 @@ module Outboxer
           message = Models::Message.lock.find_by!(id: id)
 
           if message.status != Models::Message::Status::QUEUED
-            raise InvalidTransition,
+            raise ArgumentError,
               "cannot transition outboxer message #{message.id} " \
               "from #{message.status} to #{Models::Message::Status::PUBLISHING}"
           end
@@ -84,7 +84,7 @@ module Outboxer
           message = Models::Message.lock.find_by!(id: id)
 
           if message.status != Models::Message::Status::PUBLISHING
-            raise InvalidTransition,
+            raise ArgumentError,
               "cannot transition outboxer message #{message.id} " \
               "from #{message.status} to (deleted)"
           end
@@ -104,7 +104,7 @@ module Outboxer
           message = Models::Message.order(created_at: :asc).lock.find_by!(id: id)
 
           if message.status != Models::Message::Status::PUBLISHING
-            raise InvalidTransition,
+            raise ArgumentError,
               "cannot transition outboxer message #{id} " \
               "from #{message.status} to #{Models::Message::Status::FAILED}"
           end

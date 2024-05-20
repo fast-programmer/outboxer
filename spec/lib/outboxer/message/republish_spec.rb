@@ -35,7 +35,7 @@ module Outboxer
         it 'does not delete backlogged message' do
           begin
             Message.published(id: backlogged_message.id)
-          rescue InvalidTransition
+          rescue ArgumentError
             # ignore
           end
 

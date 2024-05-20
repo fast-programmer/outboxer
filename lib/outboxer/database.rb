@@ -11,8 +11,6 @@ module Outboxer
       YAML.safe_load(db_config_erb_result, aliases: true)[environment]
     end
 
-    class ConnectError < Error; end
-
     def connect(config:, logger: Logger.new($stdout, level: Logger::INFO))
       logger&.info  "              _   _                        "
       logger&.info  "             | | | |                       "
