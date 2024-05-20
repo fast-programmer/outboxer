@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -64,7 +63,6 @@
             </div>
         </div>
     </nav>
-
     <!-- Flash Message -->
     <% [:primary, :warning, :success, :danger, :info, :light, :dark, :secondary].each do |alert_type| %>
         <% if flash[alert_type] %>
@@ -74,9 +72,8 @@
             </div>
         <% end %>
     <% end %>
-
+    <!-- Content -->
     <%= yield %>
-
     <!-- Bootstrap Bundle with Popper -->
     <script src="<%= outboxer_path("/js/bootstrap.bundle.min.js") %>"></script>
 </body>
