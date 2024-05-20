@@ -113,14 +113,10 @@ module Outboxer
       }
     end
 
-    REPUBLISH_ALL_STATUSES = [
-      Models::Message::Status::QUEUED,
-      Models::Message::Status::PUBLISHING,
-      Models::Message::Status::FAILED
-    ]
+    REPUBLISH_ALL_STATUSES = [:queued, :publishing, :failed]
 
     def can_republish_all?(status:)
-      REPUBLISH_ALL_STATUSES.include?(status)
+      REPUBLISH_ALL_STATUSES.include?(status&.to_sym)
     end
 
     def republish_all(status:, batch_size: 100)
