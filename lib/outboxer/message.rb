@@ -51,8 +51,6 @@ module Outboxer
           }
         end
       end
-    rescue ActiveRecord::RecordNotFound
-      raise NotFound, "Couldn't find Outboxer::Models::Message with id #{id}"
     end
 
     def publishing(id:)
@@ -79,7 +77,6 @@ module Outboxer
         end
       end
     end
-
 
     def published(id:)
       ActiveRecord::Base.connection_pool.with_connection do

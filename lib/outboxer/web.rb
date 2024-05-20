@@ -17,11 +17,21 @@ module Outboxer
     use Rack::Flash
     set :views, File.expand_path('../web/views', __FILE__)
     set :public_folder, File.expand_path('../web/public', __FILE__)
+    set :show_exceptions, false
 
     helpers do
       def outboxer_path(path)
         "#{request.script_name}#{path}"
       end
+    end
+
+    error StandardError do
+      error = env['sinatra.error']
+      status 500
+
+      puts "Error: #{error.class.name} - #{error.message}"
+
+      erb :error, locals: { error: error }, layout: false
     end
 
     get '/' do
@@ -385,9 +395,7 @@ module Outboxer
     get '/message/:id' do
       message_status_counts = Messages.counts_by_status
 
-      message = Message.find_by_id(id: params[:id].to_i)
-
-      halt 404, "Message not found" unless message
+      message = Message.find_by_id(id: params[:id])
 
       denormalised_params = denormalise_params(
         status: params[:status],

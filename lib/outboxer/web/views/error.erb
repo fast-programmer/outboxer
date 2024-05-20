@@ -1,0 +1,44 @@
+<!DOCTYPE html<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Error Details - Outboxer Web</title>
+    <link rel="icon" type="image/svg+xml" href="<%= outboxer_path("/favicon.svg") %>">
+    <link href="<%= outboxer_path("/css/bootstrap.min.css") %>" rel="stylesheet">
+    <link href="<%= outboxer_path("/css/bootstrap-icons.min.css") %>" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="<%= outboxer_path('') %>"><i class="bi bi-envelope-open-fill"></i> Outboxer</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+        </div>
+    </nav>
+    <% [:primary, :warning, :success, :danger, :info, :light, :dark, :secondary].each do |alert_type| %>
+        <% if flash[alert_type] %>
+            <div class="alert alert-dismissible fade show text-center alert-<%= alert_type.to_s %>" role="alert">
+                <%= flash[alert_type] %>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        <% end %>
+    <% end %>
+    <div class="container mt-4">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="mb-0"><%= error.class.name %></h3>
+            </div>
+            <div class="card-body">
+                <h5>Message:</h5>
+                <p><%= error.message %></p>
+                <h5>Backtrace:</h5>
+                <pre><%= error.backtrace.join("\n") %></pre>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

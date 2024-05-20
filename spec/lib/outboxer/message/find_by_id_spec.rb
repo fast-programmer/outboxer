@@ -25,8 +25,8 @@ module Outboxer
       end
 
       context 'when the message does not exist' do
-        it 'raises a NotFound error' do
-          expect { Message.find_by_id(id: -1) }.to raise_error(NotFound)
+        it 'raises an ActiveRecord::RecordNotFound error' do
+          expect { Message.find_by_id(id: -1) }.to raise_error(ActiveRecord::RecordNotFound)
         end
       end
     end
