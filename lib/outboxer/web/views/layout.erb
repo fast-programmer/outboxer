@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow"> <!-- Ensures that the admin part is not indexed by search engines -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"> <!-- Improves IE compatibility -->
+    <title>Outboxer Web</title>
+    <link rel="icon" type="image/svg+xml" href="<%= outboxer_path("/favicon.svg") %>">
+    <link href="<%= outboxer_path("/css/bootstrap.min.css") %>" rel="stylesheet">
+    <link href="<%= outboxer_path("/css/bootstrap-icons.min.css") %>" rel="stylesheet">
+    <style>
+        .btn {
+            white-space: nowrap; /* Prevents wrapping */
+        }
+        th, td {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .custom-link {
+            color: #495057;
+            text-decoration: none;
+        }
+        .custom-link:hover {
+            text-decoration: underline;
+        }
+        .alert {
+            margin-bottom: 0;
+        }
+        .pagination .page-link.btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="<%= outboxer_path('') %>"><i class="bi bi-envelope-open-fill"></i> Outboxer</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link <%= 'active' if denormalised_params[:status].nil? %>" aria-current="page" href="<%= outboxer_path('/messages') %>">All (<%= message_status_counts[:all] %>)</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <%= 'active' if denormalised_params[:status] == 'publishing' %>" href="<%= outboxer_path('/messages?status=publishing') %>">Publishing (<%= message_status_counts[:publishing] %>)</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <%= 'active' if denormalised_params[:status] == 'queued' %>" href="<%= outboxer_path('/messages?status=queued') %>">Queued (<%= message_status_counts[:queued] %>)</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <%= 'active' if denormalised_params[:status] == 'backlogged' %>" href="<%= outboxer_path('/messages?status=backlogged') %>">Backlogged (<%= message_status_counts[:backlogged] %>)</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <%= 'active' if denormalised_params[:status] == 'failed' %>" href="<%= outboxer_path('/messages?status=failed') %>">Failed (<%= message_status_counts[:failed] %>)</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <!-- Flash Message -->
+    <% [:primary, :warning, :success, :danger, :info, :light, :dark, :secondary].each do |alert_type| %>
+        <% if flash[alert_type] %>
+            <div class="alert alert-dismissible fade show text-center alert-<%= alert_type.to_s %>" role="alert">
+                <%= flash[alert_type] %>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        <% end %>
+    <% end %>
+    <!-- Content -->
+    <%= yield %>
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="<%= outboxer_path("/js/bootstrap.bundle.min.js") %>"></script>
+</body>
+</html>

@@ -18,9 +18,13 @@ logger = Outboxer::Logger.new($stdout, level: Logger::INFO)
 db_config = Outboxer::Database.config(environment: environment)
 Outboxer::Database.connect(config: db_config, logger: logger)
 
-Signal.trap('INT') { Outboxer::Message.stop_publishing }
+['INT', 'TERM'].each do |signal|
+  Signal.trap(signal) do
+    Outboxer::Message.stop_publishing
+  end
+end
 
-Outboxer::Message.publish(threads: 100, queue: 100, poll: 1, logger: logger) do |message|
+Outboxer::Message.publish(threads: 5, queue: 1000, poll: 1, logger: logger) do |message|
   case message[:messageable_type]
   when 'Event'
     Event::CreatedJob.perform_async({ 'id' => message[:messageable_id] })

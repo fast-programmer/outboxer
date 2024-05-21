@@ -1,8 +1,19 @@
-require 'sidekiq'
-require 'sidekiq/web'
+require 'bundler/setup'
+
+require 'dotenv/load'
 
 require 'securerandom'
+require 'sinatra'
+require 'sidekiq'
+require 'sidekiq/web'
+require 'outboxer/web'
 
-use Rack::Session::Cookie, secret: SecureRandom.hex(32), same_site: true, max_age: 86400
+use Rack::Session::Cookie, secret: ENV['SESSION_SECRET'], same_site: true, max_age: 86400
 
-run Sidekiq::Web
+map '/outboxer' do
+  run Outboxer::Web
+end
+
+map '/sidekiq' do
+  run Sidekiq::Web
+end

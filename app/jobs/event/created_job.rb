@@ -3,11 +3,7 @@ module Event
     include Sidekiq::Job
 
     def perform(args)
-      Sidekiq.logger.info "Event::CreatedJob#perform args: #{args.inspect} started"
-
-      sleep 1.5
-
-      Sidekiq.logger.info "Event::CreatedJob#perform args: #{args.inspect} finished"
+      Sidekiq.logger.info "Event::CreatedJob#perform args: #{args.inspect}"
     end
   end
 end

@@ -21,20 +21,21 @@ module Outboxer
 
       context 'when backlogged messaged' do
         let(:backlogged_message) { create(:outboxer_message, :backlogged) }
+        let!(:updated_at) { backlogged_message.updated_at }
 
-        it 'raises invalid transition error' do
-          expect do
-            Message.republish(id: backlogged_message.id)
-          end.to raise_error(
-            InvalidTransition,
-            "cannot transition outboxer message #{backlogged_message.id} " +
-              "from backlogged to backlogged")
+        it 'modifies updated_at' do
+          Message.republish(id: backlogged_message.id)
+
+          backlogged_message.reload
+
+          expect(backlogged_message.status).to eq(Models::Message::Status::BACKLOGGED)
+          expect(backlogged_message.updated_at).to be > updated_at
         end
 
         it 'does not delete backlogged message' do
           begin
             Message.published(id: backlogged_message.id)
-          rescue InvalidTransition
+          rescue ArgumentError
             # ignore
           end
 

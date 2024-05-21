@@ -1,0 +1,81 @@
+<div class="container my-4">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="mb-0">Message <%= message[:id] %></h3>
+            <div class="card-header-buttons">
+                <!-- Republish Form -->
+                <form action="<%= outboxer_path("/message/#{message[:id]}/republish") %>" method="post" style="display: inline;">
+                    <button type="submit" class="btn btn-sm btn-outline-secondary me-2" aria-label="Republish">
+                        <i class="bi bi-arrow-clockwise"></i> Republish
+                    </button>
+                </form>
+                <!-- Delete Form -->
+                <form action="<%= outboxer_path("/message/#{message[:id]}/delete") %>" method="post" style="display: inline;
+                      onsubmit="return confirm('Are you sure you want to delete this message?');">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" aria-label="Delete">
+                        <i class="bi bi-trash"></i> Delete
+                    </button>
+                </form>
+            </div>
+        </div>
+        <div class="card-body">
+            <table class="table">
+                <tbody>
+                    <tr>
+                        <th scope="row">Id</th>
+                        <td><%= message[:id] %></td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Messageable type</th>
+                        <td><%= message[:messageable_type] %></td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Messageable id</th>
+                        <td><%= message[:messageable_id] %></td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Status</th>
+                        <td><%= message[:status] %></td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Created at</th>
+                        <td><%= message[:created_at] %></td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Updated at</th>
+                        <td><%= message[:updated_at] %></td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="accordion" id="exceptionsAccordion">
+                <% message[:exceptions].each_with_index do |exception, index| %>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="exceptionHeader<%= index %>">
+                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#exceptionCollapse<%= index %>" aria-expanded="false" aria-controls="exceptionCollapse<%= index %>">
+                                <div class="custom-header-content w-100">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-exclamation-triangle-fill"></i>
+                                        <span class="ms-2"><%= exception[:id] %>: <%= exception[:class_name] %> - <%= exception[:message_text] %></span>
+                                    </div>
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-calendar3"></i>
+                                        <small class="text-muted ms-2" style="font-size: 0.75em;"><%= exception[:created_at] %></small>
+                                    </div>
+                                </div>
+                            </button>
+                        </h2>
+                        <div id="exceptionCollapse<%= index %>" class="accordion-collapse collapse show" aria-labelledby="exceptionHeader<%= index %>">
+                            <div class="accordion-body">
+                                <ul class="list-group list-group-flush">
+                                    <% exception[:frames].each do |frame| %>
+                                    <li class="list-group-item"><%= frame[:id] %>: <%= frame[:text] %></li>
+                                    <% end %>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                <% end %>
+            </div>
+        </div>
+    </div>
+</div>

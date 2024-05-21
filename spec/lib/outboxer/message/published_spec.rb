@@ -24,7 +24,7 @@ module Outboxer
           expect do
             Message.published(id: backlogged_message.id)
           end.to raise_error(
-            InvalidTransition,
+            ArgumentError,
             "cannot transition outboxer message #{backlogged_message.id} " +
               "from backlogged to (deleted)")
         end
@@ -32,7 +32,7 @@ module Outboxer
         it 'does not delete backlogged message' do
           begin
             Message.published(id: backlogged_message.id)
-          rescue InvalidTransition
+          rescue ArgumentError
             # ignore
           end
 

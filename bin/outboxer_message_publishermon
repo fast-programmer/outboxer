@@ -55,7 +55,7 @@ loop do
 
   pids = outboxer_message_publisher_pids.sort
 
-  puts "Outboxer Report"
+  puts "Outboxer Message Publisher Monitor"
   puts Time.now.utc
   puts "\n---- Overview ----"
   puts format("%-15s: %-10s", "Backlogged", total_backlogged)

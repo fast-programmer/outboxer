@@ -4,10 +4,6 @@ require "kaminari"
 require_relative "outboxer/version"
 require_relative "outboxer/railtie" if defined?(Rails)
 
-require_relative "outboxer/error"
-require_relative "outboxer/not_found"
-require_relative "outboxer/invalid_transition"
-
 require_relative "outboxer/models/frame"
 require_relative "outboxer/models/exception"
 require_relative "outboxer/models/message"

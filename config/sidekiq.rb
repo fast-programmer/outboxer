@@ -3,8 +3,7 @@ require 'outboxer'
 require 'active_record'
 require 'sidekiq'
 
-# require_relative '../app/models/event'
-require_relative '../app/jobs/event_created_job'
+require_relative '../app/jobs/event/created_job'
 
 environment = ENV['RAILS_ENV'] || 'development'
 
@@ -20,6 +19,6 @@ Sidekiq.configure_server do |config|
   config.redis = { url: redis_url }
 end
 
-# Sidekiq.configure_client do |config|
-#   config.redis = { url: redis_url }
-# end
+Sidekiq.configure_client do |config|
+  config.redis = { url: redis_url }
+end

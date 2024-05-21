@@ -4,12 +4,13 @@ module Outboxer
 
     def counts_by_status
       ActiveRecord::Base.connection_pool.with_connection do
-        status_counts = Models::Message::STATUSES.each_with_object({}) do |status, hash|
+        status_counts = Models::Message::STATUSES.each_with_object({ all: 0 }) do |status, hash|
           hash[status.to_sym] = 0
         end
 
         Models::Message.group(:status).count.each do |status, count|
           status_counts[status.to_sym] = count
+          status_counts[:all] += count
         end
 
         status_counts
@@ -43,28 +44,41 @@ module Outboxer
       end
     end
 
-    def list(status: nil, sort: :updated_at, order: :asc, page: 1, per_page: 100)
-      if !status.nil? && !Models::Message::STATUSES.include?(status.to_s)
-        raise ArgumentError, "status must be #{Models::Message::STATUSES.join(' ')}"
+    LIST_STATUS_OPTIONS = [nil, :backlogged, :queued, :publishing, :failed]
+    LIST_STATUS_DEFAULT = nil
+
+    LIST_SORT_OPTIONS = [:id, :status, :messageable, :created_at, :updated_at]
+    LIST_SORT_DEFAULT = :updated_at
+
+    LIST_ORDER_OPTIONS = [:asc, :desc]
+    LIST_ORDER_DEFAULT = :asc
+
+    LIST_PAGE_DEFAULT = 1
+
+    LIST_PER_PAGE_OPTIONS = [10, 100, 200, 500, 1000]
+    LIST_PER_PAGE_DEFAULT = 100
+
+    def list(status: LIST_STATUS_DEFAULT,
+             sort: LIST_SORT_DEFAULT, order: LIST_ORDER_DEFAULT,
+             page: LIST_PAGE_DEFAULT, per_page: LIST_PER_PAGE_DEFAULT)
+      if !status.nil? && !LIST_STATUS_OPTIONS.include?(status.to_sym)
+        raise ArgumentError, "status must be #{LIST_STATUS_OPTIONS.join(' ')}"
       end
 
-      sort_options = [:id, :status, :messageable, :created_at, :updated_at]
-      if !sort_options.include?(sort.to_sym)
-        raise ArgumentError, "sort must be #{sort_options.join(' ')}"
+      if !LIST_SORT_OPTIONS.include?(sort.to_sym)
+        raise ArgumentError, "sort must be #{LIST_SORT_OPTIONS.join(' ')}"
       end
 
-      order_options = [:asc, :desc]
-      if !order_options.include?(order.to_sym)
-        raise ArgumentError, "order must be #{order_options.join(' ')}"
+      if !LIST_ORDER_OPTIONS.include?(order.to_sym)
+        raise ArgumentError, "order must be #{LIST_ORDER_OPTIONS.join(' ')}"
       end
 
       if !page.is_a?(Integer) || page <= 0
         raise ArgumentError, "page must be >= 1"
       end
 
-      per_page_options = [100, 200, 500, 1000]
-      if !per_page_options.include?(per_page)
-        raise ArgumentError, "per_page must be #{per_page_options.join(' ')}"
+      if !LIST_PER_PAGE_OPTIONS.include?(per_page.to_i)
+        raise ArgumentError, "per_page must be #{LIST_PER_PAGE_OPTIONS.join(' ')}"
       end
 
       message_scope = Models::Message
@@ -72,40 +86,45 @@ module Outboxer
 
       message_scope =
         if sort.to_sym == :messageable
-          message_scope.order(messageable_type: order.to_sym, messageable_id: order.to_sym)
+          message_scope.order(messageable_type: order, messageable_id: order)
         else
-          message_scope.order(sort.to_sym => order.to_sym)
+          message_scope.order(sort => order)
         end
 
       messages = ActiveRecord::Base.connection_pool.with_connection do
         message_scope.page(page).per(per_page)
       end
 
-      messages.map do |message|
-        {
-          id: message.id,
-          status: message.status,
-          messageable_type: message.messageable_type,
-          messageable_id: message.messageable_id,
-          created_at: message.created_at.utc.to_s,
-          updated_at: message.updated_at.utc.to_s
-        }
-      end
+      {
+        messages: messages.map do |message|
+          {
+            id: message.id,
+            status: message.status.to_sym,
+            messageable_type: message.messageable_type,
+            messageable_id: message.messageable_id,
+            created_at: message.created_at.utc,
+            updated_at: message.updated_at.utc
+          }
+        end,
+        total_pages: messages.total_pages,
+        current_page: messages.current_page,
+        limit_value: messages.limit_value,
+        total_count: messages.total_count
+      }
     end
 
-    REPUBLISH_ALL_STATUSES = [
-      Models::Message::Status::QUEUED,
-      Models::Message::Status::PUBLISHING,
-      Models::Message::Status::FAILED
-    ]
+    REPUBLISH_ALL_STATUSES = [:queued, :publishing, :failed]
 
     def can_republish_all?(status:)
-      REPUBLISH_ALL_STATUSES.include?(status)
+      REPUBLISH_ALL_STATUSES.include?(status&.to_sym)
     end
 
     def republish_all(status:, batch_size: 100)
-      unless can_republish_all?(status: status)
-        raise ArgumentError, "Status must be one of #{REPUBLISH_ALL_STATUSES.join(', ')}"
+      if !can_republish_all?(status: status)
+        status_formatted = status.nil? ? 'nil' : status
+
+        raise ArgumentError,
+          "Status #{status_formatted} must be one of #{REPUBLISH_ALL_STATUSES.join(', ')}"
       end
 
       republished_count = 0
@@ -124,7 +143,7 @@ module Outboxer
 
             republished_count_batch = Models::Message
               .where(id: locked_ids)
-              .update_all(status: Models::Message::Status::BACKLOGGED, updated_at: DateTime.now.utc)
+              .update_all(status: Models::Message::Status::BACKLOGGED, updated_at: Time.now.utc)
 
             republished_count += republished_count_batch
           end
@@ -147,7 +166,7 @@ module Outboxer
 
           republished_count = Models::Message
             .where(id: locked_ids)
-            .update_all(status: Models::Message::Status::BACKLOGGED, updated_at: DateTime.now.utc)
+            .update_all(status: Models::Message::Status::BACKLOGGED, updated_at: Time.now.utc)
 
           { republished_count: republished_count, not_republished_ids: ids - locked_ids }
         end

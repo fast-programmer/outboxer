@@ -35,7 +35,7 @@ bin/rails g outboxer:schema
 bin/rake db:migrate
 ```
 
-###  3. backlog message when event created
+###  3. after event created, backlog message
 
 ```ruby
 class Event < ActiveRecord::Base
@@ -49,7 +49,7 @@ class Event < ActiveRecord::Base
 end
 ```
 
-### 4. define event created job
+### 4. add event created job
 
 ```ruby
 class EventCreatedJob
@@ -69,7 +69,7 @@ end
 bin/rails g outboxer:message_publisher
 ```
 
-### 6. update publish block to queue event created job
+### 6. update publish block to perform event created job async
 
 ```ruby
 Outboxer::Publisher.publish do |message|
@@ -84,6 +84,46 @@ end
 
 ```bash
 bin/outboxer_message_publisher
+```
+
+### 7. manage messages
+
+manage backlogged, queued, publishing and failed messages with the web ui
+
+<img width="1257" alt="Screenshot 2024-05-20 at 8 47 57 pm" src="https://github.com/fast-programmer/outboxer/assets/394074/0446bc7e-9d5f-4fe1-b210-ff394bdacdd6">
+
+#### rails
+
+##### config/routes.rb
+
+```ruby
+require 'outboxer/web'
+
+Rails.application.routes.draw do
+  mount Outboxer::Web, at: '/outboxer'
+end
+```
+
+#### rack
+
+##### config.ru
+
+```ruby
+require 'outboxer/web'
+
+map '/outboxer' do
+  run Outboxer::Web
+end
+```
+
+### 8. monitor message publisher
+
+understanding how much memory and cpu is required by the message publisher
+
+<img width="310" alt="Screenshot 2024-05-20 at 10 41 57 pm" src="https://github.com/fast-programmer/outboxer/assets/394074/1222ad47-15e3-44d1-bb45-6abc6b3e4325">
+
+```bash
+run bin/outboxer_message_publishermon
 ```
 
 ## Motivation

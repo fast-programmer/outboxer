@@ -1,0 +1,172 @@
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="mb-0">Messages</h3>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th scope="col">Order</th>
+                            <th scope="col">Id</th>
+                            <th scope="col">Messageable</th>
+                            <th scope="col">
+                                Updated At <i class="bi bi-arrow-up"></i>
+                            </th>
+                        </tr>
+                    </thead>
+                    <!-- Publishing Section -->
+                    <tbody>
+                        <tr class="table-primary" data-bs-toggle="collapse" data-bs-target="#publishingSection" aria-expanded="true" aria-controls="publishingSection">
+                            <th colspan="5">
+                                <button class="btn btn-link p-0 text-decoration-none text-dark fw-bold" type="button">
+                                    Publishing (<%= message_status_counts[:publishing] %>)
+                                </button>
+                            </th>
+                        </tr>
+                    </tbody>
+                    <tbody id="publishingSection" class="table-group-divider">
+                        <% if messages_publishing[:messages].empty? %>
+                            <tr>
+                                <td colspan="5" class="text-center fw-bold">No messages are currently publishing.</td>
+                            </tr>
+                        <% else %>
+                            <% messages_publishing[:messages].each_with_index do |message, index| %>
+                                <tr>
+                                    <td><%= index + 1 %></td>
+                                    <td>
+                                        <a href="<%= outboxer_path("/message/#{message[:id]}") %>" class="custom-link">
+                                            <%= message[:id] %>
+                                        </a>
+                                    </td>
+                                    <td><%= message[:messageable_type] %>::<%= message[:messageable_id] %></td>
+                                    <td><%= message[:updated_at] %></td>
+                                </tr>
+                            <% end %>
+                            <% if messages_publishing[:total_count] > messages_publishing[:messages].count %>
+                                <tr>
+                                    <td colspan="5" class="text-center">
+                                        <a href="<%= messages_publishing_link %>">
+                                            and <%= messages_publishing[:total_count] - messages_publishing[:messages].count %> more messages...
+                                        </a>
+                                    </td>
+                                </tr>
+                            <% end %>
+                        <% end %>
+                    </tbody>
+                    <!-- Queued Section -->
+                    <tbody>
+                        <tr class="table-secondary" data-bs-toggle="collapse" data-bs-target="#queuedSection" aria-expanded="true" aria-controls="queuedSection">
+                            <th colspan="5">
+                                <button class="btn btn-link p-0 text-decoration-none text-dark fw-bold" type="button">
+                                    Queued (<%= message_status_counts[:queued] %>)
+                                </button>
+                            </th>
+                        </tr>
+                    </tbody>
+                    <tbody id="queuedSection" class="table-group-divider">
+                        <% if messages_queued[:messages].empty? %>
+                            <tr>
+                                <td colspan="5" class="text-center fw-bold">No messages are currently queued.</td>
+                            </tr>
+                        <% else %>
+                            <% messages_queued[:messages].each_with_index do |message, index| %>
+                                <tr>
+                                    <td><%= messages_queued[:messages].count + index + 1 %></td>
+                                    <td>
+                                        <a href="<%= outboxer_path("/message/#{message[:id]}") %>" class="custom-link">
+                                            <%= message[:id] %>
+                                        </a>
+                                    </td>
+                                    <td><%= message[:messageable_type] %>::<%= message[:messageable_id] %></td>
+                                    <td><%= message[:updated_at] %></td>
+                                </tr>
+                            <% end %>
+                            <% if messages_queued[:total_count] > messages_queued[:messages].count %>
+                                <tr>
+                                    <td colspan="5" class="text-center">
+                                        <a href="<%= messages_queued_link %>">
+                                            and <%= messages_queued[:total_count] - messages_queued[:messages].count %> more messages...
+                                        </a>
+                                    </td>
+                                </tr>
+                            <% end %>
+                        <% end %>
+                    </tbody>
+                    <!-- Backlogged Section -->
+                    <tbody>
+                        <tr class="table-warning" data-bs-toggle="collapse" data-bs-target="#backloggedSection" aria-expanded="true" aria-controls="backloggedSection">
+                            <th colspan="5">
+                                <button class="btn btn-link p-0 text-decoration-none text-dark fw-bold" type="button">
+                                    Backlogged (<%= message_status_counts[:backlogged] %>)
+                                </button>
+                            </th>
+                        </tr>
+                    </tbody>
+                    <tbody id="backloggedSection" class="table-group-divider">
+                        <% if messages_backlogged[:messages].empty? %>
+                            <tr>
+                                <td colspan="5" class="text-center fw-bold">No messages are currently backlogged.</td>
+                            </tr>
+                        <% else %>
+                            <% messages_backlogged[:messages].each_with_index do |message, index| %>
+                                <tr>
+                                    <td><%= messages_publishing[:messages].count + messages_queued[:messages].count + index + 1 %></td>
+                                    <td>
+                                        <a href="<%= outboxer_path("/message/#{message[:id]}") %>" class="custom-link">
+                                            <%= message[:id] %>
+                                        </a>
+                                    </td>
+                                    <td><%= message[:messageable_type] %>::<%= message[:messageable_id] %></td>
+                                    <td><%= message[:updated_at] %></td>
+                                </tr>
+                            <% end %>
+                        <% end %>
+                        <% if messages_backlogged[:total_count] > messages_backlogged[:messages].count %>
+                            <tr>
+                                <td colspan="5" class="text-center">
+                                    <a href="<%= messages_backlogged_link %>">
+                                        and <%= messages_backlogged[:total_count] - messages_backlogged[:messages].count %> more messages...
+                                    </a>
+                                </td>
+                            </tr>
+                        <% end %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer">
+            <div class="container-fluid">
+                <div class="row align-items-center justify-content-center">
+                    <div class="col-auto">
+                        <!-- Pagination -->
+                        <div class="col-auto">
+                            <!-- "Per page" selection -->
+                            <form action="<%= outboxer_path("/update_per_page") %>" method="post" id="perPageForm"
+                                class="d-flex align-items-center">
+                                <% [:status, :sort, :order, :page].each do |param| %>
+                                    <% if denormalised_params[param] %>
+                                        <input type="hidden" name="<%= param %>"
+                                            value="<%= denormalised_params[param] %>">
+                                    <% end %>
+                                <% end %>
+                                <label for="perPageSelect" class="me-2">Per&nbsp;page:</label>
+                                <select class="form-select form-select-sm" aria-label="Per page" id="perPageSelect" name="per_page">
+                                    <% [10, 100, 200, 500, 1000].each do |number| %>
+                                        <option value="<%= number %>"
+                                                <%= 'selected' if denormalised_params[:per_page]&.to_i == number %>>
+                                            <%= number %>
+                                        </option>
+                                    <% end %>
+                                </select>
+                                <button type="submit" class="btn btn-sm btn-secondary ms-2" id="submitBtn">Update</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+

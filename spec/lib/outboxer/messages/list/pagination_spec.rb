@@ -15,7 +15,7 @@ module Outboxer
         it 'raises an ArgumentError' do
           expect do
             Messages.list(per_page: 1)
-          end.to raise_error(ArgumentError, "per_page must be 100 200 500 1000")
+          end.to raise_error(ArgumentError, "per_page must be 10 100 200 500 1000")
         end
       end
 
@@ -29,16 +29,16 @@ module Outboxer
 
       context 'when 100 messages per page' do
         it 'first page returns 100 messages' do
-          expect(first_page.size).to eq(100)
+          expect(first_page[:messages].size).to eq(100)
         end
 
         it 'second page returns 1 message' do
-          expect(second_page.size).to eq(1)
+          expect(second_page[:messages].size).to eq(1)
         end
 
         it 'ensures no overlap between first and second page' do
-          first_page_ids = first_page.map { |message| message[:id] }
-          second_page_ids = second_page.map { |message| message[:id] }
+          first_page_ids = first_page[:messages].map { |message| message[:id] }
+          second_page_ids = second_page[:messages].map { |message| message[:id] }
           expect(first_page_ids & second_page_ids).to be_empty
         end
       end
