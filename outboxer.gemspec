@@ -28,18 +28,25 @@ Gem::Specification.new do |spec|
   spec.executables = spec.files.grep(%r{\Aexe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
-  spec.add_dependency "activerecord", "~> 7.0"
+  spec.add_dependency "activerecord", "~> 7.1", ">= 7.1.2"
+  spec.add_dependency "sidekiq", "~> 7.2"
+  spec.add_dependency "rackup", "~> 2.1"
+  spec.add_dependency "sinatra", "~> 4.0"
   spec.add_dependency 'kaminari', '~> 1.2'
   spec.add_dependency 'rack-flash3', '~> 1.0', '>= 1.0.5'
 
   spec.add_development_dependency 'dotenv', '>= 3.1.2'
   spec.add_development_dependency 'foreman', '~> 0.87.2'
-  spec.add_development_dependency 'pry-byebug', '3.10'
+  spec.add_development_dependency 'pry-byebug', '~> 3.10', '>= 3.10.1'
   spec.add_development_dependency 'activerecord', '~> 7.0'
   spec.add_development_dependency 'database_cleaner', '~> 2.0', '>= 2.0.2'
   spec.add_development_dependency 'sidekiq', '~> 7.2', '>= 7.2.1'
   spec.add_development_dependency 'simplecov', '~> 0.22.0'
   spec.add_development_dependency 'factory_bot', '~> 6.4', '>= 6.4.6'
   spec.add_development_dependency 'rerun', '~> 0.14.0'
+  spec.add_development_dependency "yard", "~> 0.9.34"
+  spec.add_development_dependency "rubocop", "~> 1.55"
+  spec.add_development_dependency "rake", "~> 13.0"
+  spec.add_development_dependency "rspec"
 end
 # rubocop:enable Layout/LineLength
