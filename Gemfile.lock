@@ -2,9 +2,12 @@ PATH
   remote: .
   specs:
     outboxer (0.1.11)
-      activerecord (~> 7.0)
+      activerecord (~> 7.1, >= 7.1.2)
       kaminari (~> 1.2)
       rack-flash3 (~> 1.0, >= 1.0.5)
+      rackup (~> 2.1)
+      sidekiq (~> 7.2)
+      sinatra (~> 4.0)
 
 GEM
   remote: https://rubygems.org/
@@ -80,12 +83,10 @@ GEM
       nokogiri (>= 1.12.0)
     method_source (1.0.0)
     minitest (5.20.0)
-    multi_json (1.15.0)
     mustermann (3.0.0)
       ruby2_keywords (~> 0.0.1)
     mutex_m (0.2.0)
     mysql2 (0.5.6)
-    nio4r (2.7.0)
     nokogiri (1.16.0-arm64-darwin)
       racc (~> 1.4)
     nokogiri (1.16.0-x86_64-darwin)
@@ -103,8 +104,6 @@ GEM
     pry-byebug (3.10.1)
       byebug (~> 11.0)
       pry (>= 0.13, < 0.15)
-    puma (6.4.2)
-      nio4r (~> 2.0)
     racc (1.7.1)
     rack (3.0.10)
     rack-flash3 (1.0.5)
@@ -129,7 +128,7 @@ GEM
     rb-fsevent (0.11.2)
     rb-inotify (0.10.1)
       ffi (~> 1.0)
-    redis-client (0.19.1)
+    redis-client (0.22.1)
       connection_pool
     regexp_parser (2.8.1)
     rerun (0.14.0)
@@ -163,11 +162,11 @@ GEM
       parser (>= 3.2.1.0)
     ruby-progressbar (1.13.0)
     ruby2_keywords (0.0.5)
-    sidekiq (7.2.0)
+    sidekiq (7.2.4)
       concurrent-ruby (< 2)
       connection_pool (>= 2.3.0)
       rack (>= 2.2.4)
-      redis-client (>= 0.14.0)
+      redis-client (>= 0.19.0)
     simplecov (0.22.0)
       docile (~> 1.1)
       simplecov-html (~> 0.11)
@@ -179,12 +178,6 @@ GEM
       rack (>= 3.0.0, < 4)
       rack-protection (= 4.0.0)
       rack-session (>= 2.0.0, < 3)
-      tilt (~> 2.0)
-    sinatra-contrib (4.0.0)
-      multi_json (>= 0.0.2)
-      mustermann (~> 3.0)
-      rack-protection (= 4.0.0)
-      sinatra (= 4.0.0)
       tilt (~> 2.0)
     tilt (2.3.0)
     timeout (0.4.1)
@@ -200,26 +193,21 @@ PLATFORMS
   x86_64-linux
 
 DEPENDENCIES
-  activerecord (~> 7.1, >= 7.1.2)
+  activerecord (~> 7.0)
   database_cleaner (~> 2.0, >= 2.0.2)
   dotenv (>= 3.1.2)
   factory_bot (~> 6.4, >= 6.4.6)
   foreman (~> 0.87.2)
-  kaminari (~> 1.2, >= 1.2.2)
   mysql2 (~> 0.5.6)
   outboxer!
   pg (~> 1.5)
-  pry-byebug (~> 3.10)
-  puma (~> 6.4, >= 6.4.2)
-  rackup (~> 2.1)
+  pry-byebug (~> 3.10, >= 3.10.1)
   rake (~> 13.0)
   rerun (~> 0.14.0)
   rspec
   rubocop (~> 1.55)
-  sidekiq (~> 7.2)
+  sidekiq (~> 7.2, >= 7.2.1)
   simplecov (~> 0.22.0)
-  sinatra (~> 4.0)
-  sinatra-contrib
   yard (~> 0.9.34)
 
 BUNDLED WITH
