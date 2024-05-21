@@ -17,5 +17,3 @@ end
 map '/sidekiq' do
   run Sidekiq::Web
 end
-
-# bundle exec rerun "rackup -p 3000"
