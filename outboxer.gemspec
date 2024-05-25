@@ -29,7 +29,6 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_dependency "activerecord", "~> 7.1", ">= 7.1.2"
-  spec.add_dependency "sidekiq", "~> 7.2"
   spec.add_dependency "rackup", "~> 2.1"
   spec.add_dependency "sinatra", "~> 4.0"
   spec.add_dependency 'kaminari', '~> 1.2'
