@@ -2,10 +2,11 @@ PATH
   remote: .
   specs:
     outboxer (0.1.11)
-      activerecord (~> 7.1, >= 7.1.2)
-      kaminari (~> 1.2)
-      rack-flash3 (~> 1.0, >= 1.0.5)
-      rackup (~> 2.1)
+      activerecord (~> 7.0)
+      kaminari (~> 1.0)
+      rack-flash3 (~> 1.0)
+      rackup (~> 2.0)
+      sidekiq (~> 7.0)
       sinatra (~> 4.0)
 
 GEM
@@ -194,21 +195,21 @@ PLATFORMS
 
 DEPENDENCIES
   activerecord (~> 7.0)
-  database_cleaner (~> 2.0, >= 2.0.2)
-  dotenv (>= 3.1.2)
-  factory_bot (~> 6.4, >= 6.4.6)
-  foreman (~> 0.87.2)
+  database_cleaner (~> 2.0)
+  dotenv (~> 3.0)
+  factory_bot (~> 6.0)
+  foreman (~> 0.0)
   mysql2 (~> 0.5.6)
   outboxer!
   pg (~> 1.5)
-  pry-byebug (~> 3.10, >= 3.10.1)
+  pry-byebug (~> 3.0)
   rake (~> 13.0)
-  rerun (~> 0.14.0)
-  rspec
-  rubocop (~> 1.55)
+  rerun (~> 0.0)
+  rspec (~> 3.0)
+  rubocop (~> 1.0)
   sidekiq (~> 7.2)
-  simplecov (~> 0.22.0)
-  yard (~> 0.9.34)
+  simplecov (~> 0.0)
+  yard (~> 0.0)
 
 BUNDLED WITH
    2.5.3
