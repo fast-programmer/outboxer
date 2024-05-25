@@ -9,7 +9,7 @@ Gem::Specification.new do |spec|
 
   spec.summary = "Transactional outbox implementation for event driven Ruby on Rails applications that use SQL"
   spec.homepage = "https://github.com/fast-programmer/outboxer"
-  spec.license = "MIT"
+  spec.license       = "LGPL-3.0"
   spec.required_ruby_version = ">= 3.1.5"
 
   spec.metadata["homepage_uri"] = spec.homepage
@@ -18,14 +18,18 @@ Gem::Specification.new do |spec|
   spec.metadata["changelog_uri"] = "https://github.com/fast-programmer/outboxer/blob/master/CHANGELOG.md"
   spec.metadata["rubygems_mfa_required"] = "true"
 
-  spec.files = Dir.chdir(__dir__) do
-    `git ls-files -z`.split("\x0").reject do |f|
-      (File.expand_path(f) == __FILE__) ||
-        f.start_with?(*%w[bin/ test/ spec/ features/ .git .circleci appveyor Gemfile])
-    end
+  spec_files = Dir.chdir(__dir__) do
+    [
+      'db/migrate/**/*',
+      'generators/**/*',
+      'LICENCE.txt',
+      'lib/**/*',
+      'README.md'
+    ].flat_map { |path| Dir.glob(path) }
   end
-  spec.bindir = "exe"
-  spec.executables = spec.files.grep(%r{\Aexe/}) { |f| File.basename(f) }
+
+  spec.files = spec_files
+
   spec.require_paths = ["lib"]
 
   spec.add_dependency "activerecord", "~> 7.0"
