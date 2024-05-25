@@ -209,7 +209,7 @@ DEPENDENCIES
   rubocop (~> 1.0)
   sidekiq (~> 7.2)
   simplecov (~> 0.0)
-  yard (~> 0.0)
+  yard (>= 0.9.36, < 1.0)
 
 BUNDLED WITH
    2.5.3
