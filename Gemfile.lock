@@ -6,7 +6,6 @@ PATH
       kaminari (~> 1.2)
       rack-flash3 (~> 1.0, >= 1.0.5)
       rackup (~> 2.1)
-      sidekiq (~> 7.2)
       sinatra (~> 4.0)
 
 GEM
@@ -207,9 +206,9 @@ DEPENDENCIES
   rerun (~> 0.14.0)
   rspec
   rubocop (~> 1.55)
-  sidekiq (~> 7.2, >= 7.2.1)
+  sidekiq (~> 7.2)
   simplecov (~> 0.22.0)
   yard (~> 0.9.34)
 
 BUNDLED WITH
-   2.4.22
+   2.5.3

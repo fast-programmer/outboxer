@@ -29,7 +29,6 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_dependency "activerecord", "~> 7.1", ">= 7.1.2"
-  spec.add_dependency "sidekiq", "~> 7.2"
   spec.add_dependency "rackup", "~> 2.1"
   spec.add_dependency "sinatra", "~> 4.0"
   spec.add_dependency 'kaminari', '~> 1.2'
@@ -40,7 +39,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'pry-byebug', '~> 3.10', '>= 3.10.1'
   spec.add_development_dependency 'activerecord', '~> 7.0'
   spec.add_development_dependency 'database_cleaner', '~> 2.0', '>= 2.0.2'
-  spec.add_development_dependency 'sidekiq', '~> 7.2', '>= 7.2.1'
   spec.add_development_dependency 'simplecov', '~> 0.22.0'
   spec.add_development_dependency 'factory_bot', '~> 6.4', '>= 6.4.6'
   spec.add_development_dependency 'rerun', '~> 0.14.0'
