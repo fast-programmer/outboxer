@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    outboxer (0.1.11)
+    outboxer (1.0.0.pre.beta)
       activerecord (~> 7.0)
       kaminari (~> 1.0)
       rack-flash3 (~> 1.0)

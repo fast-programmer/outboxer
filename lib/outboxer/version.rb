@@ -1,3 +1,3 @@
 module Outboxer
-  VERSION = "0.1.11".freeze
+  VERSION = "1.0.0-beta".freeze
 end
