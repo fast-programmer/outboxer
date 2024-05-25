@@ -11,4 +11,3 @@ RuboCop::RakeTask.new
 task default: %i[spec]
 
 load 'tasks/database.rake'
-load 'tasks/gem.rake'
