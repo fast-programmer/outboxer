@@ -4,14 +4,15 @@ module Outboxer
 
     Status = Models::Message::Status
 
-    def backlog(messageable_type:, messageable_id:)
+    def backlog(messageable: nil,
+                messageable_type: nil, messageable_id: nil)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           current_time = Time.now.utc
 
           message = Models::Message.create!(
-            messageable_id: messageable_id,
-            messageable_type: messageable_type,
+            messageable_id: messageable&.id || messageable_id,
+            messageable_type: messageable&.class&.name || messageable_type,
             status: Models::Message::Status::BACKLOGGED,
             created_at: current_time,
             updated_at: current_time)
