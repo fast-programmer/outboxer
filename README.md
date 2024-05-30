@@ -7,15 +7,17 @@
 
 Outboxer is an ActiveRecord implementation of the [transactional outbox pattern](https://microservices.io/patterns/data/transactional-outbox.html).
 
+It was built to help Rails teams migrate to eventually consistent event driven architecture quickly, using existing tools and infrastructure.
+
 ## Installation
 
-### 1. add gem to your application's gemfile
+### 1. add the gem to your application's gemfile
 
 ```
 gem 'outboxer'
 ```
 
-### 2. install gem
+### 2. install the gem
 
 ```
 bundle install
@@ -23,19 +25,19 @@ bundle install
 
 ## Usage
 
-### 1. generate schema
+### 1. generate the schema
 
 ```bash
 bin/rails g outboxer:schema
 ```
 
-### 2. migrate schema
+### 2. migrate the schema
 
 ```bash
 bin/rake db:migrate
 ```
 
-###  3. after event created, backlog message
+###  3. after an event model is created in your application, backlog an outboxer message
 
 ```ruby
 class Event < ActiveRecord::Base
@@ -47,7 +49,24 @@ class Event < ActiveRecord::Base
 end
 ```
 
-### 4. add event created job
+### 4. generate the message publisher
+
+```bash
+bin/rails g outboxer:message_publisher
+```
+
+### 5. update the publish block to perform an event created job async
+
+```ruby
+Outboxer::Publisher.publish do |message|
+  case message[:messageable_type]
+  when 'Event'
+    EventCreatedJob.perform_async({ 'id' => message[:messageable_id] })
+  end
+end
+```
+
+### 6. add the event created job
 
 ```ruby
 class EventCreatedJob
@@ -61,30 +80,13 @@ class EventCreatedJob
 end
 ```
 
-### 5. generate message publisher
-
-```bash
-bin/rails g outboxer:message_publisher
-```
-
-### 6. update publish block to perform event created job async
-
-```ruby
-Outboxer::Publisher.publish do |message|
-  case message[:messageable_type]
-  when 'Event'
-    EventCreatedJob.perform_async({ 'id' => message[:messageable_id] })
-  end
-end
-```
-
-### 6. run message publisher
+### 7. run the message publisher
 
 ```bash
 bin/outboxer_message_publisher
 ```
 
-### 7. manage messages
+### 8. manage the messages
 
 manage backlogged, queued, publishing and failed messages with the web ui
 
@@ -114,7 +116,7 @@ map '/outboxer' do
 end
 ```
 
-### 8. monitor message publisher
+### 9. monitor the message publisher
 
 understanding how much memory and cpu is required by the message publisher
 
@@ -124,18 +126,10 @@ understanding how much memory and cpu is required by the message publisher
 run bin/outboxer_message_publishermon
 ```
 
-## Motivation
-
-Outboxer was created to help Rails teams migrate to eventually consistent event driven architecture quickly, using existing tools and infrastructure.
-
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/fast-programmer/outboxer. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [code of conduct](https://github.com/fast-programmer/outboxer/blob/main/CODE_OF_CONDUCT.md).
+Bug reports and pull requests are welcome on GitHub at https://github.com/fast-programmer/outboxer.
 
 ## License
 
-The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
-
-## Code of Conduct
-
-Everyone interacting in the Outboxer project's codebases, issue trackers, chat rooms and mailing lists is expected to follow the [code of conduct](https://github.com/fast-programmer/outboxer/blob/main/CODE_OF_CONDUCT.md).
+This gem is available as open source under the terms of the [GNU Lesser General Public License v3.0](https://www.gnu.org/licenses/lgpl-3.0.html).
