@@ -11,13 +11,13 @@ It was built to help Rails teams migrate to eventually consistent event driven a
 
 ## Installation
 
-### 1. add the gem to your application's gemfile
+### 1. add gem to gemfile
 
 ```
 gem 'outboxer'
 ```
 
-### 2. install the gem
+### 2. install gem
 
 ```
 bundle install
@@ -25,19 +25,19 @@ bundle install
 
 ## Usage
 
-### 1. generate the schema
+### 1. generate schema
 
 ```bash
 bin/rails g outboxer:schema
 ```
 
-### 2. migrate the schema
+### 2. migrate schema
 
 ```bash
 bin/rake db:migrate
 ```
 
-###  3. after an event model is created in your application, backlog an outboxer message
+###  3. after event created, backlog outboxer message
 
 ```ruby
 class Event < ActiveRecord::Base
@@ -49,24 +49,7 @@ class Event < ActiveRecord::Base
 end
 ```
 
-### 4. generate the message publisher
-
-```bash
-bin/rails g outboxer:message_publisher
-```
-
-### 5. update the publish block to perform an event created job async
-
-```ruby
-Outboxer::Publisher.publish do |message|
-  case message[:messageable_type]
-  when 'Event'
-    EventCreatedJob.perform_async({ 'id' => message[:messageable_id] })
-  end
-end
-```
-
-### 6. add the event created job
+### 4. add event created job
 
 ```ruby
 class EventCreatedJob
@@ -80,13 +63,30 @@ class EventCreatedJob
 end
 ```
 
-### 7. run the message publisher
+### 5. generate message publisher
+
+```bash
+bin/rails g outboxer:message_publisher
+```
+
+### 6. in publish block, perform event created job async
+
+```ruby
+Outboxer::Publisher.publish do |message|
+  case message[:messageable_type]
+  when 'Event'
+    EventCreatedJob.perform_async({ 'id' => message[:messageable_id] })
+  end
+end
+```
+
+### 7. run message publisher
 
 ```bash
 bin/outboxer_message_publisher
 ```
 
-### 8. manage the messages
+### 8. manage messages
 
 manage backlogged, queued, publishing and failed messages with the web ui
 
@@ -116,7 +116,7 @@ map '/outboxer' do
 end
 ```
 
-### 9. monitor the message publisher
+### 9. monitor message publisher
 
 understanding how much memory and cpu is required by the message publisher
 
