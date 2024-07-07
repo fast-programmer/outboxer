@@ -10,7 +10,7 @@ Outboxer is an ActiveRecord implementation of the [transactional outbox pattern]
 ## Benefits
 
 * free for commercial use
-* examples publish to sidekiq but all queue libraries supported
+* examples publish to redis using a sidekiq job but all queue libraries supported
 * includes multithreaded publisher with low memory footprint
 * includes web ui for monitoring and administration
 * includes high backend test coverage
