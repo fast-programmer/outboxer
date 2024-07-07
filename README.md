@@ -5,9 +5,15 @@
 
 ## Background
 
-Outboxer is an ActiveRecord implementation of the [transactional outbox pattern](https://microservices.io/patterns/data/transactional-outbox.html).
+Outboxer is an ActiveRecord implementation of the [transactional outbox pattern](https://microservices.io/patterns/data/transactional-outbox.html), for MySQL and PostgreSQL databases.
 
-It was built to help Rails teams migrate to eventually consistent event driven architecture quickly, using existing tools and infrastructure.
+## Benefits
+
+* free for commercial use
+* examples publish to sidekiq but all queue libraries supported
+* includes multithreaded publisher with low memory footprint
+* includes web ui for monitoring and administration
+* includes high backend test coverage
 
 ## Installation
 
