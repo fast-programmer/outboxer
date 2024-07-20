@@ -30,7 +30,7 @@ module Outboxer
           if messages.present?
             Models::Message
               .where(id: messages.map { |message| message[:id] })
-              .update_all(updated_at: Time.current, status: Models::Message::Status::QUEUED)
+              .update_all(updated_at: Time.current, status: Models::Message::Status::DEQUEUED)
           end
 
           messages.map do |message|

@@ -59,7 +59,7 @@ module Outboxer
         ActiveRecord::Base.transaction do
           message = Models::Message.lock.find_by!(id: id)
 
-          if message.status != Models::Message::Status::QUEUED
+          if message.status != Models::Message::Status::DEQUEUED
             raise ArgumentError,
               "cannot transition outboxer message #{message.id} " \
               "from #{message.status} to #{Models::Message::Status::PUBLISHING}"

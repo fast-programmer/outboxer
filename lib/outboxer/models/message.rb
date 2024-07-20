@@ -19,15 +19,15 @@ module Outboxer
 
       module Status
         BACKLOGGED = 'backlogged'
-        QUEUED = 'queued'
+        DEQUEUED = 'dequeued'
         PUBLISHING = 'publishing'
         FAILED = 'failed'
       end
 
-      STATUSES = [Status::BACKLOGGED, Status::QUEUED, Status::PUBLISHING, Status::FAILED]
+      STATUSES = [Status::BACKLOGGED, Status::DEQUEUED, Status::PUBLISHING, Status::FAILED]
 
       scope :backlogged, -> { where(status: Status::BACKLOGGED) }
-      scope :queued, -> { where(status: Status::QUEUED) }
+      scope :dequeued, -> { where(status: Status::DEQUEUED) }
       scope :publishing, -> { where(status: Status::PUBLISHING) }
       scope :failed, -> { where(status: Status::FAILED) }
 

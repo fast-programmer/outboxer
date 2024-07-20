@@ -16,9 +16,9 @@ module Outboxer
         end
       end
 
-      context 'when status is queued' do
+      context 'when status is dequeued' do
         it 'returns true' do
-          expect(Messages.can_republish_all?(status: Message::Status::QUEUED)).to eq true
+          expect(Messages.can_republish_all?(status: Message::Status::DEQUEUED)).to eq true
         end
       end
 

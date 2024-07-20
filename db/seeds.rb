@@ -18,7 +18,7 @@ end
   Outboxer::Models::Message.create!(
     messageable_type: 'Event',
     messageable_id: i + 6,
-    status: Outboxer::Models::Message::Status::QUEUED,
+    status: Outboxer::Models::Message::Status::DEQUEUED,
     created_at: created_at,
     updated_at: created_at + rand(0..23).hours + rand(0..59).minutes + rand(0..59).seconds)
 end

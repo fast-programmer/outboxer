@@ -21,9 +21,9 @@ module Outboxer
         end
       end
 
-      context 'when status is queued' do
+      context 'when status is dequeued' do
         before do
-          Messages.republish_all(status: Message::Status::QUEUED, batch_size: 1)
+          Messages.republish_all(status: Message::Status::DEQUEUED, batch_size: 1)
         end
 
         it 'sets queued messages to backlogged' do
