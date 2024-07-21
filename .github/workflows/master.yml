@@ -7,9 +7,24 @@ on:
   pull_request:
 
 jobs:
+  brakeman:
+    runs-on: ubuntu-latest
+    name: run brakeman
+    steps:
+    - uses: actions/checkout@v3
+    - name: set up ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.3.0'
+        bundler-cache: true
+    - name: install brakeman
+      run: gem install brakeman
+    - name: run brakeman
+      run: brakeman --exit-on-warn
+
   postgres:
     runs-on: ubuntu-latest
-    name: Ruby ${{ matrix.ruby }} with PostgreSQL
+    name: run rspec (postgresql)
     strategy:
       matrix:
         ruby:
@@ -28,24 +43,24 @@ jobs:
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
     - uses: actions/checkout@v3
-    - name: Set up Ruby
+    - name: set up ruby
       uses: ruby/setup-ruby@v1
       with:
         ruby-version: ${{ matrix.ruby }}
         bundler-cache: true
-    - name: Check PostgreSQL
+    - name: check postgresql
       run: |
         sudo apt-get -qq install -y postgresql-client
         export PGPASSWORD=outboxer_password
         psql -h localhost -U outboxer_developer -d outboxer_test -c 'SELECT version();'
-    - name: Run Database Migrations
+    - name: run database migrations
       run: RAILS_ENV=test bin/rake outboxer:db:migrate
-    - name: Run Tests
+    - name: run rspec
       run: RAILS_ENV=test bin/rspec spec
 
   mysql:
     runs-on: ubuntu-latest
-    name: Ruby ${{ matrix.ruby }} with MySQL
+    name: run rspec (mysql)
     strategy:
       matrix:
         ruby:
@@ -69,17 +84,17 @@ jobs:
           --health-retries=5
     steps:
     - uses: actions/checkout@v3
-    - name: Set up Ruby
+    - name: set up ruby
       uses: ruby/setup-ruby@v1
       with:
         ruby-version: ${{ matrix.ruby }}
         bundler-cache: true
-    - name: Check MySQL
+    - name: check mySQL
       run: |
         sudo apt-get -qq install -y mysql-client
         export MYSQL_PWD=outboxer_password
         mysql -h 127.0.0.1 -P 3306 -u outboxer_developer -poutboxer_password outboxer_test -e 'SELECT VERSION();'
-    - name: Run Database Migrations
+    - name: run database migrations
       env:
         RAILS_ENV: test
         DATABASE_ADAPTER: mysql2
@@ -87,7 +102,7 @@ jobs:
         DATABASE_PORT: 3306
       run: |
         bin/rake outboxer:db:migrate
-    - name: Run Tests
+    - name: run rspec
       env:
         RAILS_ENV: test
         DATABASE_ADAPTER: mysql2
