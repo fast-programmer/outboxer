@@ -2,6 +2,118 @@ module Outboxer
   module Messages
     extend self
 
+    def stop_publishing
+      @publishing = false
+    end
+
+    def publish(threads: 5, queue: 10, poll: 1,
+                logger: Logger.new($stdout, level: Logger::INFO),
+                kernel: Kernel, &block)
+      ruby_queue = Queue.new
+
+      @publishing = true
+
+      logger.info "Initializing #{threads} worker threads"
+      ruby_threads = threads.times.map do
+        Thread.new do
+          loop do
+            begin
+              queued_message = ruby_queue.pop
+              break if queued_message.nil?
+
+              queued_at = queued_message[:queued_at]
+
+              message = Message.publishing(id: queued_message[:id])
+              logger.info "Publishing message #{message[:id]} for " \
+                "#{message[:messageable_type]}::#{message[:messageable_id]} " \
+                "in #{(Time.now.utc - queued_at).round(3)}s"
+
+              begin
+                block.call(message)
+              rescue Exception => exception
+                Message.failed(id: message[:id], exception: exception)
+                logger.error "Failed to publish message #{message[:id]} for " \
+                  "#{message[:messageable_type]}::#{message[:messageable_id]} " \
+                  "in #{(Time.now.utc - queued_at).round(3)}s"
+
+                raise
+              end
+
+              Message.published(id: message[:id])
+              logger.info "Published message #{message[:id]} for " \
+                "#{message[:messageable_type]}::#{message[:messageable_id]} " \
+                "in #{(Time.now.utc - queued_at).round(3)}s"
+            rescue StandardError => exception
+              logger.error "#{exception.class}: #{exception.message} " \
+                "in #{(Time.now.utc - queued_at).round(3)}s"
+
+              exception.backtrace.each { |frame| logger.error frame }
+            rescue Exception => exception
+              logger.fatal "#{exception.class}: #{exception.message} " \
+                "in #{(Time.now.utc - queued_at).round(3)}s"
+              exception.backtrace.each { |frame| logger.error frame }
+
+              @publishing = false
+
+              break
+            end
+          end
+        end
+      end
+      logger.info "Initialized #{threads} worker threads"
+
+      logger.info "Dequeuing up to #{queue} messages every #{poll}s"
+      while @publishing
+        begin
+          messages = []
+
+          queue_available = queue - ruby_queue.length
+          queue_stats = { total: queue, available: queue_available, current: ruby_queue.length }
+          logger.debug "Queue: #{queue_stats}"
+
+          logger.debug "Connection pool: #{ActiveRecord::Base.connection_pool.stat}"
+
+          messages = (queue_available > 0) ? Messages.dequeue(limit: queue_available) : []
+          logger.debug "Updated #{messages.length} messages from queued to dequeued"
+
+          messages.each do |message|
+            logger.info "Queuing message #{message[:id]} for " \
+              "#{message[:messageable_type]}::#{message[:messageable_id]}"
+
+            ruby_queue.push({ id: message[:id], queued_at: Time.now.utc })
+          end
+
+          logger.debug "Pushed #{messages.length} messages to queue."
+
+          if messages.empty?
+            logger.debug "Sleeping for #{poll} seconds because no messages were queued..."
+
+            kernel.sleep(poll)
+          elsif ruby_queue.length >= queue
+            logger.debug "Sleeping for #{poll} seconds because queue was full..."
+
+            kernel.sleep(poll)
+          end
+        rescue StandardError => exception
+          logger.error "#{exception.class}: #{exception.message}"
+          exception.backtrace.each { |frame| logger.error frame }
+
+          kernel.sleep(poll)
+        rescue Exception => exception
+          logger.fatal "#{exception.class}: #{exception.message}"
+          exception.backtrace.each { |frame| logger.fatal frame }
+
+          @publishing = false
+        end
+      end
+      logger.info "Stopped dequeuing messages"
+
+      logger.info "Shutting down #{threads} worker threads"
+      ruby_threads.length.times { ruby_queue.push(nil) }
+      ruby_threads.each(&:join)
+      logger.info "Shut down #{threads} worker threads"
+    end
+
     def counts_by_status
       ActiveRecord::Base.connection_pool.with_connection do
         status_counts = Models::Message::STATUSES.each_with_object({ all: 0 }) do |status, hash|
