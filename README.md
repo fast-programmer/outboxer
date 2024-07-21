@@ -5,11 +5,19 @@
 
 ## Background
 
-Outboxer is an ActiveRecord implementation of the [transactional outbox pattern](https://microservices.io/patterns/data/transactional-outbox.html).
+Outboxer is an ActiveRecord implementation of the [transactional outbox pattern](https://microservices.io/patterns/data/transactional-outbox.html), for MySQL and PostgreSQL databases.
+
+## Benefits
+
+* free for commercial use
+* examples publish to redis using a sidekiq job but all queue libraries supported
+* includes multithreaded publisher with low memory footprint
+* includes web ui for monitoring and administration
+* includes high backend test coverage
 
 ## Installation
 
-### 1. add gem to your application's gemfile
+### 1. add gem to gemfile
 
 ```
 gem 'outboxer'
@@ -67,7 +75,7 @@ end
 bin/rails g outboxer:message_publisher
 ```
 
-### 6. update publish block to perform event created job async
+### 6. in publish block, perform event created job async
 
 ```ruby
 Outboxer::Publisher.publish do |message|
@@ -78,13 +86,13 @@ Outboxer::Publisher.publish do |message|
 end
 ```
 
-### 6. run message publisher
+### 7. run message publisher
 
 ```bash
 bin/outboxer_message_publisher
 ```
 
-### 7. manage messages
+### 8. manage messages
 
 manage queued, dequeued, publishing and failed messages with the web ui
 
@@ -114,7 +122,7 @@ map '/outboxer' do
 end
 ```
 
-### 8. monitor message publisher
+### 9. monitor message publisher
 
 understanding how much memory and cpu is required by the message publisher
 
@@ -124,18 +132,10 @@ understanding how much memory and cpu is required by the message publisher
 run bin/outboxer_message_publishermon
 ```
 
-## Motivation
-
-Outboxer was created to help Rails teams migrate to eventually consistent event driven architecture quickly, using existing tools and infrastructure.
-
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/fast-programmer/outboxer. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [code of conduct](https://github.com/fast-programmer/outboxer/blob/main/CODE_OF_CONDUCT.md).
+Bug reports and pull requests are welcome on GitHub at https://github.com/fast-programmer/outboxer.
 
 ## License
 
-The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
-
-## Code of Conduct
-
-Everyone interacting in the Outboxer project's codebases, issue trackers, chat rooms and mailing lists is expected to follow the [code of conduct](https://github.com/fast-programmer/outboxer/blob/main/CODE_OF_CONDUCT.md).
+This gem is available as open source under the terms of the [GNU Lesser General Public License v3.0](https://www.gnu.org/licenses/lgpl-3.0.html).
