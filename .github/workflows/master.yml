@@ -7,6 +7,21 @@ on:
   pull_request:
 
 jobs:
+  brakeman:
+    runs-on: ubuntu-latest
+    name: Run Brakeman
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.3.0'
+        bundler-cache: true
+    - name: Install Brakeman
+      run: gem install brakeman
+    - name: Run Brakeman
+      run: brakeman --exit-on-warn
+
   postgres:
     runs-on: ubuntu-latest
     name: Ruby ${{ matrix.ruby }} with PostgreSQL
