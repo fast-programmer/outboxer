@@ -7,14 +7,6 @@
 
 Outboxer is an ActiveRecord implementation of the [transactional outbox pattern](https://microservices.io/patterns/data/transactional-outbox.html), for MySQL and PostgreSQL databases.
 
-## Benefits
-
-* free for commercial use
-* examples publish to redis using a sidekiq job but all queue libraries supported
-* includes multithreaded publisher with low memory footprint
-* includes web ui for monitoring and administration
-* includes high backend test coverage
-
 ## Installation
 
 ### 1. add gem to gemfile
@@ -78,7 +70,7 @@ bin/rails g outboxer:message_publisher
 ### 6. in publish block, perform event created job async
 
 ```ruby
-Outboxer::Publisher.publish do |message|
+Outboxer::Messages.publish do |message|
   case message[:messageable_type]
   when 'Event'
     EventCreatedJob.perform_async({ 'id' => message[:messageable_id] })
