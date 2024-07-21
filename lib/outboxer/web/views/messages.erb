@@ -12,12 +12,12 @@
                     <% if messages.present? %>
                         <!-- Buttons aligned to right on larger screens, hidden on smallest screens -->
                         <div class="col d-none d-sm-flex justify-content-end">
-                            <% if Outboxer::Messages.can_republish_all?(status: denormalised_params[:status]) %>
-                                <form id="republishAllForm" action="<%= outboxer_path("/messages/republish_all") %>" method="post" class="me-2">
-                                    <input type="hidden" name="action" value="republish_all">
+                            <% if Outboxer::Messages.can_requeue_all?(status: denormalised_params[:status]) %>
+                                <form id="requeueAllForm" action="<%= outboxer_path("/messages/requeue_all") %>" method="post" class="me-2">
+                                    <input type="hidden" name="action" value="requeue_all">
                                     <input type="hidden" name="status" value="<%= denormalised_params[:status] %>">
                                     <button type="submit" class="btn btn-sm btn-outline-secondary">
-                                        <i class="bi bi-arrow-clockwise"></i> Republish All
+                                        <i class="bi bi-arrow-clockwise"></i> Requeue All
                                     </button>
                                 </form>
                             <% end %>
@@ -33,12 +33,12 @@
                         </div>
                         <!-- Buttons aligned underneath the header on the smallest screens -->
                         <div class="col-12 d-sm-none mt-2">
-                            <% if Outboxer::Messages.can_republish_all?(status: denormalised_params[:status]) %>
-                                <form id="republishAllForm" action="<%= outboxer_path("/messages/republish_all") %>" method="post" class="mb-2">
-                                    <input type="hidden" name="action" value="republish_all">
+                            <% if Outboxer::Messages.can_requeue_all?(status: denormalised_params[:status]) %>
+                                <form id="requeueAllForm" action="<%= outboxer_path("/messages/requeue_all") %>" method="post" class="mb-2">
+                                    <input type="hidden" name="action" value="requeue_all">
                                     <input type="hidden" name="status" value="publishing">
                                     <button type="submit" class="btn btn-sm btn-outline-secondary w-100">
-                                        <i class="bi bi-arrow-clockwise"></i> Republish All
+                                        <i class="bi bi-arrow-clockwise"></i> Requeue All
                                     </button>
                                 </form>
                             <% end %>
@@ -69,9 +69,9 @@
                                 <% end %>
                             <% end %>
 
-                            <!-- Republish Selected Button -->
-                            <button class="btn btn-sm btn-outline-secondary me-2" type="submit" name="action" value="republish_selected" data-bs-toggle="tooltip" data-bs-placement="top" title="Republish selected">
-                                <i class="bi bi-arrow-clockwise"></i> Republish Selected
+                            <!-- Requeue Selected Button -->
+                            <button class="btn btn-sm btn-outline-secondary me-2" type="submit" name="action" value="requeue_selected" data-bs-toggle="tooltip" data-bs-placement="top" title="Requeue selected">
+                                <i class="bi bi-arrow-clockwise"></i> Requeue Selected
                             </button>
                             <!-- Delete Selected Button -->
                             <button class="btn btn-sm btn-outline-danger" type="submit" name="action" value="delete_selected" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete selected">
@@ -126,12 +126,12 @@
                                     <td>
                                         <!-- Action buttons -->
                                         <div class="d-flex">
-                                        <!-- Republish Button Form -->
-                                        <form action="<%= outboxer_path("/message/#{message[:id]}/republish") %>" method="post">
+                                        <!-- Requeue Button Form -->
+                                        <form action="<%= outboxer_path("/message/#{message[:id]}/requeue") %>" method="post">
 
                                             <button type="submit" class="btn btn-sm btn-outline-secondary me-1 d-flex align-items-center justify-content-center">
                                             <i class="bi bi-arrow-clockwise me-1"></i>
-                                            <span>Republish</span>
+                                            <span>Requeue</span>
                                             </button>
                                         </form>
 

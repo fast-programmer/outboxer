@@ -140,7 +140,7 @@ module Outboxer
       end
     end
 
-    def republish(id:)
+    def requeue(id:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           message = Models::Message.lock.find_by!(id: id)

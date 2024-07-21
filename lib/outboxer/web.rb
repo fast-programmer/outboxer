@@ -291,18 +291,18 @@ module Outboxer
         per_page: denormalised_params[:per_page])
 
       result = case params[:action]
-      when 'republish_selected'
-        result = Messages.republish_selected(ids: ids)
+      when 'requeue_selected'
+        result = Messages.requeue_selected(ids: ids)
 
-        message_text = result[:republished_count] == 1 ? 'message' : 'messages'
+        message_text = result[:requeued_count] == 1 ? 'message' : 'messages'
 
-        if result[:republished_count] > 0
-          flash[:primary] = "Queued #{result[:republished_count]} #{message_text}"
+        if result[:requeued_count] > 0
+          flash[:primary] = "Requeued #{result[:requeued_count]} #{message_text}"
         end
 
-        unless result[:not_republished_ids].empty?
-          flash[:warning] = "Could not republish #{message_text} with ids " +
-            "#{result[:not_republished_ids].join(', ')}"
+        unless result[:not_requeued_ids].empty?
+          flash[:warning] = "Could not requeue #{message_text} with ids " +
+            "#{result[:not_requeued_ids].join(', ')}"
         end
 
         result
@@ -328,7 +328,7 @@ module Outboxer
       redirect to("/messages#{normalised_params}")
     end
 
-    post '/messages/republish_all' do
+    post '/messages/requeue_all' do
       denormalised_params = denormalise_params(
         status: params[:status],
         sort: params[:sort],
@@ -343,10 +343,10 @@ module Outboxer
         page: denormalised_params[:page],
         per_page: denormalised_params[:per_page])
 
-      result = Messages.republish_all(status: denormalised_params[:status])
+      result = Messages.requeue_all(status: denormalised_params[:status])
 
-      message_text = result[:republished_count] == 1 ? 'message' : 'messages'
-      flash[:primary] = "#{result[:republished_count]} #{message_text} have been queued"
+      message_text = result[:requeue_count] == 1 ? 'message' : 'messages'
+      flash[:primary] = "#{result[:requeue_count]} #{message_text} have been queued"
 
       redirect to("/messages#{normalised_params}")
     end
@@ -411,8 +411,8 @@ module Outboxer
       }
     end
 
-    post '/message/:id/republish' do
-      Message.republish(id: params[:id])
+    post '/message/:id/requeue' do
+      Message.requeue(id: params[:id])
 
       flash[:primary] = "Message #{params[:id]} was queued"
 

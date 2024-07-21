@@ -3,10 +3,10 @@
         <div class="card-header d-flex justify-content-between align-items-center">
             <h3 class="mb-0">Message <%= message[:id] %></h3>
             <div class="card-header-buttons">
-                <!-- Republish Form -->
-                <form action="<%= outboxer_path("/message/#{message[:id]}/republish") %>" method="post" style="display: inline;">
-                    <button type="submit" class="btn btn-sm btn-outline-secondary me-2" aria-label="Republish">
-                        <i class="bi bi-arrow-clockwise"></i> Republish
+                <!-- Requeue Form -->
+                <form action="<%= outboxer_path("/message/#{message[:id]}/requeue") %>" method="post" style="display: inline;">
+                    <button type="submit" class="btn btn-sm btn-outline-secondary me-2" aria-label="Requeue">
+                        <i class="bi bi-arrow-clockwise"></i> Requeue
                     </button>
                 </form>
                 <!-- Delete Form -->

@@ -113,24 +113,24 @@ module Outboxer
       }
     end
 
-    REPUBLISH_ALL_STATUSES = [:dequeued, :publishing, :failed]
+    REQUEUE_ALL_STATUSES = [:dequeued, :publishing, :failed]
 
-    def can_republish_all?(status:)
-      REPUBLISH_ALL_STATUSES.include?(status&.to_sym)
+    def can_requeue_all?(status:)
+      REQUEUE_ALL_STATUSES.include?(status&.to_sym)
     end
 
-    def republish_all(status:, batch_size: 100)
-      if !can_republish_all?(status: status)
+    def requeue_all(status:, batch_size: 100)
+      if !can_requeue_all?(status: status)
         status_formatted = status.nil? ? 'nil' : status
 
         raise ArgumentError,
-          "Status #{status_formatted} must be one of #{REPUBLISH_ALL_STATUSES.join(', ')}"
+          "Status #{status_formatted} must be one of #{REQUEUE_ALL_STATUSES.join(', ')}"
       end
 
-      republished_count = 0
+      requeued_count = 0
 
       loop do
-        republished_count_batch = 0
+        requeued_count_batch = 0
 
         ActiveRecord::Base.connection_pool.with_connection do
           ActiveRecord::Base.transaction do
@@ -141,21 +141,21 @@ module Outboxer
               .lock('FOR UPDATE SKIP LOCKED')
               .pluck(:id)
 
-            republished_count_batch = Models::Message
+            requeued_count_batch = Models::Message
               .where(id: locked_ids)
               .update_all(status: Models::Message::Status::QUEUED, updated_at: Time.now.utc)
 
-            republished_count += republished_count_batch
+            requeued_count += requeued_count_batch
           end
         end
 
-        break if republished_count_batch < batch_size
+        break if requeued_count_batch < batch_size
       end
 
-      { republished_count: republished_count }
+      { requeued_count: requeued_count }
     end
 
-    def republish_selected(ids:)
+    def requeue_selected(ids:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           locked_ids = Models::Message
@@ -164,11 +164,11 @@ module Outboxer
             .lock('FOR UPDATE SKIP LOCKED')
             .pluck(:id)
 
-          republished_count = Models::Message
+          requeued_count = Models::Message
             .where(id: locked_ids)
             .update_all(status: Models::Message::Status::QUEUED, updated_at: Time.now.utc)
 
-          { republished_count: republished_count, not_republished_ids: ids - locked_ids }
+          { requeued_count: requeued_count, not_requeued_ids: ids - locked_ids }
         end
       end
     end

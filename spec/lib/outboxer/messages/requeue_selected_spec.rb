@@ -2,7 +2,7 @@ require 'spec_helper'
 
 module Outboxer
   RSpec.describe Messages do
-    describe '.republish_selected' do
+    describe '.requeue_selected' do
       let!(:message_1) { create(:outboxer_message, :failed) }
       let!(:exception_1) { create(:outboxer_exception, message: message_1) }
       let!(:frame_1) { create(:outboxer_frame, exception: exception_1) }
@@ -14,7 +14,7 @@ module Outboxer
       let!(:ids) { [message_1.id, message_2.id] }
 
       describe 'when ids exist' do
-        let!(:result) { Messages.republish_selected(ids: ids) }
+        let!(:result) { Messages.requeue_selected(ids: ids) }
 
         it 'sets message status to queued' do
           expect(
@@ -26,13 +26,13 @@ module Outboxer
         end
 
         it 'returns correct result' do
-          expect(result).to eq({ republished_count: ids.count, not_republished_ids: [] })
+          expect(result).to eq({ requeued_count: ids.count, not_requeued_ids: [] })
         end
       end
 
       describe 'when an id does not exist' do
         let(:non_existent_id) { 5 }
-        let(:result) { Messages.republish_selected(ids: [non_existent_id]) }
+        let(:result) { Messages.requeue_selected(ids: [non_existent_id]) }
 
         it 'does not delete selected messages' do
           expect(Models::Frame.count).to eq(2)
@@ -41,7 +41,7 @@ module Outboxer
         end
 
         it 'returns correct result' do
-          expect(result).to eq({ republished_count: 0, not_republished_ids: [non_existent_id]  })
+          expect(result).to eq({ requeued_count: 0, not_requeued_ids: [non_existent_id]  })
         end
       end
     end
