@@ -43,8 +43,8 @@ module Outboxer
 
           expect(publishing_message.exceptions[0].frames[0].index).to eq(0)
           expect(publishing_message.exceptions[0].frames[0].text).to match(
-            %r{outboxer/spec/lib/outboxer/message/failed_spec\.rb:\d+:in `raise_exception}
-)        end
+            %r{outboxer/spec/lib/outboxer/message/failed_spec\.rb:\d+:in `raise_exception})
+        end
       end
 
       context "when queued message" do
