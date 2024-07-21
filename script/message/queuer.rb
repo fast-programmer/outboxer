@@ -10,16 +10,16 @@ Outboxer::Database.connect(config: db_config)
 Signal.trap('INT') do
   puts 'Shutting down...';
 
-  $backlogging = false
+  $queueing = false
 end
 
-$backlogging = true
+$queueing = true
 
-while $backlogging
+while $queueing
   messageable_id = SecureRandom.hex(3)
 
-  Outboxer::Message.backlog(messageable_type: 'Event', messageable_id: messageable_id)
-  puts "backlogged message for Event::#{messageable_id}"
+  Outboxer::Message.queue(messageable_type: 'Event', messageable_id: messageable_id)
+  puts "queued message for Event::#{messageable_id}"
 
   # sleep(rand(0.1..1.0))
 end

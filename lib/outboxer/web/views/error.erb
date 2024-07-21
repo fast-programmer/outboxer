@@ -26,10 +26,10 @@
                             <a class="nav-link" href="<%= outboxer_path('/messages?status=publishing') %>">Publishing</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="<%= outboxer_path('/messages?status=queued') %>">Queued</a>
+                            <a class="nav-link" href="<%= outboxer_path('/messages?status=dequeued') %>">Dequeued</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="<%= outboxer_path('/messages?status=backlogged') %>">Backlogged</a>
+                            <a class="nav-link" href="<%= outboxer_path('/messages?status=queued') %>">Queued</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="<%= outboxer_path('/messages?status=failed') %>">Failed</a>

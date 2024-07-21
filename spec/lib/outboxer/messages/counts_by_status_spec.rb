@@ -7,8 +7,8 @@ module Outboxer
         it 'returns 0 for all statuses' do
           expect(Messages.counts_by_status).to eq({
             all: 0,
-            backlogged: 0,
             queued: 0,
+            dequeued: 0,
             publishing: 0,
             failed: 0
           })
@@ -17,8 +17,8 @@ module Outboxer
 
       context 'when messages exist' do
         before do
-          create_list(:outboxer_message, 2, :backlogged)
-          create_list(:outboxer_message, 3, :queued)
+          create_list(:outboxer_message, 2, :queued)
+          create_list(:outboxer_message, 3, :dequeued)
           create_list(:outboxer_message, 5, :publishing)
           create_list(:outboxer_message, 4, :failed)
         end
@@ -26,8 +26,8 @@ module Outboxer
         it 'returns correct counts for each status' do
           expect(Messages.counts_by_status).to eq({
             all: 14,
-            backlogged: 2,
-            queued: 3,
+            queued: 2,
+            dequeued: 3,
             publishing: 5,
             failed: 4 })
         end

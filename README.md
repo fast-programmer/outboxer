@@ -35,14 +35,14 @@ bin/rails g outboxer:schema
 bin/rake db:migrate
 ```
 
-###  3. after event created, backlog message
+###  3. after event created, queue message
 
 ```ruby
 class Event < ActiveRecord::Base
   # ...
 
   after_create do |event|
-    Outboxer::Message.backlog(messageable: event)
+    Outboxer::Message.queue(messageable: event)
   end
 end
 ```
@@ -86,7 +86,7 @@ bin/outboxer_message_publisher
 
 ### 7. manage messages
 
-manage backlogged, queued, publishing and failed messages with the web ui
+manage queued, dequeued, publishing and failed messages with the web ui
 
 <img width="1257" alt="Screenshot 2024-05-20 at 8 47 57 pm" src="https://github.com/fast-programmer/outboxer/assets/394074/0446bc7e-9d5f-4fe1-b210-ff394bdacdd6">
 

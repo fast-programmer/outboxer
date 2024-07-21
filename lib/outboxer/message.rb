@@ -4,8 +4,8 @@ module Outboxer
 
     Status = Models::Message::Status
 
-    def backlog(messageable: nil,
-                messageable_type: nil, messageable_id: nil)
+    def queue(messageable: nil,
+              messageable_type: nil, messageable_id: nil)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           current_time = Time.now.utc
@@ -13,7 +13,7 @@ module Outboxer
           message = Models::Message.create!(
             messageable_id: messageable&.id || messageable_id,
             messageable_type: messageable&.class&.name || messageable_type,
-            status: Models::Message::Status::BACKLOGGED,
+            status: Models::Message::Status::QUEUED,
             created_at: current_time,
             updated_at: current_time)
 
@@ -146,7 +146,7 @@ module Outboxer
           message = Models::Message.lock.find_by!(id: id)
 
           message.update!(
-            status: Models::Message::Status::BACKLOGGED,
+            status: Models::Message::Status::QUEUED,
             updated_at: Time.now.utc)
 
           { id: id }
@@ -214,7 +214,7 @@ module Outboxer
       end
       logger.info "Initialized #{threads} worker threads"
 
-      logger.info "Queuing up to #{queue} messages every #{poll}s"
+      logger.info "Dequeuing up to #{queue} messages every #{poll}s"
       while @publishing
         begin
           messages = []
@@ -225,8 +225,8 @@ module Outboxer
 
           logger.debug "Connection pool: #{ActiveRecord::Base.connection_pool.stat}"
 
-          messages = (queue_available > 0) ? Messages.queue(limit: queue_available) : []
-          logger.debug "Updated #{messages.length} messages from backlogged to queued"
+          messages = (queue_available > 0) ? Messages.dequeue(limit: queue_available) : []
+          logger.debug "Updated #{messages.length} messages from queued to dequeued"
 
           messages.each do |message|
             logger.info "Queuing message #{message[:id]} for " \
@@ -258,7 +258,7 @@ module Outboxer
           @publishing = false
         end
       end
-      logger.info "Stopped queueing messages"
+      logger.info "Stopped dequeuing messages"
 
       logger.info "Shutting down #{threads} worker threads"
       ruby_threads.length.times { ruby_queue.push(nil) }

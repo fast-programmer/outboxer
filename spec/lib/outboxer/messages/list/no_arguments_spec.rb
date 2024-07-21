@@ -4,7 +4,7 @@ module Outboxer
   RSpec.describe Messages do
     describe '.list' do
       let!(:message_1) do
-        create(:outboxer_message, :backlogged, messageable_type: 'Event', messageable_id: '1')
+        create(:outboxer_message, :queued, messageable_type: 'Event', messageable_id: '1')
       end
 
       let!(:message_2) do
@@ -12,11 +12,11 @@ module Outboxer
       end
 
       let!(:message_3) do
-        create(:outboxer_message, :queued, messageable_type: 'Event', messageable_id: '3')
+        create(:outboxer_message, :dequeued, messageable_type: 'Event', messageable_id: '3')
       end
 
       let!(:message_4) do
-        create(:outboxer_message, :backlogged, messageable_type: 'Event', messageable_id: '4')
+        create(:outboxer_message, :queued, messageable_type: 'Event', messageable_id: '4')
       end
 
       let!(:message_5) do

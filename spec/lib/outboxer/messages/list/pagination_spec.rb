@@ -3,7 +3,7 @@ require 'spec_helper'
 module Outboxer
   RSpec.describe Messages do
     before do
-      create_list(:outboxer_message, 101, status: :backlogged,
+      create_list(:outboxer_message, 101, status: :queued,
         messageable_type: 'Event', messageable_id: 1)
     end
 

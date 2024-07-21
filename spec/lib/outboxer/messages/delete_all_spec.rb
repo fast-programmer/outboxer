@@ -3,8 +3,8 @@ require 'spec_helper'
 module Outboxer
   RSpec.describe Messages do
     describe '.republish_all' do
-      let!(:message_1) { create(:outboxer_message, :backlogged) }
-      let!(:message_2) { create(:outboxer_message, :queued) }
+      let!(:message_1) { create(:outboxer_message, :queued) }
+      let!(:message_2) { create(:outboxer_message, :dequeued) }
 
       let!(:message_3) { create(:outboxer_message, :failed) }
       let!(:exception_1) { create(:outboxer_exception, message: message_3) }

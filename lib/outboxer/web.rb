@@ -58,6 +58,20 @@ module Outboxer
         page: denormalised_params[:page],
         per_page: denormalised_params[:per_page]))
 
+      messages_dequeued = Messages.list(
+        status: :dequeued,
+        sort: :updated_at,
+        order: :asc,
+        page: 1,
+        per_page: denormalised_params[:per_page])
+
+      messages_dequeued_link = outboxer_path('/messages' + normalise_params(
+        status: :dequeued,
+        sort: denormalised_params[:sort],
+        order: denormalised_params[:order],
+        page: denormalised_params[:page],
+        per_page: denormalised_params[:per_page]))
+
       messages_queued = Messages.list(
         status: :queued,
         sort: :updated_at,
@@ -72,29 +86,15 @@ module Outboxer
         page: denormalised_params[:page],
         per_page: denormalised_params[:per_page]))
 
-      messages_backlogged = Messages.list(
-        status: :backlogged,
-        sort: :updated_at,
-        order: :asc,
-        page: 1,
-        per_page: denormalised_params[:per_page])
-
-      messages_backlogged_link = outboxer_path('/messages' + normalise_params(
-        status: :backlogged,
-        sort: denormalised_params[:sort],
-        order: denormalised_params[:order],
-        page: denormalised_params[:page],
-        per_page: denormalised_params[:per_page]))
-
       erb :home, locals: {
         denormalised_params: denormalised_params,
         message_status_counts: message_status_counts,
         messages_publishing: messages_publishing,
         messages_publishing_link: messages_publishing_link,
+        messages_dequeued: messages_dequeued,
+        messages_dequeued_link: messages_dequeued_link,
         messages_queued: messages_queued,
-        messages_queued_link: messages_queued_link,
-        messages_backlogged: messages_backlogged,
-        messages_backlogged_link: messages_backlogged_link
+        messages_queued_link: messages_queued_link
       }
     end
 
@@ -297,7 +297,7 @@ module Outboxer
         message_text = result[:republished_count] == 1 ? 'message' : 'messages'
 
         if result[:republished_count] > 0
-          flash[:primary] = "Backlogged #{result[:republished_count]} #{message_text}"
+          flash[:primary] = "Queued #{result[:republished_count]} #{message_text}"
         end
 
         unless result[:not_republished_ids].empty?
@@ -346,7 +346,7 @@ module Outboxer
       result = Messages.republish_all(status: denormalised_params[:status])
 
       message_text = result[:republished_count] == 1 ? 'message' : 'messages'
-      flash[:primary] = "#{result[:republished_count]} #{message_text} have been backlogged"
+      flash[:primary] = "#{result[:republished_count]} #{message_text} have been queued"
 
       redirect to("/messages#{normalised_params}")
     end
@@ -414,7 +414,7 @@ module Outboxer
     post '/message/:id/republish' do
       Message.republish(id: params[:id])
 
-      flash[:primary] = "Message #{params[:id]} was backlogged"
+      flash[:primary] = "Message #{params[:id]} was queued"
 
       redirect to('/messages')
     end
