@@ -2,7 +2,7 @@ require 'spec_helper'
 
 module Outboxer
   RSpec.describe Messages do
-    describe '.delete_selected' do
+    describe '.delete_by_ids' do
       let!(:message_1) { create(:outboxer_message, :queued) }
 
       let!(:message_2) { create(:outboxer_message, :dequeued) }
@@ -15,7 +15,7 @@ module Outboxer
 
       describe 'when ids exist' do
         let!(:ids) { [message_1.id, message_2.id, message_3.id] }
-        let!(:result) { Messages.delete_selected(ids: ids) }
+        let!(:result) { Messages.delete_by_ids(ids: ids) }
 
         it 'deletes selected messages' do
           expect(Models::Frame.count).to eq(0)
@@ -30,7 +30,7 @@ module Outboxer
 
       describe 'when an id does not exist' do
         let(:non_existent_id) { 5 }
-        let(:result) { Messages.delete_selected(ids: [message_1.id, non_existent_id]) }
+        let(:result) { Messages.delete_by_ids(ids: [message_1.id, non_existent_id]) }
 
         it 'does not delete selected messages' do
           expect(Models::Frame.count).to eq(1)
