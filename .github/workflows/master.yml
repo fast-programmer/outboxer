@@ -24,7 +24,7 @@ jobs:
 
   postgres:
     runs-on: ubuntu-latest
-    name: run rspec with postgresql
+    name: run rspec (postgresql)
     strategy:
       matrix:
         ruby:
@@ -60,7 +60,7 @@ jobs:
 
   mysql:
     runs-on: ubuntu-latest
-    name: run rspec with mysql
+    name: run rspec (mysql)
     strategy:
       matrix:
         ruby:
