@@ -16,10 +16,10 @@ module Outboxer
       describe 'when ids exist' do
         let!(:result) { Messages.republish_selected(ids: ids) }
 
-        it 'sets message status to backlogged' do
+        it 'sets message status to queued' do
           expect(
             Models::Message
-              .where(status: Models::Message::Status::BACKLOGGED)
+              .where(status: Models::Message::Status::QUEUED)
               .order(id: :asc)
               .pluck(:id)
           ).to eq(ids)

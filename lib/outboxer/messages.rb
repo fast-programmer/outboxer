@@ -17,11 +17,11 @@ module Outboxer
       end
     end
 
-    def queue(limit: 1)
+    def dequeue(limit: 1)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           messages = Models::Message
-            .where(status: Models::Message::Status::BACKLOGGED)
+            .where(status: Models::Message::Status::QUEUED)
             .order(updated_at: :asc)
             .lock('FOR UPDATE SKIP LOCKED')
             .limit(limit)
@@ -30,7 +30,7 @@ module Outboxer
           if messages.present?
             Models::Message
               .where(id: messages.map { |message| message[:id] })
-              .update_all(updated_at: Time.current, status: Models::Message::Status::QUEUED)
+              .update_all(updated_at: Time.current, status: Models::Message::Status::DEQUEUED)
           end
 
           messages.map do |message|
@@ -44,7 +44,7 @@ module Outboxer
       end
     end
 
-    LIST_STATUS_OPTIONS = [nil, :backlogged, :queued, :publishing, :failed]
+    LIST_STATUS_OPTIONS = [nil, :queued, :dequeued, :publishing, :failed]
     LIST_STATUS_DEFAULT = nil
 
     LIST_SORT_OPTIONS = [:id, :status, :messageable, :created_at, :updated_at]
@@ -113,7 +113,7 @@ module Outboxer
       }
     end
 
-    REPUBLISH_ALL_STATUSES = [:queued, :publishing, :failed]
+    REPUBLISH_ALL_STATUSES = [:dequeued, :publishing, :failed]
 
     def can_republish_all?(status:)
       REPUBLISH_ALL_STATUSES.include?(status&.to_sym)
@@ -143,7 +143,7 @@ module Outboxer
 
             republished_count_batch = Models::Message
               .where(id: locked_ids)
-              .update_all(status: Models::Message::Status::BACKLOGGED, updated_at: Time.now.utc)
+              .update_all(status: Models::Message::Status::QUEUED, updated_at: Time.now.utc)
 
             republished_count += republished_count_batch
           end
@@ -166,7 +166,7 @@ module Outboxer
 
           republished_count = Models::Message
             .where(id: locked_ids)
-            .update_all(status: Models::Message::Status::BACKLOGGED, updated_at: Time.now.utc)
+            .update_all(status: Models::Message::Status::QUEUED, updated_at: Time.now.utc)
 
           { republished_count: republished_count, not_republished_ids: ids - locked_ids }
         end

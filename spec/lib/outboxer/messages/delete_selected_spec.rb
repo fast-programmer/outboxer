@@ -3,15 +3,15 @@ require 'spec_helper'
 module Outboxer
   RSpec.describe Messages do
     describe '.delete_selected' do
-      let!(:message_1) { create(:outboxer_message, :backlogged) }
+      let!(:message_1) { create(:outboxer_message, :queued) }
 
-      let!(:message_2) { create(:outboxer_message, :queued) }
+      let!(:message_2) { create(:outboxer_message, :dequeued) }
 
       let!(:message_3) { create(:outboxer_message, :failed) }
       let!(:exception_3) { create(:outboxer_exception, message: message_3) }
       let!(:frame_3) { create(:outboxer_frame, exception: exception_3) }
 
-      let!(:message_4) { create(:outboxer_message, :backlogged) }
+      let!(:message_4) { create(:outboxer_message, :queued) }
 
       describe 'when ids exist' do
         let!(:ids) { [message_1.id, message_2.id, message_3.id] }

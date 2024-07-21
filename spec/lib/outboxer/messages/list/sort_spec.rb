@@ -3,22 +3,22 @@ require 'spec_helper'
 module Outboxer
   RSpec.describe Messages do
     # before do
-    #   create(:outboxer_message, id: 4, status: :backlogged,
+    #   create(:outboxer_message, id: 4, status: :queued,
     #     messageable_type: 'Event', messageable_id: 1,
     #     created_at: 5.minutes.ago, updated_at: 4.minutes.ago)
     #   create(:outboxer_message, id: 3, status: :failed,
     #     messageable_type: 'Event', messageable_id: 2,
     #     created_at: 4.minutes.ago, updated_at: 3.minutes.ago)
-    #   create(:outboxer_message, id: 2, status: :queued,
+    #   create(:outboxer_message, id: 2, status: :dequeued,
     #     messageable_type: 'Event', messageable_id: 3,
     #     created_at: 3.minutes.ago, updated_at: 2.minutes.ago)
-    #   create(:outboxer_message, id: 1, status: :backlogged,
+    #   create(:outboxer_message, id: 1, status: :queued,
     #     messageable_type: 'Event', messageable_id: 4,
     #     created_at: 2.minutes.ago, updated_at: 1.minute.ago)
     # end
 
     let!(:message_1) do
-      create(:outboxer_message, :backlogged, messageable_type: 'Event', messageable_id: '1')
+      create(:outboxer_message, :queued, messageable_type: 'Event', messageable_id: '1')
     end
 
     let!(:message_2) do
@@ -26,11 +26,11 @@ module Outboxer
     end
 
     let!(:message_3) do
-      create(:outboxer_message, :queued, messageable_type: 'Event', messageable_id: '3')
+      create(:outboxer_message, :dequeued, messageable_type: 'Event', messageable_id: '3')
     end
 
     let!(:message_4) do
-      create(:outboxer_message, :backlogged, messageable_type: 'Event', messageable_id: '4')
+      create(:outboxer_message, :queued, messageable_type: 'Event', messageable_id: '4')
     end
 
     let!(:message_5) do
@@ -61,7 +61,7 @@ module Outboxer
             Messages
               .list(sort: :status, order: :asc)[:messages]
               .map { |message| message[:status] }
-          ).to eq([:backlogged, :backlogged, :failed, :publishing, :queued])
+          ).to eq([:dequeued, :failed, :publishing, :queued, :queued])
         end
 
         it 'sorts messages by status in descending order' do
@@ -69,7 +69,7 @@ module Outboxer
             Messages
               .list(sort: :status, order: :desc)[:messages]
               .map { |message| message[:status] }
-          ).to eq([:queued, :publishing, :failed, :backlogged, :backlogged])
+          ).to eq([:queued, :queued, :publishing, :failed, :dequeued])
         end
       end
 

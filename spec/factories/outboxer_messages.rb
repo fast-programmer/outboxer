@@ -5,12 +5,12 @@ FactoryBot.define do
     status { Outboxer::Models::Message::Status::QUEUED }
     created_at { 1.day.ago }
 
-    trait :backlogged do
-      status { Outboxer::Models::Message::Status::BACKLOGGED }
-    end
-
     trait :queued do
       status { Outboxer::Models::Message::Status::QUEUED }
+    end
+
+    trait :dequeued do
+      status { Outboxer::Models::Message::Status::DEQUEUED }
     end
 
     trait :publishing do

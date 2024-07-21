@@ -3,7 +3,7 @@ require 'spec_helper'
 module Outboxer
   RSpec.describe Messages do
     let!(:message_1) do
-      create(:outboxer_message, :backlogged, messageable_type: 'Event', messageable_id: '1')
+      create(:outboxer_message, :queued, messageable_type: 'Event', messageable_id: '1')
     end
 
     let!(:message_2) do
@@ -11,11 +11,11 @@ module Outboxer
     end
 
     let!(:message_3) do
-      create(:outboxer_message, :queued, messageable_type: 'Event', messageable_id: '3')
+      create(:outboxer_message, :dequeued, messageable_type: 'Event', messageable_id: '3')
     end
 
     let!(:message_4) do
-      create(:outboxer_message, :backlogged, messageable_type: 'Event', messageable_id: '4')
+      create(:outboxer_message, :queued, messageable_type: 'Event', messageable_id: '4')
     end
 
     let!(:message_5) do
@@ -32,9 +32,9 @@ module Outboxer
         end
       end
 
-      context 'with backlogged status' do
-        it 'returns backlogged messages' do
-          expect(Messages.list(status: :backlogged)).to eq({
+      context 'with queued status' do
+        it 'returns queued messages' do
+          expect(Messages.list(status: :queued)).to eq({
             current_page: 1, limit_value: 100, total_count: 2, total_pages: 1,
             messages: [
               {
@@ -58,9 +58,9 @@ module Outboxer
         end
       end
 
-      context 'with queued status' do
-        it 'returns queued messages' do
-          expect(Messages.list(status: :queued)).to eq({
+      context 'with dequeued status' do
+        it 'returns dequeued messages' do
+          expect(Messages.list(status: :dequeued)).to eq({
             current_page: 1, limit_value: 100, total_count: 1, total_pages: 1,
             messages: [
               {

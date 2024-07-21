@@ -55,9 +55,48 @@
                             <% end %>
                         <% end %>
                     </tbody>
+                    <!-- Dequeued Section -->
+                    <tbody>
+                        <tr class="table-secondary" data-bs-toggle="collapse" data-bs-target="#dequeuedSection" aria-expanded="true" aria-controls="dequeuedSection">
+                            <th colspan="5">
+                                <button class="btn btn-link p-0 text-decoration-none text-dark fw-bold" type="button">
+                                    Dequeued (<%= message_status_counts[:dequeued] %>)
+                                </button>
+                            </th>
+                        </tr>
+                    </tbody>
+                    <tbody id="dequeuedSection" class="table-group-divider">
+                        <% if messages_dequeued[:messages].empty? %>
+                            <tr>
+                                <td colspan="5" class="text-center fw-bold">No messages are currently dequeued.</td>
+                            </tr>
+                        <% else %>
+                            <% messages_dequeued[:messages].each_with_index do |message, index| %>
+                                <tr>
+                                    <td><%= messages_dequeued[:messages].count + index + 1 %></td>
+                                    <td>
+                                        <a href="<%= outboxer_path("/message/#{message[:id]}") %>" class="custom-link">
+                                            <%= message[:id] %>
+                                        </a>
+                                    </td>
+                                    <td><%= message[:messageable_type] %>::<%= message[:messageable_id] %></td>
+                                    <td><%= message[:updated_at] %></td>
+                                </tr>
+                            <% end %>
+                            <% if messages_dequeued[:total_count] > messages_dequeued[:messages].count %>
+                                <tr>
+                                    <td colspan="5" class="text-center">
+                                        <a href="<%= messages_dequeued_link %>">
+                                            and <%= messages_dequeued[:total_count] - messages_dequeued[:messages].count %> more messages...
+                                        </a>
+                                    </td>
+                                </tr>
+                            <% end %>
+                        <% end %>
+                    </tbody>
                     <!-- Queued Section -->
                     <tbody>
-                        <tr class="table-secondary" data-bs-toggle="collapse" data-bs-target="#queuedSection" aria-expanded="true" aria-controls="queuedSection">
+                        <tr class="table-warning" data-bs-toggle="collapse" data-bs-target="#queuedSection" aria-expanded="true" aria-controls="queuedSection">
                             <th colspan="5">
                                 <button class="btn btn-link p-0 text-decoration-none text-dark fw-bold" type="button">
                                     Queued (<%= message_status_counts[:queued] %>)
@@ -73,45 +112,6 @@
                         <% else %>
                             <% messages_queued[:messages].each_with_index do |message, index| %>
                                 <tr>
-                                    <td><%= messages_queued[:messages].count + index + 1 %></td>
-                                    <td>
-                                        <a href="<%= outboxer_path("/message/#{message[:id]}") %>" class="custom-link">
-                                            <%= message[:id] %>
-                                        </a>
-                                    </td>
-                                    <td><%= message[:messageable_type] %>::<%= message[:messageable_id] %></td>
-                                    <td><%= message[:updated_at] %></td>
-                                </tr>
-                            <% end %>
-                            <% if messages_queued[:total_count] > messages_queued[:messages].count %>
-                                <tr>
-                                    <td colspan="5" class="text-center">
-                                        <a href="<%= messages_queued_link %>">
-                                            and <%= messages_queued[:total_count] - messages_queued[:messages].count %> more messages...
-                                        </a>
-                                    </td>
-                                </tr>
-                            <% end %>
-                        <% end %>
-                    </tbody>
-                    <!-- Backlogged Section -->
-                    <tbody>
-                        <tr class="table-warning" data-bs-toggle="collapse" data-bs-target="#backloggedSection" aria-expanded="true" aria-controls="backloggedSection">
-                            <th colspan="5">
-                                <button class="btn btn-link p-0 text-decoration-none text-dark fw-bold" type="button">
-                                    Backlogged (<%= message_status_counts[:backlogged] %>)
-                                </button>
-                            </th>
-                        </tr>
-                    </tbody>
-                    <tbody id="backloggedSection" class="table-group-divider">
-                        <% if messages_backlogged[:messages].empty? %>
-                            <tr>
-                                <td colspan="5" class="text-center fw-bold">No messages are currently backlogged.</td>
-                            </tr>
-                        <% else %>
-                            <% messages_backlogged[:messages].each_with_index do |message, index| %>
-                                <tr>
                                     <td><%= messages_publishing[:messages].count + messages_queued[:messages].count + index + 1 %></td>
                                     <td>
                                         <a href="<%= outboxer_path("/message/#{message[:id]}") %>" class="custom-link">
@@ -123,11 +123,11 @@
                                 </tr>
                             <% end %>
                         <% end %>
-                        <% if messages_backlogged[:total_count] > messages_backlogged[:messages].count %>
+                        <% if messages_queued[:total_count] > messages_queued[:messages].count %>
                             <tr>
                                 <td colspan="5" class="text-center">
-                                    <a href="<%= messages_backlogged_link %>">
-                                        and <%= messages_backlogged[:total_count] - messages_backlogged[:messages].count %> more messages...
+                                    <a href="<%= messages_queued_link %>">
+                                        and <%= messages_queued[:total_count] - messages_queued[:messages].count %> more messages...
                                     </a>
                                 </td>
                             </tr>

@@ -17,27 +17,27 @@ module Outboxer
         end
       end
 
-      context 'when backlogged messaged' do
-        let!(:backlogged_message) { create(:outboxer_message, :backlogged) }
+      context 'when queued messaged' do
+        let!(:queued_message) { create(:outboxer_message, :queued) }
 
         it 'raises invalid transition error' do
           expect do
-            Message.published(id: backlogged_message.id)
+            Message.published(id: queued_message.id)
           end.to raise_error(
             ArgumentError,
-            "cannot transition outboxer message #{backlogged_message.id} " +
-              "from backlogged to (deleted)")
+            "cannot transition outboxer message #{queued_message.id} " +
+              "from queued to (deleted)")
         end
 
-        it 'does not delete backlogged message' do
+        it 'does not delete queued message' do
           begin
-            Message.published(id: backlogged_message.id)
+            Message.published(id: queued_message.id)
           rescue ArgumentError
             # ignore
           end
 
           expect(Models::Message.count).to eq(1)
-          expect(Models::Message.first).to eq(backlogged_message)
+          expect(Models::Message.first).to eq(queued_message)
         end
       end
     end
