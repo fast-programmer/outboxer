@@ -1,9 +1,9 @@
-require 'spec_helper'
+require "spec_helper"
 
 module Outboxer
   RSpec.describe Messages do
-    describe '.dequeue' do
-      context 'when there are 2 queued messages' do
+    describe ".dequeue" do
+      context "when there are 2 queued messages" do
         let!(:queued_messages) do
           [
             create(:outboxer_message, :queued, updated_at: 2.minutes.ago),
@@ -11,17 +11,17 @@ module Outboxer
           ]
         end
 
-        context 'when limit is 1' do
+        context "when limit is 1" do
           let!(:dequeued_messages) { Messages.dequeue(limit: 1) }
 
-          it 'returns first dequeued message' do
+          it "returns first dequeued message" do
             expect(dequeued_messages.count).to eq(1)
 
             dequeued_message = dequeued_messages.first
             expect(dequeued_message[:id]).to eq(queued_messages[0].id)
           end
 
-          it 'keeps last queued message' do
+          it "keeps last queued message" do
             remaining_messages = Models::Message.where(status: Models::Message::Status::QUEUED)
 
             expect(remaining_messages.count).to eq(1)

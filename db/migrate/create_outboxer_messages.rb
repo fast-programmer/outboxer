@@ -10,7 +10,7 @@ class CreateOutboxerMessages < ActiveRecord::Migration[6.1]
     end
 
     add_index :outboxer_messages, :status
-    add_index :outboxer_messages, [:status, :updated_at]
+    add_index :outboxer_messages, %i[status updated_at]
   end
 
   def down

@@ -1,6 +1,6 @@
 FactoryBot.define do
-  factory :outboxer_frame, class: 'Outboxer::Models::Frame' do
+  factory :outboxer_frame, class: "Outboxer::Models::Frame" do
     index { 1 }
-    text { 'app/controllers/my_controller.rb:23:in `index`' }
+    text { "app/controllers/my_controller.rb:23:in `index`" }
   end
 end

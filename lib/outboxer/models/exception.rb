@@ -6,8 +6,8 @@ module Outboxer
       belongs_to :message, class_name: "Outboxer::Models::Message"
 
       has_many :frames, -> { order(index: :asc) },
-        class_name: "Outboxer::Models::Frame",
-        foreign_key: "exception_id"
+               class_name: "Outboxer::Models::Frame",
+               foreign_key: "exception_id"
 
       validates :message_id, presence: true
     end
