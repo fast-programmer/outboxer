@@ -291,8 +291,8 @@ module Outboxer
         per_page: denormalised_params[:per_page])
 
       result = case params[:action]
-      when 'requeue_selected'
-        result = Messages.requeue_selected(ids: ids)
+      when 'requeue_by_ids'
+        result = Messages.requeue_by_ids(ids: ids)
 
         message_text = result[:requeued_count] == 1 ? 'message' : 'messages'
 
@@ -306,8 +306,8 @@ module Outboxer
         end
 
         result
-      when 'delete_selected'
-        result = Messages.delete_selected(ids: ids)
+      when 'delete_by_ids'
+        result = Messages.delete_by_ids(ids: ids)
 
         message_text = result[:deleted_count] == 1 ? 'message' : 'messages'
 

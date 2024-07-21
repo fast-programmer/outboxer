@@ -267,7 +267,7 @@ module Outboxer
       { requeued_count: requeued_count }
     end
 
-    def requeue_selected(ids:)
+    def requeue_by_ids(ids:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           locked_ids = Models::Message
@@ -319,7 +319,7 @@ module Outboxer
       { deleted_count: deleted_count }
     end
 
-    def delete_selected(ids:)
+    def delete_by_ids(ids:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           locked_ids = Models::Message
