@@ -2,7 +2,7 @@ require 'spec_helper'
 
 module Outboxer
   RSpec.describe Messages do
-    describe '.republish_all' do
+    describe '.delete_all' do
       let!(:message_1) { create(:outboxer_message, :queued) }
       let!(:message_2) { create(:outboxer_message, :dequeued) }
 
