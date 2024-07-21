@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 module Outboxer
-  RSpec.describe Message do
+  RSpec.describe Messages do
     describe '.publish' do
       let(:queue) { 1 }
       let(:threads) { 1 }
@@ -17,7 +17,7 @@ module Outboxer
 
       context 'when message published successfully' do
         it 'deletes existing message' do
-          Message.publish(
+          Messages.publish(
             queue: queue,
             threads: threads,
             poll: poll,
@@ -29,7 +29,7 @@ module Outboxer
             expect(message[:messageable_id]).to eq(queued_message.messageable_id)
             expect(message[:status]).to eq(Models::Message::Status::PUBLISHING)
 
-            Message.stop_publishing
+            Messages.stop_publishing
           end
 
           expect(Models::Message.count).to eq(0)
@@ -41,14 +41,14 @@ module Outboxer
           let(:standard_error) { StandardError.new('some error') }
 
           before do
-            Message.publish(
+            Messages.publish(
               queue: queue,
               threads: threads,
               poll: poll,
               logger: logger,
               kernel: kernel
             ) do |message|
-              Message.stop_publishing
+              Messages.stop_publishing
 
               raise standard_error
             end
@@ -67,7 +67,7 @@ module Outboxer
             expect(queued_message.exceptions[0].frames.count).to eq(4)
             expect(queued_message.exceptions[0].frames[0].index).to eq(0)
             expect(queued_message.exceptions[0].frames[0].text).to include(
-              "outboxer/message/publish_spec.rb:53:in `block (6 levels) in <module:Outboxer>'")
+              "outboxer/messages/publish_spec.rb:53:in `block (6 levels) in <module:Outboxer>'")
           end
 
           it 'logs errors' do
@@ -86,14 +86,14 @@ module Outboxer
           let(:no_memory_error) { NoMemoryError.new }
 
           before do
-            Message.publish(
+            Messages.publish(
               queue: queue,
               threads: threads,
               poll: poll,
               logger: logger,
               kernel: kernel
             ) do |dequeued_message|
-              Message.stop_publishing
+              Messages.stop_publishing
 
               raise no_memory_error
             end
@@ -112,7 +112,7 @@ module Outboxer
             expect(queued_message.exceptions[0].frames.count).to eq(4)
             expect(queued_message.exceptions[0].frames[0].index).to eq(0)
             expect(queued_message.exceptions[0].frames[0].text).to match(
-              /outboxer\/message\/publish_spec.rb:\d+:in `block \(6 levels\) in <module:Outboxer>'/)
+              /outboxer\/messages\/publish_spec.rb:\d+:in `block \(6 levels\) in <module:Outboxer>'/)
           end
 
           it 'logs errors' do
@@ -138,7 +138,7 @@ module Outboxer
               when 1
                 raise StandardError, 'queue error'
               else
-                Message.stop_publishing
+                Messages.stop_publishing
 
                 []
               end
@@ -146,7 +146,7 @@ module Outboxer
 
             expect(logger).to receive(:error).with(include('StandardError: queue error')).once
 
-            Message.publish(
+            Messages.publish(
               queue: queue,
               threads: threads,
               poll: poll,
@@ -164,7 +164,7 @@ module Outboxer
               .with(include('NoMemoryError: failed to allocate memory'))
               .once
 
-            Message.publish(
+            Messages.publish(
               queue: queue,
               threads: threads,
               poll: poll,
