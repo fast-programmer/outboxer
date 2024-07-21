@@ -1,9 +1,9 @@
 #!/usr/bin/env ruby
 
-require 'bundler/setup'
+require "bundler/setup"
 
-require 'outboxer'
-require 'sidekiq'
+require "outboxer"
+require "sidekiq"
 
 def cpu_cores
   if RUBY_PLATFORM.include?("darwin")
@@ -16,20 +16,21 @@ end
 def fetch_process_stats(pid)
   cores = cpu_cores
   stats = `ps -p #{pid} -o rss=,pcpu=,etime=,vsz=`.strip
-  rss, cpu, elapsed, vsz = stats.split(" ")
+  rss, cpu, elapsed, vsz = stats.split
   rss_mb = rss.to_i / 1024
   vsz_mb = vsz.to_i / 1024
   cpu_per_core = cpu.to_f / cores
-  { pid: pid, rss_mb: rss_mb, cpu: cpu, cpu_per_core: cpu_per_core.round(2), elapsed: elapsed, vsz_mb: vsz_mb }
+  { pid: pid, rss_mb: rss_mb, cpu: cpu, cpu_per_core: cpu_per_core.round(2), elapsed: elapsed,
+    vsz_mb: vsz_mb }
 end
 
 def outboxer_message_publisher_pids
   `pgrep -f bin/outboxer_message_publisher$`.strip.split("\n")
 end
 
-environment = ENV['RAILS_ENV'] || 'development'
+environment = ENV["RAILS_ENV"] || "development"
 config = Outboxer::Database.config(environment: environment)
-Outboxer::Database.connect(config: config.merge('pool' => 1))
+Outboxer::Database.connect(config: config.merge("pool" => 1))
 
 Signal.trap("SIGINT") do
   puts "\nExiting gracefully..."

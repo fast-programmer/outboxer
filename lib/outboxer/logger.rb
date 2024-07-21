@@ -1,12 +1,12 @@
-require 'logger'
+require "logger"
 
 module Outboxer
   class Logger < ::Logger
     def initialize(*args, **kwargs)
-      super(*args, **kwargs)
+      super
 
-      self.formatter = proc do |severity, datetime, progname, msg|
-        formatted_time = datetime.strftime('%Y-%m-%dT%H:%M:%S.%LZ')
+      self.formatter = proc do |severity, datetime, _progname, msg|
+        formatted_time = datetime.strftime("%Y-%m-%dT%H:%M:%S.%LZ")
         pid = Process.pid
         tid = Thread.current.object_id.to_s(36)
         level = severity

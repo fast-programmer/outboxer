@@ -6,7 +6,7 @@ class CreateOutboxerFrames < ActiveRecord::Migration[6.1]
       t.integer :index, null: false
       t.text :text, null: false
 
-      t.index [:exception_id, :index], unique: true
+      t.index %i[exception_id index], unique: true
     end
   end
 

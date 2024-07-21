@@ -1,8 +1,8 @@
-require 'spec_helper'
+require "spec_helper"
 
 module Outboxer
   RSpec.describe Messages do
-    describe '.publish' do
+    describe ".publish" do
       let(:max_queue_size) { 1 }
       let(:num_worker_threads) { 1 }
       let(:poll_interval) { 1 }
@@ -15,15 +15,14 @@ module Outboxer
 
       let!(:queued_message) { create(:outboxer_message, :queued) }
 
-      context 'when message published successfully' do
-        it 'deletes existing message' do
+      context "when message published successfully" do
+        it "deletes existing message" do
           Messages.publish(
             max_queue_size: max_queue_size,
             num_worker_threads: num_worker_threads,
             poll_interval: poll_interval,
             logger: logger,
-            kernel: kernel
-          ) do |message|
+            kernel: kernel) do |message|
             expect(message[:id]).to eq(queued_message.id)
             expect(message[:messageable_type]).to eq(queued_message.messageable_type)
             expect(message[:messageable_id]).to eq(queued_message.messageable_id)
@@ -36,9 +35,9 @@ module Outboxer
         end
       end
 
-      context 'when an error is raised in the block' do
-        context 'when a standard error is raised' do
-          let(:standard_error) { StandardError.new('some error') }
+      context "when an error is raised in the block" do
+        context "when a standard error is raised" do
+          let(:standard_error) { StandardError.new("some error") }
 
           before do
             Messages.publish(
@@ -46,15 +45,14 @@ module Outboxer
               num_worker_threads: num_worker_threads,
               poll_interval: poll_interval,
               logger: logger,
-              kernel: kernel
-            ) do |message|
+              kernel: kernel) do |_message|
               Messages.stop_publishing
 
               raise standard_error
             end
           end
 
-          it 'sets message to failed' do
+          it "sets message to failed" do
             queued_message.reload
 
             expect(queued_message.status).to eq(Models::Message::Status::FAILED)
@@ -66,23 +64,21 @@ module Outboxer
 
             expect(queued_message.exceptions[0].frames.count).to eq(4)
             expect(queued_message.exceptions[0].frames[0].index).to eq(0)
-            expect(queued_message.exceptions[0].frames[0].text).to include(
-              "outboxer/messages/publish_spec.rb:53:in `block (6 levels) in <module:Outboxer>'")
+            expect(queued_message.exceptions[0].frames[0].text).to match(
+              %r{outboxer/messages/publish_spec\.rb:\d+:in `block \(6 levels\) in <module:Outboxer>'})
           end
 
-          it 'logs errors' do
+          it "logs errors" do
             expect(logger).to have_received(:error).with(
-              a_string_matching(/^StandardError: some error/)
-            ).once
+              a_string_matching(/^StandardError: some error/)).once
 
             expect(logger).to have_received(:error).with(
               a_string_matching("Failed to publish message #{queued_message.id} for " \
-                "#{queued_message[:messageable_type]}::#{queued_message[:messageable_id]}")
-            ).once
+                                "#{queued_message[:messageable_type]}::#{queued_message[:messageable_id]}")).once
           end
         end
 
-        context 'when a critical error is raised' do
+        context "when a critical error is raised" do
           let(:no_memory_error) { NoMemoryError.new }
 
           before do
@@ -91,15 +87,14 @@ module Outboxer
               num_worker_threads: num_worker_threads,
               poll_interval: poll_interval,
               logger: logger,
-              kernel: kernel
-            ) do |dequeued_message|
+              kernel: kernel) do |_dequeued_message|
               Messages.stop_publishing
 
               raise no_memory_error
             end
           end
 
-          it 'sets message to failed' do
+          it "sets message to failed" do
             queued_message.reload
 
             expect(queued_message.status).to eq(Models::Message::Status::FAILED)
@@ -112,23 +107,21 @@ module Outboxer
             expect(queued_message.exceptions[0].frames.count).to eq(4)
             expect(queued_message.exceptions[0].frames[0].index).to eq(0)
             expect(queued_message.exceptions[0].frames[0].text).to match(
-              /outboxer\/messages\/publish_spec.rb:\d+:in `block \(6 levels\) in <module:Outboxer>'/)
+              %r{outboxer/messages/publish_spec.rb:\d+:in `block \(6 levels\) in <module:Outboxer>'})
           end
 
-          it 'logs errors' do
+          it "logs errors" do
             expect(logger).to have_received(:error).with(
               a_string_matching("Failed to publish message #{queued_message.id} for " \
-                "#{queued_message[:messageable_type]}::#{queued_message[:messageable_id]}")
-            ).once
+                                "#{queued_message[:messageable_type]}::#{queued_message[:messageable_id]}")).once
 
             expect(logger).to have_received(:fatal).with(
-              a_string_matching("#{no_memory_error.class.to_s}: #{no_memory_error.message}")
-            ).once
+              a_string_matching("#{no_memory_error.class}: #{no_memory_error.message}")).once
           end
         end
 
-        context 'when Messages.dequeue raises a StandardError' do
-          it 'logs the error and continues processing' do
+        context "when Messages.dequeue raises a StandardError" do
+          it "logs the error and continues processing" do
             call_count = 0
 
             allow(Messages).to receive(:dequeue) do
@@ -136,7 +129,7 @@ module Outboxer
 
               case call_count
               when 1
-                raise StandardError, 'queue error'
+                raise StandardError, "queue error"
               else
                 Messages.stop_publishing
 
@@ -144,24 +137,24 @@ module Outboxer
               end
             end
 
-            expect(logger).to receive(:error).with(include('StandardError: queue error')).once
+            expect(logger).to receive(:error).with(include("StandardError: queue error")).once
 
             Messages.publish(
               max_queue_size: max_queue_size,
               num_worker_threads: num_worker_threads,
               poll_interval: poll_interval,
               logger: logger,
-              kernel: kernel
-            )
+              kernel: kernel)
           end
         end
 
-        context 'when Messages.dequeue raises an Exception' do
-          it 'logs the exception and shuts down' do
-            allow(Messages).to receive(:dequeue).and_raise(NoMemoryError, 'failed to allocate memory')
+        context "when Messages.dequeue raises an Exception" do
+          it "logs the exception and shuts down" do
+            allow(Messages).to receive(:dequeue).and_raise(NoMemoryError,
+                                                           "failed to allocate memory")
 
             expect(logger).to receive(:fatal)
-              .with(include('NoMemoryError: failed to allocate memory'))
+              .with(include("NoMemoryError: failed to allocate memory"))
               .once
 
             Messages.publish(

@@ -18,13 +18,13 @@ module Outboxer
       self.table_name = :outboxer_messages
 
       module Status
-        QUEUED = 'queued'
-        DEQUEUED = 'dequeued'
-        PUBLISHING = 'publishing'
-        FAILED = 'failed'
+        QUEUED = "queued".freeze
+        DEQUEUED = "dequeued".freeze
+        PUBLISHING = "publishing".freeze
+        FAILED = "failed".freeze
       end
 
-      STATUSES = [Status::QUEUED, Status::DEQUEUED, Status::PUBLISHING, Status::FAILED]
+      STATUSES = [Status::QUEUED, Status::DEQUEUED, Status::PUBLISHING, Status::FAILED].freeze
 
       scope :queued, -> { where(status: Status::QUEUED) }
       scope :dequeued, -> { where(status: Status::DEQUEUED) }
@@ -37,10 +37,10 @@ module Outboxer
       belongs_to :messageable, polymorphic: true
 
       has_many :exceptions,
-        -> { order(created_at: :asc) },
-        foreign_key: 'message_id',
-        class_name: "Outboxer::Models::Exception",
-        dependent: :destroy
+               -> { order(created_at: :asc) },
+               foreign_key: "message_id",
+               class_name: "Outboxer::Models::Exception",
+               dependent: :destroy
     end
   end
 end

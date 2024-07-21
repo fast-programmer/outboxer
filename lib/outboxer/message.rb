@@ -1,6 +1,6 @@
 module Outboxer
   module Message
-    extend self
+    module_function
 
     Status = Models::Message::Status
 
@@ -61,8 +61,8 @@ module Outboxer
 
           if message.status != Models::Message::Status::DEQUEUED
             raise ArgumentError,
-              "cannot transition outboxer message #{message.id} " \
-              "from #{message.status} to #{Models::Message::Status::PUBLISHING}"
+                  "cannot transition outboxer message #{message.id} " \
+                  "from #{message.status} to #{Models::Message::Status::PUBLISHING}"
           end
 
           message.update!(
@@ -86,8 +86,8 @@ module Outboxer
 
           if message.status != Models::Message::Status::PUBLISHING
             raise ArgumentError,
-              "cannot transition outboxer message #{message.id} " \
-              "from #{message.status} to (deleted)"
+                  "cannot transition outboxer message #{message.id} " \
+                  "from #{message.status} to (deleted)"
           end
 
           message.exceptions.each { |exception| exception.frames.each(&:delete) }
@@ -106,8 +106,8 @@ module Outboxer
 
           if message.status != Models::Message::Status::PUBLISHING
             raise ArgumentError,
-              "cannot transition outboxer message #{id} " \
-              "from #{message.status} to #{Models::Message::Status::FAILED}"
+                  "cannot transition outboxer message #{id} " \
+                  "from #{message.status} to #{Models::Message::Status::FAILED}"
           end
 
           message.update!(

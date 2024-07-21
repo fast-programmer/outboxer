@@ -8,7 +8,7 @@ Gem::Specification.new do |spec|
 
   spec.summary = "Transactional outbox implementation for event driven Ruby on Rails applications that use SQL"
   spec.homepage = "https://github.com/fast-programmer/outboxer"
-  spec.license       = "LGPL-3.0"
+  spec.license = "LGPL-3.0"
   spec.required_ruby_version = ">= 3.1.5"
 
   spec.metadata["homepage_uri"] = spec.homepage
@@ -19,11 +19,11 @@ Gem::Specification.new do |spec|
 
   spec_files = Dir.chdir(__dir__) do
     [
-      'db/migrate/**/*',
-      'generators/**/*',
-      'LICENCE.txt',
-      'lib/**/*',
-      'README.md'
+      "db/migrate/**/*",
+      "generators/**/*",
+      "LICENCE.txt",
+      "lib/**/*",
+      "README.md"
     ].flat_map { |path| Dir.glob(path) }
   end
 
@@ -35,8 +35,8 @@ Gem::Specification.new do |spec|
   spec.add_dependency "kaminari", "~> 1.0"
   spec.add_dependency "rack-flash3", "~> 1.0"
   spec.add_dependency "rackup", "~> 2.0"
-  spec.add_dependency "sinatra", "~> 4.0"
   spec.add_dependency "sidekiq", "~> 7.0"
+  spec.add_dependency "sinatra", "~> 4.0"
 
   spec.add_development_dependency "activerecord", "~> 7.0"
   spec.add_development_dependency "database_cleaner", "~> 2.0"

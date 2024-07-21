@@ -1,30 +1,30 @@
-require 'spec_helper'
+require "spec_helper"
 
 module Outboxer
   RSpec.describe Message do
-    describe '.publishing' do
-      context 'when dequeued message' do
+    describe ".publishing" do
+      context "when dequeued message" do
         let!(:dequeued_message) { create(:outboxer_message, :dequeued) }
         let!(:publishing_message) { Message.publishing(id: dequeued_message.id) }
 
-        it 'returns publishing message' do
+        it "returns publishing message" do
           expect(publishing_message[:id]).to eq(Models::Message.publishing.last.id)
         end
       end
 
-      context 'when queued messaged' do
+      context "when queued messaged" do
         let!(:queued_message) { create(:outboxer_message, :queued) }
 
-        it 'raises invalid transition error' do
+        it "raises invalid transition error" do
           expect do
             Message.publishing(id: queued_message.id)
           end.to raise_error(
             ArgumentError,
-            "cannot transition outboxer message #{queued_message.id} " +
-              "from queued to publishing")
+            "cannot transition outboxer message #{queued_message.id} " \
+            "from queued to publishing")
         end
 
-        it 'does not delete queued message' do
+        it "does not delete queued message" do
           begin
             Message.publishing(id: queued_message.id)
           rescue ArgumentError

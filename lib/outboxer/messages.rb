@@ -1,6 +1,6 @@
 module Outboxer
   module Messages
-    extend self
+    module_function
 
     def stop_publishing
       @publishing = false
@@ -19,46 +19,44 @@ module Outboxer
       worker_threads = num_worker_threads.times.map do
         Thread.new do
           loop do
+            queued_message = queue.pop
+            break if queued_message.nil?
+
+            queued_at = queued_message[:queued_at]
+
+            message = Message.publishing(id: queued_message[:id])
+            logger.info "Publishing message #{message[:id]} for " \
+                        "#{message[:messageable_type]}::#{message[:messageable_id]} " \
+                        "in #{(Time.now.utc - queued_at).round(3)}s"
+
             begin
-              queued_message = queue.pop
-              break if queued_message.nil?
-
-              queued_at = queued_message[:queued_at]
-
-              message = Message.publishing(id: queued_message[:id])
-              logger.info "Publishing message #{message[:id]} for " \
-                "#{message[:messageable_type]}::#{message[:messageable_id]} " \
-                "in #{(Time.now.utc - queued_at).round(3)}s"
-
-              begin
-                block.call(message)
-              rescue Exception => exception
-                Message.failed(id: message[:id], exception: exception)
-                logger.error "Failed to publish message #{message[:id]} for " \
-                  "#{message[:messageable_type]}::#{message[:messageable_id]} " \
-                  "in #{(Time.now.utc - queued_at).round(3)}s"
-
-                raise
-              end
-
-              Message.published(id: message[:id])
-              logger.info "Published message #{message[:id]} for " \
-                "#{message[:messageable_type]}::#{message[:messageable_id]} " \
-                "in #{(Time.now.utc - queued_at).round(3)}s"
-            rescue StandardError => exception
-              logger.error "#{exception.class}: #{exception.message} " \
-                "in #{(Time.now.utc - queued_at).round(3)}s"
-
-              exception.backtrace.each { |frame| logger.error frame }
+              block.call(message)
             rescue Exception => exception
-              logger.fatal "#{exception.class}: #{exception.message} " \
-                "in #{(Time.now.utc - queued_at).round(3)}s"
-              exception.backtrace.each { |frame| logger.error frame }
+              Message.failed(id: message[:id], exception: exception)
+              logger.error "Failed to publish message #{message[:id]} for " \
+                           "#{message[:messageable_type]}::#{message[:messageable_id]} " \
+                           "in #{(Time.now.utc - queued_at).round(3)}s"
 
-              @publishing = false
-
-              break
+              raise
             end
+
+            Message.published(id: message[:id])
+            logger.info "Published message #{message[:id]} for " \
+                        "#{message[:messageable_type]}::#{message[:messageable_id]} " \
+                        "in #{(Time.now.utc - queued_at).round(3)}s"
+          rescue StandardError => exception
+            logger.error "#{exception.class}: #{exception.message} " \
+                         "in #{(Time.now.utc - queued_at).round(3)}s"
+
+            exception.backtrace.each { |frame| logger.error frame }
+          rescue Exception => exception
+            logger.fatal "#{exception.class}: #{exception.message} " \
+                         "in #{(Time.now.utc - queued_at).round(3)}s"
+            exception.backtrace.each { |frame| logger.error frame }
+
+            @publishing = false
+
+            break
           end
         end
       end
@@ -75,12 +73,12 @@ module Outboxer
 
           logger.debug "Connection pool: #{ActiveRecord::Base.connection_pool.stat}"
 
-          messages = (queue_remaining > 0) ? Messages.dequeue(limit: queue_remaining) : []
+          messages = queue_remaining.positive? ? Messages.dequeue(limit: queue_remaining) : []
           logger.debug "Updated #{messages.length} messages from queued to dequeued"
 
           messages.each do |message|
             logger.info "Queuing message #{message[:id]} for " \
-              "#{message[:messageable_type]}::#{message[:messageable_id]}"
+                        "#{message[:messageable_type]}::#{message[:messageable_id]}"
 
             queue.push({ id: message[:id], queued_at: Time.now.utc })
           end
@@ -137,7 +135,7 @@ module Outboxer
           messages = Models::Message
             .where(status: Models::Message::Status::QUEUED)
             .order(updated_at: :asc)
-            .lock('FOR UPDATE SKIP LOCKED')
+            .lock("FOR UPDATE SKIP LOCKED")
             .limit(limit)
             .select(:id, :messageable_type, :messageable_id)
 
@@ -158,41 +156,39 @@ module Outboxer
       end
     end
 
-    LIST_STATUS_OPTIONS = [nil, :queued, :dequeued, :publishing, :failed]
+    LIST_STATUS_OPTIONS = [nil, :queued, :dequeued, :publishing, :failed].freeze
     LIST_STATUS_DEFAULT = nil
 
-    LIST_SORT_OPTIONS = [:id, :status, :messageable, :created_at, :updated_at]
+    LIST_SORT_OPTIONS = %i[id status messageable created_at updated_at].freeze
     LIST_SORT_DEFAULT = :updated_at
 
-    LIST_ORDER_OPTIONS = [:asc, :desc]
+    LIST_ORDER_OPTIONS = %i[asc desc].freeze
     LIST_ORDER_DEFAULT = :asc
 
     LIST_PAGE_DEFAULT = 1
 
-    LIST_PER_PAGE_OPTIONS = [10, 100, 200, 500, 1000]
+    LIST_PER_PAGE_OPTIONS = [10, 100, 200, 500, 1000].freeze
     LIST_PER_PAGE_DEFAULT = 100
 
     def list(status: LIST_STATUS_DEFAULT,
              sort: LIST_SORT_DEFAULT, order: LIST_ORDER_DEFAULT,
              page: LIST_PAGE_DEFAULT, per_page: LIST_PER_PAGE_DEFAULT)
       if !status.nil? && !LIST_STATUS_OPTIONS.include?(status.to_sym)
-        raise ArgumentError, "status must be #{LIST_STATUS_OPTIONS.join(' ')}"
+        raise ArgumentError, "status must be #{LIST_STATUS_OPTIONS.join(" ")}"
       end
 
-      if !LIST_SORT_OPTIONS.include?(sort.to_sym)
-        raise ArgumentError, "sort must be #{LIST_SORT_OPTIONS.join(' ')}"
+      unless LIST_SORT_OPTIONS.include?(sort.to_sym)
+        raise ArgumentError, "sort must be #{LIST_SORT_OPTIONS.join(" ")}"
       end
 
-      if !LIST_ORDER_OPTIONS.include?(order.to_sym)
-        raise ArgumentError, "order must be #{LIST_ORDER_OPTIONS.join(' ')}"
+      unless LIST_ORDER_OPTIONS.include?(order.to_sym)
+        raise ArgumentError, "order must be #{LIST_ORDER_OPTIONS.join(" ")}"
       end
 
-      if !page.is_a?(Integer) || page <= 0
-        raise ArgumentError, "page must be >= 1"
-      end
+      raise ArgumentError, "page must be >= 1" if !page.is_a?(Integer) || page <= 0
 
-      if !LIST_PER_PAGE_OPTIONS.include?(per_page.to_i)
-        raise ArgumentError, "per_page must be #{LIST_PER_PAGE_OPTIONS.join(' ')}"
+      unless LIST_PER_PAGE_OPTIONS.include?(per_page.to_i)
+        raise ArgumentError, "per_page must be #{LIST_PER_PAGE_OPTIONS.join(" ")}"
       end
 
       message_scope = Models::Message
@@ -227,18 +223,18 @@ module Outboxer
       }
     end
 
-    REQUEUE_ALL_STATUSES = [:dequeued, :publishing, :failed]
+    REQUEUE_ALL_STATUSES = %i[dequeued publishing failed].freeze
 
     def can_requeue_all?(status:)
       REQUEUE_ALL_STATUSES.include?(status&.to_sym)
     end
 
     def requeue_all(status:, batch_size: 100)
-      if !can_requeue_all?(status: status)
-        status_formatted = status.nil? ? 'nil' : status
+      unless can_requeue_all?(status: status)
+        status_formatted = status.nil? ? "nil" : status
 
         raise ArgumentError,
-          "Status #{status_formatted} must be one of #{REQUEUE_ALL_STATUSES.join(', ')}"
+              "Status #{status_formatted} must be one of #{REQUEUE_ALL_STATUSES.join(", ")}"
       end
 
       requeued_count = 0
@@ -252,7 +248,7 @@ module Outboxer
               .where(status: status)
               .order(updated_at: :asc)
               .limit(batch_size)
-              .lock('FOR UPDATE SKIP LOCKED')
+              .lock("FOR UPDATE SKIP LOCKED")
               .pluck(:id)
 
             requeued_count_batch = Models::Message
@@ -275,7 +271,7 @@ module Outboxer
           locked_ids = Models::Message
             .where(id: ids)
             .order(updated_at: :asc)
-            .lock('FOR UPDATE SKIP LOCKED')
+            .lock("FOR UPDATE SKIP LOCKED")
             .pluck(:id)
 
           requeued_count = Models::Message
@@ -299,7 +295,7 @@ module Outboxer
             query = query.where(status: status) unless status.nil?
             locked_ids = query.order(:updated_at)
               .limit(batch_size)
-              .lock('FOR UPDATE SKIP LOCKED')
+              .lock("FOR UPDATE SKIP LOCKED")
               .pluck(:id)
 
             Models::Frame
@@ -326,7 +322,7 @@ module Outboxer
         ActiveRecord::Base.transaction do
           locked_ids = Models::Message
             .where(id: ids)
-            .lock('FOR UPDATE SKIP LOCKED')
+            .lock("FOR UPDATE SKIP LOCKED")
             .pluck(:id)
 
           Models::Frame

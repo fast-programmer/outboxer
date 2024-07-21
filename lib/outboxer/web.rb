@@ -1,22 +1,22 @@
-require 'bundler/setup'
+require "bundler/setup"
 
-require 'outboxer'
-require 'sinatra/base'
-require 'kaminari'
-require 'uri'
-require 'rack/flash'
+require "outboxer"
+require "sinatra/base"
+require "kaminari"
+require "uri"
+require "rack/flash"
 
-require 'pry-byebug'
+require "pry-byebug"
 
-environment = ENV['RAILS_ENV'] || 'development'
+environment = ENV["RAILS_ENV"] || "development"
 config = Outboxer::Database.config(environment: environment)
-Outboxer::Database.connect(config: config.merge('pool' => 5))
+Outboxer::Database.connect(config: config.merge("pool" => 5))
 
 module Outboxer
   class Web < Sinatra::Base
     use Rack::Flash
-    set :views, File.expand_path('../web/views', __FILE__)
-    set :public_folder, File.expand_path('../web/public', __FILE__)
+    set :views, File.expand_path("web/views", __dir__)
+    set :public_folder, File.expand_path("web/public", __dir__)
     set :show_exceptions, false
 
     helpers do
@@ -26,7 +26,7 @@ module Outboxer
     end
 
     error StandardError do
-      error = env['sinatra.error']
+      error = env["sinatra.error"]
       status 500
 
       puts "Error: #{error.class.name} - #{error.message}"
@@ -34,7 +34,7 @@ module Outboxer
       erb :error, locals: { error: error }, layout: false
     end
 
-    get '/' do
+    get "/" do
       denormalised_params = denormalise_params(
         status: nil,
         sort: :updated_at,
@@ -51,7 +51,7 @@ module Outboxer
         page: 1,
         per_page: denormalised_params[:per_page])
 
-      messages_publishing_link = outboxer_path('/messages' + normalise_params(
+      messages_publishing_link = outboxer_path("/messages" + normalise_params(
         status: :publishing,
         sort: denormalised_params[:sort],
         order: denormalised_params[:order],
@@ -65,7 +65,7 @@ module Outboxer
         page: 1,
         per_page: denormalised_params[:per_page])
 
-      messages_dequeued_link = outboxer_path('/messages' + normalise_params(
+      messages_dequeued_link = outboxer_path("/messages" + normalise_params(
         status: :dequeued,
         sort: denormalised_params[:sort],
         order: denormalised_params[:order],
@@ -79,7 +79,7 @@ module Outboxer
         page: 1,
         per_page: denormalised_params[:per_page])
 
-      messages_queued_link = outboxer_path('/messages' + normalise_params(
+      messages_queued_link = outboxer_path("/messages" + normalise_params(
         status: :queued,
         sort: denormalised_params[:sort],
         order: denormalised_params[:order],
@@ -98,7 +98,7 @@ module Outboxer
       }
     end
 
-    post '/update_per_page' do
+    post "/update_per_page" do
       denormalised_params = denormalise_params(
         status: params[:status],
         sort: params[:sort],
@@ -116,7 +116,7 @@ module Outboxer
       redirect outboxer_path(normalised_params)
     end
 
-    get '/messages' do
+    get "/messages" do
       message_status_counts = Messages.counts_by_status
 
       denormalised_params = denormalise_params(
@@ -157,21 +157,20 @@ module Outboxer
     end
 
     HEADERS = {
-      'id' => 'Id',
-      'status' => 'Status',
-      'messageable' => 'Messageable',
-      'updated_at' => 'Updated At',
-      'created_at' => 'Created At'
-    }
+      "id" => "Id",
+      "status" => "Status",
+      "messageable" => "Messageable",
+      "updated_at" => "Updated At",
+      "created_at" => "Created At"
+    }.freeze
 
     def generate_pagination(current_page:, total_pages:, params:)
       previous_page = nil
-      pages = []
       next_page = nil
 
       if current_page > 1
         previous_page = {
-          text: 'Previous',
+          text: "Previous",
           href: outboxer_path("/messages" + normalise_params(
             status: params[:status], sort: params[:sort], order: params[:order],
             page: current_page - 1, per_page: params[:per_page]))
@@ -190,7 +189,7 @@ module Outboxer
 
       if current_page < total_pages
         next_page = {
-          text: 'Next',
+          text: "Next",
           href: outboxer_path("/messages" + normalise_params(
             status: params[:status], sort: params[:sort], order: params[:order],
             page: current_page + 1, per_page: params[:per_page]))
@@ -203,38 +202,36 @@ module Outboxer
     def generate_headers(params:)
       HEADERS.map do |header_key, header_text|
         if params[:sort] == header_key
-          if params[:order] == 'asc'
+          if params[:order] == "asc"
             {
               text: header_text,
-              icon_class: 'bi bi-arrow-up',
-              href: outboxer_path('/messages' + normalise_params(
+              icon_class: "bi bi-arrow-up",
+              href: outboxer_path("/messages" + normalise_params(
                 status: params[:status],
-                order: 'desc',
+                order: "desc",
                 sort: header_key,
                 page: 1,
-                per_page: params[:per_page]
-              ))
+                per_page: params[:per_page]))
             }
           else
             {
               text: header_text,
-              icon_class: 'bi bi-arrow-down',
-              href: outboxer_path('/messages' + normalise_params(
+              icon_class: "bi bi-arrow-down",
+              href: outboxer_path("/messages" + normalise_params(
                 status: params[:status],
-                order: 'asc',
+                order: "asc",
                 sort: header_key,
                 page: 1,
-                per_page: params[:per_page]
-              ))
+                per_page: params[:per_page]))
             }
           end
         else
           {
             text: header_text,
-            icon_class: '',
-            href: outboxer_path('/messages' + normalise_params(
+            icon_class: "",
+            href: outboxer_path("/messages" + normalise_params(
               status: params[:status],
-              order: 'asc',
+              order: "asc",
               sort: header_key,
               page: 1,
               per_page: params[:per_page]))
@@ -270,10 +267,10 @@ module Outboxer
         per_page: per_page == Messages::LIST_PER_PAGE_DEFAULT ? nil : per_page
       }.compact
 
-      normalised_params.empty? ? '' : "?#{URI.encode_www_form(normalised_params)}"
+      normalised_params.empty? ? "" : "?#{URI.encode_www_form(normalised_params)}"
     end
 
-    post '/messages/update' do
+    post "/messages/update" do
       ids = params[:selected_ids].map(&:to_i)
 
       denormalised_params = denormalise_params(
@@ -290,34 +287,34 @@ module Outboxer
         page: denormalised_params[:page],
         per_page: denormalised_params[:per_page])
 
-      result = case params[:action]
-      when 'requeue_by_ids'
+      case params[:action]
+      when "requeue_by_ids"
         result = Messages.requeue_by_ids(ids: ids)
 
-        message_text = result[:requeued_count] == 1 ? 'message' : 'messages'
+        message_text = result[:requeued_count] == 1 ? "message" : "messages"
 
-        if result[:requeued_count] > 0
+        if (result[:requeued_count]).positive?
           flash[:primary] = "Requeued #{result[:requeued_count]} #{message_text}"
         end
 
         unless result[:not_requeued_ids].empty?
-          flash[:warning] = "Could not requeue #{message_text} with ids " +
-            "#{result[:not_requeued_ids].join(', ')}"
+          flash[:warning] = "Could not requeue #{message_text} with ids " \
+                            "#{result[:not_requeued_ids].join(", ")}"
         end
 
         result
-      when 'delete_by_ids'
+      when "delete_by_ids"
         result = Messages.delete_by_ids(ids: ids)
 
-        message_text = result[:deleted_count] == 1 ? 'message' : 'messages'
+        message_text = result[:deleted_count] == 1 ? "message" : "messages"
 
-        if result[:deleted_count] > 0
+        if (result[:deleted_count]).positive?
           flash[:primary] = "Deleted #{result[:deleted_count]} #{message_text}"
         end
 
         unless result[:not_deleted_ids].empty?
-          flash[:warning] = "Could not delete #{message_text} with ids " +
-            "#{result[:not_deleted_ids].join(', ')}"
+          flash[:warning] = "Could not delete #{message_text} with ids " \
+                            "#{result[:not_deleted_ids].join(", ")}"
         end
 
         result
@@ -328,7 +325,7 @@ module Outboxer
       redirect to("/messages#{normalised_params}")
     end
 
-    post '/messages/requeue_all' do
+    post "/messages/requeue_all" do
       denormalised_params = denormalise_params(
         status: params[:status],
         sort: params[:sort],
@@ -345,13 +342,13 @@ module Outboxer
 
       result = Messages.requeue_all(status: denormalised_params[:status])
 
-      message_text = result[:requeue_count] == 1 ? 'message' : 'messages'
+      message_text = result[:requeue_count] == 1 ? "message" : "messages"
       flash[:primary] = "#{result[:requeue_count]} #{message_text} have been queued"
 
       redirect to("/messages#{normalised_params}")
     end
 
-    post '/messages/delete_all' do
+    post "/messages/delete_all" do
       denormalised_params = denormalise_params(
         status: params[:status],
         sort: params[:sort],
@@ -368,13 +365,13 @@ module Outboxer
 
       result = Messages.delete_all(status: denormalised_params[:status])
 
-      message_text = result[:deleted_count] == 1 ? 'message' : 'messages'
+      message_text = result[:deleted_count] == 1 ? "message" : "messages"
       flash[:primary] = "#{result[:deleted_count]} #{message_text} have been deleted"
 
       redirect to("/messages#{normalised_params}")
     end
 
-    post '/messages/update_per_page' do
+    post "/messages/update_per_page" do
       denormalised_params = denormalise_params(
         status: params[:status],
         sort: params[:sort],
@@ -392,7 +389,7 @@ module Outboxer
       redirect to("/messages#{normalised_params}")
     end
 
-    get '/message/:id' do
+    get "/message/:id" do
       message_status_counts = Messages.counts_by_status
 
       message = Message.find_by_id(id: params[:id])
@@ -411,20 +408,20 @@ module Outboxer
       }
     end
 
-    post '/message/:id/requeue' do
+    post "/message/:id/requeue" do
       Message.requeue(id: params[:id])
 
       flash[:primary] = "Message #{params[:id]} was queued"
 
-      redirect to('/messages')
+      redirect to("/messages")
     end
 
-    post '/message/:id/delete' do
+    post "/message/:id/delete" do
       Message.delete(id: params[:id])
 
       flash[:primary] = "Message #{params[:id]} was deleted"
 
-      redirect to('/messages')
+      redirect to("/messages")
     end
   end
 end

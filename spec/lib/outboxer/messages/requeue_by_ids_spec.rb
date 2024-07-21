@@ -1,8 +1,8 @@
-require 'spec_helper'
+require "spec_helper"
 
 module Outboxer
   RSpec.describe Messages do
-    describe '.requeue_by_ids' do
+    describe ".requeue_by_ids" do
       let!(:message_1) { create(:outboxer_message, :failed) }
       let!(:exception_1) { create(:outboxer_exception, message: message_1) }
       let!(:frame_1) { create(:outboxer_frame, exception: exception_1) }
@@ -13,35 +13,34 @@ module Outboxer
 
       let!(:ids) { [message_1.id, message_2.id] }
 
-      describe 'when ids exist' do
+      describe "when ids exist" do
         let!(:result) { Messages.requeue_by_ids(ids: ids) }
 
-        it 'sets message status to queued' do
+        it "sets message status to queued" do
           expect(
             Models::Message
               .where(status: Models::Message::Status::QUEUED)
               .order(id: :asc)
-              .pluck(:id)
-          ).to eq(ids)
+              .pluck(:id)).to eq(ids)
         end
 
-        it 'returns correct result' do
+        it "returns correct result" do
           expect(result).to eq({ requeued_count: ids.count, not_requeued_ids: [] })
         end
       end
 
-      describe 'when an id does not exist' do
+      describe "when an id does not exist" do
         let(:non_existent_id) { 5 }
         let(:result) { Messages.requeue_by_ids(ids: [non_existent_id]) }
 
-        it 'does not delete selected messages' do
+        it "does not delete selected messages" do
           expect(Models::Frame.count).to eq(2)
           expect(Models::Exception.count).to eq(2)
           expect(Models::Message.count).to eq(2)
         end
 
-        it 'returns correct result' do
-          expect(result).to eq({ requeued_count: 0, not_requeued_ids: [non_existent_id]  })
+        it "returns correct result" do
+          expect(result).to eq({ requeued_count: 0, not_requeued_ids: [non_existent_id] })
         end
       end
     end

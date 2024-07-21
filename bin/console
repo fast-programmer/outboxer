@@ -1,18 +1,18 @@
 #!/usr/bin/env ruby
 
-require 'bundler/setup'
+require "bundler/setup"
 
-require 'outboxer'
-require 'sidekiq'
+require "outboxer"
+require "sidekiq"
 
-environment = ENV['RAILS_ENV'] || 'development'
+environment = ENV["RAILS_ENV"] || "development"
 config = Outboxer::Database.config(environment: environment)
 Outboxer::Database.connect(config: config.merge(pool: 1))
 
 Sidekiq.configure_client do |config|
-  redis_url = ENV['REDIS_URL'] || 'redis://localhost:6379/0'
+  redis_url = ENV["REDIS_URL"] || "redis://localhost:6379/0"
   config.redis = { url: redis_url, size: 1 }
 end
 
-require 'irb'
+require "irb"
 IRB.start(__FILE__)
