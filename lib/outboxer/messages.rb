@@ -6,19 +6,21 @@ module Outboxer
       @publishing = false
     end
 
-    def publish(threads: 5, queue: 10, poll: 1,
+    def publish(num_worker_threads: 5,
+                max_queue_size: 10,
+                poll_interval: 1,
                 logger: Logger.new($stdout, level: Logger::INFO),
                 kernel: Kernel, &block)
-      ruby_queue = Queue.new
+      queue = Queue.new
 
       @publishing = true
 
-      logger.info "Initializing #{threads} worker threads"
-      ruby_threads = threads.times.map do
+      logger.info "Initializing #{num_worker_threads} worker threads"
+      worker_threads = num_worker_threads.times.map do
         Thread.new do
           loop do
             begin
-              queued_message = ruby_queue.pop
+              queued_message = queue.pop
               break if queued_message.nil?
 
               queued_at = queued_message[:queued_at]
@@ -60,45 +62,45 @@ module Outboxer
           end
         end
       end
-      logger.info "Initialized #{threads} worker threads"
+      logger.info "Initialized #{num_worker_threads} worker threads"
 
-      logger.info "Dequeuing up to #{queue} messages every #{poll}s"
+      logger.info "Dequeuing up to #{max_queue_size} messages every #{poll_interval}s"
       while @publishing
         begin
           messages = []
 
-          queue_available = queue - ruby_queue.length
-          queue_stats = { total: queue, available: queue_available, current: ruby_queue.length }
+          queue_remaining = max_queue_size - queue.length
+          queue_stats = { total: queue, remaining: queue_remaining, current: queue.length }
           logger.debug "Queue: #{queue_stats}"
 
           logger.debug "Connection pool: #{ActiveRecord::Base.connection_pool.stat}"
 
-          messages = (queue_available > 0) ? Messages.dequeue(limit: queue_available) : []
+          messages = (queue_remaining > 0) ? Messages.dequeue(limit: queue_remaining) : []
           logger.debug "Updated #{messages.length} messages from queued to dequeued"
 
           messages.each do |message|
             logger.info "Queuing message #{message[:id]} for " \
               "#{message[:messageable_type]}::#{message[:messageable_id]}"
 
-            ruby_queue.push({ id: message[:id], queued_at: Time.now.utc })
+            queue.push({ id: message[:id], queued_at: Time.now.utc })
           end
 
           logger.debug "Pushed #{messages.length} messages to queue."
 
           if messages.empty?
-            logger.debug "Sleeping for #{poll} seconds because no messages were queued..."
+            logger.debug "Sleeping for #{poll_interval} seconds because no messages were queued..."
 
-            kernel.sleep(poll)
-          elsif ruby_queue.length >= queue
-            logger.debug "Sleeping for #{poll} seconds because queue was full..."
+            kernel.sleep(poll_interval)
+          elsif queue.length >= queue
+            logger.debug "Sleeping for #{poll_interval} seconds because queue was full..."
 
-            kernel.sleep(poll)
+            kernel.sleep(poll_interval)
           end
         rescue StandardError => exception
           logger.error "#{exception.class}: #{exception.message}"
           exception.backtrace.each { |frame| logger.error frame }
 
-          kernel.sleep(poll)
+          kernel.sleep(poll_interval)
         rescue Exception => exception
           logger.fatal "#{exception.class}: #{exception.message}"
           exception.backtrace.each { |frame| logger.fatal frame }
@@ -108,10 +110,10 @@ module Outboxer
       end
       logger.info "Stopped dequeuing messages"
 
-      logger.info "Shutting down #{threads} worker threads"
-      ruby_threads.length.times { ruby_queue.push(nil) }
-      ruby_threads.each(&:join)
-      logger.info "Shut down #{threads} worker threads"
+      logger.info "Shutting down #{num_worker_threads} worker threads"
+      worker_threads.length.times { queue.push(nil) }
+      worker_threads.each(&:join)
+      logger.info "Shut down #{num_worker_threads} worker threads"
     end
 
     def counts_by_status

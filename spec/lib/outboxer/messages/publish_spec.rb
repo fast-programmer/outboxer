@@ -3,9 +3,9 @@ require 'spec_helper'
 module Outboxer
   RSpec.describe Messages do
     describe '.publish' do
-      let(:queue) { 1 }
-      let(:threads) { 1 }
-      let(:poll) { 1 }
+      let(:max_queue_size) { 1 }
+      let(:num_worker_threads) { 1 }
+      let(:poll_interval) { 1 }
       let(:logger) { instance_double(Logger, debug: true, error: true, fatal: true, info: true) }
       let(:kernel) { class_double(Kernel, sleep: nil) }
 
@@ -18,9 +18,9 @@ module Outboxer
       context 'when message published successfully' do
         it 'deletes existing message' do
           Messages.publish(
-            queue: queue,
-            threads: threads,
-            poll: poll,
+            max_queue_size: max_queue_size,
+            num_worker_threads: num_worker_threads,
+            poll_interval: poll_interval,
             logger: logger,
             kernel: kernel
           ) do |message|
@@ -42,9 +42,9 @@ module Outboxer
 
           before do
             Messages.publish(
-              queue: queue,
-              threads: threads,
-              poll: poll,
+              max_queue_size: max_queue_size,
+              num_worker_threads: num_worker_threads,
+              poll_interval: poll_interval,
               logger: logger,
               kernel: kernel
             ) do |message|
@@ -87,9 +87,9 @@ module Outboxer
 
           before do
             Messages.publish(
-              queue: queue,
-              threads: threads,
-              poll: poll,
+              max_queue_size: max_queue_size,
+              num_worker_threads: num_worker_threads,
+              poll_interval: poll_interval,
               logger: logger,
               kernel: kernel
             ) do |dequeued_message|
@@ -147,9 +147,9 @@ module Outboxer
             expect(logger).to receive(:error).with(include('StandardError: queue error')).once
 
             Messages.publish(
-              queue: queue,
-              threads: threads,
-              poll: poll,
+              max_queue_size: max_queue_size,
+              num_worker_threads: num_worker_threads,
+              poll_interval: poll_interval,
               logger: logger,
               kernel: kernel
             )
@@ -165,9 +165,9 @@ module Outboxer
               .once
 
             Messages.publish(
-              queue: queue,
-              threads: threads,
-              poll: poll,
+              max_queue_size: max_queue_size,
+              num_worker_threads: num_worker_threads,
+              poll_interval: poll_interval,
               logger: logger,
               kernel: kernel)
           end

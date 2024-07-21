@@ -24,7 +24,12 @@ Outboxer::Database.connect(config: db_config, logger: logger)
   end
 end
 
-Outboxer::Messages.publish(threads: 5, queue: 1000, poll: 1, logger: logger) do |message|
+Outboxer::Messages.publish(
+  num_worker_threads: 5,
+  max_queue_size: 1000,
+  poll_interval: 1,
+  logger: logger
+) do |message|
   case message[:messageable_type]
   when 'Event'
     Event::CreatedJob.perform_async({ 'id' => message[:messageable_id] })
