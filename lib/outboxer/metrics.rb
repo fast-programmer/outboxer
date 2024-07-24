@@ -11,16 +11,11 @@ module Outboxer
             oldest_message = Models::Message.where(status: Message::Status::QUEUED).order(updated_at: :asc).first
             queue_latency = oldest_message ? current_time - oldest_message.created_at : 0
 
-            active_workers = Thread.list.select { |thread| thread.status == "run" }.count
-            idle_workers = Thread.list.size - active_workers
-
             messages_count_by_status = Messages.count_by_status
 
-            statsd.gauge('outboxer.queue.length', messages_count_by_status[:queued])
+            statsd.gauge('outboxer.queue.size', messages_count_by_status[:queued])
             statsd.gauge('outboxer.queue.latency', queue_latency * 1000)
-            statsd.gauge('outboxer.workers.active', active_workers)
-            statsd.gauge('outboxer.workers.idle', idle_workers)
-            statsd.gauge('outboxer.messages.all', messages_count_by_status[:all])
+
             statsd.gauge('outboxer.messages.queued', messages_count_by_status[:queued])
             statsd.gauge('outboxer.messages.dequeued', messages_count_by_status[:dequeued])
             statsd.gauge('outboxer.messages.publishing', messages_count_by_status[:publishing])

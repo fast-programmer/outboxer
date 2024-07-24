@@ -19,11 +19,11 @@ module Outboxer
 
       @publishing = true
 
-      Thread.new do
-        loop do
+      log_metrics_thread = Thread.new do
+        while @publishing
           Metrics.log(statsd: statsd, interval: log_metrics_interval)
 
-          sleep metrics_interval
+          sleep log_metrics_interval
         end
       end
 
@@ -126,6 +126,8 @@ module Outboxer
       worker_threads.length.times { queue.push(nil) }
       worker_threads.each(&:join)
       logger.info "Shut down #{num_worker_threads} worker threads"
+
+      log_metrics_thread.join
     end
 
     def counts_by_status
