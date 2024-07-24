@@ -1,3 +1,5 @@
+require 'statsd-ruby'
+
 module Outboxer
   module Messages
     extend self
@@ -9,11 +11,21 @@ module Outboxer
     def publish(num_worker_threads: 5,
                 max_queue_size: 10,
                 poll_interval: 1,
+                log_metrics_interval: 30,
+                statsd: Statsd.new('localhost', 8125),
                 logger: Logger.new($stdout, level: Logger::INFO),
                 kernel: Kernel, &block)
       queue = Queue.new
 
       @publishing = true
+
+      Thread.new do
+        loop do
+          Metrics.log(statsd: statsd, interval: log_metrics_interval)
+
+          sleep metrics_interval
+        end
+      end
 
       logger.info "Initializing #{num_worker_threads} worker threads"
       worker_threads = num_worker_threads.times.map do
