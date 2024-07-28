@@ -1,4 +1,4 @@
-require 'statsd-ruby'
+# require 'statsd-ruby'
 
 module Outboxer
   module Messages
@@ -8,27 +8,58 @@ module Outboxer
       @publishing = false
     end
 
-    def publish(num_worker_threads: 5,
-                max_queue_size: 10,
-                poll_interval: 1,
-                log_metrics_interval: 30,
-                statsd: Statsd.new('localhost', 8125),
-                logger: Logger.new($stdout, level: Logger::INFO),
-                kernel: Kernel, &block)
-      queue = Queue.new
+    def log_metrics(statsd:, interval:, current_time_utc: Time.now.utc, tags: [])
+      ActiveRecord::Base.connection_pool.with_connection do |connection|
+        ActiveRecord::Base.transaction do
+          lock = Models::Lock.lock('FOR UPDATE NOWAIT').find_by!(key: 'messages/log_metrics')
 
-      @publishing = true
+          if lock.updated_at.utc <= current_time_utc - interval
+            messages_count_by_status = Messages.counts_by_status
 
-      log_metrics_thread = Thread.new do
-        while @publishing
-          Metrics.log(statsd: statsd, interval: log_metrics_interval)
+            statsd.batch do |batch|
+              Models::Message::STATUSES.each do |status|
+                oldest_message = Models::Message.where(status: status).order(updated_at: :asc).first
+                latency_value = oldest_message ? current_time_utc - oldest_message.created_at.utc : 0
 
-          sleep log_metrics_interval
+                batch.gauge("outboxer.messages.#{status}.count", messages_count_by_status[status.to_sym], tags: tags)
+                batch.gauge("outboxer.messages.#{status}.latency", latency_value * 1000, tags: tags)
+              end
+
+              batch.gauge('outboxer.messages.all.count', messages_count_by_status[:all], tags: tags)
+            end
+
+            lock.update!(updated_at: current_time_utc)
+          end
         end
       end
 
+      nil
+    rescue ActiveRecord::LockWaitTimeout
+      nil
+    rescue ActiveRecord::RecordNotFound
+      begin
+        ActiveRecord::Base.connection_pool.with_connection do |connection|
+          Models::Lock.create!(
+            key: 'messages/log_metrics', created_at: current_time_utc, updated_at: current_time_utc)
+        end
+
+        log_metrics(statsd: statsd, interval: interval)
+      rescue ActiveRecord::RecordNotUnique
+        log_metrics(statsd: statsd, interval: interval)
+      end
+    end
+
+    def publish(num_worker_threads: 5,
+                max_queue_size: 10,
+                poll_interval: 1,
+                statsd: Statsd.new('localhost', 8125),
+                logger: Logger.new($stdout, level: Logger::INFO),
+                kernel: Kernel, &block)
+                queue = Queue.new
+      @publishing = true
+
       logger.info "Initializing #{num_worker_threads} worker threads"
-      worker_threads = num_worker_threads.times.map do
+      num_worker_threads.times.map do
         Thread.new do
           loop do
             begin
@@ -74,6 +105,7 @@ module Outboxer
           end
         end
       end
+
       logger.info "Initialized #{num_worker_threads} worker threads"
 
       logger.info "Dequeuing up to #{max_queue_size} messages every #{poll_interval}s"

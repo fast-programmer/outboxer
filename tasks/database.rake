@@ -28,6 +28,9 @@ namespace :outboxer do
       db_config = Outboxer::Database.config(environment: environment)
       ActiveRecord::Base.establish_connection(db_config)
 
+      require_relative "../db/migrate/create_outboxer_locks"
+      CreateOutboxerLocks.new.up
+
       require_relative "../db/migrate/create_outboxer_messages"
       CreateOutboxerMessages.new.up
 
