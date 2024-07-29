@@ -37,13 +37,13 @@ module Outboxer
                 tags: tags,
                 current_time_utc: current_time_utc)
 
-              expect(statsd).to have_received(:gauge).with('outboxer.messages.queued.count', 2)
+              expect(statsd).to have_received(:gauge).with('outboxer.messages.queued.count', 2, tags: tags)
               # expect(statsd).to have_received(:gauge).with('outboxer.messages.queued.latency')
-              expect(statsd).to have_received(:gauge).with('outboxer.messages.dequeued.count', 3)
+              expect(statsd).to have_received(:gauge).with('outboxer.messages.dequeued.count', 3, tags: tags)
               # expect(statsd).to have_received(:gauge).with('outboxer.messages.dequeued.latency')
-              expect(statsd).to have_received(:gauge).with('outboxer.messages.publishing.count', 5)
+              expect(statsd).to have_received(:gauge).with('outboxer.messages.publishing.count', 5, tags: tags)
               # expect(statsd).to have_received(:gauge).with('outboxer.messages.publishing.latency')
-              expect(statsd).to have_received(:gauge).with('outboxer.messages.failed.count', 1)
+              expect(statsd).to have_received(:gauge).with('outboxer.messages.failed.count', 4, tags: tags)
               # expect(statsd).to have_received(:gauge).with('outboxer.messages.failed.latency')
             end
 
@@ -96,24 +96,23 @@ module Outboxer
       end
 
       context 'when lock record does not exist' do
-        # before do
-        #   allow(Models::Lock).to receive(:lock).with('FOR UPDATE NOWAIT').and_return(Models::Lock)
-        #   allow(Models::Lock).to receive(:find_by!).with(key: 'messages/log_metrics').and_raise(ActiveRecord::RecordNotFound)
-        # end
-
         context 'when metrics record created' do
           context 'when lock record available' do
             context 'when metrics have not been updated within interval' do
               it 'sends metrics to statsd' do
-                Messages.log_metrics(statsd: statsd, interval: interval, current_time_utc: current_time_utc)
+                Messages.log_metrics(
+                statsd: statsd,
+                interval: interval,
+                tags: tags,
+                current_time_utc: current_time_utc)
 
-                expect(statsd).to have_received(:gauge).with('outboxer.messages.queued.count', 2)
+                expect(statsd).to have_received(:gauge).with('outboxer.messages.queued.count', 2, tags: tags)
                 # expect(statsd).to have_received(:gauge).with('outboxer.messages.queued.latency')
-                expect(statsd).to have_received(:gauge).with('outboxer.messages.dequeued.count', 3)
+                expect(statsd).to have_received(:gauge).with('outboxer.messages.dequeued.count', 3, tags: tags)
                 # expect(statsd).to have_received(:gauge).with('outboxer.messages.dequeued.latency')
-                expect(statsd).to have_received(:gauge).with('outboxer.messages.publishing.count', 5)
+                expect(statsd).to have_received(:gauge).with('outboxer.messages.publishing.count', 5, tags: tags)
                 # expect(statsd).to have_received(:gauge).with('outboxer.messages.publishing.latency')
-                expect(statsd).to have_received(:gauge).with('outboxer.messages.failed.count', 1)
+                expect(statsd).to have_received(:gauge).with('outboxer.messages.failed.count', 4, tags: tags)
                 # expect(statsd).to have_received(:gauge).with('outboxer.messages.failed.latency')
               end
 
@@ -134,43 +133,48 @@ module Outboxer
               end
 
               it 'does not update metrics record' do
-                expect {
-                  described_class.log(statsd: statsd, interval: interval, current_time: current_time)
-                }.not_to raise_error
+                expect do
+                  Messages.log_metrics(statsd: statsd, interval: interval, current_time_utc: current_time_utc)
+                end.not_to change { lock.reload.updated_at }
               end
             end
           end
 
-          context 'when metrics record not available' do
+          context 'when lock record not available' do
+            before do
+              allow(Models::Lock).to receive(:lock).with('FOR UPDATE NOWAIT').and_return(Models::Lock)
+              allow(Models::Lock).to receive(:find_by!).with(key: 'messages/log_metrics').and_raise(ActiveRecord::LockWaitTimeout)
+            end
+
             it 'does not send metrics to statsd' do
-              described_class.log(statsd: statsd, interval: interval, current_time: current_time)
+              Messages.log_metrics(statsd: statsd, interval: interval, current_time_utc: current_time_utc)
 
               expect(statsd).not_to have_received(:gauge)
             end
 
             it 'does not update metrics record' do
-              expect {
-                described_class.log(statsd: statsd, interval: interval, current_time: current_time)
-              }.not_to raise_error
+              expect do
+                Messages.log_metrics(statsd: statsd, interval: interval, current_time_utc: current_time_utc)
+              end.not_to change { lock.reload.updated_at }
             end
           end
         end
 
-        context 'when metrics record not unique' do
+        context 'when lock record not unique' do
           before do
             allow(Models::Metrics).to receive(:lock).with('FOR UPDATE NOWAIT').and_raise(ActiveRecord::RecordNotUnique)
           end
 
           it 'does not send metrics to statsd' do
-            described_class.log(statsd: statsd, interval: interval, current_time: current_time)
+            Messages.log_metrics(statsd: statsd, interval: interval, current_time: current_time)
 
             expect(statsd).not_to have_received(:gauge)
           end
 
-          it 'does not update metrics record' do
-            expect {
-              described_class.log(statsd: statsd, interval: interval, current_time: current_time)
-            }.not_to raise_error
+          it 'does not update lock record' do
+            expect do
+              Messages.log_metrics(statsd: statsd, interval: interval, current_time_utc: current_time_utc)
+            end.not_to change { lock.reload.updated_at }
           end
         end
       end

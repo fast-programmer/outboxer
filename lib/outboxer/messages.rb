@@ -1,5 +1,3 @@
-# require 'statsd-ruby'
-
 module Outboxer
   module Messages
     extend self
@@ -8,24 +6,25 @@ module Outboxer
       @publishing = false
     end
 
-    def log_metrics(statsd:, interval:, current_time_utc: Time.now.utc, tags: [])
+    def log_metrics(statsd:, interval:, tags: [],
+                    attempt: 1, current_time_utc: Time.now.utc)
+      raise ArgumentError, "attempt must be >= 1" if attempt < 1
+      raise ArgumentError, "attempt must be <= 2" if attempt > 2
+
       ActiveRecord::Base.connection_pool.with_connection do |connection|
         ActiveRecord::Base.transaction do
           lock = Models::Lock.lock('FOR UPDATE NOWAIT').find_by!(key: 'messages/log_metrics')
 
           if lock.updated_at.utc <= current_time_utc - interval
-            messages_count_by_status = Messages.counts_by_status
-
             statsd.batch do |batch|
               Models::Message::STATUSES.each do |status|
+                count = Models::Message.where(status: status).order(updated_at: :asc).count
+                batch.gauge("outboxer.messages.#{status}.count", count, tags: tags)
+
                 oldest_message = Models::Message.where(status: status).order(updated_at: :asc).first
-                latency_value = oldest_message ? current_time_utc - oldest_message.created_at.utc : 0
-
-                batch.gauge("outboxer.messages.#{status}.count", messages_count_by_status[status.to_sym], tags: tags)
-                batch.gauge("outboxer.messages.#{status}.latency", latency_value * 1000, tags: tags)
+                latency = oldest_message ? current_time_utc - oldest_message.updated_at.utc : 0
+                batch.gauge("outboxer.messages.#{status}.latency", latency, tags: tags)
               end
-
-              batch.gauge('outboxer.messages.all.count', messages_count_by_status[:all], tags: tags)
             end
 
             lock.update!(updated_at: current_time_utc)
@@ -34,18 +33,24 @@ module Outboxer
       end
 
       nil
-    rescue ActiveRecord::LockWaitTimeout
-      nil
     rescue ActiveRecord::RecordNotFound
-      begin
-        ActiveRecord::Base.connection_pool.with_connection do |connection|
+      ActiveRecord::Base.connection_pool.with_connection do |connection|
+        begin
           Models::Lock.create!(
             key: 'messages/log_metrics', created_at: current_time_utc, updated_at: current_time_utc)
+        rescue ActiveRecord::RecordNotUnique
+          # another thread has created the record before us
         end
+      end
 
-        log_metrics(statsd: statsd, interval: interval)
-      rescue ActiveRecord::RecordNotUnique
-        log_metrics(statsd: statsd, interval: interval)
+      log_metrics(statsd: statsd, interval: interval, tags: tags, attempt: attempt + 1)
+    rescue ActiveRecord::LockWaitTimeout # PostgreSQL 8.1
+      nil
+    rescue ActiveRecord::StatementInvalid => e # mySQL 8.0.1
+      if e.message.include?("Lock wait timeout exceeded") || e.message.include?("NOWAIT is set")
+        nil
+      else
+        raise
       end
     end
 
@@ -54,9 +59,28 @@ module Outboxer
                 poll_interval: 1,
                 statsd: Statsd.new('localhost', 8125),
                 logger: Logger.new($stdout, level: Logger::INFO),
-                kernel: Kernel, &block)
+                kernel: Kernel,
+                time: Time,
+                &block)
                 queue = Queue.new
       @publishing = true
+
+      Thread.new do
+        last_run_time = time.now
+
+        while @publishing
+          current_time = time.now
+          elapsed_time = current_time - last_run_time
+
+          if elapsed_time >= log_metrics_interval
+            log_metrics(statsd: statsd, interval: log_metrics_interval, current_time_utc: current_time.utc)
+
+            last_run_time = current_time
+          end
+
+          sleep 1
+        end
+      end
 
       logger.info "Initializing #{num_worker_threads} worker threads"
       num_worker_threads.times.map do
@@ -183,7 +207,7 @@ module Outboxer
           messages = Models::Message
             .where(status: Models::Message::Status::QUEUED)
             .order(updated_at: :asc)
-            .lock('FOR UPDATE SKIP LOCKED')
+            .lock('FOR UPDATE SKIP LOCKED') # PostgreSQL 9.5, MySQL 8.0.1
             .limit(limit)
             .select(:id, :messageable_type, :messageable_id)
 
