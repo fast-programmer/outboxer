@@ -4,6 +4,7 @@ require 'bundler/setup'
 
 require 'sidekiq'
 require 'outboxer'
+require 'statsd-ruby'
 
 environment = ENV['RAILS_ENV'] || 'development'
 
@@ -28,7 +29,9 @@ Outboxer::Messages.publish(
   num_worker_threads: 5,
   max_queue_size: 1000,
   poll_interval: 1,
-  logger: logger
+  logger: logger,
+  statsd: ::Statsd.new('localhost', 8125),
+  log_metrics_interval: 5
 ) do |message|
   case message[:messageable_type]
   when 'Event'

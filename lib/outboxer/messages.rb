@@ -19,11 +19,11 @@ module Outboxer
             statsd.batch do |batch|
               Models::Message::STATUSES.each do |status|
                 count = Models::Message.where(status: status).order(updated_at: :asc).count
-                batch.gauge("outboxer.messages.#{status}.count", count, tags: tags)
+                batch.gauge("outboxer.messages.#{status}.count", count) # tags: tags
 
                 oldest_message = Models::Message.where(status: status).order(updated_at: :asc).first
                 latency = oldest_message ? current_time_utc - oldest_message.updated_at.utc : 0
-                batch.gauge("outboxer.messages.#{status}.latency", latency, tags: tags)
+                batch.gauge("outboxer.messages.#{status}.latency", latency) # tags: tags
               end
             end
 
@@ -39,7 +39,7 @@ module Outboxer
           Models::Lock.create!(
             key: 'messages/log_metrics', created_at: current_time_utc, updated_at: current_time_utc)
         rescue ActiveRecord::RecordNotUnique
-          # another thread has created the record before us
+          # another thread created the record
         end
       end
 
@@ -57,25 +57,27 @@ module Outboxer
     def publish(num_worker_threads: 5,
                 max_queue_size: 10,
                 poll_interval: 1,
-                statsd: Statsd.new('localhost', 8125),
+                statsd:,
+                log_metrics_interval:,
                 logger: Logger.new($stdout, level: Logger::INFO),
                 kernel: Kernel,
                 time: Time,
                 &block)
-                queue = Queue.new
+      queue = Queue.new
+
       @publishing = true
 
-      Thread.new do
-        last_run_time = time.now
+      log_metrics_thread = Thread.new do
+        last_run_time_utc = time.now.utc
 
         while @publishing
-          current_time = time.now
-          elapsed_time = current_time - last_run_time
+          current_time_utc = time.now.utc
+          elapsed_time = current_time_utc - last_run_time_utc
 
           if elapsed_time >= log_metrics_interval
-            log_metrics(statsd: statsd, interval: log_metrics_interval, current_time_utc: current_time.utc)
+            log_metrics(statsd: statsd, interval: log_metrics_interval, current_time_utc: current_time_utc)
 
-            last_run_time = current_time
+            last_run_time_utc = current_time_utc
           end
 
           sleep 1
@@ -83,7 +85,7 @@ module Outboxer
       end
 
       logger.info "Initializing #{num_worker_threads} worker threads"
-      num_worker_threads.times.map do
+      worker_threads = num_worker_threads.times.map do
         Thread.new do
           loop do
             begin
