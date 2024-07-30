@@ -7,50 +7,48 @@ module Outboxer
     end
 
     def log_metrics(statsd:, interval:, tags: [],
-                    attempt: 1, current_time_utc: Time.now.utc)
-      raise ArgumentError, "attempt must be >= 1" if attempt < 1
-      raise ArgumentError, "attempt must be <= 2" if attempt > 2
-
+                    current_time_utc: Time.now.utc)
       ActiveRecord::Base.connection_pool.with_connection do |connection|
         ActiveRecord::Base.transaction do
           lock = Models::Lock.lock('FOR UPDATE NOWAIT').find_by!(key: 'messages/log_metrics')
 
           if lock.updated_at.utc <= current_time_utc - interval
-            statsd.batch do |batch|
-              Models::Message::STATUSES.each do |status|
-                count = Models::Message.where(status: status).order(updated_at: :asc).count
-                batch.gauge("outboxer.messages.#{status}.count", count) # tags: tags
+            results = Models::Message
+              .group(:status)
+              .select('status, COUNT(*) AS count, MIN(updated_at) AS oldest')
 
-                oldest_message = Models::Message.where(status: status).order(updated_at: :asc).first
-                latency = oldest_message ? current_time_utc - oldest_message.updated_at.utc : 0
-                batch.gauge("outboxer.messages.#{status}.latency", latency) # tags: tags
+            statsd.batch do |batch|
+              results.each do |result|
+                status = result.status
+                count = result.count
+                oldest_message_time = result.oldest
+                latency = oldest_message_time ? current_time_utc - oldest_message_time.utc : 0
+
+                batch.gauge("outboxer.messages.#{status}.count", count)
+                batch.gauge("outboxer.messages.#{status}.latency", latency)
               end
             end
 
             lock.update!(updated_at: current_time_utc)
           end
-        end
-      end
 
-      nil
-    rescue ActiveRecord::RecordNotFound
-      ActiveRecord::Base.connection_pool.with_connection do |connection|
-        begin
+          nil
+        rescue ActiveRecord::RecordNotFound
           Models::Lock.create!(
             key: 'messages/log_metrics', created_at: current_time_utc, updated_at: current_time_utc)
-        rescue ActiveRecord::RecordNotUnique
-          # another thread created the record
-        end
-      end
 
-      log_metrics(statsd: statsd, interval: interval, tags: tags, attempt: attempt + 1)
-    rescue ActiveRecord::LockWaitTimeout # PostgreSQL 8.1
-      nil
-    rescue ActiveRecord::StatementInvalid => e # mySQL 8.0.1
-      if e.message.include?("Lock wait timeout exceeded") || e.message.include?("NOWAIT is set")
-        nil
-      else
-        raise
+          retry
+        rescue ActiveRecord::LockWaitTimeout # PostgreSQL 8.1
+          nil
+        rescue ActiveRecord::StatementInvalid => e # mySQL 8.0.1
+          if e.message.include?("Lock wait timeout exceeded") || e.message.include?("NOWAIT is set")
+            nil
+          else
+            raise
+          end
+        end
+      rescue ActiveRecord::RecordNotUnique
+        retry
       end
     end
 
