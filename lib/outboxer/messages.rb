@@ -82,6 +82,23 @@ module Outboxer
         end
       end
 
+      log_process_metrics_thread = Thread.new do
+        last_run_time_utc = time.now.utc
+
+        while @publishing
+          current_time_utc = time.now.utc
+          elapsed_time = current_time_utc - last_run_time_utc
+
+          if elapsed_time >= log_metrics_interval
+            Process.log_metrics(statsd: statsd, logger: logger, interval: log_metrics_interval, current_time_utc: current_time_utc)
+
+            last_run_time_utc = current_time_utc
+          end
+
+          sleep 1
+        end
+      end
+
       logger.info "Initializing #{num_worker_threads} worker threads"
       worker_threads = num_worker_threads.times.map do
         Thread.new do
@@ -184,6 +201,8 @@ module Outboxer
       logger.info "Shut down #{num_worker_threads} worker threads"
 
       log_metrics_thread.join
+
+      log_process_metrics_thread.join
     end
 
     def counts_by_status

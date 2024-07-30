@@ -31,7 +31,7 @@ Outboxer::Messages.publish(
   poll_interval: 1,
   logger: logger,
   statsd: ::Statsd.new('localhost', 8125),
-  log_metrics_interval: 5
+  log_metrics_interval: 1
 ) do |message|
   case message[:messageable_type]
   when 'Event'
