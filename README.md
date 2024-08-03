@@ -39,7 +39,7 @@ bin/rake db:migrate
 
 ```ruby
 class Event < ActiveRecord::Base
-  # ...
+  # your existing model
 
   after_create do |event|
     Outboxer::Message.queue(messageable: event)
@@ -73,21 +73,20 @@ class EventCreatedJob
   def perform(args)
     event = Event.find(args['id'])
 
-    # your code here
+    # your event handler code here
   end
 end
 ```
 
 ### 7. run publisher
-=======
 
 ```bash
 bin/outboxer_publisher
 ```
 
-### 7. manage messages
+### 8. manage messages
 
-manage queued, dequeued, publishing and failed messages with the web ui
+manage messages with the web ui
 
 <img width="1257" alt="Screenshot 2024-05-20 at 8 47 57 pm" src="https://github.com/fast-programmer/outboxer/assets/394074/0446bc7e-9d5f-4fe1-b210-ff394bdacdd6">
 
@@ -117,12 +116,12 @@ end
 
 ### 9. monitor message publisher
 
-know how much memory and cpu is required by the message publisher
+know how much memory and cpu is required by the publisher
 
 <img width="310" alt="Screenshot 2024-05-20 at 10 41 57 pm" src="https://github.com/fast-programmer/outboxer/assets/394074/1222ad47-15e3-44d1-bb45-6abc6b3e4325">
 
 ```bash
-run bin/outboxer_message_publishermon
+run bin/outboxer_publishermon
 ```
 
 ## Contributing
