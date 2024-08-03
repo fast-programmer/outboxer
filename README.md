@@ -5,7 +5,7 @@
 
 ## Background
 
-Outboxer is an ActiveRecord implementation of the [transactional outbox pattern](https://microservices.io/patterns/data/transactional-outbox.html), for MySQL and PostgreSQL databases.
+Outboxer is an ActiveRecord implementation of the [transactional outbox pattern](https://microservices.io/patterns/data/transactional-outbox.html) for PostgreSQL and MySQL databases.
 
 ## Installation
 
@@ -35,7 +35,7 @@ bin/rails g outboxer:schema
 bin/rake db:migrate
 ```
 
-###  3. after event created, queue message
+###  3. queue message after event created
 
 ```ruby
 class Event < ActiveRecord::Base
@@ -47,27 +47,13 @@ class Event < ActiveRecord::Base
 end
 ```
 
-### 4. add event created job
-
-```ruby
-class EventCreatedJob
-  include Sidekiq::Job
-
-  def perform(args)
-    event = Event.find(args['id'])
-
-    # ...
-  end
-end
-```
-
-### 5. generate publisher
+### 4. generate publisher
 
 ```bash
 bin/rails g outboxer:publisher
 ```
 
-### 6. in publish block, perform event created job async
+### 5. perform event created job async in publish block
 
 ```ruby
 Outboxer::Publisher.publish do |message|
@@ -78,13 +64,28 @@ Outboxer::Publisher.publish do |message|
 end
 ```
 
+### 6. add event created job
+
+```ruby
+class EventCreatedJob
+  include Sidekiq::Job
+
+  def perform(args)
+    event = Event.find(args['id'])
+
+    # your code here
+  end
+end
+```
+
 ### 7. run publisher
+=======
 
 ```bash
 bin/outboxer_publisher
 ```
 
-### 8. manage messages
+### 7. manage messages
 
 manage queued, dequeued, publishing and failed messages with the web ui
 
@@ -116,7 +117,7 @@ end
 
 ### 9. monitor message publisher
 
-understanding how much memory and cpu is required by the message publisher
+know how much memory and cpu is required by the message publisher
 
 <img width="310" alt="Screenshot 2024-05-20 at 10 41 57 pm" src="https://github.com/fast-programmer/outboxer/assets/394074/1222ad47-15e3-44d1-bb45-6abc6b3e4325">
 
