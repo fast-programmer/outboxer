@@ -61,16 +61,16 @@ class EventCreatedJob
 end
 ```
 
-### 5. generate message publisher
+### 5. generate publisher
 
 ```bash
-bin/rails g outboxer:message_publisher
+bin/rails g outboxer:publisher
 ```
 
 ### 6. in publish block, perform event created job async
 
 ```ruby
-Outboxer::Messages.publish do |message|
+Outboxer::Publisher.publish do |message|
   case message[:messageable_type]
   when 'Event'
     EventCreatedJob.perform_async({ 'id' => message[:messageable_id] })
@@ -78,10 +78,10 @@ Outboxer::Messages.publish do |message|
 end
 ```
 
-### 7. run message publisher
+### 7. run publisher
 
 ```bash
-bin/outboxer_message_publisher
+bin/outboxer_publisher
 ```
 
 ### 8. manage messages
