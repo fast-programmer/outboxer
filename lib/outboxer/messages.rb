@@ -17,7 +17,7 @@ module Outboxer
       end
     end
 
-    def dequeue(limit: 1)
+    def dequeue(limit: 1, current_utc_time: Time.now.utc)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           messages = Models::Message
@@ -30,7 +30,7 @@ module Outboxer
           if messages.present?
             Models::Message
               .where(id: messages.map { |message| message[:id] })
-              .update_all(updated_at: Time.current, status: Models::Message::Status::DEQUEUED)
+              .update_all(updated_at: current_utc_time, status: Models::Message::Status::DEQUEUED)
           end
 
           messages.map do |message|
@@ -119,7 +119,7 @@ module Outboxer
       REQUEUE_ALL_STATUSES.include?(status&.to_sym)
     end
 
-    def requeue_all(status:, batch_size: 100)
+    def requeue_all(status:, batch_size: 100, time: Time)
       if !can_requeue_all?(status: status)
         status_formatted = status.nil? ? 'nil' : status
 
@@ -143,7 +143,7 @@ module Outboxer
 
             requeued_count_batch = Models::Message
               .where(id: locked_ids)
-              .update_all(status: Models::Message::Status::QUEUED, updated_at: Time.now.utc)
+              .update_all(status: Models::Message::Status::QUEUED, updated_at: time.now.utc)
 
             requeued_count += requeued_count_batch
           end
@@ -155,7 +155,7 @@ module Outboxer
       { requeued_count: requeued_count }
     end
 
-    def requeue_by_ids(ids:)
+    def requeue_by_ids(ids:, time: Time)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           locked_ids = Models::Message
@@ -166,7 +166,7 @@ module Outboxer
 
           requeued_count = Models::Message
             .where(id: locked_ids)
-            .update_all(status: Models::Message::Status::QUEUED, updated_at: Time.now.utc)
+            .update_all(status: Models::Message::Status::QUEUED, updated_at: time.now.utc)
 
           { requeued_count: requeued_count, not_requeued_ids: ids - locked_ids }
         end

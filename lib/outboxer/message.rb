@@ -5,15 +5,14 @@ module Outboxer
     Status = Models::Message::Status
 
     def queue(messageable: nil,
-              messageable_type: nil, messageable_id: nil)
-      current_time = Time.now.utc
-
+              messageable_type: nil, messageable_id: nil,
+              current_utc_time: Time.now.utc)
       message = Models::Message.create!(
         messageable_id: messageable&.id || messageable_id,
         messageable_type: messageable&.class&.name || messageable_type,
         status: Models::Message::Status::QUEUED,
-        created_at: current_time,
-        updated_at: current_time)
+        created_at: current_utc_time,
+        updated_at: current_utc_time)
 
       { id: message.id }
     end
@@ -50,7 +49,7 @@ module Outboxer
       end
     end
 
-    def publishing(id:)
+    def publishing(id:, current_utc_time: Time.now.utc)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           message = Models::Message.lock.find_by!(id: id)
@@ -63,7 +62,7 @@ module Outboxer
 
           message.update!(
             status: Models::Message::Status::PUBLISHING,
-            updated_at: Time.now.utc)
+            updated_at: current_utc_time)
 
           {
             id: id,
@@ -95,7 +94,7 @@ module Outboxer
       end
     end
 
-    def failed(id:, exception:)
+    def failed(id:, exception:, current_utc_time: Time.now.utc)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           message = Models::Message.order(created_at: :asc).lock.find_by!(id: id)
@@ -108,7 +107,7 @@ module Outboxer
 
           message.update!(
             status: Models::Message::Status::FAILED,
-            updated_at: Time.now.utc)
+            updated_at: current_utc_time)
 
           outboxer_exception = message.exceptions.create!(
             class_name: exception.class.name, message_text: exception.message)
@@ -136,14 +135,12 @@ module Outboxer
       end
     end
 
-    def requeue(id:)
+    def requeue(id:, current_utc_time: Time.now.utc)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           message = Models::Message.lock.find_by!(id: id)
 
-          message.update!(
-            status: Models::Message::Status::QUEUED,
-            updated_at: Time.now.utc)
+          message.update!(status: Models::Message::Status::QUEUED, updated_at: current_utc_time)
 
           { id: id }
         end
