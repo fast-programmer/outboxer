@@ -5,21 +5,16 @@ module Outboxer
     Status = Models::Message::Status
 
     def queue(messageable: nil,
-              messageable_type: nil, messageable_id: nil)
-      ActiveRecord::Base.connection_pool.with_connection do
-        ActiveRecord::Base.transaction do
-          current_time = Time.now.utc
+              messageable_type: nil, messageable_id: nil,
+              current_time: Time.now.utc)
+      message = Models::Message.create!(
+        messageable_id: messageable&.id || messageable_id,
+        messageable_type: messageable&.class&.name || messageable_type,
+        status: Models::Message::Status::QUEUED,
+        created_at: current_time,
+        updated_at: current_time)
 
-          message = Models::Message.create!(
-            messageable_id: messageable&.id || messageable_id,
-            messageable_type: messageable&.class&.name || messageable_type,
-            status: Models::Message::Status::QUEUED,
-            created_at: current_time,
-            updated_at: current_time)
-
-          { id: message.id }
-        end
-      end
+      { id: message.id }
     end
 
     def find_by_id(id:)
