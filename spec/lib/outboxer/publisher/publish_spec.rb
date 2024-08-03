@@ -1,10 +1,11 @@
 require 'spec_helper'
 
 module Outboxer
-  RSpec.describe Messages do
+  RSpec.describe Publisher do
     describe '.publish' do
+      let(:queue) { Queue.new }
       let(:max_queue_size) { 1 }
-      let(:num_worker_threads) { 1 }
+      let(:num_publisher_threads) { 1 }
       let(:poll_interval) { 1 }
       let(:logger) { instance_double(Logger, debug: true, error: true, fatal: true, info: true) }
       let(:kernel) { class_double(Kernel, sleep: nil) }
@@ -17,9 +18,10 @@ module Outboxer
 
       context 'when message published successfully' do
         it 'deletes existing message' do
-          Messages.publish(
+          Publisher.publish(
+            queue: queue,
             max_queue_size: max_queue_size,
-            num_worker_threads: num_worker_threads,
+            num_publisher_threads: num_publisher_threads,
             poll_interval: poll_interval,
             logger: logger,
             kernel: kernel
@@ -29,7 +31,7 @@ module Outboxer
             expect(message[:messageable_id]).to eq(queued_message.messageable_id)
             expect(message[:status]).to eq(Models::Message::Status::PUBLISHING)
 
-            Messages.stop_publishing
+            Publisher.stop
           end
 
           expect(Models::Message.count).to eq(0)
@@ -41,14 +43,15 @@ module Outboxer
           let(:standard_error) { StandardError.new('some error') }
 
           before do
-            Messages.publish(
+            Publisher.publish(
+              queue: queue,
               max_queue_size: max_queue_size,
-              num_worker_threads: num_worker_threads,
+              num_publisher_threads: num_publisher_threads,
               poll_interval: poll_interval,
               logger: logger,
               kernel: kernel
             ) do |message|
-              Messages.stop_publishing
+              Publisher.stop
 
               raise standard_error
             end
@@ -66,8 +69,9 @@ module Outboxer
 
             expect(queued_message.exceptions[0].frames.count).to eq(4)
             expect(queued_message.exceptions[0].frames[0].index).to eq(0)
-            expect(queued_message.exceptions[0].frames[0].text).to include(
-              "outboxer/messages/publish_spec.rb:53:in `block (6 levels) in <module:Outboxer>'")
+
+            expect(queued_message.exceptions[0].frames[0].text).to match(
+              /outboxer\/publisher\/publish_spec.rb:\d+:in `block \(6 levels\) in <module:Outboxer>'/)
           end
 
           it 'logs errors' do
@@ -86,14 +90,14 @@ module Outboxer
           let(:no_memory_error) { NoMemoryError.new }
 
           before do
-            Messages.publish(
+            Publisher.publish(
               max_queue_size: max_queue_size,
-              num_worker_threads: num_worker_threads,
+              num_publisher_threads: num_publisher_threads,
               poll_interval: poll_interval,
               logger: logger,
               kernel: kernel
             ) do |dequeued_message|
-              Messages.stop_publishing
+              Publisher.stop
 
               raise no_memory_error
             end
@@ -112,7 +116,7 @@ module Outboxer
             expect(queued_message.exceptions[0].frames.count).to eq(4)
             expect(queued_message.exceptions[0].frames[0].index).to eq(0)
             expect(queued_message.exceptions[0].frames[0].text).to match(
-              /outboxer\/messages\/publish_spec.rb:\d+:in `block \(6 levels\) in <module:Outboxer>'/)
+              /outboxer\/publisher\/publish_spec.rb:\d+:in `block \(6 levels\) in <module:Outboxer>'/)
           end
 
           it 'logs errors' do
@@ -138,7 +142,7 @@ module Outboxer
               when 1
                 raise StandardError, 'queue error'
               else
-                Messages.stop_publishing
+                Publisher.stop
 
                 []
               end
@@ -146,9 +150,9 @@ module Outboxer
 
             expect(logger).to receive(:error).with(include('StandardError: queue error')).once
 
-            Messages.publish(
+            Publisher.publish(
               max_queue_size: max_queue_size,
-              num_worker_threads: num_worker_threads,
+              num_publisher_threads: num_publisher_threads,
               poll_interval: poll_interval,
               logger: logger,
               kernel: kernel
@@ -158,15 +162,16 @@ module Outboxer
 
         context 'when Messages.dequeue raises an Exception' do
           it 'logs the exception and shuts down' do
-            allow(Messages).to receive(:dequeue).and_raise(NoMemoryError, 'failed to allocate memory')
+            allow(Messages).to receive(:dequeue)
+              .and_raise(NoMemoryError, 'failed to allocate memory')
 
             expect(logger).to receive(:fatal)
               .with(include('NoMemoryError: failed to allocate memory'))
               .once
 
-            Messages.publish(
+            Publisher.publish(
               max_queue_size: max_queue_size,
-              num_worker_threads: num_worker_threads,
+              num_publisher_threads: num_publisher_threads,
               poll_interval: poll_interval,
               logger: logger,
               kernel: kernel)

@@ -23,8 +23,8 @@ def fetch_process_stats(pid)
   { pid: pid, rss_mb: rss_mb, cpu: cpu, cpu_per_core: cpu_per_core.round(2), elapsed: elapsed, vsz_mb: vsz_mb }
 end
 
-def outboxer_message_publisher_pids
-  `pgrep -f bin/outboxer_message_publisher$`.strip.split("\n")
+def outboxer_publisher_pids
+  `pgrep -f bin/outboxer_publisher$`.strip.split("\n")
 end
 
 environment = ENV['RAILS_ENV'] || 'development'
@@ -53,7 +53,7 @@ loop do
     end
   end
 
-  pids = outboxer_message_publisher_pids.sort
+  pids = outboxer_publisher_pids.sort
 
   puts "Outboxer Message Publisher Monitor"
   puts Time.now.utc

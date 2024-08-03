@@ -47,16 +47,16 @@ class Event < ActiveRecord::Base
 end
 ```
 
-### 4. generate message publisher
+### 4. generate publisher
 
 ```bash
-bin/rails g outboxer:message_publisher
+bin/rails g outboxer:publisher
 ```
 
 ### 5. perform event created job async in publish block
 
 ```ruby
-Outboxer::Message.publish do |message|
+Outboxer::Publisher.publish do |message|
   case message[:messageable_type]
   when 'Event'
     EventCreatedJob.perform_async({ 'id' => message[:messageable_id] })
@@ -64,10 +64,25 @@ Outboxer::Message.publish do |message|
 end
 ```
 
-### 6. run message publisher
+### 6. add event created job
+
+```ruby
+class EventCreatedJob
+  include Sidekiq::Job
+
+  def perform(args)
+    event = Event.find(args['id'])
+
+    # your code here
+  end
+end
+```
+
+### 7. run publisher
+=======
 
 ```bash
-bin/outboxer_message_publisher
+bin/outboxer_publisher
 ```
 
 ### 7. manage messages
