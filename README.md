@@ -73,7 +73,7 @@ class EventCreatedJob
   def perform(args)
     event = Event.find(args['id'])
 
-    # your event handler code here
+    # your handler code here
   end
 end
 ```
