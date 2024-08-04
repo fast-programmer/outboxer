@@ -2,6 +2,32 @@ module Outboxer
   module Messages
     extend self
 
+    def report_metrics(statsd:, current_utc_time: Time.now.utc)
+      results = nil
+
+      ActiveRecord::Base.connection_pool.with_connection do |connection|
+        results = Models::Message
+          .group(:status)
+          .select('status, COUNT(*) AS count, MIN(updated_at) AS oldest')
+      end
+
+      statsd.batch do |batch|
+        results.each do |result|
+          size = result.count
+
+          oldest_message_time = result.oldest
+          latency = oldest_message_time ? current_utc_time - oldest_message_time.utc : 0
+
+          status = result.status
+
+          batch.gauge("outboxer.messages.#{status}.size", size)
+          batch.gauge("outboxer.messages.#{status}.latency", latency)
+        end
+      end
+
+      results
+    end
+
     def counts_by_status
       ActiveRecord::Base.connection_pool.with_connection do
         status_counts = Models::Message::STATUSES.each_with_object({ all: 0 }) do |status, hash|
@@ -23,7 +49,7 @@ module Outboxer
           messages = Models::Message
             .where(status: Models::Message::Status::QUEUED)
             .order(updated_at: :asc)
-            .lock('FOR UPDATE SKIP LOCKED')
+            .lock('FOR UPDATE SKIP LOCKED') # PostgreSQL 9.5, MySQL 8.0.1
             .limit(limit)
             .select(:id, :messageable_type, :messageable_id)
 
