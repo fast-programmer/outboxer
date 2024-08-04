@@ -4,16 +4,30 @@ module Outboxer
 
     def stats
       ActiveRecord::Base.connection_pool.with_connection do
-        status_counts = Models::Message::STATUSES
-          .each_with_object({ all: { count: 0 } }) do |status, hash|
-            hash[status.to_sym] = { count: 0 }
-          end
-
-        Models::Message.group(:status).count.each do |status, count|
-          status_counts[status.to_sym][:count] = count
-
-          status_counts[:all][:count] += count
+        status_counts = Models::Message::STATUSES.each_with_object(
+          { all: { count: 0, oldest_updated_at: nil } }
+        ) do |status, hash|
+          hash[status.to_sym] = { count: 0, oldest_updated_at: nil }
         end
+
+        Models::Message
+          .group(:status)
+          .select('status, COUNT(*) AS count, MIN(updated_at) AS oldest_updated_at')
+          .each do |record|
+            status = record.status.to_sym
+
+            status_counts[status][:count] = record.count
+            status_counts[status][:oldest_updated_at] = record.oldest_updated_at&.utc
+            status_counts[:all][:count] += record.count
+
+            all_oldest = status_counts[:all][:oldest_updated_at]
+
+            record_oldest = record.oldest_updated_at&.utc
+
+            if all_oldest.nil? || (record_oldest && record_oldest < all_oldest)
+              status_counts[:all][:oldest_updated_at] = record_oldest
+            end
+          end
 
         status_counts
       end
