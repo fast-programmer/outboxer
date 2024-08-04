@@ -6,11 +6,11 @@ module Outboxer
       context 'when no messages exist' do
         it 'returns 0 for all statuses' do
           expect(Messages.counts_by_status).to eq({
-            all: 0,
-            queued: 0,
-            dequeued: 0,
-            publishing: 0,
-            failed: 0
+            all: { count: 0 },
+            queued: { count: 0 },
+            dequeued: { count: 0 },
+            publishing: { count: 0 },
+            failed: { count: 0 }
           })
         end
       end
@@ -25,11 +25,11 @@ module Outboxer
 
         it 'returns correct counts for each status' do
           expect(Messages.counts_by_status).to eq({
-            all: 14,
-            queued: 2,
-            dequeued: 3,
-            publishing: 5,
-            failed: 4 })
+            all: { count: 14 },
+            queued: { count: 2 },
+            dequeued: { count: 3 },
+            publishing: { count: 5 },
+            failed: { count: 4 } })
         end
       end
     end

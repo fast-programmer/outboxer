@@ -21,7 +21,7 @@
                         <tr class="table-primary" data-bs-toggle="collapse" data-bs-target="#publishingSection" aria-expanded="true" aria-controls="publishingSection">
                             <th colspan="5">
                                 <button class="btn btn-link p-0 text-decoration-none text-dark fw-bold" type="button">
-                                    Publishing (<%= message_status_counts[:publishing] %>)
+                                    Publishing (<%= message_status_counts[:publishing][:count] %>)
                                 </button>
                             </th>
                         </tr>
@@ -60,7 +60,7 @@
                         <tr class="table-secondary" data-bs-toggle="collapse" data-bs-target="#dequeuedSection" aria-expanded="true" aria-controls="dequeuedSection">
                             <th colspan="5">
                                 <button class="btn btn-link p-0 text-decoration-none text-dark fw-bold" type="button">
-                                    Dequeued (<%= message_status_counts[:dequeued] %>)
+                                    Dequeued (<%= message_status_counts[:dequeued][:count] %>)
                                 </button>
                             </th>
                         </tr>
@@ -99,7 +99,7 @@
                         <tr class="table-warning" data-bs-toggle="collapse" data-bs-target="#queuedSection" aria-expanded="true" aria-controls="queuedSection">
                             <th colspan="5">
                                 <button class="btn btn-link p-0 text-decoration-none text-dark fw-bold" type="button">
-                                    Queued (<%= message_status_counts[:queued] %>)
+                                    Queued (<%= message_status_counts[:queued][:count] %>)
                                 </button>
                             </th>
                         </tr>

@@ -4,13 +4,15 @@ module Outboxer
 
     def counts_by_status
       ActiveRecord::Base.connection_pool.with_connection do
-        status_counts = Models::Message::STATUSES.each_with_object({ all: 0 }) do |status, hash|
-          hash[status.to_sym] = 0
-        end
+        status_counts = Models::Message::STATUSES
+          .each_with_object({ all: { count: 0 } }) do |status, hash|
+            hash[status.to_sym] = { count: 0 }
+          end
 
         Models::Message.group(:status).count.each do |status, count|
-          status_counts[status.to_sym] = count
-          status_counts[:all] += count
+          status_counts[status.to_sym][:count] = count
+
+          status_counts[:all][:count] += count
         end
 
         status_counts
