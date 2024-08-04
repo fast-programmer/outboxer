@@ -10,13 +10,13 @@ module Outboxer
 
     describe '.stats' do
       context 'when no messages exist' do
-        it 'returns { count: 0, oldest_updated_at: nil } for all statuses' do
-          expect(Messages.stats).to eq({
-            all: { count: 0, oldest_updated_at: nil },
-            queued: { count: 0, oldest_updated_at: nil },
-            dequeued: { count: 0, oldest_updated_at: nil },
-            publishing: { count: 0, oldest_updated_at: nil },
-            failed: { count: 0, oldest_updated_at: nil }
+        it 'returns stats with count, oldest_updated_at and latency for all statuses' do
+          expect(Messages.stats(current_utc_time: fixed_time)).to eq({
+            all: { count: 0, oldest_updated_at: nil, latency: nil },
+            queued: { count: 0, oldest_updated_at: nil, latency: nil },
+            dequeued: { count: 0, oldest_updated_at: nil, latency: nil },
+            publishing: { count: 0, oldest_updated_at: nil, latency: nil },
+            failed: { count: 0, oldest_updated_at: nil, latency: nil }
           })
         end
       end
@@ -29,13 +29,13 @@ module Outboxer
           create_list(:outboxer_message, 4, :failed, updated_at: fixed_time - 4.hours)
         end
 
-        it 'returns correct stats for each status' do
-          expect(Messages.stats).to eq({
-            all: { count: 14, oldest_updated_at: fixed_time - 4.hours },
-            queued: { count: 2, oldest_updated_at: fixed_time - 1.hour },
-            dequeued: { count: 3, oldest_updated_at: fixed_time - 2.hours },
-            publishing: { count: 5, oldest_updated_at: fixed_time - 3.hours },
-            failed: { count: 4, oldest_updated_at: fixed_time - 4.hours }
+        it 'returns correct stats including latency for each status' do
+          expect(Messages.stats(current_utc_time: fixed_time)).to eq({
+            all: { count: 14, oldest_updated_at: fixed_time - 4.hours, latency: 14400 },
+            queued: { count: 2, oldest_updated_at: fixed_time - 1.hour, latency: 3600 },
+            dequeued: { count: 3, oldest_updated_at: fixed_time - 2.hours, latency: 7200 },
+            publishing: { count: 5, oldest_updated_at: fixed_time - 3.hours, latency: 10800 },
+            failed: { count: 4, oldest_updated_at: fixed_time - 4.hours, latency: 14400 }
           })
         end
       end

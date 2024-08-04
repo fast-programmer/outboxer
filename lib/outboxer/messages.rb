@@ -2,12 +2,12 @@ module Outboxer
   module Messages
     extend self
 
-    def stats
+    def stats(current_utc_time: Time.now.utc)
       ActiveRecord::Base.connection_pool.with_connection do
         status_counts = Models::Message::STATUSES.each_with_object(
-          { all: { count: 0, oldest_updated_at: nil } }
+          { all: { count: 0, oldest_updated_at: nil, latency: nil } }
         ) do |status, hash|
-          hash[status.to_sym] = { count: 0, oldest_updated_at: nil }
+          hash[status.to_sym] = { count: 0, oldest_updated_at: nil, latency: nil }
         end
 
         Models::Message
@@ -15,18 +15,21 @@ module Outboxer
           .select('status, COUNT(*) AS count, MIN(updated_at) AS oldest_updated_at')
           .each do |record|
             status = record.status.to_sym
-
             status_counts[status][:count] = record.count
-            status_counts[status][:oldest_updated_at] = record.oldest_updated_at&.utc
-            status_counts[:all][:count] += record.count
 
-            all_oldest = status_counts[:all][:oldest_updated_at]
+            if record.oldest_updated_at
+              oldest_utc = record.oldest_updated_at.utc
+              status_counts[status][:oldest_updated_at] = oldest_utc
+              status_counts[status][:latency] = (current_utc_time - oldest_utc).to_i
 
-            record_oldest = record.oldest_updated_at&.utc
-
-            if all_oldest.nil? || (record_oldest && record_oldest < all_oldest)
-              status_counts[:all][:oldest_updated_at] = record_oldest
+              if status_counts[:all][:oldest_updated_at].nil? ||
+                  oldest_utc < status_counts[:all][:oldest_updated_at]
+                status_counts[:all][:oldest_updated_at] = oldest_utc
+                status_counts[:all][:latency] = status_counts[status][:latency]
+              end
             end
+
+            status_counts[:all][:count] += record.count
           end
 
         status_counts
