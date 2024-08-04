@@ -28,7 +28,7 @@ Outboxer::Publisher.publish(
   num_publisher_threads: 5,
   max_queue_size: 1000,
   poll_interval: 1,
-  logger: logger,
+  logger: logger
 ) do |message|
   case message[:messageable_type]
   when 'Event'
