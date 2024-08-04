@@ -2,45 +2,30 @@ module Outboxer
   module Messages
     extend self
 
-    def report_statsd_guages(reporting_interval:, statsd:, current_utc_time: Time.now.utc)
+    def report_metrics(statsd:, current_utc_time: Time.now.utc)
+      results = nil
+
       ActiveRecord::Base.connection_pool.with_connection do |connection|
-        ActiveRecord::Base.transaction do
-          lock = Models::Lock.lock('FOR UPDATE NOWAIT').find_by!(
-            key: 'messages/report_statsd_guages')
+        results = Models::Message
+          .group(:status)
+          .select('status, COUNT(*) AS count, MIN(updated_at) AS oldest')
+      end
 
-          if lock.updated_at.utc <= current_utc_time - reporting_interval
-            results = Models::Message
-              .group(:status)
-              .select('status, COUNT(*) AS count, MIN(updated_at) AS oldest')
+      statsd.batch do |batch|
+        results.each do |result|
+          size = result.count
 
-            statsd.batch do |batch|
-              results.each do |result|
-                size = result.size
+          oldest_message_time = result.oldest
+          latency = oldest_message_time ? current_utc_time - oldest_message_time.utc : 0
 
-                oldest_message_time = result.oldest
-                latency = oldest_message_time ? current_utc_time - oldest_message_time.utc : 0
+          status = result.status
 
-                status = result.status
-
-                batch.gauge("messages.#{status}.size", size)
-                batch.gauge("messages.#{status}.latency", latency)
-              end
-            end
-
-            lock.update!(updated_at: current_utc_time)
-          end
-
-          nil
-        rescue ActiveRecord::LockWaitTimeout # PostgreSQL 8.1
-          nil
-        rescue ActiveRecord::StatementInvalid => e # mySQL 8.0.1
-          if e.message.include?("Lock wait timeout exceeded") || e.message.include?("NOWAIT is set")
-            nil
-          else
-            raise
-          end
+          batch.gauge("outboxer.messages.#{status}.size", size)
+          batch.gauge("outboxer.messages.#{status}.latency", latency)
         end
       end
+
+      results
     end
 
     def counts_by_status

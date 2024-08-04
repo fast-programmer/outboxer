@@ -9,16 +9,11 @@ module Outboxer
       max_queue_size: 10,
       num_publisher_threads: 5,
       poll_interval: 1,
-      statsd: nil,
-      reporting_interval: 1,
       logger: Logger.new($stdout, level: Logger::INFO),
       kernel: Kernel,
       &block
     )
       @publishing = true
-
-      reporting_thread = create_reporting_thread(
-        statsd: statsd, reporting_interval: reporting_interval) unless statsd.nil?
 
       publisher_threads = num_publisher_threads.times.map do
         create_publisher_thread(queue: queue, logger: logger, &block)
@@ -33,33 +28,10 @@ module Outboxer
 
       publisher_threads.length.times { queue.push(nil) }
       publisher_threads.each(&:join)
-
-      reporting_thread.join
     end
 
     def stop
       @publishing = false
-    end
-
-    def create_reporting_thread(statsd:, reporting_interval:)
-      Thread.new do
-        last_updated_utc_time = Time.now.utc
-
-        while @publishing
-          current_utc_time = Time.now.utc
-
-          if current_utc_time - last_updated_utc_time >= reporting_interval
-            Messages.report_statsd_gauges(
-              statsd: statsd,
-              reporting_interval: reporting_interval,
-              current_utc_time: current_utc_time)
-
-            last_updated_utc_time = current_utc_time
-          end
-
-          sleep 1
-        end
-      end
     end
 
     def create_publisher_thread(queue:, logger:, &block)

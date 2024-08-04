@@ -1,13 +1,10 @@
 require 'spec_helper'
 require 'statsd-ruby'
-require 'active_record'
-require 'socket'
 
 module Outboxer
   RSpec.describe Messages do
     let(:statsd) { instance_double(::Statsd) }
     let(:current_time_utc) { Time.now.utc }
-    let(:interval) { 30 }
     let(:tags) { ['env:test'] }
 
     before do
@@ -16,167 +13,31 @@ module Outboxer
     end
 
     before do
-      create_list(:outboxer_message, 2, :queued)
-      create_list(:outboxer_message, 3, :dequeued)
-      create_list(:outboxer_message, 5, :publishing)
-      create_list(:outboxer_message, 4, :failed)
+      create_list(:outboxer_message, 2, :queued, updated_at: 10.minutes.ago)
+      create_list(:outboxer_message, 3, :dequeued, updated_at: 20.minutes.ago)
+      create_list(:outboxer_message, 5, :publishing, updated_at: 30.minutes.ago)
+      create_list(:outboxer_message, 4, :failed, updated_at: 40.minutes.ago)
     end
 
-    describe '.log_metrics' do
-      context 'when lock record exists' do
-        let!(:lock) do
-          create(:outboxer_locks, key: 'messages/log_metrics', updated_at: current_time_utc - interval - 1)
-        end
+    describe '.report_metrics' do
+      it 'sends metrics to statsd' do
+        Messages.report_metrics(statsd: statsd, current_utc_time: current_time_utc)
 
-        context 'when lock record available' do
-          context 'when metrics have not been updated within interval' do
-            it 'sends metrics to statsd' do
-              Messages.log_metrics(
-                statsd: statsd,
-                interval: interval,
-                tags: tags,
-                current_time_utc: current_time_utc)
+        expect(statsd).to have_received(:gauge).with('outboxer.messages.queued.size', 2)
+        expect(statsd).to have_received(:gauge).with('outboxer.messages.queued.latency',
+          be_within(1).of(10.minutes.to_i))
 
-              expect(statsd).to have_received(:gauge).with('outboxer.messages.queued.count', 2, tags: tags)
-              # expect(statsd).to have_received(:gauge).with('outboxer.messages.queued.latency')
-              expect(statsd).to have_received(:gauge).with('outboxer.messages.dequeued.count', 3, tags: tags)
-              # expect(statsd).to have_received(:gauge).with('outboxer.messages.dequeued.latency')
-              expect(statsd).to have_received(:gauge).with('outboxer.messages.publishing.count', 5, tags: tags)
-              # expect(statsd).to have_received(:gauge).with('outboxer.messages.publishing.latency')
-              expect(statsd).to have_received(:gauge).with('outboxer.messages.failed.count', 4, tags: tags)
-              # expect(statsd).to have_received(:gauge).with('outboxer.messages.failed.latency')
-            end
+        expect(statsd).to have_received(:gauge).with('outboxer.messages.dequeued.size', 3)
+        expect(statsd).to have_received(:gauge).with('outboxer.messages.dequeued.latency',
+          be_within(1).of(20.minutes.to_i))
 
-            it 'updates lock record' do
-              expect do
-                Messages.log_metrics(statsd: statsd, interval: interval, current_time_utc: current_time_utc)
-              end.to change { lock.reload.updated_at.utc }.to(current_time_utc)
-            end
-          end
+        expect(statsd).to have_received(:gauge).with('outboxer.messages.publishing.size', 5)
+        expect(statsd).to have_received(:gauge).with('outboxer.messages.publishing.latency',
+          be_within(1).of(30.minutes.to_i))
 
-          context 'when lock has been updated within interval' do
-            let!(:lock) do
-              create(:outboxer_locks,
-                key: 'messages/log_metrics',
-                updated_at: current_time_utc - interval + 1)
-            end
-
-            it 'does not send metrics to statsd' do
-              Messages.log_metrics(statsd: statsd, interval: interval, current_time_utc: current_time_utc)
-
-              expect(statsd).not_to have_received(:gauge)
-            end
-
-            it 'does not update lock record' do
-              expect do
-                Messages.log_metrics(statsd: statsd, interval: interval, current_time_utc: current_time_utc)
-              end.not_to change { lock.reload.updated_at }
-            end
-          end
-        end
-
-        context 'when lock record not available' do
-          before do
-            allow(Models::Lock).to receive(:lock).with('FOR UPDATE NOWAIT').and_return(Models::Lock)
-            allow(Models::Lock).to receive(:find_by!).with(key: 'messages/log_metrics').and_raise(ActiveRecord::LockWaitTimeout)
-          end
-
-          it 'does not send metrics to statsd' do
-            Messages.log_metrics(statsd: statsd, interval: interval, current_time_utc: current_time_utc)
-
-            expect(statsd).not_to have_received(:gauge)
-          end
-
-          it 'does not update lock record' do
-            expect do
-              Messages.log_metrics(statsd: statsd, interval: interval, current_time_utc: current_time_utc)
-            end.not_to change { lock.reload.updated_at }
-          end
-        end
-      end
-
-      context 'when lock record does not exist' do
-        context 'when metrics record created' do
-          context 'when lock record available' do
-            context 'when metrics have not been updated within interval' do
-              it 'sends metrics to statsd' do
-                Messages.log_metrics(
-                statsd: statsd,
-                interval: interval,
-                tags: tags,
-                current_time_utc: current_time_utc)
-
-                expect(statsd).to have_received(:gauge).with('outboxer.messages.queued.count', 2, tags: tags)
-                # expect(statsd).to have_received(:gauge).with('outboxer.messages.queued.latency')
-                expect(statsd).to have_received(:gauge).with('outboxer.messages.dequeued.count', 3, tags: tags)
-                # expect(statsd).to have_received(:gauge).with('outboxer.messages.dequeued.latency')
-                expect(statsd).to have_received(:gauge).with('outboxer.messages.publishing.count', 5, tags: tags)
-                # expect(statsd).to have_received(:gauge).with('outboxer.messages.publishing.latency')
-                expect(statsd).to have_received(:gauge).with('outboxer.messages.failed.count', 4, tags: tags)
-                # expect(statsd).to have_received(:gauge).with('outboxer.messages.failed.latency')
-              end
-
-              it 'updates lock record' do
-                expect do
-                  Messages.log_metrics(statsd: statsd, interval: interval, current_time_utc: current_time_utc)
-                end.to change { lock.reload.updated_at }.to(current_time_utc)
-              end
-            end
-
-            context 'when lock has been updated within interval' do
-              let!(:lock) { create(:outboxer_locks, key: 'messages/log_metrics', updated_at: current_time_utc - interval + 1) }
-
-              it 'does not send metrics to statsd' do
-                Messages.log_metrics(statsd: statsd, interval: interval, current_time_utc: current_time_utc)
-
-                expect(statsd).not_to have_received(:gauge)
-              end
-
-              it 'does not update metrics record' do
-                expect do
-                  Messages.log_metrics(statsd: statsd, interval: interval, current_time_utc: current_time_utc)
-                end.not_to change { lock.reload.updated_at }
-              end
-            end
-          end
-
-          context 'when lock record not available' do
-            before do
-              allow(Models::Lock).to receive(:lock).with('FOR UPDATE NOWAIT').and_return(Models::Lock)
-              allow(Models::Lock).to receive(:find_by!).with(key: 'messages/log_metrics').and_raise(ActiveRecord::LockWaitTimeout)
-            end
-
-            it 'does not send metrics to statsd' do
-              Messages.log_metrics(statsd: statsd, interval: interval, current_time_utc: current_time_utc)
-
-              expect(statsd).not_to have_received(:gauge)
-            end
-
-            it 'does not update metrics record' do
-              expect do
-                Messages.log_metrics(statsd: statsd, interval: interval, current_time_utc: current_time_utc)
-              end.not_to change { lock.reload.updated_at }
-            end
-          end
-        end
-
-        context 'when lock record not unique' do
-          before do
-            allow(Models::Metrics).to receive(:lock).with('FOR UPDATE NOWAIT').and_raise(ActiveRecord::RecordNotUnique)
-          end
-
-          it 'does not send metrics to statsd' do
-            Messages.log_metrics(statsd: statsd, interval: interval, current_time: current_time)
-
-            expect(statsd).not_to have_received(:gauge)
-          end
-
-          it 'does not update lock record' do
-            expect do
-              Messages.log_metrics(statsd: statsd, interval: interval, current_time_utc: current_time_utc)
-            end.not_to change { lock.reload.updated_at }
-          end
-        end
+        expect(statsd).to have_received(:gauge).with('outboxer.messages.failed.size', 4)
+        expect(statsd).to have_received(:gauge).with('outboxer.messages.failed.latency',
+          be_within(1).of(40.minutes.to_i))
       end
     end
   end
