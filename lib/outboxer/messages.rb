@@ -2,7 +2,7 @@ module Outboxer
   module Messages
     extend self
 
-    def stats(current_utc_time: Time.now.utc)
+    def metrics(current_utc_time: Time.now.utc)
       ActiveRecord::Base.connection_pool.with_connection do
         status_counts = Models::Message::STATUSES.each_with_object(
           { all: { count: 0, oldest_updated_at: nil, latency: nil } }
