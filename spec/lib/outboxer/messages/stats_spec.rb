@@ -1,11 +1,11 @@
 require 'spec_helper'
 
 module Outboxer
-  RSpec.describe Message do
-    describe '.counts_by_status' do
+  RSpec.describe Messages do
+    describe '.stats' do
       context 'when no messages exist' do
-        it 'returns 0 for all statuses' do
-          expect(Messages.counts_by_status).to eq({
+        it 'returns { count: 0 } for all statuses' do
+          expect(Messages.stats).to eq({
             all: { count: 0 },
             queued: { count: 0 },
             dequeued: { count: 0 },
@@ -23,8 +23,8 @@ module Outboxer
           create_list(:outboxer_message, 4, :failed)
         end
 
-        it 'returns correct counts for each status' do
-          expect(Messages.counts_by_status).to eq({
+        it 'returns correct stats for each status' do
+          expect(Messages.stats).to eq({
             all: { count: 14 },
             queued: { count: 2 },
             dequeued: { count: 3 },

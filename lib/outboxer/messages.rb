@@ -2,7 +2,7 @@ module Outboxer
   module Messages
     extend self
 
-    def counts_by_status
+    def stats
       ActiveRecord::Base.connection_pool.with_connection do
         status_counts = Models::Message::STATUSES
           .each_with_object({ all: { count: 0 } }) do |status, hash|

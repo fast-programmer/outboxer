@@ -42,7 +42,7 @@ module Outboxer
         page: 1,
         per_page: params[:per_page]&.to_i)
 
-      message_status_counts = Messages.counts_by_status
+      messages_stats = Messages.stats
 
       messages_publishing = Messages.list(
         status: :publishing,
@@ -117,7 +117,7 @@ module Outboxer
     end
 
     get '/messages' do
-      message_status_counts = Messages.counts_by_status
+      messages_stats = Messages.stats
 
       denormalised_params = denormalise_params(
         status: params[:status],
@@ -393,7 +393,7 @@ module Outboxer
     end
 
     get '/message/:id' do
-      message_status_counts = Messages.counts_by_status
+      messages_stats = Messages.stats
 
       message = Message.find_by_id(id: params[:id])
 
@@ -405,7 +405,7 @@ module Outboxer
         per_page: params[:per_page]&.to_i)
 
       erb :message, locals: {
-        message_status_counts: message_status_counts,
+        messages_stats: messages_stats,
         denormalised_params: denormalised_params,
         message: message
       }
