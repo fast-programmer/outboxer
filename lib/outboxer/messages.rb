@@ -2,42 +2,35 @@ module Outboxer
   module Messages
     extend self
 
-    def stop_publishing
-      @publishing = false
-    end
-
-    def log_metrics(statsd:, interval:, tags: [],
-                    current_time_utc: Time.now.utc)
+    def report_statsd_guages(reporting_interval:, statsd:, current_utc_time: Time.now.utc)
       ActiveRecord::Base.connection_pool.with_connection do |connection|
         ActiveRecord::Base.transaction do
-          lock = Models::Lock.lock('FOR UPDATE NOWAIT').find_by!(key: 'messages/log_metrics')
+          lock = Models::Lock.lock('FOR UPDATE NOWAIT').find_by!(
+            key: 'messages/report_statsd_guages')
 
-          if lock.updated_at.utc <= current_time_utc - interval
+          if lock.updated_at.utc <= current_utc_time - reporting_interval
             results = Models::Message
               .group(:status)
               .select('status, COUNT(*) AS count, MIN(updated_at) AS oldest')
 
             statsd.batch do |batch|
               results.each do |result|
-                status = result.status
-                count = result.count
-                oldest_message_time = result.oldest
-                latency = oldest_message_time ? current_time_utc - oldest_message_time.utc : 0
+                size = result.size
 
-                batch.gauge("outboxer.messages.#{status}.count", count)
-                batch.gauge("outboxer.messages.#{status}.latency", latency)
+                oldest_message_time = result.oldest
+                latency = oldest_message_time ? current_utc_time - oldest_message_time.utc : 0
+
+                status = result.status
+
+                batch.gauge("messages.#{status}.size", size)
+                batch.gauge("messages.#{status}.latency", latency)
               end
             end
 
-            lock.update!(updated_at: current_time_utc)
+            lock.update!(updated_at: current_utc_time)
           end
 
           nil
-        rescue ActiveRecord::RecordNotFound
-          Models::Lock.create!(
-            key: 'messages/log_metrics', created_at: current_time_utc, updated_at: current_time_utc)
-
-          retry
         rescue ActiveRecord::LockWaitTimeout # PostgreSQL 8.1
           nil
         rescue ActiveRecord::StatementInvalid => e # mySQL 8.0.1
@@ -47,162 +40,7 @@ module Outboxer
             raise
           end
         end
-      rescue ActiveRecord::RecordNotUnique
-        retry
       end
-    end
-
-    def publish(num_worker_threads: 5,
-                max_queue_size: 10,
-                poll_interval: 1,
-                statsd:,
-                log_metrics_interval:,
-                logger: Logger.new($stdout, level: Logger::INFO),
-                kernel: Kernel,
-                time: Time,
-                &block)
-      queue = Queue.new
-
-      @publishing = true
-
-      log_metrics_thread = Thread.new do
-        last_run_time_utc = time.now.utc
-
-        while @publishing
-          current_time_utc = time.now.utc
-          elapsed_time = current_time_utc - last_run_time_utc
-
-          if elapsed_time >= log_metrics_interval
-            log_metrics(statsd: statsd, interval: log_metrics_interval, current_time_utc: current_time_utc)
-
-            last_run_time_utc = current_time_utc
-          end
-
-          sleep 1
-        end
-      end
-
-      log_process_metrics_thread = Thread.new do
-        last_run_time_utc = time.now.utc
-
-        while @publishing
-          current_time_utc = time.now.utc
-          elapsed_time = current_time_utc - last_run_time_utc
-
-          if elapsed_time >= log_metrics_interval
-            Process.log_metrics(statsd: statsd, logger: logger, interval: log_metrics_interval, current_time_utc: current_time_utc)
-
-            last_run_time_utc = current_time_utc
-          end
-
-          sleep 1
-        end
-      end
-
-      logger.info "Initializing #{num_worker_threads} worker threads"
-      worker_threads = num_worker_threads.times.map do
-        Thread.new do
-          loop do
-            begin
-              queued_message = queue.pop
-              break if queued_message.nil?
-
-              queued_at = queued_message[:queued_at]
-
-              message = Message.publishing(id: queued_message[:id])
-              logger.info "Publishing message #{message[:id]} for " \
-                "#{message[:messageable_type]}::#{message[:messageable_id]} " \
-                "in #{(Time.now.utc - queued_at).round(3)}s"
-
-              begin
-                block.call(message)
-              rescue Exception => exception
-                Message.failed(id: message[:id], exception: exception)
-                logger.error "Failed to publish message #{message[:id]} for " \
-                  "#{message[:messageable_type]}::#{message[:messageable_id]} " \
-                  "in #{(Time.now.utc - queued_at).round(3)}s"
-
-                raise
-              end
-
-              Message.published(id: message[:id])
-              logger.info "Published message #{message[:id]} for " \
-                "#{message[:messageable_type]}::#{message[:messageable_id]} " \
-                "in #{(Time.now.utc - queued_at).round(3)}s"
-            rescue StandardError => exception
-              logger.error "#{exception.class}: #{exception.message} " \
-                "in #{(Time.now.utc - queued_at).round(3)}s"
-
-              exception.backtrace.each { |frame| logger.error frame }
-            rescue Exception => exception
-              logger.fatal "#{exception.class}: #{exception.message} " \
-                "in #{(Time.now.utc - queued_at).round(3)}s"
-              exception.backtrace.each { |frame| logger.error frame }
-
-              @publishing = false
-
-              break
-            end
-          end
-        end
-      end
-
-      logger.info "Initialized #{num_worker_threads} worker threads"
-
-      logger.info "Dequeuing up to #{max_queue_size} messages every #{poll_interval}s"
-      while @publishing
-        begin
-          messages = []
-
-          queue_remaining = max_queue_size - queue.length
-          queue_stats = { total: queue, remaining: queue_remaining, current: queue.length }
-          logger.debug "Queue: #{queue_stats}"
-
-          logger.debug "Connection pool: #{ActiveRecord::Base.connection_pool.stat}"
-
-          messages = (queue_remaining > 0) ? Messages.dequeue(limit: queue_remaining) : []
-          logger.debug "Updated #{messages.length} messages from queued to dequeued"
-
-          messages.each do |message|
-            logger.info "Queuing message #{message[:id]} for " \
-              "#{message[:messageable_type]}::#{message[:messageable_id]}"
-
-            queue.push({ id: message[:id], queued_at: Time.now.utc })
-          end
-
-          logger.debug "Pushed #{messages.length} messages to queue."
-
-          if messages.empty?
-            logger.debug "Sleeping for #{poll_interval} seconds because no messages were queued..."
-
-            kernel.sleep(poll_interval)
-          elsif queue.length >= queue
-            logger.debug "Sleeping for #{poll_interval} seconds because queue was full..."
-
-            kernel.sleep(poll_interval)
-          end
-        rescue StandardError => exception
-          logger.error "#{exception.class}: #{exception.message}"
-          exception.backtrace.each { |frame| logger.error frame }
-
-          kernel.sleep(poll_interval)
-        rescue Exception => exception
-          logger.fatal "#{exception.class}: #{exception.message}"
-          exception.backtrace.each { |frame| logger.fatal frame }
-
-          @publishing = false
-        end
-      end
-      logger.info "Stopped dequeuing messages"
-
-      logger.info "Shutting down #{num_worker_threads} worker threads"
-      worker_threads.length.times { queue.push(nil) }
-      worker_threads.each(&:join)
-      logger.info "Shut down #{num_worker_threads} worker threads"
-
-      log_metrics_thread.join
-
-      log_process_metrics_thread.join
     end
 
     def counts_by_status
@@ -220,7 +58,7 @@ module Outboxer
       end
     end
 
-    def dequeue(limit: 1)
+    def dequeue(limit: 1, current_utc_time: Time.now.utc)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           messages = Models::Message
@@ -233,7 +71,7 @@ module Outboxer
           if messages.present?
             Models::Message
               .where(id: messages.map { |message| message[:id] })
-              .update_all(updated_at: Time.current, status: Models::Message::Status::DEQUEUED)
+              .update_all(updated_at: current_utc_time, status: Models::Message::Status::DEQUEUED)
           end
 
           messages.map do |message|
@@ -322,7 +160,7 @@ module Outboxer
       REQUEUE_ALL_STATUSES.include?(status&.to_sym)
     end
 
-    def requeue_all(status:, batch_size: 100)
+    def requeue_all(status:, batch_size: 100, time: Time)
       if !can_requeue_all?(status: status)
         status_formatted = status.nil? ? 'nil' : status
 
@@ -346,7 +184,7 @@ module Outboxer
 
             requeued_count_batch = Models::Message
               .where(id: locked_ids)
-              .update_all(status: Models::Message::Status::QUEUED, updated_at: Time.now.utc)
+              .update_all(status: Models::Message::Status::QUEUED, updated_at: time.now.utc)
 
             requeued_count += requeued_count_batch
           end
@@ -358,7 +196,7 @@ module Outboxer
       { requeued_count: requeued_count }
     end
 
-    def requeue_by_ids(ids:)
+    def requeue_by_ids(ids:, time: Time)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           locked_ids = Models::Message
@@ -369,7 +207,7 @@ module Outboxer
 
           requeued_count = Models::Message
             .where(id: locked_ids)
-            .update_all(status: Models::Message::Status::QUEUED, updated_at: Time.now.utc)
+            .update_all(status: Models::Message::Status::QUEUED, updated_at: time.now.utc)
 
           { requeued_count: requeued_count, not_requeued_ids: ids - locked_ids }
         end

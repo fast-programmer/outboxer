@@ -7,6 +7,8 @@ class CreateOutboxerLocks < ActiveRecord::Migration[6.1]
       t.timestamps
 
     end
+
+    Outboxer::Models::Lock.create!(key: 'messages/report_statsd_guages')
   end
 
   def down
