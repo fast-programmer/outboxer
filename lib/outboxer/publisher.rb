@@ -9,11 +9,20 @@ module Outboxer
       max_queue_size: 10,
       num_publisher_threads: 5,
       poll_interval: 1,
+      delete_published_messages_interval: 3600,
+      delete_published_messages_retention_period: 3600,
+      rentention_period: 3600,
       logger: Logger.new($stdout, level: Logger::INFO),
       kernel: Kernel,
+      time: Time,
       &block
     )
       @publishing = true
+
+      delete_published_messages_thread = create_delete_published_messages_thread(
+        delete_interval: delete_published_messages_interval,
+        retention_period: delete_published_messages_retention_period,
+        logger: logger, kernel: kernel, time: time)
 
       publisher_threads = num_publisher_threads.times.map do
         create_publisher_thread(queue: queue, logger: logger, &block)
@@ -28,31 +37,34 @@ module Outboxer
 
       publisher_threads.length.times { queue.push(nil) }
       publisher_threads.each(&:join)
+
+      delete_published_messages_thread.join
     end
 
     def stop
       @publishing = false
     end
 
+
     def create_delete_published_messages_thread(
-      cleanup_interval: 60, retention_period: 3600,
+      delete_interval: 60, retention_period: 3600,
       logger: Logger.new($stdout, level: Logger::INFO), kernel: Kernel, time: Time
     )
       Thread.new do
-        loop do
+        accumulated_time = 0
+
+        while @publishing
           begin
             Messages.delete_all(
               status: Models::Message::Status::PUBLISHED,
               batch_size: 100,
               older_than: time.now.utc - retention_period)
-
-            kernel.sleep(cleanup_interval)
           rescue StandardError => exception
             logger.error "#{exception.class}: #{exception.message}"
             exception.backtrace.each { |frame| logger.error frame }
-
-            kernel.sleep(cleanup_interval)
           end
+
+          kernel.sleep(1)
         end
       end
     end
