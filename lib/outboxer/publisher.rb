@@ -10,7 +10,7 @@ module Outboxer
       num_publisher_threads: 5,
       poll_interval: 1,
       metrics_statsd: nil,
-      metrics_submit_interval: 30,
+      metrics_submit_interval: 1,
       metrics_tags: [],
       logger: Logger.new($stdout, level: Logger::INFO),
       kernel: Kernel,
@@ -20,7 +20,7 @@ module Outboxer
       @publishing = true
 
       submit_messages_metrics_thread = create_submit_messages_metrics_thread(
-        statsd: metrics_statsd, submit_interval: metrics_submit_interval, tags: [],
+        statsd: metrics_statsd, submit_interval: metrics_submit_interval, tags: metrics_tags,
         logger: logger, kernel: kernel, time: time) unless metrics_statsd.nil?
 
       publisher_threads = num_publisher_threads.times.map do
@@ -56,19 +56,15 @@ module Outboxer
 
               statsd.batch do
                 messages_metrics.each do |status, message_metrics|
-                  logger.info "Submitting messages metrics for #{status} messages: "\
-                              "count=#{message_metrics[:count]}, "\
-                              "latency=#{message_metrics[:latency]}"
+                  statsd.gauge(
+                    "outboxer.messages.count",
+                    message_metrics[:count],
+                    tags: tags + ["status:#{status}"])
 
                   statsd.gauge(
-                    "outboxer.messages.#{status}.count", message_metrics[:count], tags: tags)
-
-                  statsd.gauge(
-                    "outboxer.messages.#{status}.latency", message_metrics[:latency], tags: tags)
-
-                  logger.info "Submitted messages metrics for #{status} messages: "\
-                    "count=#{message_metrics[:count]}, "\
-                    "latency=#{message_metrics[:latency]}"
+                    "outboxer.messages.latency",
+                    message_metrics[:latency],
+                    tags: tags + ["status:#{status}"])
                 end
               end
 

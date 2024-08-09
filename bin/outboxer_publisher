@@ -25,7 +25,7 @@ Outboxer::Database.connect(config: db_config, logger: logger)
   end
 end
 
-datadog_statsd = Datadog::Statsd.new('localhost', 8126)
+datadog_statsd = Datadog::Statsd.new('localhost', 8125)
 
 Outboxer::Publisher.publish(
   num_publisher_threads: 5,

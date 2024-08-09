@@ -3,39 +3,31 @@ module Outboxer
     extend self
 
     def collect_metrics(current_utc_time: Time.now.utc)
-      metrics = { all: { count: 0, oldest_updated_at: nil, latency: nil } }
+      metrics = {}
 
       Models::Message::STATUSES.each do |status|
-        metrics[status.to_sym] = { count: 0, oldest_updated_at: nil, latency: nil }
+        metrics[status.to_sym] = { count: 0, latency: 0 }
       end
 
-      grouped_messages_by_status = nil
+      grouped_messages = nil
 
       ActiveRecord::Base.connection_pool.with_connection do
-        grouped_messages_by_status = Models::Message
+        grouped_messages = Models::Message
           .group(:status)
           .select('status, COUNT(*) AS count, MIN(updated_at) AS oldest_updated_at')
           .to_a
       end
 
-      grouped_messages_by_status.each do |grouped_messages|
-        status = grouped_messages.status.to_sym
-        metrics[status][:count] = grouped_messages.count
+      grouped_messages.each do |grouped_message|
+        status = grouped_message.status.to_sym
 
-        if grouped_messages.oldest_updated_at
-          oldest_utc = grouped_messages.oldest_updated_at.utc
+        metrics[status][:count] = grouped_message.count
 
-          metrics[status][:oldest_updated_at] = oldest_utc
-          metrics[status][:latency] = (current_utc_time - oldest_utc).to_i
+        if grouped_message.oldest_updated_at
+          latency = (current_utc_time - grouped_message.oldest_updated_at.utc).to_i
 
-          if ((metrics[:all][:oldest_updated_at].nil?) ||
-              (oldest_utc < metrics[:all][:oldest_updated_at]))
-            metrics[:all][:oldest_updated_at] = oldest_utc
-            metrics[:all][:latency] = metrics[status][:latency]
-          end
+          metrics[status][:latency] = latency
         end
-
-        metrics[:all][:count] += grouped_messages.count
       end
 
       metrics
