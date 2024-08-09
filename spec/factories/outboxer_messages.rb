@@ -17,6 +17,10 @@ FactoryBot.define do
       status { Outboxer::Models::Message::Status::PUBLISHING }
     end
 
+    trait :published do
+      status { Outboxer::Models::Message::Status::PUBLISHED }
+    end
+
     trait :failed do
       status { Outboxer::Models::Message::Status::FAILED }
     end

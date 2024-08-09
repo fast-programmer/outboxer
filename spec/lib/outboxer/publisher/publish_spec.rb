@@ -34,7 +34,7 @@ module Outboxer
             Publisher.stop
           end
 
-          expect(Models::Message.count).to eq(0)
+          expect(Models::Message.published.count).to eq(1)
         end
       end
 

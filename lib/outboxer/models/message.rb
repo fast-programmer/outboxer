@@ -21,14 +21,16 @@ module Outboxer
         QUEUED = 'queued'
         DEQUEUED = 'dequeued'
         PUBLISHING = 'publishing'
+        PUBLISHED = 'published'
         FAILED = 'failed'
       end
 
-      STATUSES = [Status::QUEUED, Status::DEQUEUED, Status::PUBLISHING, Status::FAILED]
+      STATUSES = [Status::QUEUED, Status::DEQUEUED, Status::PUBLISHING, Status::PUBLISHED, Status::FAILED]
 
       scope :queued, -> { where(status: Status::QUEUED) }
       scope :dequeued, -> { where(status: Status::DEQUEUED) }
       scope :publishing, -> { where(status: Status::PUBLISHING) }
+      scope :published, -> { where(status: Status::PUBLISHED) }
       scope :failed, -> { where(status: Status::FAILED) }
 
       attribute :status, default: -> { Status::QUEUED }
