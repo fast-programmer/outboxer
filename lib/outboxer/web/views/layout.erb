@@ -45,7 +45,7 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav">
                     <li class="nav-item">
-                        <a class="nav-link <%= 'active' if denormalised_params[:status].nil? %>" aria-current="page" href="<%= outboxer_path('/messages') %>">All (<%= messages_metrics[:all][:count %>)</a>
+                        <a class="nav-link <%= 'active' if denormalised_params[:status].nil? %>" aria-current="page" href="<%= outboxer_path('/messages') %>">All (<%= messages_metrics[:all][:count] %>)</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link <%= 'active' if denormalised_params[:status] == 'queued' %>" href="<%= outboxer_path('/messages?status=queued') %>">Queued (<%= message_status_counts[:queued] %>)</a>
