@@ -2,38 +2,43 @@ module Outboxer
   module Messages
     extend self
 
-    def metrics(current_utc_time: Time.now.utc)
-      ActiveRecord::Base.connection_pool.with_connection do
-        status_counts = Models::Message::STATUSES.each_with_object(
-          { all: { count: 0, oldest_updated_at: nil, latency: nil } }
-        ) do |status, hash|
-          hash[status.to_sym] = { count: 0, oldest_updated_at: nil, latency: nil }
-        end
+    def collect_metrics(current_utc_time: Time.now.utc)
+      metrics = { all: { count: 0, oldest_updated_at: nil, latency: nil } }
 
-        Models::Message
+      Models::Message::STATUSES.each do |status|
+        metrics[status.to_sym] = { count: 0, oldest_updated_at: nil, latency: nil }
+      end
+
+      grouped_messages_by_status = nil
+
+      ActiveRecord::Base.connection_pool.with_connection do
+        grouped_messages_by_status = Models::Message
           .group(:status)
           .select('status, COUNT(*) AS count, MIN(updated_at) AS oldest_updated_at')
-          .each do |record|
-            status = record.status.to_sym
-            status_counts[status][:count] = record.count
-
-            if record.oldest_updated_at
-              oldest_utc = record.oldest_updated_at.utc
-              status_counts[status][:oldest_updated_at] = oldest_utc
-              status_counts[status][:latency] = (current_utc_time - oldest_utc).to_i
-
-              if status_counts[:all][:oldest_updated_at].nil? ||
-                  oldest_utc < status_counts[:all][:oldest_updated_at]
-                status_counts[:all][:oldest_updated_at] = oldest_utc
-                status_counts[:all][:latency] = status_counts[status][:latency]
-              end
-            end
-
-            status_counts[:all][:count] += record.count
-          end
-
-        status_counts
+          .to_a
       end
+
+      grouped_messages_by_status.each do |grouped_messages|
+        status = grouped_messages.status.to_sym
+        metrics[status][:count] = grouped_messages.count
+
+        if grouped_messages.oldest_updated_at
+          oldest_utc = grouped_messages.oldest_updated_at.utc
+
+          metrics[status][:oldest_updated_at] = oldest_utc
+          metrics[status][:latency] = (current_utc_time - oldest_utc).to_i
+
+          if ((metrics[:all][:oldest_updated_at].nil?) ||
+              (oldest_utc < metrics[:all][:oldest_updated_at]))
+            metrics[:all][:oldest_updated_at] = oldest_utc
+            metrics[:all][:latency] = metrics[status][:latency]
+          end
+        end
+
+        metrics[:all][:count] += grouped_messages.count
+      end
+
+      metrics
     end
 
     def dequeue(limit: 1, current_utc_time: Time.now.utc)

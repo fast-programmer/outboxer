@@ -9,11 +9,19 @@ module Outboxer
       max_queue_size: 10,
       num_publisher_threads: 5,
       poll_interval: 1,
+      metrics_statsd: nil,
+      metrics_submit_interval: 30,
+      metrics_tags: [],
       logger: Logger.new($stdout, level: Logger::INFO),
       kernel: Kernel,
+      time: Time,
       &block
     )
       @publishing = true
+
+      submit_messages_metrics_thread = create_submit_messages_metrics_thread(
+        statsd: metrics_statsd, submit_interval: metrics_submit_interval, tags: [],
+        logger: logger, kernel: kernel, time: time) unless metrics_statsd.nil?
 
       publisher_threads = num_publisher_threads.times.map do
         create_publisher_thread(queue: queue, logger: logger, &block)
@@ -28,10 +36,53 @@ module Outboxer
 
       publisher_threads.length.times { queue.push(nil) }
       publisher_threads.each(&:join)
+
+      submit_messages_metrics_thread.join unless metrics_statsd.nil?
     end
 
     def stop
       @publishing = false
+    end
+
+    def create_submit_messages_metrics_thread(statsd:, submit_interval:, tags:,
+                                              logger:, kernel:, time:)
+      Thread.new do
+        last_submitted_at = time.now.utc
+
+        while @publishing
+          begin
+            if time.now.utc - last_submitted_at >= submit_interval
+              messages_metrics = Messages.collect_metrics
+
+              statsd.batch do
+                messages_metrics.each do |status, message_metrics|
+                  logger.info "Submitting messages metrics for #{status} messages: "\
+                              "count=#{message_metrics[:count]}, "\
+                              "latency=#{message_metrics[:latency]}"
+
+                  statsd.gauge(
+                    "outboxer.messages.#{status}.count", message_metrics[:count], tags: tags)
+
+                  statsd.gauge(
+                    "outboxer.messages.#{status}.latency", message_metrics[:latency], tags: tags)
+
+                  logger.info "Submitted messages metrics for #{status} messages: "\
+                    "count=#{message_metrics[:count]}, "\
+                    "latency=#{message_metrics[:latency]}"
+                end
+              end
+
+              last_submitted_at = time.now.utc
+            end
+          rescue StandardError => e
+            logger.error "Failed to submit messages metrics: #{e.class}: #{e.message}"
+
+            e.backtrace.each { |frame| logger.error frame }
+          end
+
+          kernel.sleep(1)
+        end
+      end
     end
 
     def create_publisher_thread(queue:, logger:, &block)
@@ -110,7 +161,7 @@ module Outboxer
             logger.debug "Sleeping for #{poll_interval} seconds because no messages were queued..."
 
             kernel.sleep(poll_interval)
-          elsif queue.length >= queue
+          elsif queue.length >= max_queue_size
             logger.debug "Sleeping for #{poll_interval} seconds because queue was full..."
 
             kernel.sleep(poll_interval)

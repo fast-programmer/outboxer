@@ -4,6 +4,7 @@ require 'bundler/setup'
 
 require 'sidekiq'
 require 'outboxer'
+require 'datadog/statsd'
 
 environment = ENV['RAILS_ENV'] || 'development'
 
@@ -24,10 +25,15 @@ Outboxer::Database.connect(config: db_config, logger: logger)
   end
 end
 
+datadog_statsd = Datadog::Statsd.new('localhost', 8126)
+
 Outboxer::Publisher.publish(
   num_publisher_threads: 5,
   max_queue_size: 1000,
   poll_interval: 1,
+  metrics_statsd: datadog_statsd,
+  metrics_submit_interval: 5,
+  metrics_tags: ["env:#{environment}"],
   logger: logger
 ) do |message|
   case message[:messageable_type]
@@ -35,5 +41,7 @@ Outboxer::Publisher.publish(
     EventCreatedJob.perform_async({ 'id' => message[:messageable_id] })
   end
 end
+
+datadog_statsd.close
 
 Outboxer::Database.disconnect(logger: logger)
