@@ -8,12 +8,12 @@ module Outboxer
 
         let!(:published_message) { Message.published(id: publishing_message.id) }
 
-        it 'returns nil' do
-          expect(published_message).to eq({ id: publishing_message.id })
+        it 'returns published message' do
+          expect(publishing_message[:id]).to eq(Models::Message.published.last.id)
         end
 
-        it 'deletes publishing message' do
-          expect(Models::Message.count).to eq(0)
+        it 'does not delete published message' do
+          expect(Models::Message.count).to eq(1)
         end
       end
 
@@ -26,7 +26,7 @@ module Outboxer
           end.to raise_error(
             ArgumentError,
             "cannot transition outboxer message #{queued_message.id} " +
-              "from queued to (deleted)")
+              "from queued to published")
         end
 
         it 'does not delete queued message' do

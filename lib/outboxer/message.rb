@@ -74,7 +74,7 @@ module Outboxer
       end
     end
 
-    def published(id:)
+    def published(id:, current_utc_time: Time.now.utc)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           message = Models::Message.lock.find_by!(id: id)
@@ -82,14 +82,19 @@ module Outboxer
           if message.status != Models::Message::Status::PUBLISHING
             raise ArgumentError,
               "cannot transition outboxer message #{message.id} " \
-              "from #{message.status} to (deleted)"
+              "from #{message.status} to published"
           end
 
-          message.exceptions.each { |exception| exception.frames.each(&:delete) }
-          message.exceptions.delete_all
-          message.delete
+          message.update!(
+            status: Models::Message::Status::PUBLISHED,
+            updated_at: current_utc_time)
 
-          { id: id }
+          {
+            id: id,
+            status: message.status,
+            messageable_type: message.messageable_type,
+            messageable_id: message.messageable_id
+          }
         end
       end
     end

@@ -44,7 +44,7 @@ module Outboxer
       end
     end
 
-    LIST_STATUS_OPTIONS = [nil, :queued, :dequeued, :publishing, :failed]
+    LIST_STATUS_OPTIONS = [nil, :queued, :dequeued, :publishing, :published, :failed]
     LIST_STATUS_DEFAULT = nil
 
     LIST_SORT_OPTIONS = [:id, :status, :messageable, :created_at, :updated_at]
