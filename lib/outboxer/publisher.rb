@@ -50,30 +50,12 @@ module Outboxer
         last_submitted_at = time.now.utc
 
         while @publishing
-          begin
-            if time.now.utc - last_submitted_at >= submit_interval
-              messages_metrics = Messages.collect_metrics
+          if time.now.utc - last_submitted_at >= submit_interval
+            Messages.submit_metrics(
+              metrics: Messages.metrics,
+              statsd: statsd, tags: tags, logger: logger)
 
-              statsd.batch do
-                messages_metrics.each do |status, message_metrics|
-                  statsd.gauge(
-                    "outboxer.messages.count",
-                    message_metrics[:count],
-                    tags: tags + ["status:#{status}"])
-
-                  statsd.gauge(
-                    "outboxer.messages.latency",
-                    message_metrics[:latency],
-                    tags: tags + ["status:#{status}"])
-                end
-              end
-
-              last_submitted_at = time.now.utc
-            end
-          rescue StandardError => e
-            logger.error "Failed to submit messages metrics: #{e.class}: #{e.message}"
-
-            e.backtrace.each { |frame| logger.error frame }
+            last_submitted_at = time.now.utc
           end
 
           kernel.sleep(1)

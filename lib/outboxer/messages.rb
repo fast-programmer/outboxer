@@ -2,7 +2,19 @@ module Outboxer
   module Messages
     extend self
 
-    def collect_metrics(current_utc_time: Time.now.utc)
+    def submit_metrics(metrics:, tags:, statsd:, logger:)
+      statsd.batch do
+        metrics.each do |status, metric|
+          statsd.gauge(
+            "outboxer.messages.count", metric[:count], tags: tags + ["status:#{status}"])
+
+          statsd.gauge(
+            "outboxer.messages.latency", metric[:latency], tags: tags + ["status:#{status}"])
+        end
+      end
+    end
+
+    def metrics(current_utc_time: Time.now.utc)
       metrics = {}
 
       Models::Message::STATUSES.each do |status|
