@@ -173,7 +173,7 @@ module Outboxer
       end
     end
 
-    def delete_all(status: nil, batch_size: 100)
+    def delete_all(status: nil, batch_size: 100, older_than: nil)
       deleted_count = 0
 
       loop do
@@ -183,6 +183,8 @@ module Outboxer
           ActiveRecord::Base.transaction do
             query = Models::Message.all
             query = query.where(status: status) unless status.nil?
+            query = query.where('updated_at < ?', older_than) if older_than
+
             locked_ids = query.order(:updated_at)
               .limit(batch_size)
               .lock('FOR UPDATE SKIP LOCKED')
