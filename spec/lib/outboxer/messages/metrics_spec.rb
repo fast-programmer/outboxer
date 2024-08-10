@@ -48,6 +48,7 @@ module Outboxer
 
         it 'returns correct metrics' do
           metrics = Messages.metrics(current_utc_time: current_utc_time)
+
           expect(metrics).to eq(
             queued: {
               count: 2,
@@ -76,6 +77,7 @@ module Outboxer
       context 'when there are no messages in a specific status' do
         it 'returns zero count and latency for that status' do
           metrics = Messages.metrics(current_utc_time: current_utc_time)
+
           expect(metrics).to eq(
             queued: { count: 0, latency: 0 },
             dequeued: { count: 0, latency: 0 },
@@ -89,6 +91,7 @@ module Outboxer
       context 'when no messages exist' do
         it 'returns zero count and latency for all statuses' do
           metrics = Messages.metrics(current_utc_time: current_utc_time)
+
           expect(metrics).to eq(
             queued: { count: 0, latency: 0 },
             dequeued: { count: 0, latency: 0 },

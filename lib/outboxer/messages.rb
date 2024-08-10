@@ -2,7 +2,7 @@ module Outboxer
   module Messages
     extend self
 
-    def submit_metrics(metrics:, tags:, statsd:, logger:)
+    def send_metrics(statsd:, metrics:, tags:, logger:)
       statsd.batch do
         metrics.each do |status, metric|
           statsd.gauge(
@@ -12,6 +12,29 @@ module Outboxer
             "outboxer.messages.latency", metric[:latency], tags: tags + ["status:#{status}"])
         end
       end
+
+      grouped_messages = nil
+
+      ActiveRecord::Base.connection_pool.with_connection do
+        grouped_messages = Models::Message
+          .group(:status)
+          .select('status, COUNT(*) AS count, MIN(updated_at) AS oldest_updated_at')
+          .to_a
+      end
+
+      grouped_messages.each do |grouped_message|
+        status = grouped_message.status.to_sym
+
+        metrics[status][:count] = grouped_message.count
+
+        if grouped_message.oldest_updated_at
+          latency = (current_utc_time - grouped_message.oldest_updated_at.utc).to_i
+
+          metrics[status][:latency] = latency
+        end
+      end
+
+      metrics
     end
 
     def metrics(current_utc_time: Time.now.utc)

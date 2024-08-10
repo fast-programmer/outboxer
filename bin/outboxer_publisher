@@ -19,21 +19,87 @@ logger = Outboxer::Logger.new($stdout, level: Logger::INFO)
 db_config = Outboxer::Database.config(environment: environment)
 Outboxer::Database.connect(config: db_config, logger: logger)
 
+$running = true
+
 ['INT', 'TERM'].each do |signal|
   Signal.trap(signal) do
+    $running = false
+
     Outboxer::Publisher.stop
   end
 end
 
 datadog_statsd = Datadog::Statsd.new('localhost', 8125)
 
+def create_send_metrics_thread(statsd:, interval:, tags:, logger:)
+  Thread.new do
+    last_run_time = Time.now
+
+    begin
+      while $running
+        current_time = Time.now
+
+        if (current_time - last_run_time) >= interval
+          Outboxer::Messages.send_metrics(
+            metrics: Outboxer::Messages.metrics,
+            statsd: statsd, tags: tags, logger: logger)
+
+          last_run_time = current_time
+        else
+          sleep 1
+        end
+      end
+    rescue => e
+      logger.error "An error occurred: #{e.message}"
+      logger.error "Backtrace: #{e.backtrace.join("\n")}"
+
+      raise
+    ensure
+      logger.info "Send metrics thread shutting down"
+    end
+  end
+end
+
+send_metrics_thread = create_send_metrics_thread(
+  statsd: datadog_statsd, interval: 30, tags: ["env:#{environment}]"], logger: logger)
+
+def create_delete_published_messages_thread(interval:, retention_period:, batch_size:, logger:)
+  Thread.new do
+    last_run_time = Time.now
+
+    begin
+      while $running
+        current_time = Time.now
+
+        if (current_time - last_run_time) >= interval
+          Outboxer::Messages.delete_all(
+            status: Outboxer::Message::Status::PUBLISHED,
+            batch_size: batch_size,
+            older_than: Time.now - retention_period)
+
+          last_run_time = current_time
+        else
+          sleep 1
+        end
+      end
+    rescue => e
+      logger.error "An error occurred: #{e.message}"
+      logger.error "Backtrace: #{e.backtrace.join("\n")}"
+
+      raise
+    ensure
+      logger.info "Delete published messages thread shutting down"
+    end
+  end
+end
+
+delete_published_messages_thread = create_delete_published_messages_thread(
+  interval: 10, retention_period: 60, batch_size: 100, logger: logger)
+
 Outboxer::Publisher.publish(
   num_publisher_threads: 5,
   max_queue_size: 1000,
   poll_interval: 1,
-  metrics_statsd: datadog_statsd,
-  metrics_submit_interval: 5,
-  metrics_tags: ["env:#{environment}"],
   logger: logger
 ) do |message|
   case message[:messageable_type]
@@ -41,6 +107,10 @@ Outboxer::Publisher.publish(
     EventCreatedJob.perform_async({ 'id' => message[:messageable_id] })
   end
 end
+
+send_metrics_thread.join
+
+delete_published_messages_thread.join
 
 datadog_statsd.close
 

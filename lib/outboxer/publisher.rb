@@ -44,25 +44,6 @@ module Outboxer
       @publishing = false
     end
 
-    def create_submit_messages_metrics_thread(statsd:, submit_interval:, tags:,
-                                              logger:, kernel:, time:)
-      Thread.new do
-        last_submitted_at = time.now.utc
-
-        while @publishing
-          if time.now.utc - last_submitted_at >= submit_interval
-            Messages.submit_metrics(
-              metrics: Messages.metrics,
-              statsd: statsd, tags: tags, logger: logger)
-
-            last_submitted_at = time.now.utc
-          end
-
-          kernel.sleep(1)
-        end
-      end
-    end
-
     def create_publisher_thread(queue:, logger:, &block)
       Thread.new do
         loop do
