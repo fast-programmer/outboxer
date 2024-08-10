@@ -2,7 +2,7 @@ require 'spec_helper'
 
 module Outboxer
   RSpec.describe Messages do
-    describe '.submit_metrics' do
+    describe '.send_metrics' do
       let(:metrics) do
         {
           queued: { count: 10, latency: 300 },
@@ -22,7 +22,7 @@ module Outboxer
       end
 
       it 'submits metrics to statsd with correct tags' do
-        Messages.submit_metrics(metrics: metrics, tags: tags, statsd: statsd, logger: logger)
+        Messages.send_metrics(metrics: metrics, tags: tags, statsd: statsd, logger: logger)
 
         metrics.each do |status, metric|
           expect(statsd).to have_received(:gauge).with(
@@ -36,7 +36,7 @@ module Outboxer
       it 'submits metrics inside a batch' do
         expect(statsd).to receive(:batch).and_yield
 
-        Messages.submit_metrics(metrics: metrics, tags: tags, statsd: statsd, logger: logger)
+        Messages.send_metrics(metrics: metrics, tags: tags, statsd: statsd, logger: logger)
       end
     end
   end
