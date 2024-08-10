@@ -2,49 +2,6 @@ module Outboxer
   module Messages
     extend self
 
-    def send_metrics(statsd:, metrics:, tags:, logger:)
-      statsd.batch do
-        metrics.each do |status, metric|
-          statsd.gauge(
-            "outboxer.messages.count", metric[:count], tags: tags + ["status:#{status}"])
-
-          statsd.gauge(
-            "outboxer.messages.latency", metric[:latency], tags: tags + ["status:#{status}"])
-        end
-      end
-    end
-
-    def metrics(current_utc_time: Time.now.utc)
-      metrics = {}
-
-      Models::Message::STATUSES.each do |status|
-        metrics[status.to_sym] = { count: 0, latency: 0 }
-      end
-
-      grouped_messages = nil
-
-      ActiveRecord::Base.connection_pool.with_connection do
-        grouped_messages = Models::Message
-          .group(:status)
-          .select('status, COUNT(*) AS count, MIN(updated_at) AS oldest_updated_at')
-          .to_a
-      end
-
-      grouped_messages.each do |grouped_message|
-        status = grouped_message.status.to_sym
-
-        metrics[status][:count] = grouped_message.count
-
-        if grouped_message.oldest_updated_at
-          latency = (current_utc_time - grouped_message.oldest_updated_at.utc).to_i
-
-          metrics[status][:latency] = latency
-        end
-      end
-
-      metrics
-    end
-
     def dequeue(limit: 1, current_utc_time: Time.now.utc)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
@@ -255,6 +212,49 @@ module Outboxer
           deleted_count = Models::Message.where(id: locked_ids).delete_all
 
           { deleted_count: deleted_count, not_deleted_ids: ids - locked_ids }
+        end
+      end
+    end
+
+    def metrics(current_utc_time: Time.now.utc)
+      metrics = {}
+
+      Models::Message::STATUSES.each do |status|
+        metrics[status.to_sym] = { count: 0, latency: 0 }
+      end
+
+      grouped_messages = nil
+
+      ActiveRecord::Base.connection_pool.with_connection do
+        grouped_messages = Models::Message
+          .group(:status)
+          .select('status, COUNT(*) AS count, MIN(updated_at) AS oldest_updated_at')
+          .to_a
+      end
+
+      grouped_messages.each do |grouped_message|
+        status = grouped_message.status.to_sym
+
+        metrics[status][:count] = grouped_message.count
+
+        if grouped_message.oldest_updated_at
+          latency = (current_utc_time - grouped_message.oldest_updated_at.utc).to_i
+
+          metrics[status][:latency] = latency
+        end
+      end
+
+      metrics
+    end
+
+    def send_metrics(statsd:, metrics:, tags:, logger:)
+      statsd.batch do
+        metrics.each do |status, metric|
+          statsd.gauge(
+            "outboxer.messages.count", metric[:count], tags: tags + ["status:#{status}"])
+
+          statsd.gauge(
+            "outboxer.messages.latency", metric[:latency], tags: tags + ["status:#{status}"])
         end
       end
     end
