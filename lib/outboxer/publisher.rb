@@ -34,29 +34,6 @@ module Outboxer
       @publishing = false
     end
 
-    def create_delete_published_messages_thread(
-      cleanup_interval: 60, retention_period: 3600,
-      logger: Logger.new($stdout, level: Logger::INFO), kernel: Kernel, time: Time
-    )
-      Thread.new do
-        loop do
-          begin
-            Messages.delete_all(
-              status: Models::Message::Status::PUBLISHED,
-              batch_size: 100,
-              older_than: time.now.utc - retention_period)
-
-            kernel.sleep(cleanup_interval)
-          rescue StandardError => exception
-            logger.error "#{exception.class}: #{exception.message}"
-            exception.backtrace.each { |frame| logger.error frame }
-
-            kernel.sleep(cleanup_interval)
-          end
-        end
-      end
-    end
-
     def create_publisher_thread(queue:, logger:, &block)
       Thread.new do
         loop do
