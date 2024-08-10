@@ -216,36 +216,43 @@ module Outboxer
       end
     end
 
-    def metrics(current_utc_time: Time.now.utc)
-      metrics = {}
+  def metrics(current_utc_time: Time.now.utc)
+    metrics = {}
 
-      Models::Message::STATUSES.each do |status|
-        metrics[status.to_sym] = { count: 0, latency: 0 }
-      end
-
-      grouped_messages = nil
-
-      ActiveRecord::Base.connection_pool.with_connection do
-        grouped_messages = Models::Message
-          .group(:status)
-          .select('status, COUNT(*) AS count, MIN(updated_at) AS oldest_updated_at')
-          .to_a
-      end
-
-      grouped_messages.each do |grouped_message|
-        status = grouped_message.status.to_sym
-
-        metrics[status][:count] = grouped_message.count
-
-        if grouped_message.oldest_updated_at
-          latency = (current_utc_time - grouped_message.oldest_updated_at.utc).to_i
-
-          metrics[status][:latency] = latency
-        end
-      end
-
-      metrics
+    Models::Message::STATUSES.each do |status|
+      metrics[status.to_sym] = { count: 0, latency: 0, throughput: 0 }
     end
+
+    grouped_messages = nil
+
+    ActiveRecord::Base.connection_pool.with_connection do
+      time_condition = ActiveRecord::Base.sanitize_sql_array([
+        'updated_at >= ?', current_utc_time - 1.second])
+
+      grouped_messages = Models::Message
+        .group(:status)
+        .select(
+          'status, COUNT(*) AS count, MIN(updated_at) AS oldest_updated_at',
+          "SUM(CASE WHEN #{time_condition} THEN 1 ELSE 0 END) AS throughput")
+        .to_a
+    end
+
+    grouped_messages.each do |grouped_message|
+      status = grouped_message.status.to_sym
+
+      metrics[status][:count] = grouped_message.count
+
+      if grouped_message.oldest_updated_at
+        latency = (current_utc_time - grouped_message.oldest_updated_at.utc).to_i
+
+        metrics[status][:latency] = latency
+      end
+
+      metrics[status][:throughput] = grouped_message.throughput
+    end
+
+    metrics
+  end
 
     def send_metrics(statsd:, metrics:, tags:, logger:)
       statsd.batch do
@@ -255,6 +262,9 @@ module Outboxer
 
           statsd.gauge(
             "outboxer.messages.latency", metric[:latency], tags: tags + ["status:#{status}"])
+
+          statsd.gauge(
+            "outboxer.messages.throughput", metric[:throughput], tags: tags + ["status:#{status}"])
         end
       end
     end

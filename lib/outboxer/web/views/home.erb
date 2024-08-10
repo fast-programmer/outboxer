@@ -5,12 +5,13 @@
         </div>
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table">
+                <table class="table" style="table-layout: fixed;">
                     <thead>
                         <tr>
                             <th scope="col">Status</th>
                             <th scope="col">Count</th>
-                            <th scope="col">Latency (secs)</th>
+                            <th scope="col">Throughput (per second)</th>
+                            <th scope="col">Latency (seconds)</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -18,6 +19,7 @@
                             <tr>
                                 <td class="text-capitalize"><%= status %></td>
                                 <td><%= messages_metrics[status.to_sym][:count] %></td>
+                                <td><%= messages_metrics[status.to_sym][:throughput] %></td>
                                 <td><%= messages_metrics[status.to_sym][:latency] %></td>
                             </tr>
                         <% end %>
