@@ -16,10 +16,6 @@ module Outboxer
     )
       @publishing = true
 
-      submit_messages_metrics_thread = create_submit_messages_metrics_thread(
-        statsd: metrics_statsd, submit_interval: metrics_submit_interval, tags: metrics_tags,
-        logger: logger, kernel: kernel, time: time) unless metrics_statsd.nil?
-
       publisher_threads = num_publisher_threads.times.map do
         create_publisher_thread(queue: queue, logger: logger, &block)
       end
@@ -33,8 +29,6 @@ module Outboxer
 
       publisher_threads.length.times { queue.push(nil) }
       publisher_threads.each(&:join)
-
-      submit_messages_metrics_thread.join unless metrics_statsd.nil?
     end
 
     def stop

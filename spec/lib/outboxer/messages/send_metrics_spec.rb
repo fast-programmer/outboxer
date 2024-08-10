@@ -21,7 +21,7 @@ module Outboxer
         allow(statsd).to receive(:gauge)
       end
 
-      it 'submits metrics to statsd with correct tags' do
+      it 'sends metrics to statsd with correct tags' do
         Messages.send_metrics(metrics: metrics, tags: tags, statsd: statsd, logger: logger)
 
         metrics.each do |status, metric|
@@ -33,7 +33,7 @@ module Outboxer
         end
       end
 
-      it 'submits metrics inside a batch' do
+      it 'sends metrics inside a batch' do
         expect(statsd).to receive(:batch).and_yield
 
         Messages.send_metrics(metrics: metrics, tags: tags, statsd: statsd, logger: logger)
