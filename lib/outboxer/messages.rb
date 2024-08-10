@@ -246,5 +246,35 @@ module Outboxer
         end
       end
     end
+
+    def create_delete_published_messages_thread(interval:, retention_period:, batch_size:, logger:)
+      Thread.new do
+        last_run_time = Time.now
+
+        begin
+          while $running
+            current_time = Time.now
+
+            if (current_time - last_run_time) >= interval
+              Outboxer::Messages.delete_all(
+                status: Outboxer::Message::Status::PUBLISHED,
+                batch_size: batch_size,
+                older_than: Time.now - retention_period)
+
+              last_run_time = current_time
+            else
+              sleep 1
+            end
+          end
+        rescue => e
+          logger.error "An error occurred: #{e.message}"
+          logger.error "Backtrace: #{e.backtrace.join("\n")}"
+
+          raise
+        ensure
+          logger.info "Delete published messages thread shutting down"
+        end
+      end
+    end
   end
 end
