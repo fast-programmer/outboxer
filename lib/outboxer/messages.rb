@@ -2,12 +2,6 @@ module Outboxer
   module Messages
     extend self
 
-    def counts_by_status
-      ActiveRecord::Base.connection_pool.with_connection do
-        status_counts = Models::Message::STATUSES.each_with_object({ all: 0 }) do |status, hash|
-          hash[status.to_sym] = 0
-        end
-
     def metrics(current_utc_time: Time.now.utc)
       metrics = {}
 
