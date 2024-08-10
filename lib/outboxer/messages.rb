@@ -2,37 +2,6 @@ module Outboxer
   module Messages
     extend self
 
-    def metrics(current_utc_time: Time.now.utc)
-      metrics = {}
-
-      Models::Message::STATUSES.each do |status|
-        metrics[status.to_sym] = { count: 0, latency: 0 }
-      end
-
-      grouped_messages = nil
-
-      ActiveRecord::Base.connection_pool.with_connection do
-        grouped_messages = Models::Message
-          .group(:status)
-          .select('status, COUNT(*) AS count, MIN(updated_at) AS oldest_updated_at')
-          .to_a
-      end
-
-      grouped_messages.each do |grouped_message|
-        status = grouped_message.status.to_sym
-
-        metrics[status][:count] = grouped_message.count
-
-        if grouped_message.oldest_updated_at
-          latency = (current_utc_time - grouped_message.oldest_updated_at.utc).to_i
-
-          metrics[status][:latency] = latency
-        end
-      end
-
-      metrics
-    end
-
     def dequeue(limit: 1, current_utc_time: Time.now.utc)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
@@ -247,32 +216,45 @@ module Outboxer
       end
     end
 
-    def create_delete_published_messages_thread(interval:, retention_period:, batch_size:, logger:)
-      Thread.new do
-        last_run_time = Time.now
+    def metrics(current_utc_time: Time.now.utc)
+      metrics = {}
 
-        begin
-          while $running
-            current_time = Time.now
+      Models::Message::STATUSES.each do |status|
+        metrics[status.to_sym] = { count: 0, latency: 0 }
+      end
 
-            if (current_time - last_run_time) >= interval
-              Outboxer::Messages.delete_all(
-                status: Outboxer::Message::Status::PUBLISHED,
-                batch_size: batch_size,
-                older_than: Time.now - retention_period)
+      grouped_messages = nil
 
-              last_run_time = current_time
-            else
-              sleep 1
-            end
-          end
-        rescue => e
-          logger.error "An error occurred: #{e.message}"
-          logger.error "Backtrace: #{e.backtrace.join("\n")}"
+      ActiveRecord::Base.connection_pool.with_connection do
+        grouped_messages = Models::Message
+          .group(:status)
+          .select('status, COUNT(*) AS count, MIN(updated_at) AS oldest_updated_at')
+          .to_a
+      end
 
-          raise
-        ensure
-          logger.info "Delete published messages thread shutting down"
+      grouped_messages.each do |grouped_message|
+        status = grouped_message.status.to_sym
+
+        metrics[status][:count] = grouped_message.count
+
+        if grouped_message.oldest_updated_at
+          latency = (current_utc_time - grouped_message.oldest_updated_at.utc).to_i
+
+          metrics[status][:latency] = latency
+        end
+      end
+
+      metrics
+    end
+
+    def send_metrics(statsd:, metrics:, tags:, logger:)
+      statsd.batch do
+        metrics.each do |status, metric|
+          statsd.gauge(
+            "outboxer.messages.count", metric[:count], tags: tags + ["status:#{status}"])
+
+          statsd.gauge(
+            "outboxer.messages.latency", metric[:latency], tags: tags + ["status:#{status}"])
         end
       end
     end

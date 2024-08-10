@@ -11,6 +11,7 @@ module Outboxer
       poll_interval: 1,
       logger: Logger.new($stdout, level: Logger::INFO),
       kernel: Kernel,
+      time: Time,
       &block
     )
       @publishing = true
@@ -110,7 +111,7 @@ module Outboxer
             logger.debug "Sleeping for #{poll_interval} seconds because no messages were queued..."
 
             kernel.sleep(poll_interval)
-          elsif queue.length >= queue
+          elsif queue.length >= max_queue_size
             logger.debug "Sleeping for #{poll_interval} seconds because queue was full..."
 
             kernel.sleep(poll_interval)
