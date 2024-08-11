@@ -53,28 +53,19 @@ end
 bin/rails g outboxer:publisher
 ```
 
-### 5. perform event created job async in publish block
+### 5. handle message in out of band publish block
 
 ```ruby
 Outboxer::Publisher.publish do |message|
-  case message[:messageable_type]
-  when 'Event'
-    EventCreatedJob.perform_async({ 'id' => message[:messageable_id] })
-  end
+  # handle messageable here
 end
 ```
 
-### 6. add event created job
+### 6. schedule deletion of published messages
 
 ```ruby
-class EventCreatedJob
-  include Sidekiq::Job
-
-  def perform(args)
-    event = Event.find(args['id'])
-
-    # your handler code here
-  end
+Outboxer::Publisher.publish do |message|
+  # handle messageable here
 end
 ```
 
