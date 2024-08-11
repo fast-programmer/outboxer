@@ -63,16 +63,16 @@ end
 
 ### 6. periodically delete published messages
 
-run every x interval in your existing scheduling infrastructure
+run below code every 10 seconds to delete messages order than 60 seconds
 
 ```ruby
   Outboxer::Messages.delete_all(
     status: :published,
     batch_size: 100,
-    older_than: Time.now - retention_period)
+    older_than: Time.now - 60)
 ```
 
-see wiki for how to call in sidekiq scheduler, whenever, clockwork and custom process examples
+see wiki for examples of how to call from sidekiq scheduler, whenever, clockwork and a custom process
 
 ### 7. run publisher
 
