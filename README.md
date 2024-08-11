@@ -61,12 +61,9 @@ Outboxer::Publisher.publish do |message|
 end
 ```
 
-### 6. schedule deletion of published messages
+### 6. periodically delete published messages
 
-to maximumise throughput, outboxer does not delete messages after publishing
-
-published messages are required to be deleted on a schedule
-
+run every x interval in your existing scheduling infrastructure
 
 ```ruby
   Outboxer::Messages.delete_all(
@@ -74,6 +71,8 @@ published messages are required to be deleted on a schedule
     batch_size: 100,
     older_than: Time.now - retention_period)
 ```
+
+see wiki for how to call in sidekiq scheduler, whenever, clockwork and custom process examples
 
 ### 7. run publisher
 
