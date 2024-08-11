@@ -3,18 +3,44 @@ require 'spec_helper'
 module Outboxer
   RSpec.describe Message do
     describe '.delete!' do
-      let!(:message) { create(:outboxer_message, :failed) }
-      let!(:exception) { create(:outboxer_exception, message: message) }
-      let!(:frame) { create(:outboxer_frame, exception: exception) }
+      context 'when the message status is failed' do
+        let!(:message) { create(:outboxer_message, :failed) }
+        let!(:exception) { create(:outboxer_exception, message: message) }
+        let!(:frame) { create(:outboxer_frame, exception: exception) }
 
-      let!(:result) { Message.delete(id: message.id) }
+        let!(:result) { Message.delete(id: message.id) }
 
-      it 'deletes the message' do
-        expect(Models::Message).not_to exist(message.id)
+        it 'deletes the message' do
+          expect(Models::Message).not_to exist(message.id)
+        end
+
+        it 'returns the message id' do
+          expect(result[:id]).to eq(message.id)
+        end
       end
 
-      it 'returns the message id' do
-        expect(result[:id]).to eq(message.id)
+      context 'when the message status is published' do
+        let!(:metric) { Models::Metric.find_by!(name: 'messages.published.count.historic') }
+
+        let!(:message) { create(:outboxer_message, status: 'published') }
+        let!(:exception) { create(:outboxer_exception, message: message) }
+        let!(:frame) { create(:outboxer_frame, exception: exception) }
+
+        let!(:result) { Message.delete(id: message.id) }
+
+        it 'increments the published.count.historic metric' do
+          metric.reload
+
+          expect(metric.value).to eq(1)
+        end
+
+        it 'deletes the message' do
+          expect(Models::Message).not_to exist(message.id)
+        end
+
+        it 'returns the message id' do
+          expect(result[:id]).to eq(message.id)
+        end
       end
     end
   end

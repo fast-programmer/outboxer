@@ -17,7 +17,7 @@
                         <% ['queued', 'dequeued', 'publishing', 'published', 'failed'].each do |status| %>
                             <tr>
                                 <td class="text-capitalize"><%= status %></td>
-                                <td><%= messages_metrics[status.to_sym][:count] %></td>
+                                <td><%= messages_metrics[status.to_sym][:count][:current] %></td>
                                 <td><%= messages_metrics[status.to_sym][:latency] %></td>
                             </tr>
                         <% end %>

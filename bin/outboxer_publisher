@@ -75,6 +75,4 @@ end
 
 delete_published_messages_thread.join
 
-datadog_statsd.close
-
 Outboxer::Database.disconnect(logger: logger)
