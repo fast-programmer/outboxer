@@ -53,7 +53,7 @@ end
 bin/rails g outboxer:publisher
 ```
 
-### 5. handle message in out of band publish block
+### 5. handle event out of band
 
 ```ruby
 Outboxer::Publisher.publish do |message|
