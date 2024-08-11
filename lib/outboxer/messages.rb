@@ -211,21 +211,36 @@ module Outboxer
     def delete_by_ids(ids:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          locked_ids = Models::Message
+          messages = Models::Message
             .where(id: ids)
             .lock('FOR UPDATE SKIP LOCKED')
-            .pluck(:id)
+            .pluck(:id, :status)
+            .map { |id, status| { id: id, status: status } }
+
+          message_ids = messages.map { |message| message[:id] }
 
           Models::Frame
             .joins(:exception)
-            .where(exception: { message_id: locked_ids })
+            .where(exception: { message_id: message_ids })
             .delete_all
 
-          Models::Exception.where(message_id: locked_ids).delete_all
+          Models::Exception.where(message_id: message_ids).delete_all
 
-          deleted_count = Models::Message.where(id: locked_ids).delete_all
+          deleted_count = Models::Message.where(id: message_ids).delete_all
 
-          { deleted_count: deleted_count, not_deleted_ids: ids - locked_ids }
+          published_messages = messages.select do |message|
+            message[:status] == Message::Status::PUBLISHED
+          end
+
+          if published_messages.any?
+            metric = Models::Metric
+              .lock('FOR UPDATE')
+              .find_by!(name: 'messages.published.count.historic')
+
+            metric.update!(value: metric.value + published_messages.count)
+          end
+
+          { deleted_count: deleted_count, not_deleted_ids: ids - message_ids }
         end
       end
     end
