@@ -53,30 +53,26 @@ end
 bin/rails g outboxer:publisher
 ```
 
-### 5. perform event created job async in publish block
+### 5. handle event out of band
 
 ```ruby
 Outboxer::Publisher.publish do |message|
-  case message[:messageable_type]
-  when 'Event'
-    EventCreatedJob.perform_async({ 'id' => message[:messageable_id] })
-  end
+  # handle Event.find(message[:messageable_id]) here
 end
 ```
 
-### 6. add event created job
+### 6. periodically delete published messages
+
+run below code every 10 seconds to delete messages order than 60 seconds
 
 ```ruby
-class EventCreatedJob
-  include Sidekiq::Job
-
-  def perform(args)
-    event = Event.find(args['id'])
-
-    # your handler code here
-  end
-end
+  Outboxer::Messages.delete_all(
+    status: :published,
+    batch_size: 100,
+    older_than: Time.now - 60)
 ```
+
+see wiki for examples of how to call from sidekiq scheduler, whenever, clockwork and a custom process
 
 ### 7. run publisher
 
