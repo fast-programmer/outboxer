@@ -169,20 +169,34 @@ module Outboxer
             query = Models::Message.all
             query = query.where(status: status) unless status.nil?
             query = query.where('updated_at < ?', older_than) if older_than
-
-            locked_ids = query.order(:updated_at)
+            messages = query.order(:updated_at)
               .limit(batch_size)
               .lock('FOR UPDATE SKIP LOCKED')
-              .pluck(:id)
+              .pluck(:id, :status)
+              .map { |id, status| { id: id, status: status } }
+
+            message_ids = messages.map { |message| message[:id] }
 
             Models::Frame
               .joins(:exception)
-              .where(exception: { message_id: locked_ids })
+              .where(exception: { message_id: message_ids })
               .delete_all
 
-            Models::Exception.where(message_id: locked_ids).delete_all
+            Models::Exception.where(message_id: message_ids).delete_all
 
-            deleted_count_batch = Models::Message.where(id: locked_ids).delete_all
+            deleted_count_batch = Models::Message.where(id: message_ids).delete_all
+
+            published_messages = messages.select do |message|
+              message[:status] == Message::Status::PUBLISHED
+            end
+
+            if published_messages.any?
+              metric = Models::Metric
+                .lock('FOR UPDATE')
+                .find_by!(name: 'messages.published.count.historic')
+
+              metric.update!(value: metric.value + published_messages.count)
+            end
           end
         end
 

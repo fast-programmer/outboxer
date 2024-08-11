@@ -21,6 +21,7 @@ module Outboxer
 
       context 'when the message status is published' do
         let!(:metric) { Models::Metric.find_by!(name: 'messages.published.count.historic') }
+        before { metric.update!(value: BigDecimal('10')) }
 
         let!(:message) { create(:outboxer_message, status: 'published') }
         let!(:exception) { create(:outboxer_exception, message: message) }
@@ -31,7 +32,7 @@ module Outboxer
         it 'increments the published.count.historic metric' do
           metric.reload
 
-          expect(metric.value).to eq(1)
+          expect(metric.value).to eq(11)
         end
 
         it 'deletes the message' do

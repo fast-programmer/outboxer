@@ -140,7 +140,7 @@ module Outboxer
               .lock('FOR UPDATE')
               .find_by!(name: 'messages.published.count.historic')
 
-            metric.increment!(:value)
+            metric.update!(value: metric.value + 1)
           end
 
           { id: id }
