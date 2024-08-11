@@ -57,16 +57,22 @@ bin/rails g outboxer:publisher
 
 ```ruby
 Outboxer::Publisher.publish do |message|
-  # handle messageable here
+  # handle Event.find(message[:messageable_id]) here
 end
 ```
 
 ### 6. schedule deletion of published messages
 
+to maximumise throughput, outboxer does not delete messages after publishing
+
+published messages are required to be deleted on a schedule
+
+
 ```ruby
-Outboxer::Publisher.publish do |message|
-  # handle messageable here
-end
+  Outboxer::Messages.delete_all(
+    status: :published,
+    batch_size: 100,
+    older_than: Time.now - retention_period)
 ```
 
 ### 7. run publisher
