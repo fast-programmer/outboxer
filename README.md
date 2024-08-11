@@ -5,7 +5,7 @@
 
 ## Background
 
-Outboxer is an ActiveRecord implementation of the [transactional outbox pattern](https://microservices.io/patterns/data/transactional-outbox.html) for PostgreSQL and MySQL databases.
+Outboxer is an Ruby implementation of the [transactional outbox pattern](https://microservices.io/patterns/data/transactional-outbox.html) for PostgreSQL and MySQL databases.
 
 ## Installation
 
@@ -53,7 +53,7 @@ end
 bin/rails g outboxer:publisher
 ```
 
-### 5. handle event out of band
+### 5. handle event created out of band
 
 ```ruby
 Outboxer::Publisher.publish do |message|
