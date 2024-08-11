@@ -37,7 +37,6 @@ Gem::Specification.new do |spec|
   spec.add_dependency "rackup", "~> 2.0"
   spec.add_dependency "sinatra", "~> 4.0"
   spec.add_dependency "sidekiq", "~> 7.0"
-  spec.add_dependency 'dogstatsd-ruby', '~> 5.6', '>= 5.6.1'
 
   spec.add_development_dependency "activerecord", "~> 7.0"
   spec.add_development_dependency "database_cleaner", "~> 2.0"

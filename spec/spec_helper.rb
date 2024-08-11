@@ -26,9 +26,9 @@ RSpec.configure do |config|
     DatabaseCleaner.strategy = :truncation
   end
 
-  config.after(:each) do
+  config.before(:each) do
     begin
-      DatabaseCleaner.clean
+      DatabaseCleaner.clean_with(:truncation)
 
       ActiveRecord::Base.connection.tables.each do |table|
         if ActiveRecord::Base.connection.adapter_name == 'PostgreSQL'
@@ -40,5 +40,7 @@ RSpec.configure do |config|
         ActiveRecord::StatementInvalid
       # ignore
     end
+
+    load File.join(File.dirname(__FILE__), '../db/seeds.rb')
   end
 end

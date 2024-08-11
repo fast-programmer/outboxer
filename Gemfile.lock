@@ -3,7 +3,6 @@ PATH
   specs:
     outboxer (1.0.0.pre.beta)
       activerecord (~> 7.0)
-      dogstatsd-ruby (~> 5.6, >= 5.6.1)
       kaminari (~> 1.0)
       rack-flash3 (~> 1.0)
       rackup (~> 2.0)
@@ -52,7 +51,6 @@ GEM
     database_cleaner-core (2.0.1)
     diff-lcs (1.5.1)
     docile (1.4.0)
-    dogstatsd-ruby (5.6.1)
     dotenv (3.1.2)
     drb (2.2.1)
     erubi (1.12.0)

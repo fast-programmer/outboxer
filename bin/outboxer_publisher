@@ -4,7 +4,6 @@ require 'bundler/setup'
 
 require 'sidekiq'
 require 'outboxer'
-require 'datadog/statsd'
 
 environment = ENV['RAILS_ENV'] || 'development'
 
@@ -28,40 +27,6 @@ $running = true
     Outboxer::Publisher.stop
   end
 end
-
-datadog_statsd = Datadog::Statsd.new('localhost', 8125)
-
-def create_send_metrics_thread(statsd:, tags:, interval:, logger:)
-  Thread.new do
-    last_run_time = Time.now
-
-    begin
-      while $running
-        current_time = Time.now
-
-        if (current_time - last_run_time) >= interval
-          Outboxer::Messages.send_metrics(
-            metrics: Outboxer::Messages.metrics,
-            statsd: statsd, tags: tags, logger: logger)
-
-          last_run_time = current_time
-        else
-          sleep 1
-        end
-      end
-    rescue => e
-      logger.error "An error occurred: #{e.message}"
-      logger.error "Backtrace: #{e.backtrace.join("\n")}"
-
-      raise
-    ensure
-      logger.info "Send metrics thread shutting down"
-    end
-  end
-end
-
-send_metrics_thread = create_send_metrics_thread(
-  statsd: datadog_statsd, tags: ["env:#{environment}]"], interval: 30, logger: logger)
 
 def create_delete_published_messages_thread(interval:, retention_period:, batch_size:, logger:)
   Thread.new do
@@ -108,10 +73,6 @@ Outboxer::Publisher.publish(
   end
 end
 
-send_metrics_thread.join
-
 delete_published_messages_thread.join
-
-datadog_statsd.close
 
 Outboxer::Database.disconnect(logger: logger)
