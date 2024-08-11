@@ -58,23 +58,28 @@ module Outboxer
           expect(metrics).to eq(
             queued: {
               count: { current: 2 },
-              latency: (current_utc_time - oldest_queued_message.updated_at.utc).to_i
+              latency: (current_utc_time - oldest_queued_message.updated_at.utc).to_i,
+              throughput: 0,
             },
             dequeued: {
               count: { current: 2 },
-              latency: (current_utc_time - oldest_dequeued_message.updated_at.utc).to_i
+              latency: (current_utc_time - oldest_dequeued_message.updated_at.utc).to_i,
+              throughput: 0,
             },
             publishing: {
               count: { current: 2 },
-              latency: (current_utc_time - oldest_publishing_message.updated_at.utc).to_i
+              latency: (current_utc_time - oldest_publishing_message.updated_at.utc).to_i,
+              throughput: 0,
             },
             published: {
               count: { current: 2, historic: 500 },
-              latency: (current_utc_time - oldest_published_message.updated_at.utc).to_i
+              latency: (current_utc_time - oldest_published_message.updated_at.utc).to_i,
+              throughput: 0,
             },
             failed: {
               count: { current: 2 },
-              latency: (current_utc_time - oldest_failed_message.updated_at.utc).to_i
+              latency: (current_utc_time - oldest_failed_message.updated_at.utc).to_i,
+              throughput: 0,
             }
           )
         end
@@ -85,11 +90,11 @@ module Outboxer
           metrics = Messages.metrics(current_utc_time: current_utc_time)
 
           expect(metrics).to eq(
-            queued: { count: { current: 0 }, latency: 0 },
-            dequeued: { count: { current: 0 }, latency: 0 },
-            publishing: { count: { current: 0 }, latency: 0 },
-            published: { count: { current: 0, historic: 0 }, latency: 0 },
-            failed: { count: { current: 0 }, latency: 0 }
+            queued: { count: { current: 0 }, latency: 0, throughput: 0 },
+            dequeued: { count: { current: 0 }, latency: 0, throughput: 0 },
+            publishing: { count: { current: 0 }, latency: 0, throughput: 0 },
+            published: { count: { current: 0, historic: 0 }, latency: 0, throughput: 0 },
+            failed: { count: { current: 0 }, latency: 0, throughput: 0 }
           )
         end
       end
@@ -99,11 +104,11 @@ module Outboxer
           metrics = Messages.metrics(current_utc_time: current_utc_time)
 
           expect(metrics).to eq(
-            queued: { count: { current: 0 }, latency: 0 },
-            dequeued: { count: { current: 0 }, latency: 0 },
-            publishing: { count: { current: 0 }, latency: 0 },
-            published: { count: { current: 0, historic: 0 }, latency: 0 },
-            failed: { count: { current: 0 }, latency: 0 }
+            queued: { count: { current: 0 }, latency: 0, throughput: 0 },
+            dequeued: { count: { current: 0 }, latency: 0, throughput: 0 },
+            publishing: { count: { current: 0 }, latency: 0, throughput: 0 },
+            published: { count: { current: 0, historic: 0 }, latency: 0, throughput: 0 },
+            failed: { count: { current: 0 }, latency: 0, throughput: 0 }
           )
         end
       end

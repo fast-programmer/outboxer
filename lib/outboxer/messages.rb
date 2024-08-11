@@ -249,16 +249,21 @@ module Outboxer
       metrics = {}
 
       Models::Message::STATUSES.each do |status|
-        metrics[status.to_sym] = { count: { current: 0 }, latency: 0 }
+        metrics[status.to_sym] = { count: { current: 0 }, latency: 0, throughput: 0 }
       end
 
       grouped_messages = nil
 
       ActiveRecord::Base.connection_pool.with_connection do
+        time_condition = ActiveRecord::Base.sanitize_sql_array([
+          'updated_at >= ?', current_utc_time - 1.second])
+
         grouped_messages = Models::Message
-          .group(:status)
-          .select('status, COUNT(*) AS count, MIN(updated_at) AS oldest_updated_at')
-          .to_a
+        .group(:status)
+        .select(
+          'status, COUNT(*) AS count, MIN(updated_at) AS oldest_updated_at',
+          "SUM(CASE WHEN #{time_condition} THEN 1 ELSE 0 END) AS throughput")
+        .to_a
 
         metrics[:published][:count][:historic] = Models::Metric
           .find_by!(name: 'messages.published.count.historic').value.to_i
@@ -274,6 +279,8 @@ module Outboxer
 
           metrics[status][:latency] = latency
         end
+
+        metrics[status][:throughput] = grouped_message.throughput
       end
 
       metrics
