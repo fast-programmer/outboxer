@@ -3,6 +3,9 @@ require 'spec_helper'
 module Outboxer
   RSpec.describe Messages do
     describe '.delete_all' do
+      let!(:metric) { Models::Metric.find_by!(name: 'messages.published.count.historic') }
+      before { metric.update!(value: BigDecimal('10')) }
+
       let!(:message_1) { create(:outboxer_message, :queued) }
       let!(:message_2) { create(:outboxer_message, :dequeued) }
 
@@ -60,12 +63,18 @@ module Outboxer
       context 'when status is published' do
         context 'when older than nil' do
           before do
-            Messages.delete_all(status: Message::Status::PUBLISHING, batch_size: 1)
+            Messages.delete_all(status: Message::Status::PUBLISHED, batch_size: 1)
           end
 
-          it 'deletes publishing messages' do
+          it 'deletes published messages' do
             expect(Models::Message.pluck(:id)).to match_array([
-              message_1.id, message_2.id, message_3.id, message_4.id, message_6.id, message_7.id])
+              message_1.id, message_2.id, message_3.id, message_4.id, message_5.id])
+          end
+
+          it 'adds published messages count to metrics value' do
+            metric.reload
+
+            expect(metric.value).to eq(12)
           end
         end
 
@@ -107,6 +116,12 @@ module Outboxer
         it 'deletes all frames' do
           expect(Models::Frame.all).to be_empty
         end
+
+        it 'adds published messages count to metrics value' do
+          metric.reload
+
+          expect(metric.value).to eq(12)
+        end
       end
 
       context 'when status is nil' do
@@ -124,6 +139,12 @@ module Outboxer
 
         it 'deletes all frames' do
           expect(Models::Frame.all).to be_empty
+        end
+
+        it 'adds published messages count to metrics value' do
+          metric.reload
+
+          expect(metric.value).to eq(12)
         end
       end
     end

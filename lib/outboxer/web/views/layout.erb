@@ -38,26 +38,29 @@
     <!-- Navigation Bar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
-            <a class="navbar-brand" href="<%= outboxer_path('') %>"><i class="bi bi-envelope-open-fill"></i> Outboxer</a>
+            <a class="navbar-brand" href="<%= outboxer_path('') %>">
+                <i class="bi bi-envelope-open-fill"></i> Outboxer
+                <span class="badge bg-secondary"><%= messages_metrics[:published][:count][:historic] + messages_metrics[:published][:count][:current] %></span>
+            </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav">
                     <li class="nav-item">
-                        <a class="nav-link <%= 'active' if denormalised_params[:status] == 'queued' %>" href="<%= outboxer_path('/messages?status=queued') %>">Queued (<%= messages_metrics[:queued][:count] %>)</a>
+                        <a class="nav-link <%= 'active' if denormalised_params[:status] == 'queued' %>" href="<%= outboxer_path('/messages?status=queued') %>">Queued (<%= messages_metrics[:queued][:count][:current] %>)</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link <%= 'active' if denormalised_params[:status] == 'dequeued' %>" href="<%= outboxer_path('/messages?status=dequeued') %>">Dequeued (<%= messages_metrics[:dequeued][:count] %>)</a>
+                        <a class="nav-link <%= 'active' if denormalised_params[:status] == 'dequeued' %>" href="<%= outboxer_path('/messages?status=dequeued') %>">Dequeued (<%= messages_metrics[:dequeued][:count][:current] %>)</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link <%= 'active' if denormalised_params[:status] == 'publishing' %>" href="<%= outboxer_path('/messages?status=publishing') %>">Publishing (<%= messages_metrics[:publishing][:count] %>)</a>
+                        <a class="nav-link <%= 'active' if denormalised_params[:status] == 'publishing' %>" href="<%= outboxer_path('/messages?status=publishing') %>">Publishing (<%= messages_metrics[:publishing][:count][:current] %>)</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link <%= 'active' if denormalised_params[:status] == 'published' %>" href="<%= outboxer_path('/messages?status=published') %>">Published (<%= messages_metrics[:published][:count] %>)</a>
+                        <a class="nav-link <%= 'active' if denormalised_params[:status] == 'published' %>" href="<%= outboxer_path('/messages?status=published') %>">Published (<%= messages_metrics[:published][:count][:current] %>)</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link <%= 'active' if denormalised_params[:status] == 'failed' %>" href="<%= outboxer_path('/messages?status=failed') %>">Failed (<%= messages_metrics[:failed][:count] %>)</a>
+                        <a class="nav-link <%= 'active' if denormalised_params[:status] == 'failed' %>" href="<%= outboxer_path('/messages?status=failed') %>">Failed (<%= messages_metrics[:failed][:count][:current] %>)</a>
                     </li>
                 </ul>
             </div>

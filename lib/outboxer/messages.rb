@@ -169,20 +169,34 @@ module Outboxer
             query = Models::Message.all
             query = query.where(status: status) unless status.nil?
             query = query.where('updated_at < ?', older_than) if older_than
-
-            locked_ids = query.order(:updated_at)
+            messages = query.order(:updated_at)
               .limit(batch_size)
               .lock('FOR UPDATE SKIP LOCKED')
-              .pluck(:id)
+              .pluck(:id, :status)
+              .map { |id, status| { id: id, status: status } }
+
+            message_ids = messages.map { |message| message[:id] }
 
             Models::Frame
               .joins(:exception)
-              .where(exception: { message_id: locked_ids })
+              .where(exception: { message_id: message_ids })
               .delete_all
 
-            Models::Exception.where(message_id: locked_ids).delete_all
+            Models::Exception.where(message_id: message_ids).delete_all
 
-            deleted_count_batch = Models::Message.where(id: locked_ids).delete_all
+            deleted_count_batch = Models::Message.where(id: message_ids).delete_all
+
+            published_messages = messages.select do |message|
+              message[:status] == Message::Status::PUBLISHED
+            end
+
+            if published_messages.any?
+              metric = Models::Metric
+                .lock('FOR UPDATE')
+                .find_by!(name: 'messages.published.count.historic')
+
+              metric.update!(value: metric.value + published_messages.count)
+            end
           end
         end
 
@@ -197,76 +211,79 @@ module Outboxer
     def delete_by_ids(ids:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          locked_ids = Models::Message
+          messages = Models::Message
             .where(id: ids)
             .lock('FOR UPDATE SKIP LOCKED')
-            .pluck(:id)
+            .pluck(:id, :status)
+            .map { |id, status| { id: id, status: status } }
+
+          message_ids = messages.map { |message| message[:id] }
 
           Models::Frame
             .joins(:exception)
-            .where(exception: { message_id: locked_ids })
+            .where(exception: { message_id: message_ids })
             .delete_all
 
-          Models::Exception.where(message_id: locked_ids).delete_all
+          Models::Exception.where(message_id: message_ids).delete_all
 
-          deleted_count = Models::Message.where(id: locked_ids).delete_all
+          deleted_count = Models::Message.where(id: message_ids).delete_all
 
-          { deleted_count: deleted_count, not_deleted_ids: ids - locked_ids }
+          published_messages = messages.select do |message|
+            message[:status] == Message::Status::PUBLISHED
+          end
+
+          if published_messages.any?
+            metric = Models::Metric
+              .lock('FOR UPDATE')
+              .find_by!(name: 'messages.published.count.historic')
+
+            metric.update!(value: metric.value + published_messages.count)
+          end
+
+          { deleted_count: deleted_count, not_deleted_ids: ids - message_ids }
         end
       end
     end
 
-  def metrics(current_utc_time: Time.now.utc)
-    metrics = {}
+    def metrics(current_utc_time: Time.now.utc)
+      metrics = {}
 
-    Models::Message::STATUSES.each do |status|
-      metrics[status.to_sym] = { count: 0, latency: 0, throughput: 0 }
-    end
+      Models::Message::STATUSES.each do |status|
+        metrics[status.to_sym] = { count: { current: 0 }, latency: 0, throughput: 0 }
+      end
 
-    grouped_messages = nil
+      grouped_messages = nil
 
-    ActiveRecord::Base.connection_pool.with_connection do
-      time_condition = ActiveRecord::Base.sanitize_sql_array([
-        'updated_at >= ?', current_utc_time - 1.second])
+      ActiveRecord::Base.connection_pool.with_connection do
+        time_condition = ActiveRecord::Base.sanitize_sql_array([
+          'updated_at >= ?', current_utc_time - 1.second])
 
-      grouped_messages = Models::Message
+        grouped_messages = Models::Message
         .group(:status)
         .select(
           'status, COUNT(*) AS count, MIN(updated_at) AS oldest_updated_at',
           "SUM(CASE WHEN #{time_condition} THEN 1 ELSE 0 END) AS throughput")
         .to_a
-    end
 
-    grouped_messages.each do |grouped_message|
-      status = grouped_message.status.to_sym
-
-      metrics[status][:count] = grouped_message.count
-
-      if grouped_message.oldest_updated_at
-        latency = (current_utc_time - grouped_message.oldest_updated_at.utc).to_i
-
-        metrics[status][:latency] = latency
+        metrics[:published][:count][:historic] = Models::Metric
+          .find_by!(name: 'messages.published.count.historic').value.to_i
       end
 
-      metrics[status][:throughput] = grouped_message.throughput
-    end
+      grouped_messages.each do |grouped_message|
+        status = grouped_message.status.to_sym
 
-    metrics
-  end
+        metrics[status][:count][:current] = grouped_message.count
 
-    def send_metrics(statsd:, metrics:, tags:, logger:)
-      statsd.batch do
-        metrics.each do |status, metric|
-          statsd.gauge(
-            "outboxer.messages.count", metric[:count], tags: tags + ["status:#{status}"])
+        if grouped_message.oldest_updated_at
+          latency = (current_utc_time - grouped_message.oldest_updated_at.utc).to_i
 
-          statsd.gauge(
-            "outboxer.messages.latency", metric[:latency], tags: tags + ["status:#{status}"])
-
-          statsd.gauge(
-            "outboxer.messages.throughput", metric[:throughput], tags: tags + ["status:#{status}"])
+          metrics[status][:latency] = latency
         end
+
+        metrics[status][:throughput] = grouped_message.throughput
       end
+
+      metrics
     end
   end
 end

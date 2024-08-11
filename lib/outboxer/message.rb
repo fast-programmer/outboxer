@@ -135,6 +135,14 @@ module Outboxer
           message.exceptions.delete_all
           message.delete
 
+          if message.status == Status::PUBLISHED
+            metric = Outboxer::Models::Metric
+              .lock('FOR UPDATE')
+              .find_by!(name: 'messages.published.count.historic')
+
+            metric.update!(value: metric.value + 1)
+          end
+
           { id: id }
         end
       end
