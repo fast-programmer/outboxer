@@ -38,7 +38,10 @@
     <!-- Navigation Bar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
-            <a class="navbar-brand" href="<%= outboxer_path('') %>"><i class="bi bi-envelope-open-fill"></i> Outboxer</a>
+            <a class="navbar-brand" href="<%= outboxer_path('') %>">
+                <i class="bi bi-envelope-open-fill"></i> Outboxer
+                <span class="badge bg-secondary"><%= messages_metrics[:published][:count][:historic] + messages_metrics[:published][:count][:current] %></span>
+            </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
