@@ -21,7 +21,7 @@ module Outboxer
         create_worker_thread(queue: queue, logger: logger, &block)
       end
 
-      dequeue_messages(
+      buffer_messages(
         queue: queue,
         buffer_size: buffer_size,
         poll_interval: poll_interval,
@@ -36,6 +36,8 @@ module Outboxer
       @publishing = false
     end
 
+    private
+
     def create_worker_thread(queue:, logger:, &block)
       Thread.new do
         loop do
@@ -46,7 +48,7 @@ module Outboxer
             dequeued_at = queued_message[:dequeued_at]
 
             message = Message.publishing(id: queued_message[:id])
-            logger.info "Publishing message #{message[:id]} for " \
+            logger.debug "Publishing message #{message[:id]} for " \
               "#{message[:messageable_type]}::#{message[:messageable_id]} " \
               "in #{(Time.now.utc - dequeued_at).round(3)}s"
 
@@ -62,7 +64,7 @@ module Outboxer
             end
 
             Message.published(id: message[:id])
-            logger.info "Published message #{message[:id]} for " \
+            logger.debug "Published message #{message[:id]} for " \
               "#{message[:messageable_type]}::#{message[:messageable_id]} " \
               "in #{(Time.now.utc - dequeued_at).round(3)}s"
           rescue StandardError => exception
@@ -75,7 +77,7 @@ module Outboxer
               "in #{(Time.now.utc - dequeued_at).round(3)}s"
             exception.backtrace.each { |frame| logger.error frame }
 
-            @stopped = true
+            stop
 
             break
           end
@@ -83,38 +85,21 @@ module Outboxer
       end
     end
 
-    def dequeue_messages(queue:, buffer_size:, poll_interval:, logger:, kernel:)
-      logger.info "Dequeuing up to #{buffer_size} messages every #{poll_interval}s"
+    def buffer_messages(queue:, buffer_size:, poll_interval:, logger:, kernel:)
+      logger.info "Buffering up to #{buffer_size} messages every #{poll_interval}s"
 
       while @publishing
         begin
-          messages = []
-
-          queue_remaining = buffer_size - queue.length
-          queue_stats = { total: queue, remaining: queue_remaining, current: queue.length }
-          logger.debug "Queue: #{queue_stats}"
-
-          logger.debug "Connection pool: #{ActiveRecord::Base.connection_pool.stat}"
-
-          messages = (queue_remaining > 0) ? Messages.dequeue(limit: queue_remaining) : []
-          logger.debug "Updated #{messages.length} messages from queued to dequeued"
+          buffer_remaining = buffer_size - queue.length
+          messages = (buffer_remaining > 0) ? Messages.dequeue(limit: buffer_remaining) : []
 
           messages.each do |message|
-            logger.info "Dequeued message #{message[:id]} for " \
-              "#{message[:messageable_type]}::#{message[:messageable_id]}"
-
             queue.push({ id: message[:id], dequeued_at: Time.now.utc })
           end
 
-          logger.debug "Pushed #{messages.length} messages to queue."
-
           if messages.empty?
-            logger.debug "Sleeping for #{poll_interval} seconds because no messages were queued..."
-
             kernel.sleep(poll_interval)
           elsif queue.length >= buffer_size
-            logger.debug "Sleeping for #{poll_interval} seconds because queue was full..."
-
             kernel.sleep(poll_interval)
           end
         rescue StandardError => exception
@@ -130,7 +115,7 @@ module Outboxer
         end
       end
 
-      logger.info "Stopped dequeuing messages"
+      logger.info "Stopped buffering messages"
     end
   end
 end
