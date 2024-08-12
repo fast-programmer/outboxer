@@ -9,7 +9,7 @@ require 'rack/flash'
 require 'pry-byebug'
 
 environment = ENV['RAILS_ENV'] || 'development'
-config = Outboxer::Database.config(concurrency: 1, environment: environment)
+config = Outboxer::Database.config(environment: environment, pool: 1)
 Outboxer::Database.connect(config: config)
 
 module Outboxer
