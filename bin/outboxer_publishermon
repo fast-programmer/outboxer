@@ -27,7 +27,7 @@ def outboxer_publisher_pids
   `pgrep -f bin/outboxer_publisher$`.strip.split("\n")
 end
 
-environment = ENV['RAILS_ENV'] || 'development'
+environment = ENV['APP_ENV'] || 'development'
 config = Outboxer::Database.config(environment: environment)
 Outboxer::Database.connect(config: config.merge('pool' => 1))
 

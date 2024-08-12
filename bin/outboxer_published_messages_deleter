@@ -30,7 +30,7 @@ interval = options[:interval] || 1
 retention_period = options[:retention_period] || 10
 batch_size = options[:batch_size] || 100
 
-environment = ENV['RAILS_ENV'] || 'development'
+environment = ENV['APP_ENV'] || 'development'
 
 logger = Outboxer::Logger.new($stdout, level: log_level)
 

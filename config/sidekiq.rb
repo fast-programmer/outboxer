@@ -5,7 +5,7 @@ require 'sidekiq'
 
 require_relative '../app/jobs/event_created_job'
 
-environment = ENV['RAILS_ENV'] || 'development'
+environment = ENV['APP_ENV'] || 'development'
 
 db_config_content = File.read('config/database.yml')
 db_config_erb_result = ERB.new(db_config_content).result
