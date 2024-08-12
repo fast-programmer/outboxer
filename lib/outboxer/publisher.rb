@@ -21,7 +21,7 @@ module Outboxer
         create_worker_thread(queue: queue, logger: logger, &block)
       end
 
-      dequeue_messages(
+      buffer_messages(
         queue: queue,
         buffer_size: buffer_size,
         poll_interval: poll_interval,
@@ -35,6 +35,8 @@ module Outboxer
     def stop
       @publishing = false
     end
+
+    private
 
     def create_worker_thread(queue:, logger:, &block)
       Thread.new do
@@ -83,15 +85,13 @@ module Outboxer
       end
     end
 
-    def dequeue_messages(queue:, buffer_size:, poll_interval:, logger:, kernel:)
-      logger.info "Dequeuing up to #{buffer_size} messages every #{poll_interval}s"
+    def buffer_messages(queue:, buffer_size:, poll_interval:, logger:, kernel:)
+      logger.info "Buffering up to #{buffer_size} messages every #{poll_interval}s"
 
       while @publishing
         begin
-          messages = []
-
-          queue_remaining = buffer_size - queue.length
-          messages = (queue_remaining > 0) ? Messages.dequeue(limit: queue_remaining) : []
+          buffer_remaining = buffer_size - queue.length
+          messages = (buffer_remaining > 0) ? Messages.dequeue(limit: buffer_remaining) : []
 
           messages.each do |message|
             queue.push({ id: message[:id], dequeued_at: Time.now.utc })
@@ -115,7 +115,7 @@ module Outboxer
         end
       end
 
-      logger.info "Stopped dequeuing messages"
+      logger.info "Stopped buffering messages"
     end
   end
 end
