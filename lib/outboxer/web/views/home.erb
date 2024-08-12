@@ -23,8 +23,8 @@
                                     </a>
                                 </td>
                                 <td><%= messages_metrics[status.to_sym][:count][:current] %></td>
-                                <td><%= messages_metrics[status.to_sym][:latency] %></td>
                                 <td><%= messages_metrics[status.to_sym][:throughput] %></td>
+                                <td><%= messages_metrics[status.to_sym][:latency] %></td>
                             </tr>
                         <% end %>
                     </tbody>

@@ -4,8 +4,8 @@ module Outboxer
   RSpec.describe Publisher do
     describe '.publish' do
       let(:queue) { Queue.new }
-      let(:max_queue_size) { 1 }
-      let(:num_publisher_threads) { 1 }
+      let(:concurrency) { 1 }
+      let(:queue_max) { 1 }
       let(:poll_interval) { 1 }
       let(:logger) { instance_double(Logger, debug: true, error: true, fatal: true, info: true) }
       let(:kernel) { class_double(Kernel, sleep: nil) }
@@ -20,8 +20,8 @@ module Outboxer
         it 'deletes existing message' do
           Publisher.publish(
             queue: queue,
-            max_queue_size: max_queue_size,
-            num_publisher_threads: num_publisher_threads,
+            queue_max: queue_max,
+            concurrency: concurrency,
             poll_interval: poll_interval,
             logger: logger,
             kernel: kernel
@@ -45,8 +45,8 @@ module Outboxer
           before do
             Publisher.publish(
               queue: queue,
-              max_queue_size: max_queue_size,
-              num_publisher_threads: num_publisher_threads,
+              queue_max: queue_max,
+              concurrency: concurrency,
               poll_interval: poll_interval,
               logger: logger,
               kernel: kernel
@@ -91,8 +91,8 @@ module Outboxer
 
           before do
             Publisher.publish(
-              max_queue_size: max_queue_size,
-              num_publisher_threads: num_publisher_threads,
+              queue_max: queue_max,
+              concurrency: concurrency,
               poll_interval: poll_interval,
               logger: logger,
               kernel: kernel
@@ -151,8 +151,8 @@ module Outboxer
             expect(logger).to receive(:error).with(include('StandardError: queue error')).once
 
             Publisher.publish(
-              max_queue_size: max_queue_size,
-              num_publisher_threads: num_publisher_threads,
+              queue_max: queue_max,
+              concurrency: concurrency,
               poll_interval: poll_interval,
               logger: logger,
               kernel: kernel
@@ -170,8 +170,8 @@ module Outboxer
               .once
 
             Publisher.publish(
-              max_queue_size: max_queue_size,
-              num_publisher_threads: num_publisher_threads,
+              queue_max: queue_max,
+              concurrency: concurrency,
               poll_interval: poll_interval,
               logger: logger,
               kernel: kernel)

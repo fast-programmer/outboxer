@@ -6,15 +6,17 @@ module Outboxer
       before(:each) { Database.disconnect(logger: nil) }
 
       after(:all) do
-        config = Database.config(environment: 'test')
+        config = Database.config(environment: 'test', pool: 20)
         Database.connect(config: config, logger: nil)
       end
 
       context 'when db config valid' do
-        let(:config) { Database.config(environment: 'test') }
+        let(:config) { Database.config(environment: 'test', pool: 20) }
 
         it 'establishes a connection without errors' do
-          expect { Database.connect(config: config, logger: nil) }.not_to raise_error
+          expect do
+            Database.connect(config: config, logger: nil)
+          end.not_to raise_error
         end
 
         it 'actually connects to the database' do

@@ -5,10 +5,12 @@ module Outboxer
   module Database
     extend self
 
-    def config(environment: ENV['RAILS_ENV'] || 'development', path: 'config/database.yml')
+    def config(environment:, pool:, path: 'config/database.yml')
       db_config_content = File.read(path)
       db_config_erb_result = ERB.new(db_config_content).result
-      YAML.safe_load(db_config_erb_result, aliases: true)[environment]
+      db_config = YAML.safe_load(db_config_erb_result, aliases: true)[environment]
+      db_config['pool'] = pool
+      db_config
     end
 
     def connect(config:, logger: Logger.new($stdout, level: Logger::INFO))
