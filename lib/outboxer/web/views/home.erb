@@ -9,9 +9,11 @@
                     <thead>
                         <tr>
                             <th scope="col">Status</th>
-                            <th scope="col">Count</th>
-                            <th scope="col">Throughput (per second)</th>
-                            <th scope="col">Latency (seconds)</th>
+                            <th scope="col">Current count</th>
+                            <th scope="col">Throughput</th>
+                            <th scope="col">Latency</th>
+                            <th scope="col">Historic count</th>
+                            <th scope="col">Total count</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -25,6 +27,8 @@
                                 <td><%= messages_metrics[status.to_sym][:count][:current] %></td>
                                 <td><%= messages_metrics[status.to_sym][:throughput] %></td>
                                 <td><%= messages_metrics[status.to_sym][:latency] %></td>
+                                <td><%= messages_metrics[status.to_sym][:count][:historic] || '-' %></td>
+                                <td><%= messages_metrics[status.to_sym][:count][:total] || '-' %></td>
                             </tr>
                         <% end %>
                     </tbody>
