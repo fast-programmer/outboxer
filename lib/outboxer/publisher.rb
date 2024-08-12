@@ -77,7 +77,7 @@ module Outboxer
               "in #{(Time.now.utc - dequeued_at).round(3)}s"
             exception.backtrace.each { |frame| logger.error frame }
 
-            @stopped = true
+            stop
 
             break
           end
