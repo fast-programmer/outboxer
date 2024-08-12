@@ -46,7 +46,7 @@ module Outboxer
             dequeued_at = queued_message[:dequeued_at]
 
             message = Message.publishing(id: queued_message[:id])
-            logger.info "Publishing message #{message[:id]} for " \
+            logger.debug "Publishing message #{message[:id]} for " \
               "#{message[:messageable_type]}::#{message[:messageable_id]} " \
               "in #{(Time.now.utc - dequeued_at).round(3)}s"
 
@@ -62,7 +62,7 @@ module Outboxer
             end
 
             Message.published(id: message[:id])
-            logger.info "Published message #{message[:id]} for " \
+            logger.debug "Published message #{message[:id]} for " \
               "#{message[:messageable_type]}::#{message[:messageable_id]} " \
               "in #{(Time.now.utc - dequeued_at).round(3)}s"
           rescue StandardError => exception
@@ -91,30 +91,15 @@ module Outboxer
           messages = []
 
           queue_remaining = buffer_size - queue.length
-          queue_stats = { total: queue, remaining: queue_remaining, current: queue.length }
-          logger.debug "Queue: #{queue_stats}"
-
-          logger.debug "Connection pool: #{ActiveRecord::Base.connection_pool.stat}"
-
           messages = (queue_remaining > 0) ? Messages.dequeue(limit: queue_remaining) : []
-          logger.debug "Updated #{messages.length} messages from queued to dequeued"
 
           messages.each do |message|
-            logger.info "Dequeued message #{message[:id]} for " \
-              "#{message[:messageable_type]}::#{message[:messageable_id]}"
-
             queue.push({ id: message[:id], dequeued_at: Time.now.utc })
           end
 
-          logger.debug "Pushed #{messages.length} messages to queue."
-
           if messages.empty?
-            logger.debug "Sleeping for #{poll_interval} seconds because no messages were queued..."
-
             kernel.sleep(poll_interval)
           elsif queue.length >= buffer_size
-            logger.debug "Sleeping for #{poll_interval} seconds because queue was full..."
-
             kernel.sleep(poll_interval)
           end
         rescue StandardError => exception
