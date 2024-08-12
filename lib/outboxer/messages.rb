@@ -283,6 +283,9 @@ module Outboxer
         metrics[status][:throughput] = grouped_message.throughput
       end
 
+      metrics[:published][:count][:total] =
+        metrics[:published][:count][:historic] + metrics[:published][:count][:current]
+
       metrics
     end
   end

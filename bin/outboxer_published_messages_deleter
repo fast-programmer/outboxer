@@ -34,7 +34,7 @@ environment = ENV['RAILS_ENV'] || 'development'
 
 logger = Outboxer::Logger.new($stdout, level: log_level)
 
-db_config = Outboxer::Database.config(environment: environment)
+db_config = Outboxer::Database.config(environment: environment, pool: 1)
 Outboxer::Database.connect(config: db_config, logger: logger)
 
 $running = true
