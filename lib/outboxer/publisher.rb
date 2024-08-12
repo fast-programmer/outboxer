@@ -6,8 +6,8 @@ module Outboxer
 
     def publish(
       queue: Queue.new,
-      max_queue_size: 10,
-      num_publisher_threads: 5,
+      queue_max: 10,
+      concurrency: 5,
       poll_interval: 1,
       logger: Logger.new($stdout, level: Logger::INFO),
       kernel: Kernel,
@@ -16,26 +16,26 @@ module Outboxer
     )
       @publishing = true
 
-      publisher_threads = num_publisher_threads.times.map do
-        create_publisher_thread(queue: queue, logger: logger, &block)
+      worker_threads = concurrency.times.map do
+        create_worker_thread(queue: queue, logger: logger, &block)
       end
 
       dequeue_messages(
         queue: queue,
-        max_queue_size: max_queue_size,
+        queue_max: queue_max,
         poll_interval: poll_interval,
         logger: logger,
         kernel: kernel)
 
-      publisher_threads.length.times { queue.push(nil) }
-      publisher_threads.each(&:join)
+      worker_threads.length.times { queue.push(nil) }
+      worker_threads.each(&:join)
     end
 
     def stop
       @publishing = false
     end
 
-    def create_publisher_thread(queue:, logger:, &block)
+    def create_worker_thread(queue:, logger:, &block)
       Thread.new do
         loop do
           begin
@@ -82,14 +82,14 @@ module Outboxer
       end
     end
 
-    def dequeue_messages(queue:, max_queue_size:, poll_interval:, logger:, kernel:)
-      logger.info "Dequeuing up to #{max_queue_size} messages every #{poll_interval}s"
+    def dequeue_messages(queue:, queue_max:, poll_interval:, logger:, kernel:)
+      logger.info "Dequeuing up to #{queue_max} messages every #{poll_interval}s"
 
       while @publishing
         begin
           messages = []
 
-          queue_remaining = max_queue_size - queue.length
+          queue_remaining = queue_max - queue.length
           queue_stats = { total: queue, remaining: queue_remaining, current: queue.length }
           logger.debug "Queue: #{queue_stats}"
 
@@ -111,7 +111,7 @@ module Outboxer
             logger.debug "Sleeping for #{poll_interval} seconds because no messages were queued..."
 
             kernel.sleep(poll_interval)
-          elsif queue.length >= max_queue_size
+          elsif queue.length >= queue_max
             logger.debug "Sleeping for #{poll_interval} seconds because queue was full..."
 
             kernel.sleep(poll_interval)

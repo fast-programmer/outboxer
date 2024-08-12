@@ -7,7 +7,7 @@ namespace :outboxer do
   namespace :db do
     task :drop do
       environment = ENV['RAILS_ENV'] || 'development'
-      db_config = Outboxer::Database.config(environment: environment)
+      db_config = Outboxer::Database.config(environment: environment, pool: 1)
 
       ActiveRecord::Base.establish_connection(db_config.merge('database' => 'postgres'))
       ActiveRecord::Base.connection.drop_database(db_config['database'])
@@ -16,7 +16,7 @@ namespace :outboxer do
 
     task :create do
       environment = ENV['RAILS_ENV'] || 'development'
-      db_config = Outboxer::Database.config(environment: environment)
+      db_config = Outboxer::Database.config(environment: environment, pool: 1)
 
       ActiveRecord::Base.establish_connection(db_config.merge('database' => 'postgres'))
       ActiveRecord::Base.connection.create_database(db_config['database'])
@@ -25,7 +25,7 @@ namespace :outboxer do
 
     task :migrate do
       environment = ENV['RAILS_ENV'] || 'development'
-      db_config = Outboxer::Database.config(environment: environment)
+      db_config = Outboxer::Database.config(environment: environment, pool: 1)
       ActiveRecord::Base.establish_connection(db_config)
 
       require_relative "../db/migrate/create_outboxer_metrics"
@@ -45,7 +45,7 @@ namespace :outboxer do
 
     task :seed do
       environment = ENV['RAILS_ENV'] || 'development'
-      db_config = Outboxer::Database.config(environment: environment)
+      db_config = Outboxer::Database.config(environment: environment, pool: 1)
       ActiveRecord::Base.establish_connection(db_config)
 
       require_relative "../db/seeds"
