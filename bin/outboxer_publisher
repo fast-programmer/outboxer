@@ -1,23 +1,48 @@
 #!/usr/bin/env ruby
 
 require 'bundler/setup'
-
 require 'sidekiq'
 require 'outboxer'
+require 'optparse'
+
+options = {
+  buffer_size: 1000,
+  poll_interval: 1,
+  concurrency: 20,
+  log_level: 'info'
+}
+
+OptionParser.new do |opts|
+  opts.banner = 'Usage: outboxer_publisher [options]'
+
+  opts.on('--buffer_size=N', Integer, 'Set the buffer size') do |n|
+    options[:buffer] = n
+  end
+
+  opts.on('--poll_interval=N', Integer, 'Set the polling interval in seconds') do |n|
+    options[:poll_interval] = n
+  end
+
+  opts.on('--concurrency=N', Integer, 'Set the number of concurrent workers') do |n|
+    options[:concurrency] = n
+  end
+
+  opts.on('--log_level=LEVEL', String, 'Set the log level (debug, info, warn, error)') do |level|
+    options[:log_level] = level.downcase
+  end
+end.parse!
 
 environment = ENV['RAILS_ENV'] || 'development'
 
 require_relative '../app/jobs/event_created_job'
 
-concurrency = 20
-
 Sidekiq.configure_client do |config|
-  config.redis = { url: ENV['REDIS_URL'], size: concurrency, timeout: 1 }
+  config.redis = { url: ENV['REDIS_URL'], size: options[:concurrency], timeout: 1 }
 end
 
-logger = Outboxer::Logger.new($stdout, level: Logger::INFO)
+logger = Outboxer::Logger.new($stdout, level: Logger.const_get(options[:log_level].upcase))
 
-db_config = Outboxer::Database.config(environment: environment, pool: concurrency + 1)
+db_config = Outboxer::Database.config(environment: environment, pool: options[:concurrency] + 1)
 Outboxer::Database.connect(config: db_config, logger: logger)
 
 ['INT', 'TERM'].each do |signal|
@@ -27,7 +52,10 @@ Outboxer::Database.connect(config: db_config, logger: logger)
 end
 
 Outboxer::Publisher.publish(
-  concurrency: 20, queue_max: 1000, poll_interval: 1, logger: logger
+  buffer_size: options[:buffer_size],
+  concurrency: options[:concurrency],
+  poll_interval: options[:poll_interval],
+  logger: logger
 ) do |message|
   case message[:messageable_type]
   when 'Event'
