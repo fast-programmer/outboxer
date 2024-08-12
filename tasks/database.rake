@@ -6,7 +6,7 @@ require 'pry-byebug'
 namespace :outboxer do
   namespace :db do
     task :drop do
-      environment = ENV['RAILS_ENV'] || 'development'
+      environment = ENV['APP_ENV'] || 'development'
       db_config = Outboxer::Database.config(environment: environment, pool: 1)
 
       ActiveRecord::Base.establish_connection(db_config.merge('database' => 'postgres'))
@@ -15,7 +15,7 @@ namespace :outboxer do
     end
 
     task :create do
-      environment = ENV['RAILS_ENV'] || 'development'
+      environment = ENV['APP_ENV'] || 'development'
       db_config = Outboxer::Database.config(environment: environment, pool: 1)
 
       ActiveRecord::Base.establish_connection(db_config.merge('database' => 'postgres'))
@@ -24,7 +24,7 @@ namespace :outboxer do
     end
 
     task :migrate do
-      environment = ENV['RAILS_ENV'] || 'development'
+      environment = ENV['APP_ENV'] || 'development'
       db_config = Outboxer::Database.config(environment: environment, pool: 1)
       ActiveRecord::Base.establish_connection(db_config)
 
@@ -44,7 +44,7 @@ namespace :outboxer do
     end
 
     task :seed do
-      environment = ENV['RAILS_ENV'] || 'development'
+      environment = ENV['APP_ENV'] || 'development'
       db_config = Outboxer::Database.config(environment: environment, pool: 1)
       ActiveRecord::Base.establish_connection(db_config)
 
@@ -59,8 +59,8 @@ namespace :outboxer do
   end
 end
 
-# RAILS_ENV=development bin/rake outboxer:db:drop
-# RAILS_ENV=development bin/rake outboxer:db:create
-# RAILS_ENV=development bin/rake outboxer:db:migrate
-# RAILS_ENV=development bin/rake outboxer:db:seed
-# RAILS_ENV=development bin/rake outboxer:db:reset
+# APP_ENV=development bin/rake outboxer:db:drop
+# APP_ENV=development bin/rake outboxer:db:create
+# APP_ENV=development bin/rake outboxer:db:migrate
+# APP_ENV=development bin/rake outboxer:db:seed
+# APP_ENV=development bin/rake outboxer:db:reset

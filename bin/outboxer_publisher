@@ -32,7 +32,7 @@ OptionParser.new do |opts|
   end
 end.parse!
 
-environment = ENV['RAILS_ENV'] || 'development'
+environment = ENV['APP_ENV'] || 'development'
 
 require_relative '../app/jobs/event_created_job'
 
