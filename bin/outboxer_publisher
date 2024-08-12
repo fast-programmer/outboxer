@@ -53,8 +53,8 @@ end
 
 Outboxer::Publisher.publish(
   buffer_size: options[:buffer_size],
-  concurrency: options[:concurrency],
   poll_interval: options[:poll_interval],
+  concurrency: options[:concurrency],
   logger: logger
 ) do |message|
   case message[:messageable_type]
