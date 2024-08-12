@@ -5,10 +5,9 @@ module Outboxer
     @publishing = false
 
     def publish(
-      queue: Queue.new,
-      queue_max: 10,
-      concurrency: 5,
+      buffer_size: 1000,
       poll_interval: 1,
+      concurrency: 20,
       logger: Logger.new($stdout, level: Logger::INFO),
       kernel: Kernel,
       time: Time,
@@ -16,13 +15,15 @@ module Outboxer
     )
       @publishing = true
 
+      queue = Queue.new
+
       worker_threads = concurrency.times.map do
         create_worker_thread(queue: queue, logger: logger, &block)
       end
 
       dequeue_messages(
         queue: queue,
-        queue_max: queue_max,
+        buffer_size: buffer_size,
         poll_interval: poll_interval,
         logger: logger,
         kernel: kernel)
@@ -82,14 +83,14 @@ module Outboxer
       end
     end
 
-    def dequeue_messages(queue:, queue_max:, poll_interval:, logger:, kernel:)
-      logger.info "Dequeuing up to #{queue_max} messages every #{poll_interval}s"
+    def dequeue_messages(queue:, buffer_size:, poll_interval:, logger:, kernel:)
+      logger.info "Dequeuing up to #{buffer_size} messages every #{poll_interval}s"
 
       while @publishing
         begin
           messages = []
 
-          queue_remaining = queue_max - queue.length
+          queue_remaining = buffer_size - queue.length
           queue_stats = { total: queue, remaining: queue_remaining, current: queue.length }
           logger.debug "Queue: #{queue_stats}"
 
@@ -111,7 +112,7 @@ module Outboxer
             logger.debug "Sleeping for #{poll_interval} seconds because no messages were queued..."
 
             kernel.sleep(poll_interval)
-          elsif queue.length >= queue_max
+          elsif queue.length >= buffer_size
             logger.debug "Sleeping for #{poll_interval} seconds because queue was full..."
 
             kernel.sleep(poll_interval)
