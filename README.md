@@ -57,17 +57,20 @@ bin/rails g outboxer:publisher
 
 ```ruby
 Outboxer::Publisher.publish do |message|
-  # handle Event.find(message[:messageable_id]) here
+  case message[:messageable_type]
+  when 'Event'
+    event = Event.find(message[:messageable_id])
+
+    # handle event here
+  end
 end
 ```
 
 ### 6. periodically delete published messages
 
-run below code every 10 seconds to delete messages order than 60 seconds
-
 ```ruby
   Outboxer::Messages.delete_all(
-    status: :published,
+    status: Outboxer::Message::PUBLISHED,
     batch_size: 100,
     older_than: Time.now - 60)
 ```
