@@ -5,7 +5,7 @@
 
 ## Background
 
-Outboxer is an Ruby implementation of the [transactional outbox pattern](https://microservices.io/patterns/data/transactional-outbox.html) for PostgreSQL and MySQL databases.
+Outboxer is an ActiveRecord implementation of the transactional outbox pattern for PostgreSQL and MySQL databases.
 
 ## Installation
 
