@@ -56,7 +56,7 @@ bin/rails g outboxer:publisher
 ### 5. handle event created out of band
 
 ```ruby
-Outboxer::Publisher.publish do |message|
+Outboxer::Publisher.publish(...) do |message|
   case message[:messageable_type]
   when 'Event'
     event = Event.find(message[:messageable_id])
@@ -75,17 +75,16 @@ bin/outboxer_publisher
 ### 7. periodically delete published messages
 
 ```ruby
-  Outboxer::Messages.delete_all(
-    status: Outboxer::Message::PUBLISHED,
-    batch_size: 100,
-    older_than: Time.now - 60)
+# called through your scheduling infrastructure
+# sidekiq scheduler, whenever, clockwork or a custom process
+
+Outboxer::Messages.delete_all(
+  status: Outboxer::Message::PUBLISHED,
+  batch_size: 100,
+  older_than: Time.now - 60)
 ```
 
-see wiki for examples of how to call from sidekiq scheduler, whenever, clockwork and a custom process
-
-### 8. manage messages
-
-manage messages with the web ui
+### 8. manage messages via ui
 
 <img width="1257" alt="Screenshot 2024-05-20 at 8 47 57 pm" src="https://github.com/fast-programmer/outboxer/assets/394074/0446bc7e-9d5f-4fe1-b210-ff394bdacdd6">
 
@@ -114,8 +113,6 @@ end
 ```
 
 ### 9. monitor message publisher
-
-know how much memory and cpu is required by the publisher
 
 <img width="310" alt="Screenshot 2024-05-20 at 10 41 57 pm" src="https://github.com/fast-programmer/outboxer/assets/394074/1222ad47-15e3-44d1-bb45-6abc6b3e4325">
 
