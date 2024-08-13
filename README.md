@@ -66,7 +66,13 @@ Outboxer::Publisher.publish do |message|
 end
 ```
 
-### 6. periodically delete published messages
+### 6. run publisher
+
+```bash
+bin/outboxer_publisher
+```
+
+### 7. periodically delete published messages
 
 ```ruby
   Outboxer::Messages.delete_all(
@@ -76,12 +82,6 @@ end
 ```
 
 see wiki for examples of how to call from sidekiq scheduler, whenever, clockwork and a custom process
-
-### 7. run publisher
-
-```bash
-bin/outboxer_publisher
-```
 
 ### 8. manage messages
 
