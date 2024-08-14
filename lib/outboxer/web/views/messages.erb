@@ -69,10 +69,12 @@
                                 <% end %>
                             <% end %>
 
-                            <!-- Requeue Selected Button -->
-                            <button class="btn btn-sm btn-outline-secondary me-2" type="submit" name="action" value="requeue_by_ids" data-bs-toggle="tooltip" data-bs-placement="top" title="Requeue selected">
-                                <i class="bi bi-arrow-clockwise"></i> Requeue Selected
-                            </button>
+                            <% if Outboxer::Messages.can_requeue_all?(status: denormalised_params[:status]) %>
+                                <!-- Requeue Selected Button -->
+                                <button class="btn btn-sm btn-outline-secondary me-2" type="submit" name="action" value="requeue_by_ids" data-bs-toggle="tooltip" data-bs-placement="top" title="Requeue selected">
+                                    <i class="bi bi-arrow-clockwise"></i> Requeue Selected
+                                </button>
+                            <% end %>
                             <!-- Delete Selected Button -->
                             <button class="btn btn-sm btn-outline-danger" type="submit" name="action" value="delete_by_ids" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete selected">
                                 <i class="bi bi-trash"></i> Delete Selected
@@ -126,14 +128,15 @@
                                     <td>
                                         <!-- Action buttons -->
                                         <div class="d-flex">
-                                        <!-- Requeue Button Form -->
-                                        <form action="<%= outboxer_path("/message/#{message[:id]}/requeue") %>" method="post">
-
-                                            <button type="submit" class="btn btn-sm btn-outline-secondary me-1 d-flex align-items-center justify-content-center">
-                                            <i class="bi bi-arrow-clockwise me-1"></i>
-                                            <span>Requeue</span>
-                                            </button>
-                                        </form>
+                                        <% if Outboxer::Message.can_requeue?(status: denormalised_params[:status]) %>
+                                            <!-- Requeue Button Form -->
+                                            <form action="<%= outboxer_path("/message/#{message[:id]}/requeue") %>" method="post">
+                                                <button type="submit" class="btn btn-sm btn-outline-secondary me-1 d-flex align-items-center justify-content-center">
+                                                <i class="bi bi-arrow-clockwise me-1"></i>
+                                                <span>Requeue</span>
+                                                </button>
+                                            </form>
+                                        <% end %>
 
                                         <!-- Delete Button Form -->
                                         <form action="<%= outboxer_path("/message/#{message[:id]}/delete") %>" method="post">

@@ -148,6 +148,12 @@ module Outboxer
       end
     end
 
+    REQUEUE_STATUSES = [:dequeued, :publishing, :failed]
+
+    def can_requeue?(status:)
+      REQUEUE_STATUSES.include?(status&.to_sym)
+    end
+
     def requeue(id:, current_utc_time: Time.now.utc)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
