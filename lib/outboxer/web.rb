@@ -426,5 +426,33 @@ module Outboxer
 
       redirect to('/messages')
     end
+
+    get '/messageable/*/id' do
+      begin
+        messageable_type = params[:splat]
+          .first.split('/').map(&:singularize).map(&:camelize).join('::')
+
+        messageable_class = Object.const_get("::#{messageable_type}")
+
+        if messageable_class < ActiveRecord::Base
+          messageable = messageable_class.find(params[:id])
+
+          erb :messageable, locals: {
+            messageable: messageable }
+        else
+          status 400
+
+          erb :error, locals: { error: "Invalid model" }
+        end
+      rescue NameError
+        status 400
+
+        erb :error, locals: { error: "Model not found" }
+      rescue ActiveRecord::RecordNotFound
+        status 404
+
+        erb :error, locals: { error: "Record not found" }
+      end
+    end
   end
 end

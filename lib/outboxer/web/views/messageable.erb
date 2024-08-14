@@ -1,0 +1,15 @@
+<h1><%= messageable.class.name %> Details</h1>
+
+<ul>
+    <% messageable.attributes.each do |key, value| %>
+        <li><strong><%= key.humanize %>:</strong>
+            <% if value.is_a?(Hash) || value.is_a?(Array) %>
+                <pre><%= JSON.pretty_generate(value) %></pre>
+            <% else %>
+                <%= value %>
+            <% end %>
+        </li>
+    <% end %>
+</ul>
+
+<a href="/">Back to Home</a>
