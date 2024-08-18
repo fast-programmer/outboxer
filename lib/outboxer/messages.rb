@@ -98,18 +98,18 @@ module Outboxer
       }
     end
 
-    REQUEUE_ALL_STATUSES = [:dequeued, :publishing, :failed]
+    REQUEUE_STATUSES = [:dequeued, :publishing, :failed]
 
-    def can_requeue_all?(status:)
-      REQUEUE_ALL_STATUSES.include?(status&.to_sym)
+    def can_requeue?(status:)
+      REQUEUE_STATUSES.include?(status&.to_sym)
     end
 
     def requeue_all(status:, batch_size: 100, time: Time)
-      if !can_requeue_all?(status: status)
+      if !can_requeue?(status: status)
         status_formatted = status.nil? ? 'nil' : status
 
         raise ArgumentError,
-          "Status #{status_formatted} must be one of #{REQUEUE_ALL_STATUSES.join(', ')}"
+          "Status #{status_formatted} must be one of #{Message::REQUEUE_STATUSES.join(', ')}"
       end
 
       requeued_count = 0

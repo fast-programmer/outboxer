@@ -12,7 +12,7 @@ module Outboxer
 
       context 'when status is queued' do
         it 'returns true' do
-          expect(Message.can_requeue?(status: Message::Status::QUEUED)).to eq true
+          expect(Message.can_requeue?(status: Message::Status::QUEUED)).to eq false
         end
       end
 

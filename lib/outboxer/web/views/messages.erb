@@ -17,7 +17,7 @@
                             <input type="hidden" name="status" value="<%= denormalised_params[:status] %>">
                             <button type="submit" class="btn btn-sm btn-outline-secondary"
                                 <%= 'disabled' unless Outboxer::Messages
-                                .can_requeue_all?(status: denormalised_params[:status]) %>>
+                                .can_requeue?(status: denormalised_params[:status]) %>>
                                 <i class="bi bi-arrow-clockwise"></i> Requeue All
                             </button>
                         </form>
@@ -33,7 +33,7 @@
                     </div>
                     <!-- Buttons aligned underneath the header on the smallest screens -->
                     <div class="col-12 d-sm-none mt-2">
-                        <% if Outboxer::Messages.can_requeue_all?(status: denormalised_params[:status]) %>
+                        <% if Outboxer::Messages.can_requeue?(status: denormalised_params[:status]) %>
                             <form id="requeueAllForm" action="<%= outboxer_path("/messages/requeue_all") %>" method="post" class="mb-2">
                                 <input type="hidden" name="action" value="requeue_all">
                                 <input type="hidden" name="status" value="publishing">
@@ -71,7 +71,7 @@
                             <!-- Requeue Selected Button -->
                             <button class="btn btn-sm btn-outline-secondary me-2" type="submit" name="action"
                                     value="requeue_by_ids" data-bs-toggle="tooltip" data-bs-placement="top"
-                                    title="Requeue selected" <%= 'disabled' unless Outboxer::Messages.can_requeue_all?(status: denormalised_params[:status]) %>>
+                                    title="Requeue selected" <%= 'disabled' unless Outboxer::Messages.can_requeue?(status: denormalised_params[:status]) %>>
                                 <i class="bi bi-arrow-clockwise"></i> Requeue Selected
                             </button>
 
@@ -131,7 +131,7 @@
                                         <!-- Requeue Button Form -->
                                         <form action="<%= outboxer_path("/message/#{message[:id]}/requeue") %>" method="post">
                                             <button type="submit" class="btn btn-sm btn-outline-secondary me-1 d-flex align-items-center
-                                                            justify-content-center" <%= 'disabled' unless Outboxer::Message
+                                                            justify-content-center" <%= 'disabled' unless Outboxer::Messages
                                                                                     .can_requeue?(status: denormalised_params[:status]) %>>
                                                 <i class="bi bi-arrow-clockwise me-1"></i>
                                                 <span>Requeue</span>
