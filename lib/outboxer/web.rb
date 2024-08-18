@@ -345,8 +345,8 @@ module Outboxer
 
       result = Messages.requeue_all(status: denormalised_params[:status])
 
-      message_text = result[:requeue_count] == 1 ? 'message' : 'messages'
-      flash[:primary] = "#{result[:requeue_count]} #{message_text} have been queued"
+      message_text = result[:requeued_count] == 1 ? 'message' : 'messages'
+      flash[:primary] = "#{result[:requeued_count]} #{message_text} have been queued"
 
       redirect to("/messages#{normalised_params}")
     end
