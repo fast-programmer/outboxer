@@ -14,5 +14,5 @@ vendor/bundle
 
 .rspec_status
 .DS_Store
-.envdoc/
+.env
 doc/
