@@ -9,50 +9,49 @@
                     <div class="col">
                         <h3 class="mb-0">Messages</h3>
                     </div>
-                    <% if messages.present? %>
-                        <!-- Buttons aligned to right on larger screens, hidden on smallest screens -->
-                        <div class="col d-none d-sm-flex justify-content-end">
-                            <% if Outboxer::Messages.can_requeue_all?(status: denormalised_params[:status]) %>
-                                <form id="requeueAllForm" action="<%= outboxer_path("/messages/requeue_all") %>" method="post" class="me-2">
-                                    <input type="hidden" name="action" value="requeue_all">
-                                    <input type="hidden" name="status" value="<%= denormalised_params[:status] %>">
-                                    <button type="submit" class="btn btn-sm btn-outline-secondary">
-                                        <i class="bi bi-arrow-clockwise"></i> Requeue All
-                                    </button>
-                                </form>
+                    <!-- Buttons aligned to right on larger screens, hidden on smallest screens -->
+                    <div class="col d-none d-sm-flex justify-content-end">
+                        <form id="requeueAllForm" action="<%= outboxer_path("/messages/requeue_all") %>"
+                            method="post" class="me-2">
+                            <input type="hidden" name="action" value="requeue_all">
+                            <input type="hidden" name="status" value="<%= denormalised_params[:status] %>">
+                            <button type="submit" class="btn btn-sm btn-outline-secondary"
+                                <%= 'disabled' unless Outboxer::Messages
+                                .can_requeue_all?(status: denormalised_params[:status]) %>>
+                                <i class="bi bi-arrow-clockwise"></i> Requeue All
+                            </button>
+                        </form>
+                        <form id="deleteAllForm" action="<%= outboxer_path("/messages/delete_all") %>" method="post">
+                            <input type="hidden" name="action" value="delete_all">
+                            <% if denormalised_params[:status] %>
+                                <input type="hidden" name="status" value="<%= denormalised_params[:status] %>">
                             <% end %>
-                            <form id="deleteAllForm" action="<%= outboxer_path("/messages/delete_all") %>" method="post">
-                                <input type="hidden" name="action" value="delete_all">
-                                <% if denormalised_params[:status] %>
-                                    <input type="hidden" name="status" value="<%= denormalised_params[:status] %>">
-                                <% end %>
-                                <button type="submit" class="btn btn-sm btn-outline-danger">
-                                    <i class="bi bi-trash"></i> Delete All
+                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                <i class="bi bi-trash"></i> Delete All
+                            </button>
+                        </form>
+                    </div>
+                    <!-- Buttons aligned underneath the header on the smallest screens -->
+                    <div class="col-12 d-sm-none mt-2">
+                        <% if Outboxer::Messages.can_requeue_all?(status: denormalised_params[:status]) %>
+                            <form id="requeueAllForm" action="<%= outboxer_path("/messages/requeue_all") %>" method="post" class="mb-2">
+                                <input type="hidden" name="action" value="requeue_all">
+                                <input type="hidden" name="status" value="publishing">
+                                <button type="submit" class="btn btn-sm btn-outline-secondary w-100">
+                                    <i class="bi bi-arrow-clockwise"></i> Requeue All
                                 </button>
                             </form>
-                        </div>
-                        <!-- Buttons aligned underneath the header on the smallest screens -->
-                        <div class="col-12 d-sm-none mt-2">
-                            <% if Outboxer::Messages.can_requeue_all?(status: denormalised_params[:status]) %>
-                                <form id="requeueAllForm" action="<%= outboxer_path("/messages/requeue_all") %>" method="post" class="mb-2">
-                                    <input type="hidden" name="action" value="requeue_all">
-                                    <input type="hidden" name="status" value="publishing">
-                                    <button type="submit" class="btn btn-sm btn-outline-secondary w-100">
-                                        <i class="bi bi-arrow-clockwise"></i> Requeue All
-                                    </button>
-                                </form>
+                        <% end %>
+                        <form id="deleteAllForm" action="<%= outboxer_path("/messages/delete_all") %>" method="post">
+                            <input type="hidden" name="action" value="delete_all">
+                            <% if denormalised_params[:status] %>
+                                <input type="hidden" name="status" value="<%= denormalised_params[:status] %>">
                             <% end %>
-                            <form id="deleteAllForm" action="<%= outboxer_path("/messages/delete_all") %>" method="post">
-                                <input type="hidden" name="action" value="delete_all">
-                                <% if denormalised_params[:status] %>
-                                    <input type="hidden" name="status" value="<%= denormalised_params[:status] %>">
-                                <% end %>
-                                <button type="submit" class="btn btn-sm btn-outline-danger w-100">
-                                    <i class="bi bi-trash"></i> Delete All
-                                </button>
-                            </form>
-                        </div>
-                    <% end %>
+                            <button type="submit" class="btn btn-sm btn-outline-danger w-100">
+                                <i class="bi bi-trash"></i> Delete All
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
@@ -69,12 +68,13 @@
                                 <% end %>
                             <% end %>
 
-                            <% if Outboxer::Messages.can_requeue_all?(status: denormalised_params[:status]) %>
-                                <!-- Requeue Selected Button -->
-                                <button class="btn btn-sm btn-outline-secondary me-2" type="submit" name="action" value="requeue_by_ids" data-bs-toggle="tooltip" data-bs-placement="top" title="Requeue selected">
-                                    <i class="bi bi-arrow-clockwise"></i> Requeue Selected
-                                </button>
-                            <% end %>
+                            <!-- Requeue Selected Button -->
+                            <button class="btn btn-sm btn-outline-secondary me-2" type="submit" name="action"
+                                    value="requeue_by_ids" data-bs-toggle="tooltip" data-bs-placement="top"
+                                    title="Requeue selected" <%= 'disabled' unless Outboxer::Messages.can_requeue_all?(status: denormalised_params[:status]) %>>
+                                <i class="bi bi-arrow-clockwise"></i> Requeue Selected
+                            </button>
+
                             <!-- Delete Selected Button -->
                             <button class="btn btn-sm btn-outline-danger" type="submit" name="action" value="delete_by_ids" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete selected">
                                 <i class="bi bi-trash"></i> Delete Selected
@@ -128,15 +128,15 @@
                                     <td>
                                         <!-- Action buttons -->
                                         <div class="d-flex">
-                                        <% if Outboxer::Message.can_requeue?(status: denormalised_params[:status]) %>
-                                            <!-- Requeue Button Form -->
-                                            <form action="<%= outboxer_path("/message/#{message[:id]}/requeue") %>" method="post">
-                                                <button type="submit" class="btn btn-sm btn-outline-secondary me-1 d-flex align-items-center justify-content-center">
+                                        <!-- Requeue Button Form -->
+                                        <form action="<%= outboxer_path("/message/#{message[:id]}/requeue") %>" method="post">
+                                            <button type="submit" class="btn btn-sm btn-outline-secondary me-1 d-flex align-items-center
+                                                            justify-content-center" <%= 'disabled' unless Outboxer::Message
+                                                                                    .can_requeue?(status: denormalised_params[:status]) %>>
                                                 <i class="bi bi-arrow-clockwise me-1"></i>
                                                 <span>Requeue</span>
-                                                </button>
-                                            </form>
-                                        <% end %>
+                                            </button>
+                                        </form>
 
                                         <!-- Delete Button Form -->
                                         <form action="<%= outboxer_path("/message/#{message[:id]}/delete") %>" method="post">
