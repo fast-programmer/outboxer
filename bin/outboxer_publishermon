@@ -1,35 +1,42 @@
 #!/usr/bin/env ruby
 
 require 'bundler/setup'
-
 require 'outboxer'
 require 'sidekiq'
 
 def cpu_cores
-  if RUBY_PLATFORM.include?("darwin")
-    `sysctl -n hw.ncpu`.to_i
-  else
-    `nproc`.to_i
-  end
+  RUBY_PLATFORM.include?("darwin") ? `sysctl -n hw.ncpu`.to_i : `nproc`.to_i
 end
 
 def fetch_process_stats(pid)
   cores = cpu_cores
-  stats = `ps -p #{pid} -o rss=,pcpu=,etime=,vsz=`.strip
-  rss, cpu, elapsed, vsz = stats.split(" ")
+  stats = `ps -p #{pid} -o rss=,pcpu=,etime=`.strip
+  rss, cpu, elapsed = stats.split(" ")
   rss_mb = rss.to_i / 1024
-  vsz_mb = vsz.to_i / 1024
-  cpu_per_core = cpu.to_f / cores
-  { pid: pid, rss_mb: rss_mb, cpu: cpu, cpu_per_core: cpu_per_core.round(2), elapsed: elapsed, vsz_mb: vsz_mb }
+  cpu_per_core = (cpu.to_f / cores).round(2)
+  { pid: pid, rss_mb: rss_mb, cpu: cpu, cpu_per_core: cpu_per_core, elapsed: elapsed }
 end
 
 def outboxer_publisher_pids
   `pgrep -f bin/outboxer_publisher$`.strip.split("\n")
 end
 
-environment = ENV['APP_ENV'] || 'development'
-config = Outboxer::Database.config(environment: environment)
-Outboxer::Database.connect(config: config.merge('pool' => 1))
+def format_metrics(metrics)
+  metrics.map do |status, data|
+    [
+      status,
+      data.dig(:count, :historic) || '-',
+      data.dig(:count, :current),
+      data.dig(:count, :total) || '-',
+      data[:throughput],
+      data[:latency]
+    ]
+  end
+end
+
+environment = ENV['OUTBOXER_ENV'] || 'development'
+db_config = Outboxer::Database.config(environment: environment, pool: 1)
+Outboxer::Database.connect(config: db_config)
 
 Signal.trap("SIGINT") do
   puts "\nExiting gracefully..."
@@ -39,43 +46,34 @@ end
 loop do
   system("clear") || system("cls")
 
-  total_queued = nil
-  total_dequeued = nil
-  total_publishing = nil
-  total_failed = nil
+  metrics = nil
 
-  ActiveRecord::Base.connection_pool.with_connection do |connection|
-    connection.transaction(isolation: :repeatable_read) do
-      total_queued = Outboxer::Models::Message.queued.count
-      total_dequeued = Outboxer::Models::Message.dequeued.count
-      total_publishing = Outboxer::Models::Message.publishing.count
-      total_failed = Outboxer::Models::Message.failed.count
-    end
+  ActiveRecord::Base.connection_pool.with_connection do
+    metrics = Outboxer::Messages.metrics(current_utc_time: Time.now.utc)
   end
 
   pids = outboxer_publisher_pids.sort
 
-  puts "Outboxer Message Publisher Monitor"
+  puts "Outboxer Publisher Monitor"
   puts Time.now.utc
-  puts "\n---- Overview ----"
-  puts format("%-15s: %-10s", "Queued", total_queued)
-  puts format("%-15s: %-10s", "Dequeued", total_dequeued)
-  puts format("%-15s: %-10s", "Publishing", total_publishing)
-  puts format("%-15s: %-10s", "Failed", total_failed)
+  puts "\n---- Messages Stats ----"
+  puts format("%-12s %-15s %-15s %-15s %-15s %-15s", "Status", "Historic count", "Current count",
+              "Total count", "Throughput", "Latency")
+  puts "-" * 80
+  format_metrics(metrics).each do |row|
+    puts format("%-12s %-15s %-15s %-15s %-15s %-15s", *row)
+  end
 
   if pids.empty?
     puts "\nbin/outboxer_message_publisher processes not found."
   else
     puts "\n---- Process Stats ----"
+    puts format("%-6s %-15s %-10s %-10s %-15s", "PID", "Memory Usage", "CPU Total", "CPU/Core", "Running Time")
+    puts "-" * 60
     pids.each do |pid|
       stats = fetch_process_stats(pid)
-      puts "PID #{stats[:pid]}:"
-      puts format("  %-15s: %-10s MB", "Memory Usage", stats[:rss_mb])
-      puts format("  %-15s: %-10s %%", "CPU Total", stats[:cpu])
-      puts format("  %-15s: %-10s %% per core", "CPU per Core", stats[:cpu_per_core])
-      puts format("  %-15s: %-10s", "Running Time", stats[:elapsed])
-      puts format("  %-15s: %-10s MB", "Virtual Memory", stats[:vsz_mb])
-      puts
+      puts format("%-6s %-15s %-10s %-10s %-15s", stats[:pid], "#{stats[:rss_mb]} MB", "#{stats[:cpu]}%",
+                  "#{stats[:cpu_per_core]}%", stats[:elapsed])
     end
   end
 
