@@ -46,11 +46,7 @@ end
 loop do
   system("clear") || system("cls")
 
-  metrics = nil
-
-  ActiveRecord::Base.connection_pool.with_connection do
-    metrics = Outboxer::Messages.metrics(current_utc_time: Time.now.utc)
-  end
+  metrics = Outboxer::Messages.metrics(current_utc_time: Time.now.utc)
 
   pids = outboxer_publisher_pids.sort
 
@@ -67,8 +63,9 @@ loop do
   if pids.empty?
     puts "\nbin/outboxer_message_publisher processes not found."
   else
-    puts "\n---- Process Stats ----"
-    puts format("%-6s %-15s %-10s %-10s %-15s", "PID", "Memory Usage", "CPU Total", "CPU/Core", "Running Time")
+    puts "\n---- Processes Stats ----"
+    puts format("%-6s %-15s %-10s %-10s %-15s", "PID", "Memory Usage", "CPU Total", "CPU/Core",
+                "Running Time")
     puts "-" * 60
     pids.each do |pid|
       stats = fetch_process_stats(pid)
