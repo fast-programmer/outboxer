@@ -93,26 +93,19 @@ module Outboxer
         begin
           buffer_remaining = buffer_size - queue.length
           messages = (buffer_remaining > 0) ? Messages.dequeue(limit: buffer_remaining) : []
+          messages.each { |message| queue.push({ id: message[:id], dequeued_at: time.now.utc }) }
 
-          messages.each do |message|
-            queue.push({ id: message[:id], dequeued_at: time.now.utc })
-          end
-
-          if messages.empty?
-            kernel.sleep(poll_interval)
-          elsif queue.length >= buffer_size
+          if messages.empty? || (queue.length >= buffer_size)
             kernel.sleep(poll_interval)
           end
         rescue StandardError => exception
           logger.error "#{exception.class}: #{exception.message}"
           exception.backtrace.each { |frame| logger.error frame }
-
-          kernel.sleep(poll_interval)
         rescue Exception => exception
           logger.fatal "#{exception.class}: #{exception.message}"
           exception.backtrace.each { |frame| logger.fatal frame }
 
-          @publishing = false
+          stop
         end
       end
 
