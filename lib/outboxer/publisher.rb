@@ -92,11 +92,23 @@ module Outboxer
       while @publishing
         begin
           buffer_remaining = buffer_size - queue.length
-          messages = (buffer_remaining > 0) ? Messages.dequeue(limit: buffer_remaining) : []
-          messages.each { |message| queue.push({ id: message[:id], dequeued_at: time.now.utc }) }
 
-          if messages.empty? || (queue.length >= buffer_size)
-            kernel.sleep(poll_interval)
+          if buffer_remaining > 0
+            dequeued_messages = Messages.dequeue(limit: buffer_remaining)
+
+            if !dequeued_messages.empty?
+              dequeued_messages.each do |message|
+                queue.push({ id: message[:id], dequeued_at: time.now.utc })
+              end
+            else
+              last_poll_time = time.now
+
+              while @publishing && (time.now - last_poll_time) < poll_interval
+                sleep(0.1)
+              end
+            end
+          else
+            sleep(0.1)
           end
         rescue StandardError => exception
           logger.error "#{exception.class}: #{exception.message}"
