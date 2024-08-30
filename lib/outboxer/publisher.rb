@@ -6,7 +6,7 @@ module Outboxer
 
     def publish(
       buffer_size: 1000,
-      poll_interval: 1,
+      buffer_poll_interval: 0.1, database_poll_interval: 1,
       concurrency: 20,
       logger: Logger.new($stdout, level: Logger::INFO),
       kernel: Kernel,
@@ -24,7 +24,8 @@ module Outboxer
       buffer_messages(
         queue: queue,
         buffer_size: buffer_size,
-        poll_interval: poll_interval,
+        buffer_poll_interval: buffer_poll_interval,
+        database_poll_interval: database_poll_interval,
         logger: logger,
         time: time,
         kernel: kernel)
@@ -37,7 +38,7 @@ module Outboxer
       @publishing = false
     end
 
-    private
+    # private
 
     def create_worker_thread(queue:, logger:, time:, kernel:, &block)
       Thread.new do
@@ -86,8 +87,17 @@ module Outboxer
       end
     end
 
-    def buffer_messages(queue:, buffer_size:, poll_interval:, logger:, time:, kernel:)
-      logger.info "Buffering up to #{buffer_size} messages every #{poll_interval}s"
+    def sleep(duration, poll_interval: 0.1, start_time: Time.now, time: Time, kernel: Kernel)
+      while @publishing && (time.now - start_time) < duration
+        kernel.sleep(poll_interval)
+      end
+    end
+
+    def buffer_messages(queue:, buffer_size:,
+                        buffer_poll_interval:, database_poll_interval:,
+                        logger:, time:, kernel:)
+      logger.info "Buffering up to #{buffer_size} messages every #{buffer_poll_interval}s"
+      logger.info "Polling database every #{database_poll_interval}s"
 
       while @publishing
         begin
@@ -96,19 +106,15 @@ module Outboxer
           if buffer_remaining > 0
             dequeued_messages = Messages.dequeue(limit: buffer_remaining)
 
-            if !dequeued_messages.empty?
+            if dequeued_messages.count > 0
               dequeued_messages.each do |message|
                 queue.push({ id: message[:id], dequeued_at: time.now.utc })
               end
             else
-              last_poll_time = time.now
-
-              while @publishing && (time.now - last_poll_time) < poll_interval
-                sleep(0.1)
-              end
+              Publisher.sleep(database_poll_interval)
             end
           else
-            sleep(0.1)
+            Publisher.sleep(buffer_poll_interval)
           end
         rescue StandardError => exception
           logger.error "#{exception.class}: #{exception.message}"
