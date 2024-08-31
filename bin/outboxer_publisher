@@ -9,9 +9,9 @@ require_relative '../app/jobs/event_created_job'
 options = {
   environment: ENV.fetch('OUTBOXER_ENV', 'development'),
   buffer_size: ENV.fetch('OUTBOXER_BUFFER_SIZE', 1000).to_i,
-  buffer_poll_interval: ENV.fetch('OUTBOXER_BUFFER_POLL_INTERVAL', 0.1).to_i,
-  database_poll_interval: ENV.fetch('OUTBOXER_DATABASE_POLL_INTERVAL', 5).to_i,
-  concurrency: ENV.fetch('OUTBOXER_CONCURRENCY', 20).to_i,
+  buffer_poll_interval: ENV.fetch('OUTBOXER_BUFFER_POLL_INTERVAL', 0.1),
+  database_poll_interval: ENV.fetch('OUTBOXER_DATABASE_POLL_INTERVAL', 10),
+  concurrency: ENV.fetch('OUTBOXER_CONCURRENCY', 10).to_i,
   log_level: ENV.fetch('OUTBOXER_LOG_LEVEL', 'info').downcase,
   redis_url: ENV.fetch('OUTBOXER_REDIS_URL', 'redis://localhost:6379/0'),
 }

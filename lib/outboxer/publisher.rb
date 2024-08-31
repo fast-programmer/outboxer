@@ -93,9 +93,8 @@ module Outboxer
       end
     end
 
-    def buffer_messages(queue:, buffer_size:,
-                        buffer_poll_interval:, database_poll_interval:,
-                        logger:, time:, kernel:)
+    def buffer_messages(buffer_size:, buffer_poll_interval:, database_poll_interval:,
+                        queue:, logger:, time:, kernel:)
       logger.info "Buffering up to #{buffer_size} messages every #{buffer_poll_interval}s"
       logger.info "Polling database every #{database_poll_interval}s"
 
@@ -127,6 +126,7 @@ module Outboxer
         end
       end
 
+      logger.info "Stopped polling database"
       logger.info "Stopped buffering messages"
     end
   end
