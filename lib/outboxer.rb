@@ -15,6 +15,7 @@ require_relative "outboxer/database"
 require_relative "outboxer/message"
 require_relative "outboxer/messages"
 require_relative "outboxer/publisher"
+require_relative "outboxer/single_threaded_publisher"
 
 module Outboxer
 end

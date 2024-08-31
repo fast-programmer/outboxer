@@ -6,7 +6,8 @@ module Outboxer
 
     def publish(
       buffer_size: 1000,
-      buffer_poll_interval: 0.1, database_poll_interval: 1,
+      buffer_poll_interval: 0.1,
+      database_poll_interval: 1,
       concurrency: 20,
       logger: Logger.new($stdout, level: Logger::INFO),
       kernel: Kernel,
@@ -32,6 +33,10 @@ module Outboxer
 
       worker_threads.length.times { queue.push(nil) }
       worker_threads.each(&:join)
+
+      # result = profile.stop
+      # printer = RubyProf::FlatPrinter.new(result)
+      # printer.print(STDOUT)
     end
 
     def stop
@@ -101,6 +106,8 @@ module Outboxer
       while @publishing
         begin
           buffer_remaining = buffer_size - queue.length
+
+          # logger.info "buffer_remaining: #{buffer_remaining}"
 
           if buffer_remaining > 0
             dequeued_messages = Messages.dequeue(limit: buffer_remaining)

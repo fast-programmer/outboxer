@@ -11,7 +11,6 @@ options = {
   buffer_size: ENV.fetch('OUTBOXER_BUFFER_SIZE', 200).to_i,
   buffer_poll_interval: ENV.fetch('OUTBOXER_BUFFER_POLL_INTERVAL', 0.1),
   database_poll_interval: ENV.fetch('OUTBOXER_DATABASE_POLL_INTERVAL', 10),
-  concurrency: ENV.fetch('OUTBOXER_CONCURRENCY', 1).to_i,
   log_level: ENV.fetch('OUTBOXER_LOG_LEVEL', 'info').downcase,
   redis_url: ENV.fetch('OUTBOXER_REDIS_URL', 'redis://localhost:6379/0'),
 }
@@ -22,22 +21,20 @@ end
 
 logger = Outboxer::Logger.new $stdout, level: Logger.const_get(options[:log_level].upcase)
 
-db_config = Outboxer::Database.config(
-  environment: options[:environment], pool: options[:concurrency] + 1)
+db_config = Outboxer::Database.config(environment: options[:environment], pool: 1)
 
 Outboxer::Database.connect(config: db_config, logger: logger)
 
 ['INT', 'TERM'].each do |signal|
   Signal.trap(signal) do
-    Outboxer::Publisher.stop
+    Outboxer::SingleThreadedPublisher.stop
   end
 end
 
-Outboxer::Publisher.publish(
+Outboxer::SingleThreadedPublisher.publish(
   buffer_size: options[:buffer_size],
   buffer_poll_interval: options[:buffer_poll_interval],
   database_poll_interval: options[:database_poll_interval],
-  concurrency: options[:concurrency],
   logger: logger
 ) do |message|
   case message[:messageable_type]
@@ -48,4 +45,4 @@ end
 
 Outboxer::Database.disconnect(logger: logger)
 
-# bin/outboxer_publisher
+# bin/outboxer_single_threaded_publisher

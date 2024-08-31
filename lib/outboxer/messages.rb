@@ -18,6 +18,8 @@ module Outboxer
               .update_all(updated_at: current_utc_time, status: Models::Message::Status::DEQUEUED)
           end
 
+          # puts "dequeued #{messages.count} messages"
+
           messages.map do |message|
             {
               id: message.id,
