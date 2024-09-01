@@ -22,7 +22,9 @@ module Outboxer
       time: Time, kernel: Kernel,
       &block
     )
-      logger.info "Outboxer dequeueing up to #{batch_size} messages every #{poll_interval} second(s)"
+      logger.info "Outboxer dequeueing messages " \
+        "{ batch_size: #{batch_size}, poll_interval: #{poll_interval}, " \
+        "tick_interval: #{tick_interval} }"
 
       @publishing = true
 
