@@ -4,119 +4,92 @@ module Outboxer
 
     @publishing = false
 
-    def publish(
-      buffer_size: 1000,
-      poll_interval: 1,
-      concurrency: 20,
-      logger: Logger.new($stdout, level: Logger::INFO),
-      kernel: Kernel,
-      time: Time,
-      &block
-    )
-      @publishing = true
-
-      queue = Queue.new
-
-      worker_threads = concurrency.times.map do
-        create_worker_thread(queue: queue, logger: logger, time: time, kernel: kernel, &block)
-      end
-
-      buffer_messages(
-        queue: queue,
-        buffer_size: buffer_size,
-        poll_interval: poll_interval,
-        logger: logger,
-        time: time,
-        kernel: kernel)
-
-      worker_threads.length.times { queue.push(nil) }
-      worker_threads.each(&:join)
-    end
-
     def stop
       @publishing = false
     end
 
-    private
-
-    def create_worker_thread(queue:, logger:, time:, kernel:, &block)
-      Thread.new do
-        loop do
-          begin
-            queued_message = queue.pop
-            break if queued_message.nil?
-
-            dequeued_at = queued_message[:dequeued_at]
-
-            message = Message.publishing(id: queued_message[:id])
-            logger.debug "Publishing message #{message[:id]} for " \
-              "#{message[:messageable_type]}::#{message[:messageable_id]} " \
-              "in #{(time.now.utc - dequeued_at).round(3)}s"
-
-            begin
-              block.call(message)
-            rescue Exception => exception
-              Message.failed(id: message[:id], exception: exception)
-              logger.error "Failed to publish message #{message[:id]} for " \
-                "#{message[:messageable_type]}::#{message[:messageable_id]} " \
-                "in #{(time.now.utc - dequeued_at).round(3)}s"
-
-              raise
-            end
-
-            Message.published(id: message[:id])
-            logger.debug "Published message #{message[:id]} for " \
-              "#{message[:messageable_type]}::#{message[:messageable_id]} " \
-              "in #{(time.now.utc - dequeued_at).round(3)}s"
-          rescue StandardError => exception
-            logger.error "#{exception.class}: #{exception.message} " \
-              "in #{(time.now.utc - dequeued_at).round(3)}s"
-
-            exception.backtrace.each { |frame| logger.error frame }
-          rescue Exception => exception
-            logger.fatal "#{exception.class}: #{exception.message} " \
-              "in #{(time.now.utc - dequeued_at).round(3)}s"
-            exception.backtrace.each { |frame| logger.error frame }
-
-            stop
-
-            break
-          end
-        end
+    # :nocov:
+    def sleep(duration, start_time:, tick_interval:, time:, kernel:)
+      while @publishing && (time.now - start_time) < duration
+        kernel.sleep(tick_interval)
       end
     end
+    # :nocov:
 
-    def buffer_messages(queue:, buffer_size:, poll_interval:, logger:, time:, kernel:)
-      logger.info "Buffering up to #{buffer_size} messages every #{poll_interval}s"
+    def publish(
+      batch_size: 200, poll_interval: 5, tick_interval: 1,
+      logger: Logger.new($stdout, level: Logger::INFO),
+      time: Time, kernel: Kernel,
+      &block
+    )
+      logger.info "Outboxer dequeueing messages " \
+        "{ batch_size: #{batch_size}, poll_interval: #{poll_interval}, " \
+        "tick_interval: #{tick_interval} }"
+
+      @publishing = true
 
       while @publishing
         begin
-          buffer_remaining = buffer_size - queue.length
-          messages = (buffer_remaining > 0) ? Messages.dequeue(limit: buffer_remaining) : []
+          dequeued_messages = Messages.dequeue(limit: batch_size)
 
-          messages.each do |message|
-            queue.push({ id: message[:id], dequeued_at: time.now.utc })
+          dequeued_messages.each do |dequeued_message|
+            publish_message(
+              dequeued_message: dequeued_message, logger: logger, time: time, kernel: kernel, &block)
           end
 
-          if messages.empty?
-            kernel.sleep(poll_interval)
-          elsif queue.length >= buffer_size
-            kernel.sleep(poll_interval)
+          if dequeued_messages.count < batch_size
+            Publisher.sleep(
+              poll_interval, start_time: time.now, tick_interval: tick_interval,
+              time: time, kernel: kernel)
           end
         rescue StandardError => exception
           logger.error "#{exception.class}: #{exception.message}"
           exception.backtrace.each { |frame| logger.error frame }
-
-          kernel.sleep(poll_interval)
         rescue Exception => exception
           logger.fatal "#{exception.class}: #{exception.message}"
           exception.backtrace.each { |frame| logger.fatal frame }
 
-          @publishing = false
+          stop
         end
       end
 
-      logger.info "Stopped buffering messages"
+      logger.info "Outboxer stopped dequeueing messages"
+    end
+
+    def publish_message(dequeued_message:, logger:, time:, kernel:, &block)
+      dequeued_at = dequeued_message[:updated_at]
+
+      message = Message.publishing(id: dequeued_message[:id])
+      logger.debug "Outboxer publishing message #{message[:id]} for " \
+        "#{message[:messageable_type]}::#{message[:messageable_id]} " \
+        "in #{(time.now.utc - dequeued_at).round(3)}s"
+
+      begin
+        block.call(message)
+      rescue Exception => exception
+        Message.failed(id: message[:id], exception: exception)
+        logger.error "Outboxer failed to publish message #{message[:id]} for " \
+          "#{message[:messageable_type]}::#{message[:messageable_id]} " \
+          "in #{(time.now.utc - dequeued_at).round(3)}s"
+
+        raise
+      end
+
+      Message.published(id: message[:id])
+      logger.debug "Outboxer published message #{message[:id]} for " \
+        "#{message[:messageable_type]}::#{message[:messageable_id]} " \
+        "in #{(time.now.utc - dequeued_at).round(3)}s"
+    rescue StandardError => exception
+      logger.error "#{exception.class}: #{exception.message} " \
+        "in #{(time.now.utc - dequeued_at).round(3)}s"
+
+      exception.backtrace.each { |frame| logger.error frame }
+    rescue Exception => exception
+      logger.fatal "#{exception.class}: #{exception.message} " \
+        "in #{(time.now.utc - dequeued_at).round(3)}s"
+      exception.backtrace.each { |frame| logger.error frame }
+
+      stop
     end
   end
 end
