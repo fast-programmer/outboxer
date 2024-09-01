@@ -36,6 +36,7 @@ end
 Outboxer::Publisher.publish(
   batch_size: options[:batch_size],
   poll_interval: options[:poll_interval],
+  tick_interval: options[:tick_interval],
   logger: logger
 ) do |message|
   case message[:messageable_type]

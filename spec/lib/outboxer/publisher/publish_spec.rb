@@ -5,6 +5,7 @@ module Outboxer
     describe '.publish' do
       let(:batch_size) { 1 }
       let(:poll_interval) { 1 }
+      let(:tick_interval) { 0.1 }
       let(:logger) { instance_double(Logger, debug: true, error: true, fatal: true, info: true) }
       let(:kernel) { class_double(Kernel, sleep: nil) }
 
@@ -19,6 +20,7 @@ module Outboxer
           Publisher.publish(
             batch_size: batch_size,
             poll_interval: poll_interval,
+            tick_interval: tick_interval,
             logger: logger,
             kernel: kernel
           ) do |message|
@@ -42,6 +44,7 @@ module Outboxer
             Publisher.publish(
               batch_size: batch_size,
               poll_interval: poll_interval,
+              tick_interval: tick_interval,
               logger: logger,
               kernel: kernel
             ) do |message|
@@ -85,11 +88,10 @@ module Outboxer
             Publisher.publish(
               batch_size: batch_size,
               poll_interval: poll_interval,
+              tick_interval: tick_interval,
               logger: logger,
               kernel: kernel
             ) do |dequeued_message|
-              Publish.stop
-
               raise no_memory_error
             end
           end
@@ -131,7 +133,7 @@ module Outboxer
               when 1
                 raise StandardError, 'queue error'
               else
-                Publish.stop
+                Publisher.stop
 
                 []
               end
@@ -142,9 +144,9 @@ module Outboxer
             Publisher.publish(
               batch_size: batch_size,
               poll_interval: poll_interval,
+              tick_interval: tick_interval,
               logger: logger,
-              kernel: kernel
-            )
+              kernel: kernel)
           end
         end
 
@@ -160,9 +162,9 @@ module Outboxer
             Publisher.publish(
               batch_size: batch_size,
               poll_interval: poll_interval,
+              tick_interval: tick_interval,
               logger: logger,
-              kernel: kernel
-            )
+              kernel: kernel)
           end
         end
       end
