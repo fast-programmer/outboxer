@@ -22,7 +22,8 @@ module Outboxer
             {
               id: message.id,
               messageable_type: message.messageable_type,
-              messageable_id: message.messageable_id
+              messageable_id: message.messageable_id,
+              updated_at: current_utc_time
             }
           end
         end

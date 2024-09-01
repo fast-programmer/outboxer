@@ -34,9 +34,7 @@ module Outboxer
 
           dequeued_messages.each do |dequeued_message|
             publish_message(
-              dequeued_message: { id: dequeued_message[:id], dequeued_at: time.now.utc },
-              logger: logger, time: time, kernel: kernel,
-              &block)
+              dequeued_message: dequeued_message, logger: logger, time: time, kernel: kernel, &block)
           end
 
           if dequeued_messages.count < batch_size
@@ -59,7 +57,7 @@ module Outboxer
     end
 
     def publish_message(dequeued_message:, logger:, time:, kernel:, &block)
-      dequeued_at = dequeued_message[:dequeued_at]
+      dequeued_at = dequeued_message[:updated_at]
 
       message = Message.publishing(id: dequeued_message[:id])
       logger.debug "Outboxer publishing message #{message[:id]} for " \
