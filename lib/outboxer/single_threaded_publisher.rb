@@ -5,8 +5,7 @@ module Outboxer
     @publishing = false
 
     def publish(
-      buffer_size: 10000,
-      buffer_poll_interval: 0.1, database_poll_interval: 1,
+      batch_size: 200, poll_interval: 0.1,
       logger: Logger.new($stdout, level: Logger::INFO),
       kernel: Kernel,
       time: Time,
@@ -14,13 +13,9 @@ module Outboxer
     )
       @publishing = true
 
-      queue = []
-
-      buffer_messages(
-        queue: queue,
-        buffer_size: buffer_size,
-        buffer_poll_interval: buffer_poll_interval,
-        database_poll_interval: database_poll_interval,
+      dequeue_messages(
+        batch_size: batch_size,
+        poll_interval: poll_interval,
         logger: logger,
         time: time,
         kernel: kernel,
@@ -31,7 +26,7 @@ module Outboxer
       @publishing = false
     end
 
-    # private
+    private
 
     def process_message(queued_message:, logger:, time:, kernel:, &block)
       dequeued_at = queued_message[:dequeued_at]
@@ -75,36 +70,28 @@ module Outboxer
       end
     end
 
-    def buffer_messages(buffer_size:, buffer_poll_interval:, database_poll_interval:,
-                        queue:, logger:, time:, kernel:, &block)
-      logger.info "Buffering up to #{buffer_size} messages every #{buffer_poll_interval}s"
-      logger.info "Polling database every #{database_poll_interval}s"
+    def dequeue_messages(batch_size:, poll_interval:,
+                         logger:, time:, kernel:, &block)
+      logger.info "Dequeueing up to #{batch_size} messages every #{poll_interval} second(s)"
 
       while @publishing
         begin
-          buffer_remaining = buffer_size - queue.length
+          dequeued_messages = Messages.dequeue(limit: batch_size)
 
-          if buffer_remaining > 0
-            dequeued_messages = Messages.dequeue(limit: buffer_remaining)
+          dequeued_messages.each do |message|
+            process_message(
+              queued_message: { id: message[:id], dequeued_at: time.now.utc },
+              logger: logger, time: time, kernel: kernel,
+              &block)
+          end
 
-            if dequeued_messages.count > 0
-              dequeued_messages.each do |message|
-                queue.shift
-
-                process_message(
-                  queued_message: { id: message[:id], dequeued_at: time.now.utc },
-                  logger: logger, time: time, kernel: kernel,
-                  &block)
-              end
-            else
-              Publisher.sleep(database_poll_interval)
-            end
-          else
-            Publisher.sleep(buffer_poll_interval)
+          if dequeued_messages.size < batch_size
+            Publisher.sleep(poll_interval, time: time, kernel: kernel)
           end
         rescue StandardError => exception
           logger.error "#{exception.class}: #{exception.message}"
           exception.backtrace.each { |frame| logger.error frame }
+
         rescue Exception => exception
           logger.fatal "#{exception.class}: #{exception.message}"
           exception.backtrace.each { |frame| logger.fatal frame }
@@ -114,7 +101,6 @@ module Outboxer
       end
 
       logger.info "Stopped polling database"
-      logger.info "Stopped buffering messages"
     end
   end
 end
