@@ -22,7 +22,7 @@ module Outboxer
       time: Time, kernel: Kernel,
       &block
     )
-      logger.info "Dequeueing up to #{batch_size} messages every #{poll_interval} second(s)"
+      logger.info "Outboxer dequeueing up to #{batch_size} messages every #{poll_interval} second(s)"
 
       @publishing = true
 
@@ -53,14 +53,14 @@ module Outboxer
         end
       end
 
-      logger.info "Stopped dequeueing messages"
+      logger.info "Outboxer stopped dequeueing messages"
     end
 
     def publish_message(dequeued_message:, logger:, time:, kernel:, &block)
       dequeued_at = dequeued_message[:dequeued_at]
 
       message = Message.publishing(id: dequeued_message[:id])
-      logger.debug "Publishing message #{message[:id]} for " \
+      logger.debug "Outboxer publishing message #{message[:id]} for " \
         "#{message[:messageable_type]}::#{message[:messageable_id]} " \
         "in #{(time.now.utc - dequeued_at).round(3)}s"
 
@@ -68,7 +68,7 @@ module Outboxer
         block.call(message)
       rescue Exception => exception
         Message.failed(id: message[:id], exception: exception)
-        logger.error "Failed to publish message #{message[:id]} for " \
+        logger.error "Outboxer failed to publish message #{message[:id]} for " \
           "#{message[:messageable_type]}::#{message[:messageable_id]} " \
           "in #{(time.now.utc - dequeued_at).round(3)}s"
 
@@ -76,7 +76,7 @@ module Outboxer
       end
 
       Message.published(id: message[:id])
-      logger.debug "Published message #{message[:id]} for " \
+      logger.debug "Outboxer published message #{message[:id]} for " \
         "#{message[:messageable_type]}::#{message[:messageable_id]} " \
         "in #{(time.now.utc - dequeued_at).round(3)}s"
     rescue StandardError => exception
