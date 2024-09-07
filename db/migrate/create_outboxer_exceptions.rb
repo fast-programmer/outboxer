@@ -2,9 +2,9 @@ class CreateOutboxerExceptions < ActiveRecord::Migration[6.1]
   def up
     ActiveRecord::Base.transaction do
       create_table :outboxer_exceptions do |t|
-        t.references :message, null: false, foreign_key: { to_table: :outboxer_messages }
+        t.references :message, foreign_key: { to_table: :outboxer_messages }, null: false
 
-        t.text :class_name, null: false
+        t.string :class_name, limit: 255, null: false
         t.text :message_text, null: false
 
         t.timestamps
