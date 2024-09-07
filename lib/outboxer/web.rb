@@ -343,7 +343,7 @@ module Outboxer
         page: denormalised_params[:page],
         per_page: denormalised_params[:per_page])
 
-      result = Messages.requeue_all(status: denormalised_params[:status])
+      result = Messages.requeue_all(status: denormalised_params[:status], older_than: Time.now.utc)
 
       message_text = result[:requeued_count] == 1 ? 'message' : 'messages'
       flash[:primary] = "#{result[:requeued_count]} #{message_text} have been queued"
@@ -366,7 +366,7 @@ module Outboxer
         page: denormalised_params[:page],
         per_page: denormalised_params[:per_page])
 
-      result = Messages.delete_all(status: denormalised_params[:status])
+      result = Messages.delete_all(status: denormalised_params[:status], older_than: Time.now.utc)
 
       message_text = result[:deleted_count] == 1 ? 'message' : 'messages'
       flash[:primary] = "#{result[:deleted_count]} #{message_text} have been deleted"
