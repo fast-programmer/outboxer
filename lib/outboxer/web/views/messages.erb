@@ -188,7 +188,7 @@
                         <!-- "Per page" selection -->
                         <form action="<%= outboxer_path("/messages/update_per_page") %>" method="post" id="perPageForm"
                             class="d-flex align-items-center">
-                            <% [:status, :sort, :order, :page].each do |param| %>
+                            <% [:status, :sort, :order, :page, :time_zone].each do |param| %>
                                 <% if denormalised_params[param] %>
                                     <input type="hidden" name="<%= param %>" value="<%= denormalised_params[param] %>">
                                 <% end %>

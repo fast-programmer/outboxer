@@ -29,15 +29,15 @@ module Outboxer
             status: message.status,
             messageable_type: message.messageable_type,
             messageable_id: message.messageable_id,
-            created_at: message.created_at.utc.to_s,
-            updated_at: message.updated_at.utc.to_s,
+            created_at: message.created_at.utc,
+            updated_at: message.updated_at.utc,
             updated_by: message.updated_by,
             exceptions: message.exceptions.map do |exception|
               {
                 id: exception.id,
                 class_name: exception.class_name,
                 message_text: exception.message_text,
-                created_at: exception.created_at.utc.to_s,
+                created_at: exception.created_at.utc,
                 frames: exception.frames.map do |frame|
                   {
                     id: frame.id,

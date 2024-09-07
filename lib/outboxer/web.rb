@@ -40,7 +40,8 @@ module Outboxer
         sort: :updated_at,
         order: :asc,
         page: 1,
-        per_page: params[:per_page]&.to_i)
+        per_page: params[:per_page]&.to_i,
+        time_zone: params[:time_zone])
 
       messages_metrics = Messages.metrics
 
@@ -49,42 +50,48 @@ module Outboxer
         sort: :updated_at,
         order: :asc,
         page: 1,
-        per_page: denormalised_params[:per_page])
+        per_page: denormalised_params[:per_page],
+        time_zone: denormalised_params[:time_zone])
 
       messages_publishing_link = outboxer_path('/messages' + normalise_params(
         status: :publishing,
         sort: denormalised_params[:sort],
         order: denormalised_params[:order],
         page: denormalised_params[:page],
-        per_page: denormalised_params[:per_page]))
+        per_page: denormalised_params[:per_page],
+        time_zone: denormalised_params[:time_zone]))
 
       messages_dequeued = Messages.list(
         status: :dequeued,
         sort: :updated_at,
         order: :asc,
         page: 1,
-        per_page: denormalised_params[:per_page])
+        per_page: denormalised_params[:per_page],
+        time_zone: denormalised_params[:time_zone])
 
       messages_dequeued_link = outboxer_path('/messages' + normalise_params(
         status: :dequeued,
         sort: denormalised_params[:sort],
         order: denormalised_params[:order],
         page: denormalised_params[:page],
-        per_page: denormalised_params[:per_page]))
+        per_page: denormalised_params[:per_page],
+        time_zone: denormalised_params[:time_zone]))
 
       messages_queued = Messages.list(
         status: :queued,
         sort: :updated_at,
         order: :asc,
         page: 1,
-        per_page: denormalised_params[:per_page])
+        per_page: denormalised_params[:per_page],
+        time_zone: denormalised_params[:time_zone])
 
       messages_queued_link = outboxer_path('/messages' + normalise_params(
         status: :queued,
         sort: denormalised_params[:sort],
         order: denormalised_params[:order],
         page: denormalised_params[:page],
-        per_page: denormalised_params[:per_page]))
+        per_page: denormalised_params[:per_page],
+        time_zone: denormalised_params[:time_zone]))
 
       erb :home, locals: {
         denormalised_params: denormalised_params,
@@ -104,14 +111,16 @@ module Outboxer
         sort: params[:sort],
         order: params[:order],
         page: params[:page]&.to_i,
-        per_page: params[:per_page]&.to_i)
+        per_page: params[:per_page]&.to_i,
+        time_zone: params[:time_zone])
 
       normalised_params = normalise_params(
         status: denormalised_params[:status],
         sort: denormalised_params[:sort],
         order: denormalised_params[:order],
         page: denormalised_params[:page],
-        per_page: denormalised_params[:per_page])
+        per_page: denormalised_params[:per_page],
+        time_zone: denormalised_params[:time_zone])
 
       redirect outboxer_path(normalised_params)
     end
@@ -124,21 +133,24 @@ module Outboxer
         sort: params[:sort],
         order: params[:order],
         page: params[:page]&.to_i,
-        per_page: params[:per_page]&.to_i)
+        per_page: params[:per_page]&.to_i,
+        time_zone: params[:time_zone])
 
       normalised_params = normalise_params(
         status: denormalised_params[:status],
         sort: denormalised_params[:sort],
         order: denormalised_params[:order],
         page: denormalised_params[:page]&.to_i,
-        per_page: denormalised_params[:per_page]&.to_i)
+        per_page: denormalised_params[:per_page]&.to_i,
+        time_zone: denormalised_params[:time_zone])
 
       paginated_messages = Messages.list(
         status: denormalised_params[:status],
         sort: denormalised_params[:sort],
         order: denormalised_params[:order],
         page: denormalised_params[:page]&.to_i,
-        per_page: denormalised_params[:per_page]&.to_i)
+        per_page: denormalised_params[:per_page]&.to_i,
+        time_zone: denormalised_params[:time_zone])
 
       pagination = generate_pagination(
         current_page: paginated_messages[:current_page],
@@ -152,7 +164,7 @@ module Outboxer
         pagination: pagination,
         denormalised_params: denormalised_params,
         normalised_params: normalised_params,
-        per_page: params[:per_page]&.to_i || Messages::LIST_PER_PAGE_DEFAULT
+        per_page: params[:per_page]&.to_i || Messages::LIST_PER_PAGE_DEFAULT,
       }
     end
 
@@ -175,7 +187,7 @@ module Outboxer
           text: 'Previous',
           href: outboxer_path("/messages" + normalise_params(
             status: params[:status], sort: params[:sort], order: params[:order],
-            page: current_page - 1, per_page: params[:per_page]))
+            page: current_page - 1, per_page: params[:per_page], time_zone: params[:time_zone]))
         }
       end
 
@@ -184,7 +196,7 @@ module Outboxer
           text: page,
           href: outboxer_path("/messages" + normalise_params(
             status: params[:status], sort: params[:sort], order: params[:order], page: page,
-            per_page: params[:per_page])),
+            per_page: params[:per_page], time_zone: params[:time_zone])),
           is_active: current_page == page
         }
       end
@@ -194,7 +206,7 @@ module Outboxer
           text: 'Next',
           href: outboxer_path("/messages" + normalise_params(
             status: params[:status], sort: params[:sort], order: params[:order],
-            page: current_page + 1, per_page: params[:per_page]))
+            page: current_page + 1, per_page: params[:per_page], time_zone: params[:time_zone]))
         }
       end
 
@@ -213,7 +225,8 @@ module Outboxer
                 order: 'desc',
                 sort: header_key,
                 page: 1,
-                per_page: params[:per_page]
+                per_page: params[:per_page],
+                time_zone: params[:time_zone]
               ))
             }
           else
@@ -225,7 +238,8 @@ module Outboxer
                 order: 'asc',
                 sort: header_key,
                 page: 1,
-                per_page: params[:per_page]
+                per_page: params[:per_page],
+                time_zone: params[:time_zone]
               ))
             }
           end
@@ -238,7 +252,9 @@ module Outboxer
               order: 'asc',
               sort: header_key,
               page: 1,
-              per_page: params[:per_page]))
+              per_page: params[:per_page],
+              time_zone: params[:time_zone]
+            ))
           }
         end
       end
@@ -248,13 +264,15 @@ module Outboxer
                            sort: Messages::LIST_SORT_DEFAULT,
                            order: Messages::LIST_ORDER_DEFAULT,
                            page: Messages::LIST_PAGE_DEFAULT,
-                           per_page: Messages::LIST_PER_PAGE_DEFAULT)
+                           per_page: Messages::LIST_PER_PAGE_DEFAULT,
+                           time_zone: Messages::LIST_TIME_ZONE_DEFAULT)
       {
         status: params[:status] || Messages::LIST_STATUS_DEFAULT,
         sort: params[:sort] || Messages::LIST_SORT_DEFAULT,
         order: params[:order] || Messages::LIST_ORDER_DEFAULT,
         page: params[:page]&.to_i || Messages::LIST_PAGE_DEFAULT,
-        per_page: params[:per_page]&.to_i || Messages::LIST_PER_PAGE_DEFAULT
+        per_page: params[:per_page]&.to_i || Messages::LIST_PER_PAGE_DEFAULT,
+        time_zone: params[:time_zone] || Messages::LIST_TIME_ZONE_DEFAULT,
       }
     end
 
@@ -262,13 +280,15 @@ module Outboxer
                          sort: Messages::LIST_SORT_DEFAULT,
                          order: Messages::LIST_ORDER_DEFAULT,
                          page: Messages::LIST_PAGE_DEFAULT,
-                         per_page: Messages::LIST_PER_PAGE_DEFAULT)
+                         per_page: Messages::LIST_PER_PAGE_DEFAULT,
+                         time_zone: Messages::LIST_TIME_ZONE_DEFAULT)
       normalised_params = {
         status: status == Messages::LIST_STATUS_DEFAULT ? nil : status,
         sort: sort == Messages::LIST_SORT_DEFAULT ? nil : sort,
         order: order == Messages::LIST_ORDER_DEFAULT ? nil : order,
         page: page == Messages::LIST_PAGE_DEFAULT ? nil : page,
-        per_page: per_page == Messages::LIST_PER_PAGE_DEFAULT ? nil : per_page
+        per_page: per_page == Messages::LIST_PER_PAGE_DEFAULT ? nil : per_page,
+        time_zone: time_zone == Messages::LIST_TIME_ZONE_DEFAULT ? nil : time_zone
       }.compact
 
       normalised_params.empty? ? '' : "?#{URI.encode_www_form(normalised_params)}"
@@ -282,14 +302,16 @@ module Outboxer
         sort: params[:sort],
         order: params[:order],
         page: params[:page]&.to_i,
-        per_page: params[:per_page]&.to_i)
+        per_page: params[:per_page]&.to_i,
+        time_zone: params[:time_zone])
 
       normalised_params = normalise_params(
         status: denormalised_params[:status],
         sort: denormalised_params[:sort],
         order: denormalised_params[:order],
         page: denormalised_params[:page],
-        per_page: denormalised_params[:per_page])
+        per_page: denormalised_params[:per_page],
+        time_zone: denormalised_params[:time_zone])
 
       result = case params[:action]
       when 'requeue_by_ids'
@@ -335,14 +357,16 @@ module Outboxer
         sort: params[:sort],
         order: params[:order],
         page: params[:page]&.to_i,
-        per_page: params[:per_page]&.to_i)
+        per_page: params[:per_page]&.to_i,
+        time_zone: params[:time_zone])
 
       normalised_params = normalise_params(
         status: denormalised_params[:status],
         sort: denormalised_params[:sort],
         order: denormalised_params[:order],
         page: denormalised_params[:page],
-        per_page: denormalised_params[:per_page])
+        per_page: denormalised_params[:per_page],
+        time_zone: denormalised_params[:time_zone])
 
       result = Messages.requeue_all(status: denormalised_params[:status], older_than: Time.now.utc)
 
@@ -358,14 +382,16 @@ module Outboxer
         sort: params[:sort],
         order: params[:order],
         page: params[:page]&.to_i,
-        per_page: params[:per_page]&.to_i)
+        per_page: params[:per_page]&.to_i,
+        time_zone: params[:time_zone])
 
       normalised_params = normalise_params(
         status: denormalised_params[:status],
         sort: denormalised_params[:sort],
         order: denormalised_params[:order],
         page: denormalised_params[:page],
-        per_page: denormalised_params[:per_page])
+        per_page: denormalised_params[:per_page],
+        time_zone: denormalised_params[:time_zone])
 
       result = Messages.delete_all(status: denormalised_params[:status], older_than: Time.now.utc)
 
@@ -381,14 +407,16 @@ module Outboxer
         sort: params[:sort],
         order: params[:order],
         page: params[:page]&.to_i,
-        per_page: params[:per_page]&.to_i)
+        per_page: params[:per_page]&.to_i,
+        time_zone: params[:time_zone])
 
       normalised_params = normalise_params(
         status: denormalised_params[:status],
         sort: denormalised_params[:sort],
         order: denormalised_params[:order],
         page: denormalised_params[:page],
-        per_page: denormalised_params[:per_page])
+        per_page: denormalised_params[:per_page],
+        time_zone: denormalised_params[:time_zone])
 
       redirect to("/messages#{normalised_params}")
     end
@@ -403,7 +431,8 @@ module Outboxer
         sort: params[:sort],
         order: params[:order],
         page: params[:page]&.to_i,
-        per_page: params[:per_page]&.to_i)
+        per_page: params[:per_page]&.to_i,
+        time_zone: params[:time_zone])
 
       erb :message, locals: {
         messages_metrics: messages_metrics,

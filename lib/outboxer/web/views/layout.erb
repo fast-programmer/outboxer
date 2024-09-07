@@ -78,6 +78,17 @@
                         <a class="nav-link <%= 'active' if denormalised_params[:status] == 'failed' %>" href="<%= outboxer_path('/messages?status=failed') %>">Failed (<%= messages_metrics[:failed][:count][:current] %>)</a>
                     </li>
                 </ul>
+                <!-- Time Zone Select Box with an Icon, aligned to the right, responsive-friendly -->
+                <form class="d-flex align-items-center ms-auto flex-nowrap">
+                    <i class="bi bi-globe text-light me-2"></i>
+                    <select id="timeZoneSelect" class="form-select form-select-sm w-auto" style="max-width: 100%;">
+                        <% Outboxer::Messages::LIST_TIME_ZONE_OPTIONS.each do |tz| %>
+                            <option value="<%= tz %>" <%= 'selected' if denormalised_params[:time_zone] == tz %>>
+                                <%= tz %>
+                            </option>
+                        <% end %>
+                    </select>
+                </form>
             </div>
         </div>
     </nav>
