@@ -2,21 +2,6 @@ require 'spec_helper'
 
 module Outboxer
   RSpec.describe Messages do
-    # before do
-    #   create(:outboxer_message, id: 4, status: :queued,
-    #     messageable_type: 'Event', messageable_id: 1,
-    #     created_at: 5.minutes.ago, updated_at: 4.minutes.ago)
-    #   create(:outboxer_message, id: 3, status: :failed,
-    #     messageable_type: 'Event', messageable_id: 2,
-    #     created_at: 4.minutes.ago, updated_at: 3.minutes.ago)
-    #   create(:outboxer_message, id: 2, status: :dequeued,
-    #     messageable_type: 'Event', messageable_id: 3,
-    #     created_at: 3.minutes.ago, updated_at: 2.minutes.ago)
-    #   create(:outboxer_message, id: 1, status: :queued,
-    #     messageable_type: 'Event', messageable_id: 4,
-    #     created_at: 2.minutes.ago, updated_at: 1.minute.ago)
-    # end
-
     let!(:message_1) do
       create(:outboxer_message, :queued, messageable_type: 'Event', messageable_id: '1')
     end
@@ -43,7 +28,7 @@ module Outboxer
           expect do
             Messages.list(sort: :invalid)
           end.to raise_error(
-            ArgumentError, "sort must be id status messageable created_at updated_at")
+            ArgumentError, "sort must be id status messageable created_at updated_at updated_by")
         end
       end
 
