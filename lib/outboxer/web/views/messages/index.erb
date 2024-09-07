@@ -10,7 +10,8 @@
                     'Messageable Id' => 'messageable_id',
                     'Status' => 'status',
                     'Created At' => 'created_at',
-                    'Updated At' => 'updated_at'
+                    'Updated At' => 'updated_at',
+                    'Updated By' => 'updated_by',
                 }
                 headers.each do |display, col|
                 %>
@@ -34,6 +35,7 @@
                     <td><%= message.status %></td>
                     <td><%= message.created_at %></td>
                     <td><%= message.updated_at %></td>
+                    <td><%= message.updated_by %></td>
                 </tr>
             <% end %>
         </tbody>

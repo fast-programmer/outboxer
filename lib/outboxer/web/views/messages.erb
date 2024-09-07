@@ -120,10 +120,13 @@
                                     <td><%= message[:status] %></td>
                                     <td><%= message[:messageable_type] %>::<%= message[:messageable_id] %></td>
                                     <td>
+                                        <%= message[:created_at] %>
+                                    </td>
+                                    <td>
                                         <%= message[:updated_at] %>
                                     </td>
                                     <td>
-                                        <%= message[:created_at] %>
+                                        <%= message[:updated_by] %>
                                     </td>
                                     <td>
                                         <!-- Action buttons -->

@@ -5,31 +5,31 @@ module Outboxer
     let!(:message_1) do
       create(:outboxer_message, :queued,
         messageable_type: 'Event', messageable_id: '1',
-        updated_by_hostname: 'server-01', updated_by_process_id: 41000)
+        updated_by: 'server-01:41000')
     end
 
     let!(:message_2) do
       create(:outboxer_message, :failed,
         messageable_type: 'Event', messageable_id: '2',
-        updated_by_hostname: 'server-02', updated_by_process_id: 42000)
+        updated_by: 'server-02:42000')
     end
 
     let!(:message_3) do
       create(:outboxer_message, :dequeued,
         messageable_type: 'Event', messageable_id: '3',
-        updated_by_hostname: 'server-03', updated_by_process_id: 43000)
+        updated_by: 'server-03:43000')
     end
 
     let!(:message_4) do
       create(:outboxer_message, :queued,
         messageable_type: 'Event', messageable_id: '4',
-        updated_by_hostname: 'server-04', updated_by_process_id: 44000)
+        updated_by: 'server-04:44000')
     end
 
     let!(:message_5) do
       create(:outboxer_message, :publishing,
         messageable_type: 'Event', messageable_id: '5',
-        updated_by_hostname: 'server-05', updated_by_process_id: 45000)
+        updated_by: 'server-05:45000')
     end
 
     describe '.list' do
@@ -54,8 +54,7 @@ module Outboxer
                 messageable_id: message_1.messageable_id,
                 created_at: message_1.created_at,
                 updated_at: message_1.updated_at,
-                updated_by_hostname: message_1.updated_by_hostname,
-                updated_by_process_id: message_1.updated_by_process_id
+                updated_by: message_1.updated_by
               },
               {
                 id: message_4.id,
@@ -64,8 +63,7 @@ module Outboxer
                 messageable_id: message_4.messageable_id,
                 created_at: message_4.created_at,
                 updated_at: message_4.updated_at,
-                updated_by_hostname: message_4.updated_by_hostname,
-                updated_by_process_id: message_4.updated_by_process_id
+                updated_by: message_4.updated_by
               }
             ]
           })
@@ -84,8 +82,7 @@ module Outboxer
                 messageable_id: message_3.messageable_id,
                 created_at: message_3.created_at,
                 updated_at: message_3.updated_at,
-                updated_by_hostname: message_3.updated_by_hostname,
-                updated_by_process_id: message_3.updated_by_process_id
+                updated_by: message_3.updated_by
               }
             ]
           })
@@ -104,8 +101,7 @@ module Outboxer
                 messageable_id: message_5.messageable_id,
                 created_at: message_5.created_at,
                 updated_at: message_5.updated_at,
-                updated_by_hostname: message_5.updated_by_hostname,
-                updated_by_process_id: message_5.updated_by_process_id
+                updated_by: message_5.updated_by
               }
             ]
           })
@@ -124,8 +120,7 @@ module Outboxer
                 messageable_id: message_2.messageable_id,
                 created_at: message_2.created_at,
                 updated_at: message_2.updated_at,
-                updated_by_hostname: message_2.updated_by_hostname,
-                updated_by_process_id: message_2.updated_by_process_id
+                updated_by: message_2.updated_by
               }
             ]
           })

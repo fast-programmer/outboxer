@@ -19,8 +19,7 @@ module Outboxer
               .update_all(
                 status: Models::Message::Status::DEQUEUED,
                 updated_at: current_utc_time,
-                updated_by_hostname: hostname,
-                updated_by_process_id: process_id)
+                updated_by: "#{hostname}:#{process_id}")
           end
 
           messages.map do |message|
@@ -38,7 +37,7 @@ module Outboxer
     LIST_STATUS_OPTIONS = [nil, :queued, :dequeued, :publishing, :published, :failed]
     LIST_STATUS_DEFAULT = nil
 
-    LIST_SORT_OPTIONS = [:id, :status, :messageable, :created_at, :updated_at]
+    LIST_SORT_OPTIONS = [:id, :status, :messageable, :created_at, :updated_at, :updated_by]
     LIST_SORT_DEFAULT = :updated_at
 
     LIST_ORDER_OPTIONS = [:asc, :desc]
@@ -95,8 +94,7 @@ module Outboxer
             messageable_id: message.messageable_id,
             created_at: message.created_at.utc,
             updated_at: message.updated_at.utc,
-            updated_by_hostname: message.updated_by_hostname,
-            updated_by_process_id: message.updated_by_process_id
+            updated_by: message.updated_by
           }
         end,
         total_pages: messages.total_pages,
@@ -140,8 +138,7 @@ module Outboxer
               .update_all(
                 status: Models::Message::Status::QUEUED,
                 updated_at: time.now.utc,
-                updated_by_hostname: hostname,
-                updated_by_process_id: process_id)
+                updated_by: "#{hostname}:#{process_id}")
 
             requeued_count += requeued_count_batch
           end
@@ -167,8 +164,7 @@ module Outboxer
             .update_all(
               status: Models::Message::Status::QUEUED,
               updated_at: time.now.utc,
-              updated_by_hostname: hostname,
-              updated_by_process_id: process_id)
+              updated_by: "#{hostname}:#{process_id}")
 
           { requeued_count: requeued_count, not_requeued_ids: ids - locked_ids }
         end

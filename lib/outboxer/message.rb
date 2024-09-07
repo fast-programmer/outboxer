@@ -14,8 +14,7 @@ module Outboxer
         status: Models::Message::Status::QUEUED,
         created_at: current_utc_time,
         updated_at: current_utc_time,
-        updated_by_hostname: hostname,
-        updated_by_process_id: process_id)
+        updated_by: "#{hostname}:#{process_id}")
 
       { id: message.id }
     end
@@ -32,8 +31,7 @@ module Outboxer
             messageable_id: message.messageable_id,
             created_at: message.created_at.utc.to_s,
             updated_at: message.updated_at.utc.to_s,
-            updated_by_hostname: message.updated_by_hostname,
-            updated_by_process_id: message.updated_by_process_id,
+            updated_by: message.updated_by,
             exceptions: message.exceptions.map do |exception|
               {
                 id: exception.id,
@@ -69,8 +67,7 @@ module Outboxer
           message.update!(
             status: Models::Message::Status::PUBLISHING,
             updated_at: current_utc_time,
-            updated_by_hostname: hostname,
-            updated_by_process_id: process_id)
+            updated_by: "#{hostname}:#{process_id}")
 
           {
             id: id,
@@ -97,8 +94,7 @@ module Outboxer
           message.update!(
             status: Models::Message::Status::PUBLISHED,
             updated_at: current_utc_time,
-            updated_by_hostname: hostname,
-            updated_by_process_id: process_id)
+            updated_by: "#{hostname}:#{process_id}")
 
           {
             id: id,
@@ -111,7 +107,7 @@ module Outboxer
     end
 
     def failed(id:, exception:, current_utc_time: Time.now.utc,
-               hostname: Socket.gethostname, process_id: Process.pid)
+      hostname: Socket.gethostname, process_id: Process.pid)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           message = Models::Message.order(created_at: :asc).lock.find_by!(id: id)
@@ -125,8 +121,7 @@ module Outboxer
           message.update!(
             status: Models::Message::Status::FAILED,
             updated_at: current_utc_time,
-            updated_by_hostname: hostname,
-            updated_by_process_id: process_id)
+            updated_by: "#{hostname}:#{process_id}")
 
           outboxer_exception = message.exceptions.create!(
             class_name: exception.class.name, message_text: exception.message)
@@ -177,8 +172,7 @@ module Outboxer
           message.update!(
             status: Models::Message::Status::QUEUED,
             updated_at: current_utc_time,
-            updated_by_hostname: hostname,
-            updated_by_process_id: process_id)
+            updated_by: "#{hostname}:#{process_id}")
 
           { id: id }
         end

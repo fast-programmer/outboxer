@@ -160,8 +160,9 @@ module Outboxer
       'id' => 'Id',
       'status' => 'Status',
       'messageable' => 'Messageable',
+      'created_at' => 'Created At',
       'updated_at' => 'Updated At',
-      'created_at' => 'Created At'
+      'updated_by' => 'Updated By',
     }
 
     def generate_pagination(current_page:, total_pages:, params:)

@@ -27,11 +27,11 @@
                         <td><%= message[:id] %></td>
                     </tr>
                     <tr>
-                        <th scope="row">Messageable type</th>
+                        <th scope="row">Messageable Type</th>
                         <td><%= message[:messageable_type] %></td>
                     </tr>
                     <tr>
-                        <th scope="row">Messageable id</th>
+                        <th scope="row">Messageable Id</th>
                         <td><%= message[:messageable_id] %></td>
                     </tr>
                     <tr>
@@ -39,12 +39,16 @@
                         <td><%= message[:status] %></td>
                     </tr>
                     <tr>
-                        <th scope="row">Created at</th>
+                        <th scope="row">Created At</th>
                         <td><%= message[:created_at] %></td>
                     </tr>
                     <tr>
-                        <th scope="row">Updated at</th>
+                        <th scope="row">Updated At</th>
                         <td><%= message[:updated_at] %></td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Updated By</th>
+                        <td><%= message[:updated_by] %></td>
                     </tr>
                 </tbody>
             </table>
