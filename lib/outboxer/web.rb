@@ -105,7 +105,7 @@ module Outboxer
       }
     end
 
-    post '/update_per_page' do
+    post '/update_time_zone' do
       denormalised_params = denormalise_params(
         status: params[:status],
         sort: params[:sort],
@@ -122,7 +122,7 @@ module Outboxer
         per_page: denormalised_params[:per_page],
         time_zone: denormalised_params[:time_zone])
 
-      redirect outboxer_path(normalised_params)
+      redirect to("/messages#{normalised_params}")
     end
 
     get '/messages' do
