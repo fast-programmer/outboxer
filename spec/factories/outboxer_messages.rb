@@ -5,6 +5,9 @@ FactoryBot.define do
     status { Outboxer::Models::Message::Status::QUEUED }
     created_at { 1.day.ago }
 
+    updated_by_hostname { 'server-01' }
+    updated_by_process_id { 47000 }
+
     trait :queued do
       status { Outboxer::Models::Message::Status::QUEUED }
     end

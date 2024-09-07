@@ -7,6 +7,9 @@ class CreateOutboxerMessages < ActiveRecord::Migration[6.1]
       t.string :messageable_type, limit: 255, null: false
 
       t.timestamps
+
+      t.string :updated_by_hostname, limit: 255, null: false
+      t.integer :updated_by_process_id, null: false
     end
 
     add_index :outboxer_messages, :status
