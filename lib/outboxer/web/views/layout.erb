@@ -72,25 +72,23 @@
 
                     <% statuses.each do |status| %>
                         <li class="nav-item">
-                            <a class="nav-link <%= 'active' if denormalised_params[:status] == status[:key] %>"
-                               href="<%= outboxer_path("/messages#{normalise_params(status: status[:key], time_zone: params[:time_zone])}") %>">
+                            <a class="nav-link <%= 'active' if @denormalised_query_params[:status] == status[:key] %>"
+                               href="<%= outboxer_path("/messages#{normalise_query_string(status: status[:key], time_zone: params[:time_zone])}") %>">
                                 <%= status[:name] %> (<%= messages_metrics[status[:key].to_sym][:count][:current] %>)
                             </a>
                         </li>
                     <% end %>
                 </ul>
                 <form action="<%= outboxer_path("/update_time_zone") %>" method="post" class="d-flex align-items-center ms-auto flex-nowrap">
-                    <% [:status, :sort, :order, :page, :time_zone].each do |param| %>
-                        <% if denormalised_params[param] %>
-                            <input type="hidden" name="<%= param %>" value="<%= denormalised_params[param] %>">
-                        <% end %>
+                    <% @normalised_query_params.each do |key, param| %>
+                        <input type="hidden" name="<%= key %>" value="<%= param %>">
                     <% end %>
 
                     <!-- Timezone Select Box -->
                     <select id="timeZoneSelect" name="time_zone" class="form-select form-select-sm w-auto">
-                        <% Outboxer::Messages::LIST_TIME_ZONE_OPTIONS.each do |tz| %>
-                            <option value="<%= tz %>" <%= 'selected' if denormalised_params[:time_zone] == tz %>>
-                                <%= tz %>
+                        <% Outboxer::Messages::LIST_TIME_ZONE_OPTIONS.each do |time_zone| %>
+                            <option value="<%= time_zone %>" <%= 'selected' if @denormalised_query_params[:time_zone] == time_zone %>>
+                                <%= time_zone %>
                             </option>
                         <% end %>
                     </select>

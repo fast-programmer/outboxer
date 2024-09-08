@@ -19,6 +19,32 @@ module Outboxer
     set :public_folder, File.expand_path('../web/public', __FILE__)
     set :show_exceptions, false
 
+    before do
+      @denormalised_query_params = denormalise_query_params(
+        status: params[:status],
+        sort: params[:sort],
+        order: params[:order],
+        page: params[:page],
+        per_page: params[:per_page],
+        time_zone: params[:time_zone])
+
+      @normalised_query_params = normalise_query_params(
+        status: params[:status],
+        sort: params[:sort],
+        order: params[:order],
+        page: params[:page],
+        per_page: params[:per_page],
+        time_zone: params[:time_zone])
+
+      @normalised_query_string = normalise_query_string(
+        status: params[:status],
+        sort: params[:sort],
+        order: params[:order],
+        page: params[:page],
+        per_page: params[:per_page],
+        time_zone: params[:time_zone])
+    end
+
     helpers do
       def outboxer_path(path)
         "#{request.script_name}#{path}"
@@ -35,138 +61,36 @@ module Outboxer
     end
 
     get '/' do
-      denormalised_params = denormalise_params(
-        status: nil,
-        sort: :updated_at,
-        order: :asc,
-        page: 1,
-        per_page: params[:per_page]&.to_i,
-        time_zone: params[:time_zone])
-
       messages_metrics = Messages.metrics
 
-      messages_publishing = Messages.list(
-        status: :publishing,
-        sort: :updated_at,
-        order: :asc,
-        page: 1,
-        per_page: denormalised_params[:per_page],
-        time_zone: denormalised_params[:time_zone])
-
-      messages_publishing_link = outboxer_path('/messages' + normalise_params(
-        status: :publishing,
-        sort: denormalised_params[:sort],
-        order: denormalised_params[:order],
-        page: denormalised_params[:page],
-        per_page: denormalised_params[:per_page],
-        time_zone: denormalised_params[:time_zone]))
-
-      messages_dequeued = Messages.list(
-        status: :dequeued,
-        sort: :updated_at,
-        order: :asc,
-        page: 1,
-        per_page: denormalised_params[:per_page],
-        time_zone: denormalised_params[:time_zone])
-
-      messages_dequeued_link = outboxer_path('/messages' + normalise_params(
-        status: :dequeued,
-        sort: denormalised_params[:sort],
-        order: denormalised_params[:order],
-        page: denormalised_params[:page],
-        per_page: denormalised_params[:per_page],
-        time_zone: denormalised_params[:time_zone]))
-
-      messages_queued = Messages.list(
-        status: :queued,
-        sort: :updated_at,
-        order: :asc,
-        page: 1,
-        per_page: denormalised_params[:per_page],
-        time_zone: denormalised_params[:time_zone])
-
-      messages_queued_link = outboxer_path('/messages' + normalise_params(
-        status: :queued,
-        sort: denormalised_params[:sort],
-        order: denormalised_params[:order],
-        page: denormalised_params[:page],
-        per_page: denormalised_params[:per_page],
-        time_zone: denormalised_params[:time_zone]))
-
-      erb :home, locals: {
-        denormalised_params: denormalised_params,
-        messages_metrics: messages_metrics,
-        messages_publishing: messages_publishing,
-        messages_publishing_link: messages_publishing_link,
-        messages_dequeued: messages_dequeued,
-        messages_dequeued_link: messages_dequeued_link,
-        messages_queued: messages_queued,
-        messages_queued_link: messages_queued_link
-      }
+      erb :home, locals: { messages_metrics: messages_metrics }
     end
 
     post '/update_time_zone' do
-      denormalised_params = denormalise_params(
-        status: params[:status],
-        sort: params[:sort],
-        order: params[:order],
-        page: params[:page]&.to_i,
-        per_page: params[:per_page]&.to_i,
-        time_zone: params[:time_zone])
-
-      normalised_params = normalise_params(
-        status: denormalised_params[:status],
-        sort: denormalised_params[:sort],
-        order: denormalised_params[:order],
-        page: denormalised_params[:page],
-        per_page: denormalised_params[:per_page],
-        time_zone: denormalised_params[:time_zone])
-
-      binding.pry
-
-      redirect to("/messages#{normalised_params}")
+      redirect to("/messages#{@normalised_query_string}")
     end
 
     get '/messages' do
       messages_metrics = Messages.metrics
 
-      denormalised_params = denormalise_params(
-        status: params[:status],
-        sort: params[:sort],
-        order: params[:order],
-        page: params[:page]&.to_i,
-        per_page: params[:per_page]&.to_i,
-        time_zone: params[:time_zone])
-
-      normalised_params = normalise_params(
-        status: denormalised_params[:status],
-        sort: denormalised_params[:sort],
-        order: denormalised_params[:order],
-        page: denormalised_params[:page]&.to_i,
-        per_page: denormalised_params[:per_page]&.to_i,
-        time_zone: denormalised_params[:time_zone])
-
       paginated_messages = Messages.list(
-        status: denormalised_params[:status],
-        sort: denormalised_params[:sort],
-        order: denormalised_params[:order],
-        page: denormalised_params[:page]&.to_i,
-        per_page: denormalised_params[:per_page]&.to_i,
-        time_zone: denormalised_params[:time_zone])
+        status: @denormalised_query_params[:status],
+        sort: @denormalised_query_params[:sort],
+        order: @denormalised_query_params[:order],
+        page: @denormalised_query_params[:page]&.to_i,
+        per_page: @denormalised_query_params[:per_page]&.to_i,
+        time_zone: @denormalised_query_params[:time_zone])
 
       pagination = generate_pagination(
         current_page: paginated_messages[:current_page],
         total_pages: paginated_messages[:total_pages],
-        params: denormalised_params)
+        params: @denormalised_query_params)
 
       erb :messages, locals: {
         messages_metrics: messages_metrics,
         messages: paginated_messages[:messages],
-        headers: generate_headers(params: denormalised_params),
-        pagination: pagination,
-        denormalised_params: denormalised_params,
-        normalised_params: normalised_params,
-        per_page: params[:per_page]&.to_i || Messages::LIST_PER_PAGE_DEFAULT,
+        headers: generate_headers(params: @denormalised_query_params),
+        pagination: pagination
       }
     end
 
@@ -187,7 +111,7 @@ module Outboxer
       if current_page > 1
         previous_page = {
           text: 'Previous',
-          href: outboxer_path("/messages" + normalise_params(
+          href: outboxer_path("/messages" + normalise_query_string(
             status: params[:status], sort: params[:sort], order: params[:order],
             page: current_page - 1, per_page: params[:per_page], time_zone: params[:time_zone]))
         }
@@ -196,7 +120,7 @@ module Outboxer
       pages = (([current_page - 4, 1].max)..([current_page + 4, total_pages].min)).map do |page|
         {
           text: page,
-          href: outboxer_path("/messages" + normalise_params(
+          href: outboxer_path("/messages" + normalise_query_string(
             status: params[:status], sort: params[:sort], order: params[:order], page: page,
             per_page: params[:per_page], time_zone: params[:time_zone])),
           is_active: current_page == page
@@ -206,7 +130,7 @@ module Outboxer
       if current_page < total_pages
         next_page = {
           text: 'Next',
-          href: outboxer_path("/messages" + normalise_params(
+          href: outboxer_path("/messages" + normalise_query_string(
             status: params[:status], sort: params[:sort], order: params[:order],
             page: current_page + 1, per_page: params[:per_page], time_zone: params[:time_zone]))
         }
@@ -222,7 +146,7 @@ module Outboxer
             {
               text: header_text,
               icon_class: 'bi bi-arrow-up',
-              href: outboxer_path('/messages' + normalise_params(
+              href: outboxer_path('/messages' + normalise_query_string(
                 status: params[:status],
                 order: 'desc',
                 sort: header_key,
@@ -235,7 +159,7 @@ module Outboxer
             {
               text: header_text,
               icon_class: 'bi bi-arrow-down',
-              href: outboxer_path('/messages' + normalise_params(
+              href: outboxer_path('/messages' + normalise_query_string(
                 status: params[:status],
                 order: 'asc',
                 sort: header_key,
@@ -249,7 +173,7 @@ module Outboxer
           {
             text: header_text,
             icon_class: '',
-            href: outboxer_path('/messages' + normalise_params(
+            href: outboxer_path('/messages' + normalise_query_string(
               status: params[:status],
               order: 'asc',
               sort: header_key,
@@ -262,12 +186,12 @@ module Outboxer
       end
     end
 
-    def denormalise_params(status: Messages::LIST_STATUS_DEFAULT,
-                           sort: Messages::LIST_SORT_DEFAULT,
-                           order: Messages::LIST_ORDER_DEFAULT,
-                           page: Messages::LIST_PAGE_DEFAULT,
-                           per_page: Messages::LIST_PER_PAGE_DEFAULT,
-                           time_zone: Messages::LIST_TIME_ZONE_DEFAULT)
+    def denormalise_query_params(status: Messages::LIST_STATUS_DEFAULT,
+                                 sort: Messages::LIST_SORT_DEFAULT,
+                                 order: Messages::LIST_ORDER_DEFAULT,
+                                 page: Messages::LIST_PAGE_DEFAULT,
+                                 per_page: Messages::LIST_PER_PAGE_DEFAULT,
+                                 time_zone: Messages::LIST_TIME_ZONE_DEFAULT)
       {
         status: params[:status] || Messages::LIST_STATUS_DEFAULT,
         sort: params[:sort] || Messages::LIST_SORT_DEFAULT,
@@ -278,13 +202,13 @@ module Outboxer
       }
     end
 
-    def normalise_params(status: Messages::LIST_STATUS_DEFAULT,
-                         sort: Messages::LIST_SORT_DEFAULT,
-                         order: Messages::LIST_ORDER_DEFAULT,
-                         page: Messages::LIST_PAGE_DEFAULT,
-                         per_page: Messages::LIST_PER_PAGE_DEFAULT,
-                         time_zone: Messages::LIST_TIME_ZONE_DEFAULT)
-      normalised_params = {
+    def normalise_query_params(status: Messages::LIST_STATUS_DEFAULT,
+                               sort: Messages::LIST_SORT_DEFAULT,
+                               order: Messages::LIST_ORDER_DEFAULT,
+                               page: Messages::LIST_PAGE_DEFAULT,
+                               per_page: Messages::LIST_PER_PAGE_DEFAULT,
+                               time_zone: Messages::LIST_TIME_ZONE_DEFAULT)
+      {
         status: status == Messages::LIST_STATUS_DEFAULT ? nil : status,
         sort: sort == Messages::LIST_SORT_DEFAULT ? nil : sort,
         order: order == Messages::LIST_ORDER_DEFAULT ? nil : order,
@@ -292,28 +216,27 @@ module Outboxer
         per_page: per_page == Messages::LIST_PER_PAGE_DEFAULT ? nil : per_page,
         time_zone: time_zone == Messages::LIST_TIME_ZONE_DEFAULT ? nil : time_zone
       }.compact
+    end
 
-      normalised_params.empty? ? '' : "?#{URI.encode_www_form(normalised_params)}"
+    def normalise_query_string(status: Messages::LIST_STATUS_DEFAULT,
+                               sort: Messages::LIST_SORT_DEFAULT,
+                               order: Messages::LIST_ORDER_DEFAULT,
+                               page: Messages::LIST_PAGE_DEFAULT,
+                               per_page: Messages::LIST_PER_PAGE_DEFAULT,
+                               time_zone: Messages::LIST_TIME_ZONE_DEFAULT)
+      normalised_query_params = normalise_query_params(
+        status: status,
+        sort: sort,
+        order: order,
+        page: page,
+        per_page: per_page,
+        time_zone: time_zone)
+
+      normalised_query_params.empty? ? '' : "?#{URI.encode_www_form(normalised_query_params)}"
     end
 
     post '/messages/update' do
       ids = params[:selected_ids].map(&:to_i)
-
-      denormalised_params = denormalise_params(
-        status: params[:status],
-        sort: params[:sort],
-        order: params[:order],
-        page: params[:page]&.to_i,
-        per_page: params[:per_page]&.to_i,
-        time_zone: params[:time_zone])
-
-      normalised_params = normalise_params(
-        status: denormalised_params[:status],
-        sort: denormalised_params[:sort],
-        order: denormalised_params[:order],
-        page: denormalised_params[:page],
-        per_page: denormalised_params[:per_page],
-        time_zone: denormalised_params[:time_zone])
 
       result = case params[:action]
       when 'requeue_by_ids'
@@ -350,77 +273,31 @@ module Outboxer
         raise "Unknown action: #{params[:action]}"
       end
 
-      redirect to("/messages#{normalised_params}")
+      redirect to("/messages#{@normalised_query_string}")
     end
 
     post '/messages/requeue_all' do
-      denormalised_params = denormalise_params(
-        status: params[:status],
-        sort: params[:sort],
-        order: params[:order],
-        page: params[:page]&.to_i,
-        per_page: params[:per_page]&.to_i,
-        time_zone: params[:time_zone])
-
-      normalised_params = normalise_params(
-        status: denormalised_params[:status],
-        sort: denormalised_params[:sort],
-        order: denormalised_params[:order],
-        page: denormalised_params[:page],
-        per_page: denormalised_params[:per_page],
-        time_zone: denormalised_params[:time_zone])
-
-      result = Messages.requeue_all(status: denormalised_params[:status], older_than: Time.now.utc)
+      result = Messages.requeue_all(
+        status: denormalised_query_params[:status], older_than: Time.now.utc)
 
       message_text = result[:requeued_count] == 1 ? 'message' : 'messages'
       flash[:primary] = "#{result[:requeued_count]} #{message_text} have been queued"
 
-      redirect to("/messages#{normalised_params}")
+      redirect to("/messages#{@normalised_query_string}")
     end
 
     post '/messages/delete_all' do
-      denormalised_params = denormalise_params(
-        status: params[:status],
-        sort: params[:sort],
-        order: params[:order],
-        page: params[:page]&.to_i,
-        per_page: params[:per_page]&.to_i,
-        time_zone: params[:time_zone])
-
-      normalised_params = normalise_params(
-        status: denormalised_params[:status],
-        sort: denormalised_params[:sort],
-        order: denormalised_params[:order],
-        page: denormalised_params[:page],
-        per_page: denormalised_params[:per_page],
-        time_zone: denormalised_params[:time_zone])
-
-      result = Messages.delete_all(status: denormalised_params[:status], older_than: Time.now.utc)
+      result = Messages.delete_all(
+        status: @denormalised_query_params[:status], older_than: Time.now.utc)
 
       message_text = result[:deleted_count] == 1 ? 'message' : 'messages'
       flash[:primary] = "#{result[:deleted_count]} #{message_text} have been deleted"
 
-      redirect to("/messages#{normalised_params}")
+      redirect to("/messages#{@denormalised_query_string}")
     end
 
     post '/messages/update_per_page' do
-      denormalised_params = denormalise_params(
-        status: params[:status],
-        sort: params[:sort],
-        order: params[:order],
-        page: params[:page]&.to_i,
-        per_page: params[:per_page]&.to_i,
-        time_zone: params[:time_zone])
-
-      normalised_params = normalise_params(
-        status: denormalised_params[:status],
-        sort: denormalised_params[:sort],
-        order: denormalised_params[:order],
-        page: denormalised_params[:page],
-        per_page: denormalised_params[:per_page],
-        time_zone: denormalised_params[:time_zone])
-
-      redirect to("/messages#{normalised_params}")
+      redirect to("/messages#{@normalised_query_string}")
     end
 
     get '/message/:id' do
@@ -428,67 +305,23 @@ module Outboxer
 
       message = Message.find_by_id(id: params[:id])
 
-      denormalised_params = denormalise_params(
-        status: params[:status],
-        sort: params[:sort],
-        order: params[:order],
-        page: params[:page]&.to_i,
-        per_page: params[:per_page]&.to_i,
-        time_zone: params[:time_zone])
-
-      erb :message, locals: {
-        messages_metrics: messages_metrics,
-        denormalised_params: denormalised_params,
-        message: message
-      }
+      erb :message, locals: { messages_metrics: messages_metrics,  message: message }
     end
 
     post '/message/:id/requeue' do
-      denormalised_params = denormalise_params(
-        status: params[:status],
-        sort: params[:sort],
-        order: params[:order],
-        page: params[:page]&.to_i,
-        per_page: params[:per_page]&.to_i,
-        time_zone: params[:time_zone])
-
-      normalised_params = normalise_params(
-        status: denormalised_params[:status],
-        sort: denormalised_params[:sort],
-        order: denormalised_params[:order],
-        page: denormalised_params[:page],
-        per_page: denormalised_params[:per_page],
-        time_zone: denormalised_params[:time_zone])
-
       Message.requeue(id: params[:id])
 
       flash[:primary] = "Message #{params[:id]} was queued"
 
-      redirect to("/messages#{normalised_params}")
+      redirect to("/messages#{@normalised_query_string}")
     end
 
     post '/message/:id/delete' do
-      denormalised_params = denormalise_params(
-        status: params[:status],
-        sort: params[:sort],
-        order: params[:order],
-        page: params[:page]&.to_i,
-        per_page: params[:per_page]&.to_i,
-        time_zone: params[:time_zone])
-
-      normalised_params = normalise_params(
-        status: denormalised_params[:status],
-        sort: denormalised_params[:sort],
-        order: denormalised_params[:order],
-        page: denormalised_params[:page],
-        per_page: denormalised_params[:per_page],
-        time_zone: denormalised_params[:time_zone])
-
       Message.delete(id: params[:id])
 
       flash[:primary] = "Message #{params[:id]} was deleted"
 
-      redirect to("/messages#{normalised_params}")
+      redirect to("/messages#{@normalised_query_string}")
     end
   end
 end

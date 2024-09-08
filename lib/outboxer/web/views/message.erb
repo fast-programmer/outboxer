@@ -5,10 +5,8 @@
             <div class="card-header-buttons">
                 <!-- Requeue Form -->
                 <form action="<%= outboxer_path("/message/#{message[:id]}/requeue") %>" method="post" style="display: inline;">
-                    <% [:status, :sort, :order, :page, :time_zone].each do |param| %>
-                        <% if denormalised_params[param] %>
-                            <input type="hidden" name="<%= param %>" value="<%= denormalised_params[param] %>">
-                        <% end %>
+                    <% @normalised_query_params.each do |key, param| %>
+                        <input type="hidden" name="<%= key %>" value="<%= param %>">
                     <% end %>
                     <button type="submit" class="btn btn-sm btn-outline-secondary me-2" aria-label="Requeue"
                         <%= 'disabled' unless Outboxer::Message.can_requeue?(status: message[:status]) %>>
@@ -19,10 +17,8 @@
                 <form action="<%= outboxer_path("/message/#{message[:id]}/delete") %>" method="post" style="display: inline;
                     onsubmit="return confirm('Are you sure you want to delete this message?');">
 
-                    <% [:status, :sort, :order, :page, :time_zone].each do |param| %>
-                        <% if denormalised_params[param] %>
-                            <input type="hidden" name="<%= param %>" value="<%= denormalised_params[param] %>">
-                        <% end %>
+                    <% @normalised_query_params.each do |key, param| %>
+                        <input type="hidden" name="<%= key %>" value="<%= param %>">
                     <% end %>
                     <button type="submit" class="btn btn-sm btn-outline-danger" aria-label="Delete">
                         <i class="bi bi-trash"></i> Delete
