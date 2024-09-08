@@ -122,6 +122,8 @@ module Outboxer
         per_page: denormalised_params[:per_page],
         time_zone: denormalised_params[:time_zone])
 
+      binding.pry
+
       redirect to("/messages#{normalised_params}")
     end
 
@@ -442,19 +444,51 @@ module Outboxer
     end
 
     post '/message/:id/requeue' do
+      denormalised_params = denormalise_params(
+        status: params[:status],
+        sort: params[:sort],
+        order: params[:order],
+        page: params[:page]&.to_i,
+        per_page: params[:per_page]&.to_i,
+        time_zone: params[:time_zone])
+
+      normalised_params = normalise_params(
+        status: denormalised_params[:status],
+        sort: denormalised_params[:sort],
+        order: denormalised_params[:order],
+        page: denormalised_params[:page],
+        per_page: denormalised_params[:per_page],
+        time_zone: denormalised_params[:time_zone])
+
       Message.requeue(id: params[:id])
 
       flash[:primary] = "Message #{params[:id]} was queued"
 
-      redirect to('/messages')
+      redirect to("/messages#{normalised_params}")
     end
 
     post '/message/:id/delete' do
+      denormalised_params = denormalise_params(
+        status: params[:status],
+        sort: params[:sort],
+        order: params[:order],
+        page: params[:page]&.to_i,
+        per_page: params[:per_page]&.to_i,
+        time_zone: params[:time_zone])
+
+      normalised_params = normalise_params(
+        status: denormalised_params[:status],
+        sort: denormalised_params[:sort],
+        order: denormalised_params[:order],
+        page: denormalised_params[:page],
+        per_page: denormalised_params[:per_page],
+        time_zone: denormalised_params[:time_zone])
+
       Message.delete(id: params[:id])
 
       flash[:primary] = "Message #{params[:id]} was deleted"
 
-      redirect to('/messages')
+      redirect to("/messages#{normalised_params}")
     end
   end
 end

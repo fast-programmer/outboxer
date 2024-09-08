@@ -14,7 +14,11 @@
                         <form id="requeueAllForm" action="<%= outboxer_path("/messages/requeue_all") %>"
                             method="post" class="me-2">
                             <input type="hidden" name="action" value="requeue_all">
-                            <input type="hidden" name="status" value="<%= denormalised_params[:status] %>">
+                            <% [:status, :sort, :order, :page, :time_zone].each do |param| %>
+                                <% if denormalised_params[param] %>
+                                    <input type="hidden" name="<%= param %>" value="<%= denormalised_params[param] %>">
+                                <% end %>
+                            <% end %>
                             <button type="submit" class="btn btn-sm btn-outline-secondary"
                                 <%= 'disabled' unless Outboxer::Messages
                                 .can_requeue?(status: denormalised_params[:status]) %>>
@@ -23,8 +27,10 @@
                         </form>
                         <form id="deleteAllForm" action="<%= outboxer_path("/messages/delete_all") %>" method="post">
                             <input type="hidden" name="action" value="delete_all">
-                            <% if denormalised_params[:status] %>
-                                <input type="hidden" name="status" value="<%= denormalised_params[:status] %>">
+                            <% [:status, :sort, :order, :page, :time_zone].each do |param| %>
+                                <% if denormalised_params[param] %>
+                                    <input type="hidden" name="<%= param %>" value="<%= denormalised_params[param] %>">
+                                <% end %>
                             <% end %>
                             <button type="submit" class="btn btn-sm btn-outline-danger">
                                 <i class="bi bi-trash"></i> Delete All
@@ -37,6 +43,12 @@
                             <form id="requeueAllForm" action="<%= outboxer_path("/messages/requeue_all") %>" method="post" class="mb-2">
                                 <input type="hidden" name="action" value="requeue_all">
                                 <input type="hidden" name="status" value="publishing">
+                                <% [:sort, :order, :page, :time_zone].each do |param| %>
+                                    <% if denormalised_params[param] %>
+                                        <input type="hidden" name="<%= param %>" value="<%= denormalised_params[param] %>">
+                                    <% end %>
+                                <% end %>
+
                                 <button type="submit" class="btn btn-sm btn-outline-secondary w-100">
                                     <i class="bi bi-arrow-clockwise"></i> Requeue All
                                 </button>
@@ -44,8 +56,10 @@
                         <% end %>
                         <form id="deleteAllForm" action="<%= outboxer_path("/messages/delete_all") %>" method="post">
                             <input type="hidden" name="action" value="delete_all">
-                            <% if denormalised_params[:status] %>
-                                <input type="hidden" name="status" value="<%= denormalised_params[:status] %>">
+                            <% [:status, :sort, :order, :page, :time_zone].each do |param| %>
+                                <% if denormalised_params[param] %>
+                                    <input type="hidden" name="<%= param %>" value="<%= denormalised_params[param] %>">
+                                <% end %>
                             <% end %>
                             <button type="submit" class="btn btn-sm btn-outline-danger w-100">
                                 <i class="bi bi-trash"></i> Delete All
@@ -61,7 +75,7 @@
                 <div class="container">
                     <div class="row justify-content-start">
                         <div class="col-auto">
-                            <% [:status, :sort, :order, :page, :per_page].each do |param| %>
+                            <% [:status, :sort, :order, :page, :per_page, :time_zone].each do |param| %>
                                 <% if denormalised_params[param] %>
                                     <input type="hidden" name="<%= param %>"
                                         value="<%= denormalised_params[param] %>">
@@ -113,8 +127,14 @@
                                 <tr>
                                     <td><input type="checkbox" class="individual-check" form="bulkActionForm" name="selected_ids[]" value="<%= message[:id] %>"></td>
                                     <td scope="row">
-                                        <a href="<%= outboxer_path("/message/#{message[:id]}") %>" class="custom-link">
-                                        <%= message[:id] %>
+                                        <a href="<%= outboxer_path("/message/#{message[:id]}" + normalise_params(
+                                                 status: denormalised_params[:status],
+                                                 sort: denormalised_params[:sort],
+                                                 order: denormalised_params[:order],
+                                                 page: denormalised_params[:page],
+                                                 per_page: denormalised_params[:per_page],
+                                                 time_zone: denormalised_params[:time_zone])) %>" class="custom-link">
+                                            <%= message[:id] %>
                                         </a>
                                     </td>
                                     <td><%= message[:status] %></td>
@@ -133,6 +153,11 @@
                                         <div class="d-flex">
                                         <!-- Requeue Button Form -->
                                         <form action="<%= outboxer_path("/message/#{message[:id]}/requeue") %>" method="post">
+                                            <% [:status, :sort, :order, :page, :time_zone].each do |param| %>
+                                                <% if denormalised_params[param] %>
+                                                    <input type="hidden" name="<%= param %>" value="<%= denormalised_params[param] %>">
+                                                <% end %>
+                                            <% end %>
                                             <button type="submit" class="btn btn-sm btn-outline-secondary me-1 d-flex align-items-center
                                                             justify-content-center" <%= 'disabled' unless Outboxer::Messages
                                                                                     .can_requeue?(status: denormalised_params[:status]) %>>
@@ -143,6 +168,12 @@
 
                                         <!-- Delete Button Form -->
                                         <form action="<%= outboxer_path("/message/#{message[:id]}/delete") %>" method="post">
+                                            <% [:status, :sort, :order, :page, :time_zone].each do |param| %>
+                                                <% if denormalised_params[param] %>
+                                                    <input type="hidden" name="<%= param %>" value="<%= denormalised_params[param] %>">
+                                                <% end %>
+                                            <% end %>
+
                                             <button type="submit" class="btn btn-sm btn-outline-danger ms-1 d-flex align-items-center justify-content-center">
                                             <i class="bi bi-trash me-1"></i>
                                             <span>Delete</span>
