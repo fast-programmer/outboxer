@@ -193,12 +193,12 @@ module Outboxer
                                  per_page: Messages::LIST_PER_PAGE_DEFAULT,
                                  time_zone: Messages::LIST_TIME_ZONE_DEFAULT)
       {
-        status: params[:status] || Messages::LIST_STATUS_DEFAULT,
-        sort: params[:sort] || Messages::LIST_SORT_DEFAULT,
-        order: params[:order] || Messages::LIST_ORDER_DEFAULT,
-        page: params[:page]&.to_i || Messages::LIST_PAGE_DEFAULT,
-        per_page: params[:per_page]&.to_i || Messages::LIST_PER_PAGE_DEFAULT,
-        time_zone: params[:time_zone] || Messages::LIST_TIME_ZONE_DEFAULT,
+        status: status&.to_sym || Messages::LIST_STATUS_DEFAULT,
+        sort: sort&.to_sym || Messages::LIST_SORT_DEFAULT,
+        order: order&.to_sym || Messages::LIST_ORDER_DEFAULT,
+        page: page&.to_i || Messages::LIST_PAGE_DEFAULT,
+        per_page: per_page&.to_i || Messages::LIST_PER_PAGE_DEFAULT,
+        time_zone: time_zone&.to_s || Messages::LIST_TIME_ZONE_DEFAULT,
       }
     end
 
@@ -209,12 +209,12 @@ module Outboxer
                                per_page: Messages::LIST_PER_PAGE_DEFAULT,
                                time_zone: Messages::LIST_TIME_ZONE_DEFAULT)
       {
-        status: status == Messages::LIST_STATUS_DEFAULT ? nil : status,
-        sort: sort == Messages::LIST_SORT_DEFAULT ? nil : sort,
-        order: order == Messages::LIST_ORDER_DEFAULT ? nil : order,
-        page: page == Messages::LIST_PAGE_DEFAULT ? nil : page,
-        per_page: per_page == Messages::LIST_PER_PAGE_DEFAULT ? nil : per_page,
-        time_zone: time_zone == Messages::LIST_TIME_ZONE_DEFAULT ? nil : time_zone
+        status: status&.to_sym == Messages::LIST_STATUS_DEFAULT ? nil : status,
+        sort: sort&.to_sym == Messages::LIST_SORT_DEFAULT ? nil : sort,
+        order: order&.to_sym == Messages::LIST_ORDER_DEFAULT ? nil : order,
+        page: page&.to_i == Messages::LIST_PAGE_DEFAULT ? nil : page,
+        per_page: per_page&.to_i == Messages::LIST_PER_PAGE_DEFAULT ? nil : per_page,
+        time_zone: time_zone&.to_s == Messages::LIST_TIME_ZONE_DEFAULT ? nil : time_zone
       }.compact
     end
 
