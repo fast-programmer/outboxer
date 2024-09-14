@@ -29,20 +29,20 @@ module Outboxer
         time_zone: params[:time_zone])
 
       @normalised_query_params = normalise_query_params(
-        status: params[:status],
-        sort: params[:sort],
-        order: params[:order],
-        page: params[:page],
-        per_page: params[:per_page],
-        time_zone: params[:time_zone])
+        status: @denormalised_query_params[:status],
+        sort: @denormalised_query_params[:sort],
+        order: @denormalised_query_params[:order],
+        page: @denormalised_query_params[:page],
+        per_page: @denormalised_query_params[:per_page],
+        time_zone: @denormalised_query_params[:time_zone])
 
       @normalised_query_string = normalise_query_string(
-        status: params[:status],
-        sort: params[:sort],
-        order: params[:order],
-        page: params[:page],
-        per_page: params[:per_page],
-        time_zone: params[:time_zone])
+        status: @denormalised_query_params[:status],
+        sort: @denormalised_query_params[:sort],
+        order: @denormalised_query_params[:order],
+        page: @denormalised_query_params[:page],
+        per_page: @denormalised_query_params[:per_page],
+        time_zone: @denormalised_query_params[:time_zone])
     end
 
     helpers do
@@ -95,12 +95,12 @@ module Outboxer
     end
 
     HEADERS = {
-      'id' => 'Id',
-      'status' => 'Status',
-      'messageable' => 'Messageable',
-      'created_at' => 'Created At',
-      'updated_at' => 'Updated At',
-      'updated_by' => 'Updated By',
+      id: 'Id',
+      status: 'Status',
+      messageable: 'Messageable',
+      created_at: 'Created At',
+      updated_at: 'Updated At',
+      updated_by: 'Updated By',
     }
 
     def generate_pagination(current_page:, total_pages:, params:)
@@ -112,8 +112,12 @@ module Outboxer
         previous_page = {
           text: 'Previous',
           href: outboxer_path("/messages" + normalise_query_string(
-            status: params[:status], sort: params[:sort], order: params[:order],
-            page: current_page - 1, per_page: params[:per_page], time_zone: params[:time_zone]))
+            status: @denormalised_query_params[:status],
+            sort: @denormalised_query_params[:sort],
+            order: @denormalised_query_params[:order],
+            page: current_page - 1,
+            per_page: @denormalised_query_params[:per_page],
+            time_zone: @denormalised_query_params[:time_zone]))
         }
       end
 
@@ -121,8 +125,12 @@ module Outboxer
         {
           text: page,
           href: outboxer_path("/messages" + normalise_query_string(
-            status: params[:status], sort: params[:sort], order: params[:order], page: page,
-            per_page: params[:per_page], time_zone: params[:time_zone])),
+            status: @denormalised_query_params[:status],
+            sort: @denormalised_query_params[:sort],
+            order: @denormalised_query_params[:order],
+            page: page,
+            per_page: @denormalised_query_params[:per_page],
+            time_zone: @denormalised_query_params[:time_zone])),
           is_active: current_page == page
         }
       end
@@ -131,8 +139,12 @@ module Outboxer
         next_page = {
           text: 'Next',
           href: outboxer_path("/messages" + normalise_query_string(
-            status: params[:status], sort: params[:sort], order: params[:order],
-            page: current_page + 1, per_page: params[:per_page], time_zone: params[:time_zone]))
+            status: @denormalised_query_params[:status],
+            sort: @denormalised_query_params[:sort],
+            order: @denormalised_query_params[:order],
+            page: current_page + 1,
+            per_page: @denormalised_query_params[:per_page],
+            time_zone: @denormalised_query_params[:time_zone]))
         }
       end
 
@@ -141,18 +153,18 @@ module Outboxer
 
     def generate_headers(params:)
       HEADERS.map do |header_key, header_text|
-        if params[:sort] == header_key
-          if params[:order] == 'asc'
+        if @denormalised_query_params[:sort] == header_key
+          if @denormalised_query_params[:order] == 'asc'
             {
               text: header_text,
               icon_class: 'bi bi-arrow-up',
               href: outboxer_path('/messages' + normalise_query_string(
-                status: params[:status],
-                order: 'desc',
+                status: @denormalised_query_params[:status],
+                order: :desc,
                 sort: header_key,
                 page: 1,
-                per_page: params[:per_page],
-                time_zone: params[:time_zone]
+                per_page: @denormalised_query_params[:per_page],
+                time_zone: @denormalised_query_params[:time_zone]
               ))
             }
           else
@@ -160,12 +172,12 @@ module Outboxer
               text: header_text,
               icon_class: 'bi bi-arrow-down',
               href: outboxer_path('/messages' + normalise_query_string(
-                status: params[:status],
-                order: 'asc',
+                status: @denormalised_query_params[:status],
+                order: :asc,
                 sort: header_key,
                 page: 1,
-                per_page: params[:per_page],
-                time_zone: params[:time_zone]
+                per_page: @denormalised_query_params[:per_page],
+                time_zone: @denormalised_query_params[:time_zone]
               ))
             }
           end
@@ -174,12 +186,12 @@ module Outboxer
             text: header_text,
             icon_class: '',
             href: outboxer_path('/messages' + normalise_query_string(
-              status: params[:status],
-              order: 'asc',
+              status: @denormalised_query_params[:status],
+              order: :asc,
               sort: header_key,
               page: 1,
-              per_page: params[:per_page],
-              time_zone: params[:time_zone]
+              per_page: @denormalised_query_params[:per_page],
+              time_zone: @denormalised_query_params[:time_zone]
             ))
           }
         end
@@ -209,12 +221,12 @@ module Outboxer
                                per_page: Messages::LIST_PER_PAGE_DEFAULT,
                                time_zone: Messages::LIST_TIME_ZONE_DEFAULT)
       {
-        status: status&.to_sym == Messages::LIST_STATUS_DEFAULT ? nil : status,
-        sort: sort&.to_sym == Messages::LIST_SORT_DEFAULT ? nil : sort,
-        order: order&.to_sym == Messages::LIST_ORDER_DEFAULT ? nil : order,
-        page: page&.to_i == Messages::LIST_PAGE_DEFAULT ? nil : page,
-        per_page: per_page&.to_i == Messages::LIST_PER_PAGE_DEFAULT ? nil : per_page,
-        time_zone: time_zone&.to_s == Messages::LIST_TIME_ZONE_DEFAULT ? nil : time_zone
+        status: status == Messages::LIST_STATUS_DEFAULT ? nil : status,
+        sort: sort == Messages::LIST_SORT_DEFAULT ? nil : sort,
+        order: order == Messages::LIST_ORDER_DEFAULT ? nil : order,
+        page: page.to_i == Messages::LIST_PAGE_DEFAULT ? nil : page,
+        per_page: per_page.to_i == Messages::LIST_PER_PAGE_DEFAULT ? nil : per_page,
+        time_zone: time_zone.to_s == Messages::LIST_TIME_ZONE_DEFAULT ? nil : time_zone
       }.compact
     end
 
