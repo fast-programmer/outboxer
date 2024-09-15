@@ -36,12 +36,15 @@ module Outboxer
     end
 
     def publish(
-      batch_size: 2000, poll_interval: 5, tick_interval: 0.1, num_worker_threads: 2,
+      batch_size: 200, poll_interval: 5, tick_interval: 0.1, num_worker_threads: 2,
       logger: Logger.new($stdout, level: Logger::INFO),
       time: Time, kernel: Kernel, &block
     )
+      logger.info "Outboxer v#{Outboxer::VERSION} publishing in ruby #{RUBY_VERSION} " \
+        "(#{RUBY_RELEASE_DATE} revision #{RUBY_REVISION[0, 10]}) [#{RUBY_PLATFORM}]"
+
       logger.info "Outboxer dequeueing { batch_size: #{batch_size}, poll_interval: #{poll_interval}, " \
-                  "workers: #{num_worker_threads} }"
+        "workers: #{num_worker_threads} }"
       @status = Status::PUBLISHING
 
       worker_threads = num_worker_threads.times.map do

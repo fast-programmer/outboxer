@@ -8,23 +8,21 @@ require_relative '../app/jobs/event_created_job'
 
 options = {
   environment: ENV.fetch('OUTBOXER_ENV', 'development'),
-  batch_size: ENV.fetch('OUTBOXER_BATCH_SIZE', 500),
+  batch_size: ENV.fetch('OUTBOXER_BATCH_SIZE', 200),
   poll_interval: ENV.fetch('OUTBOXER_POLL_INTERVAL', 5),
   tick_interval: ENV.fetch('OUTBOXER_TICK_INTERVAL', 0.1),
   log_level: ENV.fetch('OUTBOXER_LOG_LEVEL', 'info').downcase,
+  num_worker_threads: ENV.fetch('OUTBOXER_NUM_WORKER_THREADS', 2),
   sidekiq_redis_url: ENV.fetch('SIDEKIQ_REDIS_URL', 'redis://localhost:6379/0'),
 }
 
 Sidekiq.configure_client do |config|
-  config.redis = { url: options[:sidekiq_redis_url], size: 1 }
+  config.redis = { url: options[:sidekiq_redis_url], size: 2 }
 end
 
 logger = Sidekiq.logger
 logger.level = Logger.const_get(options[:log_level].upcase)
-logger.info "Outboxer v#{Outboxer::VERSION} starting in ruby #{RUBY_VERSION} " \
-  "(#{RUBY_RELEASE_DATE} revision #{RUBY_REVISION[0, 10]}) [#{RUBY_PLATFORM}]"
-
-db_config = Outboxer::Database.config(environment: options[:environment], pool: 2)
+db_config = Outboxer::Database.config(environment: options[:environment], pool: 3)
 
 Outboxer::Database.connect(config: db_config, logger: logger)
 
@@ -32,6 +30,7 @@ Outboxer::Publisher.publish(
   batch_size: options[:batch_size],
   poll_interval: options[:poll_interval],
   tick_interval: options[:tick_interval],
+  num_worker_threads: options[:num_worker_threads],
   logger: logger
 ) do |message|
   case message[:messageable_type]
