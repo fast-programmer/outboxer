@@ -8,7 +8,7 @@ module Outboxer
                 time: Time)
       messages = []
 
-      # start_time = time.now
+      start_time = time.now
 
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
@@ -39,9 +39,9 @@ module Outboxer
         end
       end
 
-      # end_time = time.now
-      # rtt = ((end_time - start_time) * 1_000_000).to_i
-      # logger.info "RTT: #{rtt} μs"
+      end_time = time.now
+      rtt = ((end_time - start_time) * 1_000_000).to_i
+      logger.info "RTT: #{rtt} μs"
 
       messages
     end

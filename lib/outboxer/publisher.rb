@@ -36,7 +36,7 @@ module Outboxer
     end
 
     def publish(
-      batch_size: 200, poll_interval: 5, tick_interval: 0.1, num_worker_threads: 2,
+      batch_size: 200, poll_interval: 5, tick_interval: 0.1, num_worker_threads: 1,
       logger: Logger.new($stdout, level: Logger::INFO),
       time: Time, kernel: Kernel, &block
     )
