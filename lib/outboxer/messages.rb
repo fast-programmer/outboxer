@@ -6,8 +6,9 @@ module Outboxer
                 hostname: Socket.gethostname, process_id: Process.pid,
                 logger: Logger.new($stdout, level: Logger::INFO),
                 time: Time)
-      start_time = time.now
       messages = []
+
+      start_time = time.now
 
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
@@ -40,7 +41,7 @@ module Outboxer
 
       end_time = time.now
       rtt = ((end_time - start_time) * 1_000_000).to_i
-      logger.info "RTT: #{rtt}"
+      logger.info "RTT: #{rtt} μs"
 
       messages
     end
