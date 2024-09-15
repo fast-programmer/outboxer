@@ -12,17 +12,17 @@ options = {
   poll_interval: ENV.fetch('OUTBOXER_POLL_INTERVAL', 5),
   tick_interval: ENV.fetch('OUTBOXER_TICK_INTERVAL', 0.1),
   log_level: ENV.fetch('OUTBOXER_LOG_LEVEL', 'info').downcase,
-  num_worker_threads: ENV.fetch('OUTBOXER_NUM_WORKER_THREADS', 2),
+  num_worker_threads: ENV.fetch('OUTBOXER_NUM_WORKER_THREADS', 1),
   sidekiq_redis_url: ENV.fetch('SIDEKIQ_REDIS_URL', 'redis://localhost:6379/0'),
 }
 
 Sidekiq.configure_client do |config|
-  config.redis = { url: options[:sidekiq_redis_url], size: 2 }
+  config.redis = { url: options[:sidekiq_redis_url], size: 1 }
 end
 
 logger = Sidekiq.logger
 logger.level = Logger.const_get(options[:log_level].upcase)
-db_config = Outboxer::Database.config(environment: options[:environment], pool: 3)
+db_config = Outboxer::Database.config(environment: options[:environment], pool: 2)
 
 Outboxer::Database.connect(config: db_config, logger: logger)
 
