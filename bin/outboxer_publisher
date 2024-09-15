@@ -8,9 +8,9 @@ require_relative '../app/jobs/event_created_job'
 
 options = {
   environment: ENV.fetch('OUTBOXER_ENV', 'development'),
-  batch_size: ENV.fetch('OUTBOXER_BATCH_SIZE', 100),
+  batch_size: ENV.fetch('OUTBOXER_BATCH_SIZE', 500),
   poll_interval: ENV.fetch('OUTBOXER_POLL_INTERVAL', 5),
-  tick_interval: ENV.fetch('OUTBOXER_TICK_INTERVAL', 1),
+  tick_interval: ENV.fetch('OUTBOXER_TICK_INTERVAL', 0.1),
   log_level: ENV.fetch('OUTBOXER_LOG_LEVEL', 'info').downcase,
   sidekiq_redis_url: ENV.fetch('SIDEKIQ_REDIS_URL', 'redis://localhost:6379/0'),
 }
@@ -24,7 +24,7 @@ logger.level = Logger.const_get(options[:log_level].upcase)
 logger.info "Outboxer v#{Outboxer::VERSION} starting in ruby #{RUBY_VERSION} " \
   "(#{RUBY_RELEASE_DATE} revision #{RUBY_REVISION[0, 10]}) [#{RUBY_PLATFORM}]"
 
-db_config = Outboxer::Database.config(environment: options[:environment], pool: 1)
+db_config = Outboxer::Database.config(environment: options[:environment], pool: 2)
 
 Outboxer::Database.connect(config: db_config, logger: logger)
 
