@@ -53,13 +53,17 @@ module Outboxer
             batch_start_time = time.now
 
             dequeued_messages = Messages.dequeue(limit: batch_size, logger: logger)
-            dequeued_messages.each do |message|
-              publish_message(dequeued_message: message, logger: logger, time: time, kernel: kernel, &block)
-            end
 
-            batch_end_time = time.now
-            batch_published_time = ((batch_end_time - batch_start_time)).to_f
-            logger.info "Outboxer published #{dequeued_messages.count} messages in #{batch_published_time}s "
+            if dequeued_messages.count > 0
+              dequeued_messages.each do |message|
+                publish_message(dequeued_message: message, logger: logger, time: time, kernel: kernel, &block)
+              end
+
+              batch_end_time = time.now
+              batch_published_time = ((batch_end_time - batch_start_time)).to_f
+              logger.info "Outboxer published #{dequeued_messages.count} messages " \
+                "in #{batch_published_time}s"
+            end
 
             if dequeued_messages.count < batch_size
               Publisher.sleep(poll_interval, start_time: time.now, tick_interval: tick_interval,
