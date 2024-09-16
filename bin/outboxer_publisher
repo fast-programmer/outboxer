@@ -8,7 +8,7 @@ require_relative '../app/jobs/event_created_job'
 
 options = {
   environment: ENV.fetch('OUTBOXER_ENV', 'development'),
-  batch_size: ENV.fetch('OUTBOXER_BATCH_SIZE', 200),
+  batch_size: ENV.fetch('OUTBOXER_BATCH_SIZE', 200).to_i,
   poll_interval: ENV.fetch('OUTBOXER_POLL_INTERVAL', 5),
   tick_interval: ENV.fetch('OUTBOXER_TICK_INTERVAL', 0.1),
   log_level: ENV.fetch('OUTBOXER_LOG_LEVEL', 'info').downcase,
