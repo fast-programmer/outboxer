@@ -60,9 +60,11 @@ module Outboxer
               end
 
               batch_end_time = time.now
-              batch_published_time = ((batch_end_time - batch_start_time)).to_f
-              logger.info "Outboxer published #{dequeued_messages.count} messages " \
-                "in #{batch_published_time}s"
+              batch_published_time = ((batch_end_time - batch_start_time))
+
+              logger.info "Outboxer published #{dequeued_messages.count} messages in " \
+                "#{batch_published_time.to_f.round(4)}s " \
+                # "(#{(batch_published_time / dequeued_messages.count).round(4)}s per message)"
             end
 
             if dequeued_messages.count < batch_size
