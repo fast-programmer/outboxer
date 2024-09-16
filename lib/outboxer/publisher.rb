@@ -10,7 +10,6 @@ module Outboxer
 
     STATUSES = [Status::PAUSED, Status::PUBLISHING, Status::TERMINATING]
     @status = Status::PAUSED
-    @queue = Queue.new
 
     Signal.trap("TERM") { terminate }
     Signal.trap("INT")  { terminate }
