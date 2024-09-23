@@ -51,7 +51,7 @@ module Outboxer
         case @status
         when Status::PUBLISHING
           begin
-            batch_start_time = process.clock_gettime(process::CLOCK_MONOTONIC)
+            publishing_start_time = process.clock_gettime(process::CLOCK_MONOTONIC)
 
             dequeued_messages = Messages.dequeue(limit: batch_size, logger: logger)
 
@@ -60,12 +60,12 @@ module Outboxer
                 publish_message(dequeued_message: message, logger: logger, time: time, kernel: kernel, &block)
               end
 
-              batch_end_time = process.clock_gettime(process::CLOCK_MONOTONIC)
-              batch_published_time = ((batch_end_time - batch_start_time))
+              publishing_end_time = process.clock_gettime(process::CLOCK_MONOTONIC)
+              publishing_time = ((publishing_end_time - publishing_start_time))
 
               logger.info "Outboxer published #{dequeued_messages.count} messages in " \
-                "#{batch_published_time.to_f.round(4)}s " \
-                # "(#{(batch_published_time / dequeued_messages.count).round(4)}s per message)"
+                "#{(publishing_time * 1000).round(2)}ms " \
+                "(#{((publishing_time / dequeued_messages.count) * 1000).round(2)}ms per message)"
             end
 
             if dequeued_messages.count < batch_size
