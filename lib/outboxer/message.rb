@@ -145,11 +145,11 @@ module Outboxer
           message.delete
 
           if message.status == Status::PUBLISHED
-            metric = Outboxer::Models::Metric
+            setting = Models::Setting
               .lock('FOR UPDATE')
               .find_by!(name: 'messages.published.count.historic')
 
-            metric.update!(value: metric.value + 1)
+            setting.update!(value: setting.value.to_i + 1).to_s
           end
 
           { id: id }

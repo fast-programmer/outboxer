@@ -1,7 +1,7 @@
 module Outboxer
   module Models
-    class Metric < ActiveRecord::Base
-      self.table_name = 'outboxer_metrics'
+    class Setting < ActiveRecord::Base
+      self.table_name = 'outboxer_settings'
 
       validates :name, presence: true, uniqueness: true
       validates :value, presence: true
