@@ -3,8 +3,8 @@ require 'spec_helper'
 module Outboxer
   RSpec.describe Messages do
     describe '.delete_all' do
-      let!(:metric) { Models::Metric.find_by!(name: 'messages.published.count.historic') }
-      before { metric.update!(value: BigDecimal('10')) }
+      let!(:setting) { Models::Setting.find_by!(name: 'messages.published.count.historic') }
+      before { setting.update!(value: '10') }
 
       let!(:message_1) { create(:outboxer_message, :queued) }
       let!(:message_2) { create(:outboxer_message, :dequeued) }
@@ -71,10 +71,10 @@ module Outboxer
               message_1.id, message_2.id, message_3.id, message_4.id, message_5.id])
           end
 
-          it 'adds published messages count to metrics value' do
-            metric.reload
+          it 'adds published messages count to settings value' do
+            setting.reload
 
-            expect(metric.value).to eq(12)
+            expect(setting.value).to eq('12')
           end
         end
 
@@ -117,10 +117,10 @@ module Outboxer
           expect(Models::Frame.all).to be_empty
         end
 
-        it 'adds published messages count to metrics value' do
-          metric.reload
+        it 'adds published messages count to settings value' do
+          setting.reload
 
-          expect(metric.value).to eq(12)
+          expect(setting.value).to eq('12')
         end
       end
 
@@ -141,10 +141,10 @@ module Outboxer
           expect(Models::Frame.all).to be_empty
         end
 
-        it 'adds published messages count to metrics value' do
-          metric.reload
+        it 'adds published messages count to settings value' do
+          setting.reload
 
-          expect(metric.value).to eq(12)
+          expect(setting.value).to eq('12')
         end
       end
     end

@@ -7,9 +7,9 @@ module Outboxer
 
       context 'when there are messages in different statuses' do
         before do
-          Models::Metric
+          Models::Setting
             .find_by!(name: 'messages.published.count.historic')
-            .update!(value: BigDecimal('500'))
+            .update!(value: '500')
         end
 
         let!(:oldest_queued_message) do
@@ -52,7 +52,7 @@ module Outboxer
           create(:outboxer_message, :failed, updated_at: 10.minutes.ago)
         end
 
-        it 'returns correct metrics' do
+        it 'returns correct settings' do
           metrics = Messages.metrics(current_utc_time: current_utc_time)
 
           expect(metrics).to eq(

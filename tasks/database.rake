@@ -28,8 +28,8 @@ namespace :outboxer do
       db_config = Outboxer::Database.config(environment: environment, pool: 1)
       ActiveRecord::Base.establish_connection(db_config)
 
-      require_relative "../db/migrate/create_outboxer_metrics"
-      CreateOutboxerMetrics.new.up
+      require_relative "../db/migrate/create_outboxer_settings"
+      CreateOutboxerSettings.new.up
 
       require_relative "../db/migrate/create_outboxer_messages"
       CreateOutboxerMessages.new.up
