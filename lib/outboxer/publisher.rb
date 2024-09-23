@@ -29,7 +29,7 @@ module Outboxer
     end
 
     # :nocov:
-    def sleep(duration, start_time:, tick_interval:, time:, process:, kernel:)
+    def sleep(duration, start_time:, tick_interval:, process:, kernel:)
       while (@status != Status::TERMINATING) &&
           (process.clock_gettime(process::CLOCK_MONOTONIC) - start_time) < duration
         kernel.sleep(tick_interval)
@@ -79,7 +79,7 @@ module Outboxer
                 poll_interval,
                 start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
                 tick_interval: tick_interval,
-                time: time, process: process, kernel: kernel)
+                process: process, kernel: kernel)
             end
           rescue StandardError => exception
             logger.error "#{exception.class}: #{exception.message}"
@@ -95,7 +95,7 @@ module Outboxer
             tick_interval,
             start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
             tick_interval: tick_interval,
-            time: time, process: process, kernel: kernel)
+            process: process, kernel: kernel)
         end
       end
 
