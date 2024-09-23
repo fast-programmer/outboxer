@@ -1,4 +1,4 @@
-require_relative "models/metric"
+require_relative "models/setting"
 
 require_relative "models/frame"
 require_relative "models/exception"
