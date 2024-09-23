@@ -44,7 +44,8 @@ module Outboxer
       logger.info "Outboxer v#{Outboxer::VERSION} publishing in ruby #{RUBY_VERSION} " \
         "(#{RUBY_RELEASE_DATE} revision #{RUBY_REVISION[0, 10]}) [#{RUBY_PLATFORM}]"
 
-      logger.info "Outboxer dequeueing { batch_size: #{batch_size}, poll_interval: #{poll_interval} } "
+      logger.info "Outboxer dequeueing "\
+                  "{ batch_size: #{batch_size}, poll_interval: #{poll_interval} } "
       @status = Status::PUBLISHING
 
       while @status != Status::TERMINATING
@@ -57,7 +58,10 @@ module Outboxer
 
             if dequeued_messages.count > 0
               dequeued_messages.each do |message|
-                publish_message(dequeued_message: message, logger: logger, time: time, kernel: kernel, &block)
+                publish_message(
+                  dequeued_message: message,
+                  logger: logger, time: time, kernel: kernel,
+                  &block)
               end
 
               publishing_end_time = process.clock_gettime(process::CLOCK_MONOTONIC)
@@ -98,20 +102,24 @@ module Outboxer
 
     def publish_message(dequeued_message:, logger:, time:, kernel:, &block)
       dequeued_at = dequeued_message[:updated_at]
+
       message = Message.publishing(id: dequeued_message[:id])
-      logger.debug "Outboxer publishing message #{message[:id]} in #{(time.now.utc - dequeued_at).round(3)}s"
+      logger.debug "Outboxer publishing message #{message[:id]} in "\
+        "#{(time.now.utc - dequeued_at).round(3)}s"
 
       begin
         block.call(message)
       rescue Exception => e
         Message.failed(id: message[:id], exception: e)
-        logger.error "Outboxer failed to publish message #{message[:id]} in #{(time.now.utc - dequeued_at).round(3)}s"
+        logger.error "Outboxer failed to publish message #{message[:id]} in "\
+                     "#{(time.now.utc - dequeued_at).round(3)}s"
 
         raise
       end
 
       Message.published(id: message[:id])
-      logger.debug "Outboxer published message #{message[:id]} in #{(time.now.utc - dequeued_at).round(3)}s"
+      logger.debug "Outboxer published message #{message[:id]} in "\
+                   "#{(time.now.utc - dequeued_at).round(3)}s"
     rescue StandardError => e
       logger.error "#{e.class}: #{e.message} in #{(time.now.utc - dequeued_at).round(3)}s"
       e.backtrace.each { |frame| logger.error frame }
