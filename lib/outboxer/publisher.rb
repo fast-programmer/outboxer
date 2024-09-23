@@ -111,8 +111,8 @@ module Outboxer
 
       begin
         block.call(message)
-      rescue Exception => e
-        Message.failed(id: message[:id], exception: e)
+      rescue Exception => exception
+        Message.failed(id: message[:id], exception: exception)
         logger.error "Outboxer failed to publish message #{message[:id]} for " \
           "#{message[:messageable_type]}::#{message[:messageable_id]} " \
           "in #{(time.now.utc - dequeued_at).round(3)}s"
