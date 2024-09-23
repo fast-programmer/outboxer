@@ -128,7 +128,7 @@ module Outboxer
     rescue StandardError => exception
       logger.error "#{exception.class}: #{exception.message} "\
         "in #{(time.now.utc - dequeued_at).round(3)}s"
-      e.backtrace.each { |frame| logger.error frame }
+      exception.backtrace.each { |frame| logger.error frame }
     rescue Exception => exception
       logger.fatal "#{exception.class}: #{exception.message} "\
         "in #{(time.now.utc - dequeued_at).round(3)}s"
