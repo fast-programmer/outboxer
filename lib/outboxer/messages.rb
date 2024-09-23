@@ -204,11 +204,11 @@ module Outboxer
             end
 
             if published_messages.any?
-              metric = Models::Metric
+              setting = Models::Setting
                 .lock('FOR UPDATE')
                 .find_by!(name: 'messages.published.count.historic')
 
-              metric.update!(value: metric.value + published_messages.count)
+              setting.update!(value: setting.value.to_i + published_messages.count)
             end
           end
         end
@@ -246,11 +246,11 @@ module Outboxer
           end
 
           if published_messages.any?
-            metric = Models::Metric
+            setting = Models::Setting
               .lock('FOR UPDATE')
               .find_by!(name: 'messages.published.count.historic')
 
-            metric.update!(value: metric.value + published_messages.count)
+            setting.update!(value: (setting.value.to_i + published_messages.count).to_s)
           end
 
           { deleted_count: deleted_count, not_deleted_ids: ids - message_ids }
@@ -278,7 +278,7 @@ module Outboxer
           "SUM(CASE WHEN #{time_condition} THEN 1 ELSE 0 END) AS throughput")
         .to_a
 
-        metrics[:published][:count][:historic] = Models::Metric
+        metrics[:published][:count][:historic] = Models::Setting
           .find_by!(name: 'messages.published.count.historic').value.to_i
       end
 
