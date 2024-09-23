@@ -104,22 +104,25 @@ module Outboxer
       dequeued_at = dequeued_message[:updated_at]
 
       message = Message.publishing(id: dequeued_message[:id])
-      logger.debug "Outboxer publishing message #{message[:id]} in "\
-        "#{(time.now.utc - dequeued_at).round(3)}s"
+      logger.debug "Outboxer publishing message #{message[:id]} for " \
+        "#{message[:messageable_type]}::#{message[:messageable_id]} " \
+        "in #{(time.now.utc - dequeued_at).round(3)}s"
 
       begin
         block.call(message)
       rescue Exception => e
         Message.failed(id: message[:id], exception: e)
-        logger.error "Outboxer failed to publish message #{message[:id]} in "\
-                     "#{(time.now.utc - dequeued_at).round(3)}s"
+        logger.error "Outboxer failed to publish message #{message[:id]} for " \
+          "#{message[:messageable_type]}::#{message[:messageable_id]} " \
+          "in #{(time.now.utc - dequeued_at).round(3)}s"
 
         raise
       end
 
       Message.published(id: message[:id])
-      logger.debug "Outboxer published message #{message[:id]} in "\
-                   "#{(time.now.utc - dequeued_at).round(3)}s"
+      logger.debug "Outboxer published message #{message[:id]} for " \
+        "#{message[:messageable_type]}::#{message[:messageable_id]} " \
+        "in #{(time.now.utc - dequeued_at).round(3)}s"
     rescue StandardError => e
       logger.error "#{e.class}: #{e.message} in #{(time.now.utc - dequeued_at).round(3)}s"
       e.backtrace.each { |frame| logger.error frame }

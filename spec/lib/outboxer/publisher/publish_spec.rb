@@ -29,7 +29,7 @@ module Outboxer
             expect(message[:messageable_id]).to eq(queued_message.messageable_id)
             expect(message[:status]).to eq(Models::Message::Status::PUBLISHING)
 
-            Publisher.stop
+            Publisher.terminate
           end
 
           expect(Models::Message.published.count).to eq(1)
@@ -48,7 +48,7 @@ module Outboxer
               logger: logger,
               kernel: kernel
             ) do |message|
-              Publisher.stop
+              Publisher.terminate
 
               raise standard_error
             end
@@ -133,7 +133,7 @@ module Outboxer
               when 1
                 raise StandardError, 'queue error'
               else
-                Publisher.stop
+                Publisher.terminate
 
                 []
               end
