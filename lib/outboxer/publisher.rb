@@ -40,7 +40,8 @@ module Outboxer
     def publish(
       batch_size: 200, poll_interval: 5, tick_interval: 0.1,
       logger: Logger.new($stdout, level: Logger::INFO),
-      time: Time, process: ::Process, kernel: Kernel, &block
+      time: Time, process: ::Process, kernel: Kernel,
+      &block
     )
       logger.info "Outboxer v#{Outboxer::VERSION} publishing in ruby #{RUBY_VERSION} "\
         "(#{RUBY_RELEASE_DATE} revision #{RUBY_REVISION[0, 10]}) [#{RUBY_PLATFORM}]"
