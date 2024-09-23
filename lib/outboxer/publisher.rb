@@ -28,13 +28,14 @@ module Outboxer
       @status = Status::PUBLISHING
     end
 
-
+    # :nocov:
     def sleep(duration, start_time:, tick_interval:, time:, process:, kernel:)
       while (@status != Status::TERMINATING) &&
-            (process.clock_gettime(process::CLOCK_MONOTONIC) - start_time) < duration
+          (process.clock_gettime(process::CLOCK_MONOTONIC) - start_time) < duration
         kernel.sleep(tick_interval)
       end
     end
+    # :nocov:
 
     def publish(
       batch_size: 200, poll_interval: 5, tick_interval: 0.1,

@@ -15,6 +15,35 @@ module Outboxer
 
       let!(:queued_message) { create(:outboxer_message, :queued) }
 
+      context 'when paused and resumed during message publishing' do
+        it 'pauses and resumes the publishing process correctly' do
+          allow(Messages).to receive(:dequeue).and_call_original
+
+          publish_thread = Thread.new do
+            Outboxer::Publisher.publish(
+              batch_size: batch_size,
+              poll_interval: poll_interval,
+              tick_interval: tick_interval,
+              logger: logger, kernel: kernel
+            ) do |_message|
+              # no op
+            end
+          end
+          sleep 1.1
+
+          Outboxer::Publisher.pause
+          sleep 1.1
+
+          Outboxer::Publisher.resume
+          sleep 1.1
+
+          Outboxer::Publisher.terminate
+          publish_thread.join
+
+          expect(Messages).to have_received(:dequeue).exactly(5).times
+        end
+      end
+
       context 'when message published successfully' do
         it 'sets the message to published' do
           Publisher.publish(
