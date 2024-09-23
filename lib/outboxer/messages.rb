@@ -4,10 +4,7 @@ module Outboxer
 
     def dequeue(limit: 1, current_utc_time: Time.now.utc,
                 hostname: Socket.gethostname, process_id: Process.pid,
-                logger: Logger.new($stdout, level: Logger::INFO),
                 time: Time)
-      messages = []
-
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           messages = Models::Message
@@ -26,7 +23,7 @@ module Outboxer
                 updated_by: "#{hostname}:#{process_id}")
           end
 
-          messages = messages.map do |message|
+          messages.map do |message|
             {
               id: message.id,
               messageable_type: message.messageable_type,
@@ -36,8 +33,6 @@ module Outboxer
           end
         end
       end
-
-      messages
     end
 
     LIST_STATUS_OPTIONS = [nil, :queued, :dequeued, :publishing, :published, :failed]

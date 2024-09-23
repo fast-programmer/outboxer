@@ -53,7 +53,7 @@ module Outboxer
           begin
             publishing_start_time = process.clock_gettime(process::CLOCK_MONOTONIC)
 
-            dequeued_messages = Messages.dequeue(limit: batch_size, logger: logger)
+            dequeued_messages = Messages.dequeue(limit: batch_size)
 
             if dequeued_messages.count > 0
               dequeued_messages.each do |message|
@@ -63,7 +63,7 @@ module Outboxer
               publishing_end_time = process.clock_gettime(process::CLOCK_MONOTONIC)
               publishing_time = ((publishing_end_time - publishing_start_time))
 
-              logger.info "Outboxer published #{dequeued_messages.count} messages in " \
+              logger.debug "Outboxer published #{dequeued_messages.count} messages in " \
                 "#{(publishing_time * 1000).round(2)}ms " \
                 "(#{((publishing_time / dequeued_messages.count) * 1000).round(2)}ms per message)"
             end
