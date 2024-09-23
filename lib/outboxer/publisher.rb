@@ -80,12 +80,12 @@ module Outboxer
                 tick_interval: tick_interval,
                 time: time, process: process, kernel: kernel)
             end
-          rescue StandardError => e
-            logger.error "#{e.class}: #{e.message}"
-            e.backtrace.each { |frame| logger.error frame }
-          rescue Exception => e
-            logger.fatal "#{e.class}: #{e.message}"
-            e.backtrace.each { |frame| logger.fatal frame }
+          rescue StandardError => exception
+            logger.error "#{exception.class}: #{exception.message}"
+            exception.backtrace.each { |frame| logger.error frame }
+          rescue Exception => exception
+            logger.fatal "#{exception.class}: #{exception.message}"
+            exception.backtrace.each { |frame| logger.fatal frame }
 
             terminate
           end
@@ -124,12 +124,14 @@ module Outboxer
       logger.debug "Outboxer published message #{message[:id]} for " \
         "#{message[:messageable_type]}::#{message[:messageable_id]} " \
         "in #{(time.now.utc - dequeued_at).round(3)}s"
-    rescue StandardError => e
-      logger.error "#{e.class}: #{e.message} in #{(time.now.utc - dequeued_at).round(3)}s"
+    rescue StandardError => exception
+      logger.error "#{exception.class}: #{exception.message} "\
+                  "in #{(time.now.utc - dequeued_at).round(3)}s"
       e.backtrace.each { |frame| logger.error frame }
-    rescue Exception => e
-      logger.fatal "#{e.class}: #{e.message} in #{(time.now.utc - dequeued_at).round(3)}s"
-      e.backtrace.each { |frame| logger.fatal frame }
+    rescue Exception => exception
+      logger.fatal "#{exception.class}: #{exception.message} "\
+                   "in #{(time.now.utc - dequeued_at).round(3)}s"
+      exception.backtrace.each { |frame| logger.fatal frame }
 
       terminate
     end

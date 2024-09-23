@@ -3,8 +3,7 @@ module Outboxer
     extend self
 
     def dequeue(limit: 1, current_utc_time: Time.now.utc,
-                hostname: Socket.gethostname, process_id: Process.pid,
-                time: Time)
+                hostname: Socket.gethostname, process_id: Process.pid)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           messages = Models::Message
