@@ -32,6 +32,21 @@
             padding: 0.25rem 0.5rem;
             font-size: 0.875rem;
         }
+        .table th {
+            color: #212529;
+        }
+        .table th a {
+            color: #212529;
+            text-decoration: none;
+        }
+        .table th a:hover {
+            color: #212529;
+            text-decoration: underline;
+        }
+        .table th a.active {
+            color: #212529;
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -47,22 +62,49 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav">
+                    <% statuses = [
+                        { name: 'Queued', key: 'queued' },
+                        { name: 'Dequeued', key: 'dequeued' },
+                        { name: 'Publishing', key: 'publishing' },
+                        { name: 'Published', key: 'published' },
+                        { name: 'Failed', key: 'failed' }
+                    ] %>
+
                     <li class="nav-item">
-                        <a class="nav-link <%= 'active' if denormalised_params[:status] == 'queued' %>" href="<%= outboxer_path('/messages?status=queued') %>">Queued (<%= messages_metrics[:queued][:count][:current] %>)</a>
+                        <a class="nav-link <%= 'active' if denormalised_query_params[:status] == nil %>"
+                           href="<%= outboxer_path("/messages#{normalise_query_string(status: nil, time_zone: denormalised_query_params[:time_zone])}") %>">
+                            All (<%= messages_metrics[:all][:count][:current] %>)
+                        </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link <%= 'active' if denormalised_params[:status] == 'dequeued' %>" href="<%= outboxer_path('/messages?status=dequeued') %>">Dequeued (<%= messages_metrics[:dequeued][:count][:current] %>)</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link <%= 'active' if denormalised_params[:status] == 'publishing' %>" href="<%= outboxer_path('/messages?status=publishing') %>">Publishing (<%= messages_metrics[:publishing][:count][:current] %>)</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link <%= 'active' if denormalised_params[:status] == 'published' %>" href="<%= outboxer_path('/messages?status=published') %>">Published (<%= messages_metrics[:published][:count][:current] %>)</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link <%= 'active' if denormalised_params[:status] == 'failed' %>" href="<%= outboxer_path('/messages?status=failed') %>">Failed (<%= messages_metrics[:failed][:count][:current] %>)</a>
-                    </li>
+
+                    <% statuses.each do |status| %>
+                        <li class="nav-item">
+                            <a class="nav-link <%= 'active' if denormalised_query_params[:status] == status[:key] %>"
+                               href="<%= outboxer_path("/messages#{normalise_query_string(status: status[:key], time_zone: params[:time_zone])}") %>">
+                                <%= status[:name] %> (<%= messages_metrics[status[:key].to_sym][:count][:current] %>)
+                            </a>
+                        </li>
+                    <% end %>
                 </ul>
+                <form action="<%= outboxer_path("/update_time_zone") %>" method="post" class="d-flex align-items-center ms-auto flex-nowrap">
+                    <% denormalised_query_params.each do |key, param| %>
+                        <% if (key != :time_zone) && ((key != :status) || (param != nil)) %>
+                            <input type="hidden" name="<%= key %>" value="<%= param %>">
+                        <% end %>
+                    <% end %>
+
+                    <!-- Timezone Select Box -->
+                    <select id="timeZoneSelect" name="time_zone" class="form-select form-select-sm w-auto">
+                        <% Outboxer::Messages::LIST_TIME_ZONE_OPTIONS.each do |time_zone| %>
+                            <option value="<%= time_zone %>" <%= 'selected' if denormalised_query_params[:time_zone] == time_zone %>>
+                                <%= time_zone %>
+                            </option>
+                        <% end %>
+                    </select>
+
+                    <!-- Update Button -->
+                    <button type="submit" class="btn btn-sm btn-secondary ms-2">Update</button>
+                </form>
             </div>
         </div>
     </nav>

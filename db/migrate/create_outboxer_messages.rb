@@ -1,12 +1,14 @@
 class CreateOutboxerMessages < ActiveRecord::Migration[6.1]
   def up
     create_table :outboxer_messages do |t|
-      t.string :status, null: false, limit: 255
+      t.string :status, limit: 255, null: false
 
-      t.text :messageable_id, null: false
-      t.text :messageable_type, null: false
+      t.string :messageable_id, limit: 255, null: false
+      t.string :messageable_type, limit: 255, null: false
 
       t.timestamps
+
+      t.string :updated_by, limit: 255, null: false
     end
 
     add_index :outboxer_messages, :status

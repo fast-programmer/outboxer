@@ -13,8 +13,8 @@ module Outboxer
 
           expect(result[:id]).to eq(message.id)
           expect(result[:status]).to eq('failed')
-          expect(result[:created_at]).to eq(message.created_at.utc.to_s)
-          expect(result[:updated_at]).to eq(message.updated_at.utc.to_s)
+          expect(result[:created_at]).to eq(message.created_at.utc)
+          expect(result[:updated_at]).to eq(message.updated_at.utc)
           expect(result[:exceptions].first[:id]).to eq(exception.id)
           expect(result[:exceptions].first[:class_name]).to eq(exception.class_name)
           expect(result[:exceptions].first[:message_text]).to eq(exception.message_text)

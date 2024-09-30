@@ -3,58 +3,32 @@
 require 'bundler/setup'
 require 'sidekiq'
 require 'outboxer'
-require 'optparse'
-
-options = {
-  buffer_size: 1000,
-  poll_interval: 1,
-  concurrency: 20,
-  log_level: 'info'
-}
-
-OptionParser.new do |opts|
-  opts.banner = 'Usage: outboxer_publisher [options]'
-
-  opts.on('--buffer_size=N', Integer, 'Set the buffer size') do |n|
-    options[:buffer] = n
-  end
-
-  opts.on('--poll_interval=N', Integer, 'Set the polling interval in seconds') do |n|
-    options[:poll_interval] = n
-  end
-
-  opts.on('--concurrency=N', Integer, 'Set the number of concurrent workers') do |n|
-    options[:concurrency] = n
-  end
-
-  opts.on('--log_level=LEVEL', String, 'Set the log level (debug, info, warn, error)') do |level|
-    options[:log_level] = level.downcase
-  end
-end.parse!
-
-environment = ENV['APP_ENV'] || 'development'
 
 require_relative '../app/jobs/event_created_job'
 
+options = {
+  environment: ENV.fetch('OUTBOXER_ENV', 'development'),
+  batch_size: ENV.fetch('OUTBOXER_BATCH_SIZE', 200).to_i,
+  poll_interval: ENV.fetch('OUTBOXER_POLL_INTERVAL', 5),
+  tick_interval: ENV.fetch('OUTBOXER_TICK_INTERVAL', 0.1),
+  log_level: ENV.fetch('OUTBOXER_LOG_LEVEL', 'info').downcase,
+  sidekiq_redis_url: ENV.fetch('SIDEKIQ_REDIS_URL', 'redis://localhost:6379/0'),
+}
+
 Sidekiq.configure_client do |config|
-  config.redis = { url: ENV['REDIS_URL'], size: options[:concurrency], timeout: 1 }
+  config.redis = { url: options[:sidekiq_redis_url], size: 1 }
 end
 
-logger = Outboxer::Logger.new($stdout, level: Logger.const_get(options[:log_level].upcase))
+logger = Sidekiq.logger
+logger.level = Logger.const_get(options[:log_level].upcase)
+db_config = Outboxer::Database.config(environment: options[:environment], pool: 1)
 
-db_config = Outboxer::Database.config(environment: environment, pool: options[:concurrency] + 1)
 Outboxer::Database.connect(config: db_config, logger: logger)
 
-['INT', 'TERM'].each do |signal|
-  Signal.trap(signal) do
-    Outboxer::Publisher.stop
-  end
-end
-
 Outboxer::Publisher.publish(
-  buffer_size: options[:buffer_size],
+  batch_size: options[:batch_size],
   poll_interval: options[:poll_interval],
-  concurrency: options[:concurrency],
+  tick_interval: options[:tick_interval],
   logger: logger
 ) do |message|
   case message[:messageable_type]
@@ -64,3 +38,5 @@ Outboxer::Publisher.publish(
 end
 
 Outboxer::Database.disconnect(logger: logger)
+
+# bin/outboxer_publisher

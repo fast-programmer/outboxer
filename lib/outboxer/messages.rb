@@ -2,7 +2,8 @@ module Outboxer
   module Messages
     extend self
 
-    def dequeue(limit: 1, current_utc_time: Time.now.utc)
+    def dequeue(limit: 1, current_utc_time: Time.now.utc,
+                hostname: Socket.gethostname, process_id: Process.pid)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           messages = Models::Message
@@ -15,14 +16,18 @@ module Outboxer
           if messages.present?
             Models::Message
               .where(id: messages.map { |message| message[:id] })
-              .update_all(updated_at: current_utc_time, status: Models::Message::Status::DEQUEUED)
+              .update_all(
+                status: Models::Message::Status::DEQUEUED,
+                updated_at: current_utc_time,
+                updated_by: "#{hostname}:#{process_id}")
           end
 
           messages.map do |message|
             {
               id: message.id,
               messageable_type: message.messageable_type,
-              messageable_id: message.messageable_id
+              messageable_id: message.messageable_id,
+              updated_at: current_utc_time
             }
           end
         end
@@ -32,7 +37,7 @@ module Outboxer
     LIST_STATUS_OPTIONS = [nil, :queued, :dequeued, :publishing, :published, :failed]
     LIST_STATUS_DEFAULT = nil
 
-    LIST_SORT_OPTIONS = [:id, :status, :messageable, :created_at, :updated_at]
+    LIST_SORT_OPTIONS = [:id, :status, :messageable, :created_at, :updated_at, :updated_by]
     LIST_SORT_DEFAULT = :updated_at
 
     LIST_ORDER_OPTIONS = [:asc, :desc]
@@ -43,9 +48,13 @@ module Outboxer
     LIST_PER_PAGE_OPTIONS = [10, 100, 200, 500, 1000]
     LIST_PER_PAGE_DEFAULT = 100
 
+    LIST_TIME_ZONE_OPTIONS = (ActiveSupport::TimeZone.all.map { |tz| tz.tzinfo.name } + ['UTC']).sort
+    LIST_TIME_ZONE_DEFAULT = 'UTC'
+
     def list(status: LIST_STATUS_DEFAULT,
              sort: LIST_SORT_DEFAULT, order: LIST_ORDER_DEFAULT,
-             page: LIST_PAGE_DEFAULT, per_page: LIST_PER_PAGE_DEFAULT)
+             page: LIST_PAGE_DEFAULT, per_page: LIST_PER_PAGE_DEFAULT,
+             time_zone: LIST_TIME_ZONE_DEFAULT)
       if !status.nil? && !LIST_STATUS_OPTIONS.include?(status.to_sym)
         raise ArgumentError, "status must be #{LIST_STATUS_OPTIONS.join(' ')}"
       end
@@ -64,6 +73,10 @@ module Outboxer
 
       if !LIST_PER_PAGE_OPTIONS.include?(per_page.to_i)
         raise ArgumentError, "per_page must be #{LIST_PER_PAGE_OPTIONS.join(' ')}"
+      end
+
+      if !LIST_TIME_ZONE_OPTIONS.include?(time_zone)
+        raise ArgumentError, "time_zone must be valid"
       end
 
       message_scope = Models::Message
@@ -87,8 +100,9 @@ module Outboxer
             status: message.status.to_sym,
             messageable_type: message.messageable_type,
             messageable_id: message.messageable_id,
-            created_at: message.created_at.utc,
-            updated_at: message.updated_at.utc
+            created_at: message.created_at.utc.in_time_zone(time_zone),
+            updated_at: message.updated_at.utc.in_time_zone(time_zone),
+            updated_by: message.updated_by
           }
         end,
         total_pages: messages.total_pages,
@@ -98,18 +112,19 @@ module Outboxer
       }
     end
 
-    REQUEUE_ALL_STATUSES = [:dequeued, :publishing, :failed]
+    REQUEUE_STATUSES = [:dequeued, :publishing, :failed]
 
-    def can_requeue_all?(status:)
-      REQUEUE_ALL_STATUSES.include?(status&.to_sym)
+    def can_requeue?(status:)
+      REQUEUE_STATUSES.include?(status&.to_sym)
     end
 
-    def requeue_all(status:, batch_size: 100, time: Time)
-      if !can_requeue_all?(status: status)
+    def requeue_all(status:, batch_size: 100, time: Time,
+                    hostname: Socket.gethostname, process_id: Process.pid)
+      if !can_requeue?(status: status)
         status_formatted = status.nil? ? 'nil' : status
 
         raise ArgumentError,
-          "Status #{status_formatted} must be one of #{REQUEUE_ALL_STATUSES.join(', ')}"
+          "Status #{status_formatted} must be one of #{Message::REQUEUE_STATUSES.join(', ')}"
       end
 
       requeued_count = 0
@@ -128,7 +143,10 @@ module Outboxer
 
             requeued_count_batch = Models::Message
               .where(id: locked_ids)
-              .update_all(status: Models::Message::Status::QUEUED, updated_at: time.now.utc)
+              .update_all(
+                status: Models::Message::Status::QUEUED,
+                updated_at: time.now.utc,
+                updated_by: "#{hostname}:#{process_id}")
 
             requeued_count += requeued_count_batch
           end
@@ -140,7 +158,7 @@ module Outboxer
       { requeued_count: requeued_count }
     end
 
-    def requeue_by_ids(ids:, time: Time)
+    def requeue_by_ids(ids:, time: Time, hostname: Socket.gethostname, process_id: Process.pid)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           locked_ids = Models::Message
@@ -151,7 +169,10 @@ module Outboxer
 
           requeued_count = Models::Message
             .where(id: locked_ids)
-            .update_all(status: Models::Message::Status::QUEUED, updated_at: time.now.utc)
+            .update_all(
+              status: Models::Message::Status::QUEUED,
+              updated_at: time.now.utc,
+              updated_by: "#{hostname}:#{process_id}")
 
           { requeued_count: requeued_count, not_requeued_ids: ids - locked_ids }
         end
@@ -191,11 +212,11 @@ module Outboxer
             end
 
             if published_messages.any?
-              metric = Models::Metric
+              setting = Models::Setting
                 .lock('FOR UPDATE')
                 .find_by!(name: 'messages.published.count.historic')
 
-              metric.update!(value: metric.value + published_messages.count)
+              setting.update!(value: setting.value.to_i + published_messages.count)
             end
           end
         end
@@ -233,11 +254,11 @@ module Outboxer
           end
 
           if published_messages.any?
-            metric = Models::Metric
+            setting = Models::Setting
               .lock('FOR UPDATE')
               .find_by!(name: 'messages.published.count.historic')
 
-            metric.update!(value: metric.value + published_messages.count)
+            setting.update!(value: (setting.value.to_i + published_messages.count).to_s)
           end
 
           { deleted_count: deleted_count, not_deleted_ids: ids - message_ids }
@@ -246,7 +267,7 @@ module Outboxer
     end
 
     def metrics(current_utc_time: Time.now.utc)
-      metrics = {}
+      metrics = { all: { count: { current: 0 } } }
 
       Models::Message::STATUSES.each do |status|
         metrics[status.to_sym] = { count: { current: 0 }, latency: 0, throughput: 0 }
@@ -265,7 +286,7 @@ module Outboxer
           "SUM(CASE WHEN #{time_condition} THEN 1 ELSE 0 END) AS throughput")
         .to_a
 
-        metrics[:published][:count][:historic] = Models::Metric
+        metrics[:published][:count][:historic] = Models::Setting
           .find_by!(name: 'messages.published.count.historic').value.to_i
       end
 
@@ -281,6 +302,8 @@ module Outboxer
         end
 
         metrics[status][:throughput] = grouped_message.throughput
+
+        metrics[:all][:count][:current] += grouped_message.count
       end
 
       metrics[:published][:count][:total] =
