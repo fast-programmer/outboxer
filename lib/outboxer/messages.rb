@@ -48,9 +48,13 @@ module Outboxer
     LIST_PER_PAGE_OPTIONS = [10, 100, 200, 500, 1000]
     LIST_PER_PAGE_DEFAULT = 100
 
+    LIST_TIME_ZONE_OPTIONS = (ActiveSupport::TimeZone.all.map { |tz| tz.tzinfo.name } + ['UTC']).sort
+    LIST_TIME_ZONE_DEFAULT = 'UTC'
+
     def list(status: LIST_STATUS_DEFAULT,
              sort: LIST_SORT_DEFAULT, order: LIST_ORDER_DEFAULT,
-             page: LIST_PAGE_DEFAULT, per_page: LIST_PER_PAGE_DEFAULT)
+             page: LIST_PAGE_DEFAULT, per_page: LIST_PER_PAGE_DEFAULT,
+             time_zone: LIST_TIME_ZONE_DEFAULT)
       if !status.nil? && !LIST_STATUS_OPTIONS.include?(status.to_sym)
         raise ArgumentError, "status must be #{LIST_STATUS_OPTIONS.join(' ')}"
       end
@@ -69,6 +73,10 @@ module Outboxer
 
       if !LIST_PER_PAGE_OPTIONS.include?(per_page.to_i)
         raise ArgumentError, "per_page must be #{LIST_PER_PAGE_OPTIONS.join(' ')}"
+      end
+
+      if !LIST_TIME_ZONE_OPTIONS.include?(time_zone)
+        raise ArgumentError, "time_zone must be valid"
       end
 
       message_scope = Models::Message
@@ -92,8 +100,8 @@ module Outboxer
             status: message.status.to_sym,
             messageable_type: message.messageable_type,
             messageable_id: message.messageable_id,
-            created_at: message.created_at.utc,
-            updated_at: message.updated_at.utc,
+            created_at: message.created_at.utc.in_time_zone(time_zone),
+            updated_at: message.updated_at.utc.in_time_zone(time_zone),
             updated_by: message.updated_by
           }
         end,
