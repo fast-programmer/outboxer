@@ -14,7 +14,7 @@
                     </button>
                 </form>
                 <!-- Delete Form -->
-                <form action="<%= outboxer_path("/message/#{message[:id]}/delete") %>" method="post" style="display: inline;
+                <form action="<%= outboxer_path("/message/#{message[:id]}/delete") %>" method="post" style="display: inline;"
                     onsubmit="return confirm('Are you sure you want to delete this message?');">
 
                     <% normalised_query_params.each do |key, param| %>
@@ -34,12 +34,12 @@
                         <td><%= message[:id] %></td>
                     </tr>
                     <tr>
-                        <th scope="row">Messageable Type</th>
-                        <td><%= message[:messageable_type] %></td>
-                    </tr>
-                    <tr>
-                        <th scope="row">Messageable Id</th>
-                        <td><%= message[:messageable_id] %></td>
+                        <th scope="row">Messageable</th>
+                        <td>
+                            <a href="<%= outboxer_path("/message/#{message[:id]}/messageable#{normalised_query_string}") %>" class="custom-link">
+                                <%= message[:messageable_type] %>::<%= message[:messageable_id] %>
+                            </a>
+                        </td>
                     </tr>
                     <tr>
                         <th scope="row">Status</th>
@@ -47,11 +47,11 @@
                     </tr>
                     <tr>
                         <th scope="row">Created At</th>
-                        <td><%= message[:created_at] %></td>
+                        <td><%= message[:created_at].in_time_zone(denormalised_query_params[:time_zone]) %></td>
                     </tr>
                     <tr>
                         <th scope="row">Updated At</th>
-                        <td><%= message[:updated_at] %></td>
+                        <td><%= message[:updated_at].in_time_zone(denormalised_query_params[:time_zone]) %></td>
                     </tr>
                     <tr>
                         <th scope="row">Updated By</th>

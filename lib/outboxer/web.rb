@@ -439,15 +439,51 @@ module Outboxer
         per_page: denormalised_query_params[:per_page],
         time_zone: denormalised_query_params[:time_zone])
 
+      normalised_query_string = normalise_query_string(
+        status: denormalised_query_params[:status],
+        sort: denormalised_query_params[:sort],
+        order: denormalised_query_params[:order],
+        page: denormalised_query_params[:page],
+        per_page: denormalised_query_params[:per_page],
+        time_zone: denormalised_query_params[:time_zone])
+
       messages_metrics = Messages.metrics
 
       message = Message.find_by_id(id: params[:id])
 
+      messageable_class = Object.const_get(message[:messageable_type])
+      messageable = messageable_class.find(message[:messageable_id])
+
       erb :message, locals: {
         denormalised_query_params: denormalised_query_params,
         normalised_query_params: normalised_query_params,
+        normalised_query_string: normalised_query_string,
         messages_metrics: messages_metrics,
-        message: message
+        message: message,
+        messageable: messageable
+      }
+    end
+
+    get '/message/:id/messageable' do
+      denormalised_query_params = denormalise_query_params(
+        status: params[:status],
+        sort: params[:sort],
+        order: params[:order],
+        page: params[:page],
+        per_page: params[:per_page],
+        time_zone: params[:time_zone])
+
+      message = Message.find_by_id(id: params[:id])
+      messages_metrics = Messages.metrics
+
+      messageable_class = Object.const_get(message[:messageable_type])
+      messageable = messageable_class.find(message[:messageable_id])
+
+      erb :messageable, locals: {
+        message: message,
+        messageable: messageable,
+        messages_metrics: messages_metrics,
+        denormalised_query_params: denormalised_query_params
       }
     end
 
