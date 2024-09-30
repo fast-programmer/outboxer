@@ -70,6 +70,13 @@
                         { name: 'Failed', key: 'failed' }
                     ] %>
 
+                    <li class="nav-item">
+                        <a class="nav-link <%= 'active' if denormalised_query_params[:status] == nil %>"
+                           href="<%= outboxer_path("/messages#{normalise_query_string(status: nil, time_zone: denormalised_query_params[:time_zone])}") %>">
+                            All (<%= messages_metrics[:all][:count][:current] %>)
+                        </a>
+                    </li>
+
                     <% statuses.each do |status| %>
                         <li class="nav-item">
                             <a class="nav-link <%= 'active' if denormalised_query_params[:status] == status[:key] %>"
@@ -81,7 +88,7 @@
                 </ul>
                 <form action="<%= outboxer_path("/update_time_zone") %>" method="post" class="d-flex align-items-center ms-auto flex-nowrap">
                     <% denormalised_query_params.each do |key, param| %>
-                        <% if key != :time_zone %>
+                        <% if (key != :time_zone) && ((key != :status) || (param != nil)) %>
                             <input type="hidden" name="<%= key %>" value="<%= param %>">
                         <% end %>
                     <% end %>
