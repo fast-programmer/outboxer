@@ -267,7 +267,7 @@ module Outboxer
     end
 
     def metrics(current_utc_time: Time.now.utc)
-      metrics = {}
+      metrics = { all: { count: { current: 0 } } }
 
       Models::Message::STATUSES.each do |status|
         metrics[status.to_sym] = { count: { current: 0 }, latency: 0, throughput: 0 }
@@ -302,6 +302,8 @@ module Outboxer
         end
 
         metrics[status][:throughput] = grouped_message.throughput
+
+        metrics[:all][:count][:current] += grouped_message.count
       end
 
       metrics[:published][:count][:total] =
