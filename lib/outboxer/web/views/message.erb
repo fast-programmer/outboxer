@@ -5,7 +5,7 @@
             <div class="card-header-buttons">
                 <!-- Requeue Form -->
                 <form action="<%= outboxer_path("/message/#{message[:id]}/requeue") %>" method="post" style="display: inline;">
-                    <% @normalised_query_params.each do |key, param| %>
+                    <% normalised_query_params.each do |key, param| %>
                         <input type="hidden" name="<%= key %>" value="<%= param %>">
                     <% end %>
                     <button type="submit" class="btn btn-sm btn-outline-secondary me-2" aria-label="Requeue"
@@ -17,7 +17,7 @@
                 <form action="<%= outboxer_path("/message/#{message[:id]}/delete") %>" method="post" style="display: inline;
                     onsubmit="return confirm('Are you sure you want to delete this message?');">
 
-                    <% @normalised_query_params.each do |key, param| %>
+                    <% normalised_query_params.each do |key, param| %>
                         <input type="hidden" name="<%= key %>" value="<%= param %>">
                     <% end %>
                     <button type="submit" class="btn btn-sm btn-outline-danger" aria-label="Delete">

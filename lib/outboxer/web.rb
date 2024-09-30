@@ -19,32 +19,6 @@ module Outboxer
     set :public_folder, File.expand_path('../web/public', __FILE__)
     set :show_exceptions, false
 
-    before do
-      @denormalised_query_params = denormalise_query_params(
-        status: params[:status],
-        sort: params[:sort],
-        order: params[:order],
-        page: params[:page],
-        per_page: params[:per_page],
-        time_zone: params[:time_zone])
-
-      @normalised_query_params = normalise_query_params(
-        status: @denormalised_query_params[:status],
-        sort: @denormalised_query_params[:sort],
-        order: @denormalised_query_params[:order],
-        page: @denormalised_query_params[:page],
-        per_page: @denormalised_query_params[:per_page],
-        time_zone: @denormalised_query_params[:time_zone])
-
-      @normalised_query_string = normalise_query_string(
-        status: @denormalised_query_params[:status],
-        sort: @denormalised_query_params[:sort],
-        order: @denormalised_query_params[:order],
-        page: @denormalised_query_params[:page],
-        per_page: @denormalised_query_params[:per_page],
-        time_zone: @denormalised_query_params[:time_zone])
-    end
-
     helpers do
       def outboxer_path(path)
         "#{request.script_name}#{path}"
@@ -61,35 +35,107 @@ module Outboxer
     end
 
     get '/' do
+      denormalised_query_params = denormalise_query_params(
+        status: params[:status],
+        sort: params[:sort],
+        order: params[:order],
+        page: params[:page],
+        per_page: params[:per_page],
+        time_zone: params[:time_zone])
+
+      normalised_query_params = normalise_query_params(
+        status: denormalised_query_params[:status],
+        sort: denormalised_query_params[:sort],
+        order: denormalised_query_params[:order],
+        page: denormalised_query_params[:page],
+        per_page: denormalised_query_params[:per_page],
+        time_zone: denormalised_query_params[:time_zone])
+
+      normalised_query_string = normalise_query_string(
+        status: denormalised_query_params[:status],
+        sort: denormalised_query_params[:sort],
+        order: denormalised_query_params[:order],
+        page: denormalised_query_params[:page],
+        per_page: denormalised_query_params[:per_page],
+        time_zone: denormalised_query_params[:time_zone])
+
       messages_metrics = Messages.metrics
 
-      erb :home, locals: { messages_metrics: messages_metrics }
+      erb :home, locals: {
+        messages_metrics: messages_metrics,
+        denormalised_query_params: denormalised_query_params,
+        normalised_query_params: normalised_query_params,
+        normalised_query_string: normalised_query_string
+      }
     end
 
     post '/update_time_zone' do
-      redirect to("/messages#{@normalised_query_string}")
+      denormalised_query_params = denormalise_query_params(
+        status: params[:status],
+        sort: params[:sort],
+        order: params[:order],
+        page: params[:page],
+        per_page: params[:per_page],
+        time_zone: params[:time_zone])
+
+      normalised_query_string = normalise_query_string(
+        status: denormalised_query_params[:status],
+        sort: denormalised_query_params[:sort],
+        order: denormalised_query_params[:order],
+        page: denormalised_query_params[:page],
+        per_page: denormalised_query_params[:per_page],
+        time_zone: denormalised_query_params[:time_zone])
+
+      redirect to("/messages#{normalised_query_string}")
     end
 
     get '/messages' do
+      denormalised_query_params = denormalise_query_params(
+        status: params[:status],
+        sort: params[:sort],
+        order: params[:order],
+        page: params[:page],
+        per_page: params[:per_page],
+        time_zone: params[:time_zone])
+
+      normalised_query_params = normalise_query_params(
+        status: denormalised_query_params[:status],
+        sort: denormalised_query_params[:sort],
+        order: denormalised_query_params[:order],
+        page: denormalised_query_params[:page],
+        per_page: denormalised_query_params[:per_page],
+        time_zone: denormalised_query_params[:time_zone])
+
+      normalised_query_string = normalise_query_string(
+        status: denormalised_query_params[:status],
+        sort: denormalised_query_params[:sort],
+        order: denormalised_query_params[:order],
+        page: denormalised_query_params[:page],
+        per_page: denormalised_query_params[:per_page],
+        time_zone: denormalised_query_params[:time_zone])
+
       messages_metrics = Messages.metrics
 
       paginated_messages = Messages.list(
-        status: @denormalised_query_params[:status],
-        sort: @denormalised_query_params[:sort],
-        order: @denormalised_query_params[:order],
-        page: @denormalised_query_params[:page]&.to_i,
-        per_page: @denormalised_query_params[:per_page]&.to_i,
-        time_zone: @denormalised_query_params[:time_zone])
+        status: denormalised_query_params[:status],
+        sort: denormalised_query_params[:sort],
+        order: denormalised_query_params[:order],
+        page: denormalised_query_params[:page]&.to_i,
+        per_page: denormalised_query_params[:per_page]&.to_i,
+        time_zone: denormalised_query_params[:time_zone])
 
       pagination = generate_pagination(
         current_page: paginated_messages[:current_page],
         total_pages: paginated_messages[:total_pages],
-        params: @denormalised_query_params)
+        denormalised_query_params: denormalised_query_params)
 
       erb :messages, locals: {
         messages_metrics: messages_metrics,
         messages: paginated_messages[:messages],
-        headers: generate_headers(params: @denormalised_query_params),
+        denormalised_query_params: denormalised_query_params,
+        normalised_query_params: normalised_query_params,
+        normalised_query_string: normalised_query_string,
+        headers: generate_headers(denormalised_query_params: denormalised_query_params),
         pagination: pagination
       }
     end
@@ -103,7 +149,7 @@ module Outboxer
       updated_by: 'Updated By',
     }
 
-    def generate_pagination(current_page:, total_pages:, params:)
+    def generate_pagination(current_page:, total_pages:, denormalised_query_params:)
       previous_page = nil
       pages = []
       next_page = nil
@@ -112,12 +158,12 @@ module Outboxer
         previous_page = {
           text: 'Previous',
           href: outboxer_path("/messages" + normalise_query_string(
-            status: @denormalised_query_params[:status],
-            sort: @denormalised_query_params[:sort],
-            order: @denormalised_query_params[:order],
+            status: denormalised_query_params[:status],
+            sort: denormalised_query_params[:sort],
+            order: denormalised_query_params[:order],
             page: current_page - 1,
-            per_page: @denormalised_query_params[:per_page],
-            time_zone: @denormalised_query_params[:time_zone]))
+            per_page: denormalised_query_params[:per_page],
+            time_zone: denormalised_query_params[:time_zone]))
         }
       end
 
@@ -125,12 +171,12 @@ module Outboxer
         {
           text: page,
           href: outboxer_path("/messages" + normalise_query_string(
-            status: @denormalised_query_params[:status],
-            sort: @denormalised_query_params[:sort],
-            order: @denormalised_query_params[:order],
+            status: denormalised_query_params[:status],
+            sort: denormalised_query_params[:sort],
+            order: denormalised_query_params[:order],
             page: page,
-            per_page: @denormalised_query_params[:per_page],
-            time_zone: @denormalised_query_params[:time_zone])),
+            per_page: denormalised_query_params[:per_page],
+            time_zone: denormalised_query_params[:time_zone])),
           is_active: current_page == page
         }
       end
@@ -139,32 +185,32 @@ module Outboxer
         next_page = {
           text: 'Next',
           href: outboxer_path("/messages" + normalise_query_string(
-            status: @denormalised_query_params[:status],
-            sort: @denormalised_query_params[:sort],
-            order: @denormalised_query_params[:order],
+            status: denormalised_query_params[:status],
+            sort: denormalised_query_params[:sort],
+            order: denormalised_query_params[:order],
             page: current_page + 1,
-            per_page: @denormalised_query_params[:per_page],
-            time_zone: @denormalised_query_params[:time_zone]))
+            per_page: denormalised_query_params[:per_page],
+            time_zone: denormalised_query_params[:time_zone]))
         }
       end
 
       { previous_page: previous_page, pages: pages, next_page: next_page }
     end
 
-    def generate_headers(params:)
+    def generate_headers(denormalised_query_params:)
       HEADERS.map do |header_key, header_text|
-        if @denormalised_query_params[:sort] == header_key
-          if @denormalised_query_params[:order] == 'asc'
+        if denormalised_query_params[:sort] == header_key
+          if denormalised_query_params[:order] == :asc
             {
               text: header_text,
               icon_class: 'bi bi-arrow-up',
               href: outboxer_path('/messages' + normalise_query_string(
-                status: @denormalised_query_params[:status],
+                status: denormalised_query_params[:status],
                 order: :desc,
                 sort: header_key,
                 page: 1,
-                per_page: @denormalised_query_params[:per_page],
-                time_zone: @denormalised_query_params[:time_zone]
+                per_page: denormalised_query_params[:per_page],
+                time_zone: denormalised_query_params[:time_zone]
               ))
             }
           else
@@ -172,12 +218,12 @@ module Outboxer
               text: header_text,
               icon_class: 'bi bi-arrow-down',
               href: outboxer_path('/messages' + normalise_query_string(
-                status: @denormalised_query_params[:status],
+                status: denormalised_query_params[:status],
                 order: :asc,
                 sort: header_key,
                 page: 1,
-                per_page: @denormalised_query_params[:per_page],
-                time_zone: @denormalised_query_params[:time_zone]
+                per_page: denormalised_query_params[:per_page],
+                time_zone: denormalised_query_params[:time_zone]
               ))
             }
           end
@@ -186,12 +232,12 @@ module Outboxer
             text: header_text,
             icon_class: '',
             href: outboxer_path('/messages' + normalise_query_string(
-              status: @denormalised_query_params[:status],
+              status: denormalised_query_params[:status],
               order: :asc,
               sort: header_key,
               page: 1,
-              per_page: @denormalised_query_params[:per_page],
-              time_zone: @denormalised_query_params[:time_zone]
+              per_page: denormalised_query_params[:per_page],
+              time_zone: denormalised_query_params[:time_zone]
             ))
           }
         end
@@ -248,6 +294,22 @@ module Outboxer
     end
 
     post '/messages/update' do
+      denormalised_query_params = denormalise_query_params(
+        status: params[:status],
+        sort: params[:sort],
+        order: params[:order],
+        page: params[:page],
+        per_page: params[:per_page],
+        time_zone: params[:time_zone])
+
+      normalised_query_string = normalise_query_string(
+        status: denormalised_query_params[:status],
+        sort: denormalised_query_params[:sort],
+        order: denormalised_query_params[:order],
+        page: denormalised_query_params[:page],
+        per_page: denormalised_query_params[:per_page],
+        time_zone: denormalised_query_params[:time_zone])
+
       ids = params[:selected_ids].map(&:to_i)
 
       result = case params[:action]
@@ -285,55 +347,156 @@ module Outboxer
         raise "Unknown action: #{params[:action]}"
       end
 
-      redirect to("/messages#{@normalised_query_string}")
+      redirect to("/messages#{normalised_query_string}")
     end
 
     post '/messages/requeue_all' do
+      denormalised_query_params = denormalise_query_params(
+        status: params[:status],
+        sort: params[:sort],
+        order: params[:order],
+        page: params[:page],
+        per_page: params[:per_page],
+        time_zone: params[:time_zone])
+
+      normalised_query_string = normalise_query_string(
+        status: denormalised_query_params[:status],
+        sort: denormalised_query_params[:sort],
+        order: denormalised_query_params[:order],
+        page: denormalised_query_params[:page],
+        per_page: denormalised_query_params[:per_page],
+        time_zone: denormalised_query_params[:time_zone])
+
       result = Messages.requeue_all(
         status: denormalised_query_params[:status], older_than: Time.now.utc)
 
       message_text = result[:requeued_count] == 1 ? 'message' : 'messages'
       flash[:primary] = "#{result[:requeued_count]} #{message_text} have been queued"
 
-      redirect to("/messages#{@normalised_query_string}")
+      redirect to("/messages#{normalised_query_string}")
     end
 
     post '/messages/delete_all' do
+      denormalised_query_params = denormalise_query_params(
+        status: params[:status],
+        sort: params[:sort],
+        order: params[:order],
+        page: params[:page],
+        per_page: params[:per_page],
+        time_zone: params[:time_zone])
+
+      normalised_query_string = normalise_query_string(
+        status: denormalised_query_params[:status],
+        sort: denormalised_query_params[:sort],
+        order: denormalised_query_params[:order],
+        page: denormalised_query_params[:page],
+        per_page: denormalised_query_params[:per_page],
+        time_zone: denormalised_query_params[:time_zone])
+
       result = Messages.delete_all(
-        status: @denormalised_query_params[:status], older_than: Time.now.utc)
+        status: denormalised_query_params[:status], older_than: Time.now.utc)
 
       message_text = result[:deleted_count] == 1 ? 'message' : 'messages'
       flash[:primary] = "#{result[:deleted_count]} #{message_text} have been deleted"
 
-      redirect to("/messages#{@denormalised_query_string}")
+      redirect to("/messages#{normalised_query_string}")
     end
 
     post '/messages/update_per_page' do
-      redirect to("/messages#{@normalised_query_string}")
+      denormalised_query_params = denormalise_query_params(
+        status: params[:status],
+        sort: params[:sort],
+        order: params[:order],
+        page: params[:page],
+        per_page: params[:per_page],
+        time_zone: params[:time_zone])
+
+      normalised_query_string = normalise_query_string(
+        status: denormalised_query_params[:status],
+        sort: denormalised_query_params[:sort],
+        order: denormalised_query_params[:order],
+        page: denormalised_query_params[:page],
+        per_page: denormalised_query_params[:per_page],
+        time_zone: denormalised_query_params[:time_zone])
+
+      redirect to("/messages#{normalised_query_string}")
     end
 
     get '/message/:id' do
+      denormalised_query_params = denormalise_query_params(
+        status: params[:status],
+        sort: params[:sort],
+        order: params[:order],
+        page: params[:page],
+        per_page: params[:per_page],
+        time_zone: params[:time_zone])
+
+      normalised_query_params = normalise_query_params(
+        status: denormalised_query_params[:status],
+        sort: denormalised_query_params[:sort],
+        order: denormalised_query_params[:order],
+        page: denormalised_query_params[:page],
+        per_page: denormalised_query_params[:per_page],
+        time_zone: denormalised_query_params[:time_zone])
+
       messages_metrics = Messages.metrics
 
       message = Message.find_by_id(id: params[:id])
 
-      erb :message, locals: { messages_metrics: messages_metrics,  message: message }
+      erb :message, locals: {
+        denormalised_query_params: denormalised_query_params,
+        normalised_query_params: normalised_query_params,
+        messages_metrics: messages_metrics,
+        message: message
+      }
     end
 
     post '/message/:id/requeue' do
+      denormalised_query_params = denormalise_query_params(
+        status: params[:status],
+        sort: params[:sort],
+        order: params[:order],
+        page: params[:page],
+        per_page: params[:per_page],
+        time_zone: params[:time_zone])
+
+      normalised_query_string = normalise_query_string(
+        status: denormalised_query_params[:status],
+        sort: denormalised_query_params[:sort],
+        order: denormalised_query_params[:order],
+        page: denormalised_query_params[:page],
+        per_page: denormalised_query_params[:per_page],
+        time_zone: denormalised_query_params[:time_zone])
+
       Message.requeue(id: params[:id])
 
       flash[:primary] = "Message #{params[:id]} was queued"
 
-      redirect to("/messages#{@normalised_query_string}")
+      redirect to("/messages#{normalised_query_string}")
     end
 
     post '/message/:id/delete' do
+      denormalised_query_params = denormalise_query_params(
+        status: params[:status],
+        sort: params[:sort],
+        order: params[:order],
+        page: params[:page],
+        per_page: params[:per_page],
+        time_zone: params[:time_zone])
+
+      normalised_query_string = normalise_query_string(
+        status: denormalised_query_params[:status],
+        sort: denormalised_query_params[:sort],
+        order: denormalised_query_params[:order],
+        page: denormalised_query_params[:page],
+        per_page: denormalised_query_params[:per_page],
+        time_zone: denormalised_query_params[:time_zone])
+
       Message.delete(id: params[:id])
 
       flash[:primary] = "Message #{params[:id]} was deleted"
 
-      redirect to("/messages#{@normalised_query_string}")
+      redirect to("/messages#{normalised_query_string}")
     end
   end
 end
