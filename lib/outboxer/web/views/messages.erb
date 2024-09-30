@@ -120,7 +120,11 @@
                                         </a>
                                     </td>
                                     <td><%= message[:status] %></td>
-                                    <td><%= message[:messageable_type] %>::<%= message[:messageable_id] %></td>
+                                    <td>
+                                        <a href="<%= outboxer_path("/message/#{message[:id]}/messageable#{normalised_query_string}") %>" class="custom-link">
+                                            <%= message[:messageable_type] %>::<%= message[:messageable_id] %>
+                                        </a>
+                                    </td>
                                     <td>
                                         <%= message[:created_at] %>
                                     </td>

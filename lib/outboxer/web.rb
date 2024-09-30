@@ -443,11 +443,38 @@ module Outboxer
 
       message = Message.find_by_id(id: params[:id])
 
+      messageable_class = Object.const_get(message[:messageable_type])
+      messageable = messageable_class.find(message[:messageable_id])
+
       erb :message, locals: {
         denormalised_query_params: denormalised_query_params,
         normalised_query_params: normalised_query_params,
         messages_metrics: messages_metrics,
-        message: message
+        message: message,
+        messageable: messageable
+      }
+    end
+
+    get '/message/:id/messageable' do
+      denormalised_query_params = denormalise_query_params(
+        status: params[:status],
+        sort: params[:sort],
+        order: params[:order],
+        page: params[:page],
+        per_page: params[:per_page],
+        time_zone: params[:time_zone])
+
+      message = Message.find_by_id(id: params[:id])
+      messages_metrics = Messages.metrics
+
+      messageable_class = Object.const_get(message[:messageable_type])
+      messageable = messageable_class.find(message[:messageable_id])
+
+      erb :messageable, locals: {
+        message: message,
+        messageable: messageable,
+        messages_metrics: messages_metrics,
+        denormalised_query_params: denormalised_query_params
       }
     end
 
@@ -497,29 +524,6 @@ module Outboxer
       flash[:primary] = "Message #{params[:id]} was deleted"
 
       redirect to("/messages#{normalised_query_string}")
-    end
-
-    get '/message/:id/messageable' do
-      denormalised_query_params = denormalise_query_params(
-        status: params[:status],
-        sort: params[:sort],
-        order: params[:order],
-        page: params[:page],
-        per_page: params[:per_page],
-        time_zone: params[:time_zone])
-
-      message = Message.find_by_id(id: params[:id])
-      messages_metrics = Messages.metrics
-
-      messageable_class = Object.const_get("#{message[:messageable_type]}")
-      messageable = messageable_class.find(message[:messageable_id])
-
-      erb :messageable, locals: {
-        message: message,
-        messageable: messageable,
-        messages_metrics: messages_metrics,
-        denormalised_query_params: denormalised_query_params
-      }
     end
   end
 end
