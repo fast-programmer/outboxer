@@ -499,32 +499,27 @@ module Outboxer
       redirect to("/messages#{normalised_query_string}")
     end
 
-    get '/messageable/*/id' do
-      begin
-        messageable_type = params[:splat]
-          .first.split('/').map(&:singularize).map(&:camelize).join('::')
+    get '/message/:id/messageable' do
+      denormalised_query_params = denormalise_query_params(
+        status: params[:status],
+        sort: params[:sort],
+        order: params[:order],
+        page: params[:page],
+        per_page: params[:per_page],
+        time_zone: params[:time_zone])
 
-        messageable_class = Object.const_get("::#{messageable_type}")
+      message = Message.find_by_id(id: params[:id])
+      messages_metrics = Messages.metrics
 
-        if messageable_class < ActiveRecord::Base
-          messageable = messageable_class.find(params[:id])
+      messageable_class = Object.const_get("#{message[:messageable_type]}")
+      messageable = messageable_class.find(message[:messageable_id])
 
-          erb :messageable, locals: {
-            messageable: messageable }
-        else
-          status 400
-
-          erb :error, locals: { error: "Invalid model" }
-        end
-      rescue NameError
-        status 400
-
-        erb :error, locals: { error: "Model not found" }
-      rescue ActiveRecord::RecordNotFound
-        status 404
-
-        erb :error, locals: { error: "Record not found" }
-      end
+      erb :messageable, locals: {
+        message: message,
+        messageable: messageable,
+        messages_metrics: messages_metrics,
+        denormalised_query_params: denormalised_query_params
+      }
     end
   end
 end
