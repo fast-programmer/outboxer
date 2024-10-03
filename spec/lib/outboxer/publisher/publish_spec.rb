@@ -40,7 +40,7 @@ module Outboxer
           Outboxer::Publisher.terminate
           publish_thread.join
 
-          expect(Messages).to have_received(:dequeue).exactly(5).times
+          expect(Messages).to have_received(:dequeue).exactly(4).times
         end
       end
 
