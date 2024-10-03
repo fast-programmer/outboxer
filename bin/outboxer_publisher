@@ -11,6 +11,7 @@ options = {
   batch_size: ENV.fetch('OUTBOXER_BATCH_SIZE', 200).to_i,
   poll_interval: ENV.fetch('OUTBOXER_POLL_INTERVAL', 5),
   tick_interval: ENV.fetch('OUTBOXER_TICK_INTERVAL', 0.1),
+  concurrency: ENV.fetch('OUTBOXER_CONCURRENCY', 1).to_i,
   log_level: ENV.fetch('OUTBOXER_LOG_LEVEL', 'info').downcase,
   sidekiq_redis_url: ENV.fetch('SIDEKIQ_REDIS_URL', 'redis://localhost:6379/0'),
 }
@@ -21,7 +22,9 @@ end
 
 logger = Sidekiq.logger
 logger.level = Logger.const_get(options[:log_level].upcase)
-db_config = Outboxer::Database.config(environment: options[:environment], pool: 1)
+
+db_config = Outboxer::Database.config(
+  environment: options[:environment], pool: options[:concurrency] + 1)
 
 Outboxer::Database.connect(config: db_config, logger: logger)
 
@@ -29,6 +32,7 @@ Outboxer::Publisher.publish(
   batch_size: options[:batch_size],
   poll_interval: options[:poll_interval],
   tick_interval: options[:tick_interval],
+  concurrency: options[:concurrency],
   logger: logger
 ) do |message|
   case message[:messageable_type]

@@ -38,7 +38,7 @@ module Outboxer
     # :nocov:
 
     def publish(
-      batch_size: 200, poll_interval: 5, tick_interval: 0.1,
+      batch_size: 200, poll_interval: 5, tick_interval: 0.1, concurrency: 1,
       logger: Logger.new($stdout, level: Logger::INFO),
       time: Time, process: ::Process, kernel: Kernel,
       &block
@@ -46,9 +46,22 @@ module Outboxer
       logger.info "Outboxer v#{Outboxer::VERSION} publishing in ruby #{RUBY_VERSION} "\
         "(#{RUBY_RELEASE_DATE} revision #{RUBY_REVISION[0, 10]}) [#{RUBY_PLATFORM}]"
 
-      logger.info "Outboxer dequeueing "\
-                  "{ batch_size: #{batch_size}, poll_interval: #{poll_interval} } "
+      logger.info "Outboxer config "\
+        "{ batch_size: #{batch_size}, poll_interval: #{poll_interval}, concurrency: #{concurrency} }"
+
       @status = Status::PUBLISHING
+
+      queue = Queue.new
+
+      threads = concurrency.times.map do
+        Thread.new do
+          while (message = queue.pop)
+            break if message.nil?
+
+            publish_message(dequeued_message: message, logger: logger, time: time, kernel: kernel, &block)
+          end
+        end
+      end
 
       while @status != Status::TERMINATING
         case @status
@@ -60,10 +73,15 @@ module Outboxer
 
             if dequeued_messages.count > 0
               dequeued_messages.each do |message|
-                publish_message(
-                  dequeued_message: message,
-                  logger: logger, time: time, kernel: kernel,
-                  &block)
+                while queue.size >= batch_size
+                  Publisher.sleep(
+                    tick_interval,
+                    start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
+                    tick_interval: tick_interval,
+                    process: process, kernel: kernel)
+                end
+
+                queue.push(message)
               end
 
               publishing_end_time = process.clock_gettime(process::CLOCK_MONOTONIC)
@@ -99,6 +117,8 @@ module Outboxer
         end
       end
 
+      concurrency.times { queue.push(nil) }
+      threads.each(&:join)
       logger.info "Outboxer stopped dequeueing messages"
     end
 
