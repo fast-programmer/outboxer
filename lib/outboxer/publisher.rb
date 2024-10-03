@@ -67,34 +67,23 @@ module Outboxer
         case @status
         when Status::PUBLISHING
           begin
-            publishing_start_time = process.clock_gettime(process::CLOCK_MONOTONIC)
+            dequeue_limit = batch_size - queue.size
 
-            dequeued_messages = Messages.dequeue(limit: batch_size)
+            if dequeue_limit > 0
+              dequeued_messages = Messages.dequeue(limit: dequeue_limit)
 
-            if dequeued_messages.count > 0
-              dequeued_messages.each do |message|
-                while queue.size >= batch_size
-                  Publisher.sleep(
-                    tick_interval,
-                    start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
-                    tick_interval: tick_interval,
-                    process: process, kernel: kernel)
-                end
-
-                queue.push(message)
+              if dequeued_messages.count > 0
+                dequeued_messages.each { |message| queue.push(message) }
+              else
+                Publisher.sleep(
+                  poll_interval,
+                  start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
+                  tick_interval: tick_interval,
+                  process: process, kernel: kernel)
               end
-
-              publishing_end_time = process.clock_gettime(process::CLOCK_MONOTONIC)
-              publishing_time = ((publishing_end_time - publishing_start_time))
-
-              logger.debug "Outboxer published #{dequeued_messages.count} messages in "\
-                "#{(publishing_time * 1000).round(2)}ms " \
-                "(#{((publishing_time / dequeued_messages.count) * 1000).round(2)}ms per message)"
-            end
-
-            if dequeued_messages.count < batch_size
+            else
               Publisher.sleep(
-                poll_interval,
+                tick_interval,
                 start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
                 tick_interval: tick_interval,
                 process: process, kernel: kernel)
@@ -117,9 +106,10 @@ module Outboxer
         end
       end
 
+      logger.info "Outboxer terminating"
       concurrency.times { queue.push(nil) }
       threads.each(&:join)
-      logger.info "Outboxer stopped dequeueing messages"
+      logger.info "Outboxer terminated"
     end
 
     def publish_message(dequeued_message:, logger:, time:, kernel:, &block)
