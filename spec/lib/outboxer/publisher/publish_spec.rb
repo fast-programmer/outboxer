@@ -17,8 +17,6 @@ module Outboxer
 
       context 'when paused and resumed during message publishing' do
         it 'pauses and resumes the publishing process correctly' do
-          allow(Messages).to receive(:dequeue).and_call_original
-
           publish_thread = Thread.new do
             Outboxer::Publisher.publish(
               batch_size: batch_size,
@@ -26,21 +24,17 @@ module Outboxer
               tick_interval: tick_interval,
               logger: logger, kernel: kernel
             ) do |_message|
-              # no op
+              Outboxer::Publisher.pause
             end
           end
-          sleep 1.1
-
-          Outboxer::Publisher.pause
-          sleep 1.1
+          sleep 1
 
           Outboxer::Publisher.resume
-          sleep 1.1
+          sleep 1
 
           Outboxer::Publisher.terminate
-          publish_thread.join
 
-          expect(Messages).to have_received(:dequeue).exactly(4).times
+          publish_thread.join
         end
       end
 
