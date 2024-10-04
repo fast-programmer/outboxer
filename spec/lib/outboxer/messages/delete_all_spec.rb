@@ -3,17 +3,17 @@ require 'spec_helper'
 module Outboxer
   RSpec.describe Messages do
     describe '.delete_all' do
-      let!(:historic_published_count_setting) do
+      let!(:published_count_historic_setting) do
         Models::Setting.find_by!(name: 'messages.published.count.historic')
       end
 
-      let!(:historic_failed_count_setting) do
+      let!(:failed_count_historic_setting) do
         Models::Setting.find_by!(name: 'messages.failed.count.historic')
       end
 
       before do
-        historic_published_count_setting.update!(value: '10')
-        historic_failed_count_setting.update!(value: '20')
+        published_count_historic_setting.update!(value: '10')
+        failed_count_historic_setting.update!(value: '20')
       end
 
       let!(:message_1) { create(:outboxer_message, :queued) }
@@ -48,9 +48,9 @@ module Outboxer
         end
 
         it 'adds published messages count to settings value' do
-          historic_failed_count_setting.reload
+          failed_count_historic_setting.reload
 
-          expect(historic_failed_count_setting.value).to eq('22')
+          expect(failed_count_historic_setting.value).to eq('22')
         end
       end
 
@@ -88,8 +88,8 @@ module Outboxer
           end
 
           it 'adds published messages count to settings value' do
-            historic_published_count_setting.reload
-            expect(historic_published_count_setting.value).to eq('12')
+            published_count_historic_setting.reload
+            expect(published_count_historic_setting.value).to eq('12')
           end
         end
 
@@ -133,9 +133,9 @@ module Outboxer
         end
 
         it 'adds published messages count to settings value' do
-          historic_published_count_setting.reload
+          published_count_historic_setting.reload
 
-          expect(historic_published_count_setting.value).to eq('12')
+          expect(published_count_historic_setting.value).to eq('12')
         end
       end
 
@@ -157,13 +157,13 @@ module Outboxer
         end
 
         it 'adds published messages count to settings value' do
-          historic_published_count_setting.reload
-          expect(historic_published_count_setting.value).to eq('12')
+          published_count_historic_setting.reload
+          expect(published_count_historic_setting.value).to eq('12')
         end
 
         it 'adds failed messages count to settings value' do
-          historic_failed_count_setting.reload
-          expect(historic_failed_count_setting.value).to eq('22')
+          failed_count_historic_setting.reload
+          expect(failed_count_historic_setting.value).to eq('22')
         end
       end
     end
