@@ -38,7 +38,8 @@ module Outboxer
     # :nocov:
 
     def publish(
-      batch_size: 200, poll_interval: 5, tick_interval: 0.1, concurrency: 1,
+      batch_size: 100, concurrency: 1,
+      poll_interval: 5, tick_interval: 0.1,
       logger: Logger.new($stdout, level: Logger::INFO),
       time: Time, process: ::Process, kernel: Kernel,
       &block
