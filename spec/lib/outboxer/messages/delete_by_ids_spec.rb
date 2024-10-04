@@ -3,8 +3,18 @@ require 'spec_helper'
 module Outboxer
   RSpec.describe Messages do
     describe '.delete_by_ids' do
-      let!(:setting) { Models::Setting.find_by!(name: 'messages.published.count.historic') }
-      before { setting.update!(value: '20') }
+      let!(:published_count_historic_setting) do
+        Models::Setting.find_by!(name: 'messages.published.count.historic')
+      end
+
+      let!(:failed_count_historic_setting) do
+        Models::Setting.find_by!(name: 'messages.failed.count.historic')
+      end
+
+      before do
+        published_count_historic_setting.update!(value: '10')
+        failed_count_historic_setting.update!(value: '20')
+      end
 
       let!(:message_1) { create(:outboxer_message, :queued) }
       let!(:exception_1) { create(:outboxer_exception, message: message_1) }
@@ -43,9 +53,15 @@ module Outboxer
         end
 
         it 'adds published messages count to settings value' do
-          setting.reload
+          published_count_historic_setting.reload
 
-          expect(setting.value).to eq('21')
+          expect(published_count_historic_setting.value).to eq('11')
+        end
+
+        it 'adds failed messages count to settings value' do
+          failed_count_historic_setting.reload
+
+          expect(failed_count_historic_setting.value).to eq('21')
         end
 
         it 'returns correct result' do
@@ -64,9 +80,9 @@ module Outboxer
         end
 
         it 'does not add published messages count to settings value' do
-          setting.reload
+          published_count_historic_setting.reload
 
-          expect(setting.value).to eq('20')
+          expect(published_count_historic_setting.value).to eq('10')
         end
 
         it 'returns correct result' do
