@@ -48,7 +48,8 @@ module Outboxer
         "(#{RUBY_RELEASE_DATE} revision #{RUBY_REVISION[0, 10]}) [#{RUBY_PLATFORM}]"
 
       logger.info "Outboxer config "\
-        "{ batch_size: #{batch_size}, poll_interval: #{poll_interval}, concurrency: #{concurrency} }"
+        "{ batch_size: #{batch_size}, concurrency: #{concurrency},"\
+        " poll_interval: #{poll_interval}, tick_interval: #{tick_interval} }"
 
       @status = Status::PUBLISHING
 
