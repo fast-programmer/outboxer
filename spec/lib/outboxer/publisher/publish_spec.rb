@@ -27,7 +27,7 @@ module Outboxer
               Outboxer::Publisher.pause
             end
           end
-          sleep 1
+          sleep 2
 
           Outboxer::Publisher.resume
           sleep 1
