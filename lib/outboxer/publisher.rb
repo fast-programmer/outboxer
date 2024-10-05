@@ -39,9 +39,9 @@ module Outboxer
 
     def create_monitoring_thread(concurrency:, monitoring_interval:, tick_interval:, logger:,
                                  time:, socket:, process:, kernel:)
-      publisher_id = nil
-
       Thread.new do
+        publisher_id = nil
+
         while @status != Status::TERMINATING
           current_time = time.now
           name = "#{socket.gethostname}:#{process.pid}"
