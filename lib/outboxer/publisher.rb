@@ -38,11 +38,12 @@ module Outboxer
     # :nocov:
 
     def create_monitoring_thread(monitoring_interval:, tick_interval:, logger:,
-                                 socket:, process:, kernel:)
+                                 time:, socket:, process:, kernel:)
       publisher_id = nil
 
       Thread.new do
         while @status != Status::TERMINATING
+          current_time = time.now
           name = "#{socket.gethostname}:#{process.pid}"
 
           ActiveRecord::Base.connection_pool.with_connection do
@@ -58,7 +59,9 @@ module Outboxer
                 end_rtt = process.clock_gettime(process::CLOCK_MONOTONIC)
                 rtt = end_rtt - start_rtt
 
-                publisher = Models::Publisher.create!(name: name, info: {})
+                publisher = Models::Publisher.create!(
+                  name: name, created_at: current_time, updated_at: current_time, info: {})
+
                 publisher_id = publisher.id
               end
 
@@ -68,12 +71,15 @@ module Outboxer
                 .count
 
               publisher.update!(
+                updated_at: current_time,
                 info: {
                   status: @status,
                   cpu_usage: `ps -p #{process.pid} -o %cpu`.split("\n").last.to_f,
                   rss: `ps -p #{process.pid} -o rss`.split("\n").last.to_i,
                   throughput: throughput,
                   rtt: rtt })
+
+              # created, last updated, latency: 1 second ago
             end
           end
 
@@ -115,7 +121,7 @@ module Outboxer
 
       monitoring_thread = create_monitoring_thread(
         monitoring_interval: monitoring_interval, tick_interval: tick_interval, logger: logger,
-        socket: socket, process: process, kernel: kernel)
+        time: time, socket: socket, process: process, kernel: kernel)
 
       queue = Queue.new
 

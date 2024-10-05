@@ -49,8 +49,10 @@
                     <thead>
                         <tr>
                             <th scope="col">Name</th>
+                            <th scope="col">Started</th>
+                            <th scope="col">Updated</th>
                             <th scope="col">Status</th>
-                            <th scope="col">Throughput (/s)</th> <!-- New Throughput column -->
+                            <th scope="col">Throughput (/s)</th>
                             <th scope="col">CPU Usage (%)</th>
                             <th scope="col">Memory Usage (RSS)</th>
                             <th scope="col">RTT (ms)</th>
@@ -60,11 +62,13 @@
                         <% publishers.each do |publisher| %>
                             <tr>
                                 <td><%= publisher.name %></td>
+                                <td><%= time_ago_in_words(publisher.created_at) %></td>
+                                <td><%= time_ago_in_words(publisher.updated_at) %></td>
                                 <td class="text-capitalize"><%= publisher.info['status'] %></td>
-                                <td><%= publisher.info['throughput'] || 0 %></td> <!-- Throughput value -->
+                                <td><%= publisher.info['throughput'] || 0 %></td>
                                 <td><%= publisher.info['cpu_usage'] %></td>
-                                <td><%= human_readable_size(publisher.info['rss']) %></td> <!-- RSS in human-readable format -->
-                                <td><%= (publisher.info['rtt'] * 1000).round(2) %> ms</td> <!-- RTT in milliseconds -->
+                                <td><%= human_readable_size(publisher.info['rss']) %></td>
+                                <td><%= (publisher.info['rtt'] * 1000).round(2) %> ms</td>
                             </tr>
                         <% end %>
                     </tbody>
