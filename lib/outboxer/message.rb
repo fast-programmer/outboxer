@@ -144,13 +144,10 @@ module Outboxer
           message.exceptions.delete_all
           message.delete
 
-          if message.status == Status::PUBLISHED
-            setting = Models::Setting
-              .lock('FOR UPDATE')
-              .find_by!(name: 'messages.published.count.historic')
+          setting = Models::Setting.lock('FOR UPDATE').find_by(
+            name: "messages.#{message.status}.count.historic")
 
-            setting.update!(value: setting.value.to_i + 1).to_s
-          end
+          setting.update!(value: setting.value.to_i + 1).to_s if !setting.nil?
 
           { id: id }
         end

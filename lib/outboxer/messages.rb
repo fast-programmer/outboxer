@@ -207,16 +207,14 @@ module Outboxer
 
             deleted_count_batch = Models::Message.where(id: message_ids).delete_all
 
-            published_messages = messages.select do |message|
-              message[:status] == Message::Status::PUBLISHED
-            end
+            [Message::Status::PUBLISHED, Message::Status::FAILED].each do |status|
+              current_messages = messages.select { |message| message[:status] == status }
 
-            if published_messages.any?
-              setting = Models::Setting
-                .lock('FOR UPDATE')
-                .find_by!(name: 'messages.published.count.historic')
-
-              setting.update!(value: setting.value.to_i + published_messages.count)
+              if current_messages.count > 0
+                setting_name = "messages.#{status}.count.historic"
+                setting = Models::Setting.lock('FOR UPDATE').find_by!(name: setting_name)
+                setting.update!(value: setting.value.to_i + current_messages.count).to_s
+              end
             end
           end
         end
@@ -249,16 +247,14 @@ module Outboxer
 
           deleted_count = Models::Message.where(id: message_ids).delete_all
 
-          published_messages = messages.select do |message|
-            message[:status] == Message::Status::PUBLISHED
-          end
+          [Message::Status::PUBLISHED, Message::Status::FAILED].each do |status|
+            current_messages = messages.select { |message| message[:status] == status }
 
-          if published_messages.any?
-            setting = Models::Setting
-              .lock('FOR UPDATE')
-              .find_by!(name: 'messages.published.count.historic')
-
-            setting.update!(value: (setting.value.to_i + published_messages.count).to_s)
+            if current_messages.count > 0
+              setting_name = "messages.#{status}.count.historic"
+              setting = Models::Setting.lock('FOR UPDATE').find_by!(name: setting_name)
+              setting.update!(value: setting.value.to_i + current_messages.count).to_s
+            end
           end
 
           { deleted_count: deleted_count, not_deleted_ids: ids - message_ids }
@@ -288,6 +284,9 @@ module Outboxer
 
         metrics[:published][:count][:historic] = Models::Setting
           .find_by!(name: 'messages.published.count.historic').value.to_i
+
+        metrics[:failed][:count][:historic] = Models::Setting
+          .find_by!(name: 'messages.failed.count.historic').value.to_i
       end
 
       grouped_messages.each do |grouped_message|
@@ -308,6 +307,9 @@ module Outboxer
 
       metrics[:published][:count][:total] =
         metrics[:published][:count][:historic] + metrics[:published][:count][:current]
+
+      metrics[:failed][:count][:total] =
+        metrics[:failed][:count][:historic] + metrics[:failed][:count][:current]
 
       metrics
     end
