@@ -7,4 +7,3 @@ module Outboxer
     end
   end
 end
-

@@ -35,8 +35,42 @@
                 </table>
             </div>
         </div>
-        <div class="card-footer">
-        </div>
     </div>
 </div>
 
+<div class="container mt-4">
+    <div class="card mt-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="mb-0">Publishers</h3>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table" style="table-layout: fixed;">
+                    <thead>
+                        <tr>
+                            <th scope="col">Name</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Throughput (/s)</th> <!-- New Throughput column -->
+                            <th scope="col">CPU Usage (%)</th>
+                            <th scope="col">Memory Usage (RSS)</th>
+                            <th scope="col">RTT (ms)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% publishers.each do |publisher| %>
+                            <tr>
+                                <td><%= publisher.name %></td>
+                                <td class="text-capitalize"><%= publisher.info['status'] %></td>
+                                <td><%= publisher.info['throughput'] || 0 %></td> <!-- Throughput value -->
+                                <td><%= publisher.info['cpu_usage'] %></td>
+                                <td><%= human_readable_size(publisher.info['rss']) %></td> <!-- RSS in human-readable format -->
+                                <td><%= (publisher.info['rtt'] * 1000).round(2) %> ms</td> <!-- RTT in milliseconds -->
+                            </tr>
+                        <% end %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer"></div>
+    </div>
+</div>

@@ -23,6 +23,19 @@ module Outboxer
       def outboxer_path(path)
         "#{request.script_name}#{path}"
       end
+
+      def human_readable_size(kilobytes)
+        units = ['KB', 'MB', 'GB', 'TB']
+        size = kilobytes.to_f
+        unit = units.shift
+
+        while size > 1024 && units.any?
+          size /= 1024
+          unit = units.shift
+        end
+
+        "#{size.round(2)} #{unit}"
+      end
     end
 
     error StandardError do
@@ -65,7 +78,8 @@ module Outboxer
         messages_metrics: messages_metrics,
         denormalised_query_params: denormalised_query_params,
         normalised_query_params: normalised_query_params,
-        normalised_query_string: normalised_query_string
+        normalised_query_string: normalised_query_string,
+        publishers: Models::Publisher.all
       }
     end
 

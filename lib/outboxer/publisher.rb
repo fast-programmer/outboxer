@@ -43,6 +43,8 @@ module Outboxer
 
       Thread.new do
         while @status != Status::TERMINATING
+          name = "#{socket.gethostname}:#{process.pid}"
+
           ActiveRecord::Base.connection_pool.with_connection do
             ActiveRecord::Base.transaction do
               rtt = nil
@@ -56,16 +58,21 @@ module Outboxer
                 end_rtt = process.clock_gettime(process::CLOCK_MONOTONIC)
                 rtt = end_rtt - start_rtt
 
-                publisher = Models::Publisher.create!(
-                  name: "#{socket.gethostname}:#{process.pid}", info: {})
+                publisher = Models::Publisher.create!(name: name, info: {})
                 publisher_id = publisher.id
               end
+
+              throughput = Models::Message
+                .where(updated_by: name)
+                .where('updated_at >= ?', 1.second.ago)
+                .count
 
               publisher.update!(
                 info: {
                   status: @status,
                   cpu_usage: `ps -p #{process.pid} -o %cpu`.split("\n").last.to_f,
                   rss: `ps -p #{process.pid} -o rss`.split("\n").last.to_i,
+                  throughput: throughput,
                   rtt: rtt })
             end
           end
@@ -94,7 +101,7 @@ module Outboxer
       batch_size: 100, concurrency: 1,
       poll_interval: 5, tick_interval: 0.1, monitoring_interval: 10,
       logger: Logger.new($stdout, level: Logger::INFO),
-      socket: ::Socket, process: ::Process, kernel: ::Kernel,
+      time: ::Time, socket: ::Socket, process: ::Process, kernel: ::Kernel,
       &block
     )
       logger.info "Outboxer v#{Outboxer::VERSION} publishing in ruby #{RUBY_VERSION} "\
