@@ -37,7 +37,7 @@ module Outboxer
     end
     # :nocov:
 
-    def create_monitoring_thread(monitoring_interval:, tick_interval:, logger:,
+    def create_monitoring_thread(concurrency:, monitoring_interval:, tick_interval:, logger:,
                                  time:, socket:, process:, kernel:)
       publisher_id = nil
 
@@ -65,21 +65,6 @@ module Outboxer
                 publisher_id = publisher.id
               end
 
-              # throughput = Models::Message
-              #   .where(updated_by: name)
-              #   .where('updated_at >= ?', 1.second.ago)
-              #   .count
-
-              # time_condition = ActiveRecord::Base.sanitize_sql_array([
-              #   'updated_at >= ?', current_utc_time - 1.second])
-
-              # grouped_messages = Models::Message
-              #   .group(:status)
-              #   .select(
-              #     'status, COUNT(*) AS count, MIN(updated_at) AS oldest_updated_at',
-              #     "SUM(CASE WHEN #{time_condition} THEN 1 ELSE 0 END) AS throughput")
-              #   .to_a
-
               messages = Models::Message
                 .where(updated_by: name)
                 .where('updated_at >= ?', 1.second.ago)
@@ -89,10 +74,11 @@ module Outboxer
                 updated_at: current_time,
                 info: {
                   status: @status,
+                  concurrency: concurrency,
+                  throughput: messages.count,
+                  latency: (messages.first ? (time.now - messages.first.updated_at).to_i : 0).round(2),
                   cpu_usage: `ps -p #{process.pid} -o %cpu`.split("\n").last.to_f,
                   rss: `ps -p #{process.pid} -o rss`.split("\n").last.to_i,
-                  throughput: messages.count,
-                  latency: messages.first ? (time.now - messages.first.updated_at).to_i : 0,
                   rtt: rtt })
             end
           end
@@ -134,7 +120,10 @@ module Outboxer
       @status = Status::PUBLISHING
 
       monitoring_thread = create_monitoring_thread(
-        monitoring_interval: monitoring_interval, tick_interval: tick_interval, logger: logger,
+        concurrency: concurrency,
+        monitoring_interval: monitoring_interval,
+        tick_interval: tick_interval,
+        logger: logger,
         time: time, socket: socket, process: process, kernel: kernel)
 
       queue = Queue.new
