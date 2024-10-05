@@ -145,11 +145,21 @@ module Outboxer
           message.delete
 
           if message.status == Status::PUBLISHED
-            setting = Models::Setting
+            published_count_historic_setting = Models::Setting
               .lock('FOR UPDATE')
               .find_by!(name: 'messages.published.count.historic')
 
-            setting.update!(value: setting.value.to_i + 1).to_s
+            published_count_historic_setting.update!(
+              value: published_count_historic_setting.value.to_i + 1).to_s
+          end
+
+          if message.status == Status::FAILED
+            failed_count_historic_setting = Models::Setting
+              .lock('FOR UPDATE')
+              .find_by!(name: 'messages.failed.count.historic')
+
+            failed_count_historic_setting.update!(
+              value: failed_count_historic_setting.value.to_i + 1).to_s
           end
 
           { id: id }
