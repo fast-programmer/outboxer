@@ -207,30 +207,14 @@ module Outboxer
 
             deleted_count_batch = Models::Message.where(id: message_ids).delete_all
 
-            published_messages = messages.select do |message|
-              message[:status] == Message::Status::PUBLISHED
-            end
+            [Message::Status::PUBLISHED, Message::Status::FAILED].each do |status|
+              current_messages = messages.select { |message| message[:status] == status }
 
-            if published_messages.any?
-              published_count_historic_setting = Models::Setting
-                .lock('FOR UPDATE')
-                .find_by!(name: 'messages.published.count.historic')
-
-              published_count_historic_setting.update!(
-                value: published_count_historic_setting.value.to_i + published_messages.count)
-            end
-
-            failed_messages = messages.select do |message|
-              message[:status] == Message::Status::FAILED
-            end
-
-            if failed_messages.any?
-              failed_count_historic_setting = Models::Setting
-                .lock('FOR UPDATE')
-                .find_by!(name: 'messages.failed.count.historic')
-
-              failed_count_historic_setting.update!(
-                value: failed_count_historic_setting.value.to_i + failed_messages.count)
+              if current_messages.count > 0
+                setting_name = "messages.#{status}.count.historic"
+                setting = Models::Setting.lock('FOR UPDATE').find_by!(name: setting_name)
+                setting.update!(value: setting.value.to_i + current_messages.count).to_s
+              end
             end
           end
         end
