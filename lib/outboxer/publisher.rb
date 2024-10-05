@@ -37,11 +37,64 @@ module Outboxer
     end
     # :nocov:
 
+    def create_monitoring_thread(monitoring_interval:, tick_interval:, logger:,
+                                 socket:, process:, kernel:)
+      publisher_id = nil
+
+      Thread.new do
+        while @status != Status::TERMINATING
+          ActiveRecord::Base.connection_pool.with_connection do
+            ActiveRecord::Base.transaction do
+              rtt = nil
+
+              begin
+                start_rtt = process.clock_gettime(process::CLOCK_MONOTONIC)
+                publisher = Models::Publisher.find_by!(id: publisher_id)
+                end_rtt = process.clock_gettime(process::CLOCK_MONOTONIC)
+                rtt = end_rtt - start_rtt
+              rescue ActiveRecord::RecordNotFound
+                end_rtt = process.clock_gettime(process::CLOCK_MONOTONIC)
+                rtt = end_rtt - start_rtt
+
+                publisher = Models::Publisher.create!(
+                  name: "#{socket.gethostname}:#{process.pid}", info: {})
+                publisher_id = publisher.id
+              end
+
+              publisher.update!(
+                info: {
+                  status: @status,
+                  cpu_usage: `ps -p #{process.pid} -o %cpu`.split("\n").last.to_f,
+                  rss: `ps -p #{process.pid} -o rss`.split("\n").last.to_i,
+                  rtt: rtt })
+            end
+          end
+
+          Publisher.sleep(
+            monitoring_interval,
+            start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
+            tick_interval: tick_interval,
+            process: process, kernel: kernel)
+        end
+
+        ActiveRecord::Base.connection_pool.with_connection do
+          ActiveRecord::Base.transaction do
+            begin
+              publisher = Models::Publisher.find_by!(id: publisher_id)
+              publisher.destroy!
+            rescue ActiveRecord::RecordNotFound
+              # no op
+            end
+          end
+        end
+      end
+    end
+
     def publish(
       batch_size: 100, concurrency: 1,
-      poll_interval: 5, tick_interval: 0.1,
+      poll_interval: 5, tick_interval: 0.1, monitoring_interval: 10,
       logger: Logger.new($stdout, level: Logger::INFO),
-      time: Time, process: ::Process, kernel: Kernel,
+      socket: ::Socket, process: ::Process, kernel: ::Kernel,
       &block
     )
       logger.info "Outboxer v#{Outboxer::VERSION} publishing in ruby #{RUBY_VERSION} "\
@@ -52,6 +105,10 @@ module Outboxer
         " poll_interval: #{poll_interval}, tick_interval: #{tick_interval} }"
 
       @status = Status::PUBLISHING
+
+      monitoring_thread = create_monitoring_thread(
+        monitoring_interval: monitoring_interval, tick_interval: tick_interval, logger: logger,
+        socket: socket, process: process, kernel: kernel)
 
       queue = Queue.new
 
@@ -111,6 +168,7 @@ module Outboxer
       logger.info "Outboxer terminating"
       concurrency.times { queue.push(nil) }
       threads.each(&:join)
+      monitoring_thread.join
       logger.info "Outboxer terminated"
     end
 
