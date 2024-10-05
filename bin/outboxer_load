@@ -4,21 +4,17 @@ require 'bundler/setup'
 require 'outboxer'
 require 'securerandom'
 
-if ARGV.empty?
-  puts "Usage: #{$0} <max_messages_count>"
-
-  exit(1)
-end
-
-max_messages_count = ARGV[0].to_i
+max_messages_count = ARGV.empty? ? 500_000 : ARGV[0].to_i
 
 if max_messages_count <= 0
-  puts "Please provide a positive integer for max messages count."
+  puts "Please provide a positive integer for max messages count"
 
   exit(1)
 end
 
-db_config = Outboxer::Database.config(environment: 'development', pool: 1)
+db_config = Outboxer::Database.config(
+  environment: ENV.fetch('OUTBOXER_ENV', 'development'), pool: 1)
+
 Outboxer::Database.connect(config: db_config)
 
 Signal.trap('INT') do
@@ -42,4 +38,4 @@ end
 
 puts "Finished queuing #{queued_messages_count} messages."
 
-# bundle exec ruby script/message/queuer.rb 100000
+# bin/outboxer_load 100000

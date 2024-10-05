@@ -65,10 +65,25 @@ module Outboxer
                 publisher_id = publisher.id
               end
 
-              throughput = Models::Message
+              # throughput = Models::Message
+              #   .where(updated_by: name)
+              #   .where('updated_at >= ?', 1.second.ago)
+              #   .count
+
+              # time_condition = ActiveRecord::Base.sanitize_sql_array([
+              #   'updated_at >= ?', current_utc_time - 1.second])
+
+              # grouped_messages = Models::Message
+              #   .group(:status)
+              #   .select(
+              #     'status, COUNT(*) AS count, MIN(updated_at) AS oldest_updated_at',
+              #     "SUM(CASE WHEN #{time_condition} THEN 1 ELSE 0 END) AS throughput")
+              #   .to_a
+
+              messages = Models::Message
                 .where(updated_by: name)
                 .where('updated_at >= ?', 1.second.ago)
-                .count
+                .order(updated_at: :asc)
 
               publisher.update!(
                 updated_at: current_time,
@@ -76,10 +91,9 @@ module Outboxer
                   status: @status,
                   cpu_usage: `ps -p #{process.pid} -o %cpu`.split("\n").last.to_f,
                   rss: `ps -p #{process.pid} -o rss`.split("\n").last.to_i,
-                  throughput: throughput,
+                  throughput: messages.count,
+                  latency: messages.first ? (time.now - messages.first.updated_at).to_i : 0,
                   rtt: rtt })
-
-              # created, last updated, latency: 1 second ago
             end
           end
 
