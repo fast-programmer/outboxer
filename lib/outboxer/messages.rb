@@ -316,6 +316,9 @@ module Outboxer
 
         metrics[:published][:count][:historic] = Models::Setting
           .find_by!(name: 'messages.published.count.historic').value.to_i
+
+        metrics[:failed][:count][:historic] = Models::Setting
+          .find_by!(name: 'messages.failed.count.historic').value.to_i
       end
 
       grouped_messages.each do |grouped_message|
@@ -336,6 +339,9 @@ module Outboxer
 
       metrics[:published][:count][:total] =
         metrics[:published][:count][:historic] + metrics[:published][:count][:current]
+
+      metrics[:failed][:count][:total] =
+        metrics[:failed][:count][:historic] + metrics[:failed][:count][:current]
 
       metrics
     end

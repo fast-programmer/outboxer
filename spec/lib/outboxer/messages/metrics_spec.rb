@@ -10,6 +10,10 @@ module Outboxer
           Models::Setting
             .find_by!(name: 'messages.published.count.historic')
             .update!(value: '500')
+
+          Models::Setting
+            .find_by!(name: 'messages.failed.count.historic')
+            .update!(value: '500')
         end
 
         let!(:oldest_queued_message) do
@@ -80,7 +84,7 @@ module Outboxer
               throughput: 0,
             },
             failed: {
-              count: { current: 2 },
+              count: { historic: 500, current: 2, total: 502 },
               latency: (current_utc_time - oldest_failed_message.updated_at.utc).to_i,
               throughput: 0,
             }
@@ -98,7 +102,7 @@ module Outboxer
             dequeued: { count: { current: 0 }, latency: 0, throughput: 0 },
             publishing: { count: { current: 0 }, latency: 0, throughput: 0 },
             published: { count: { historic: 0, current: 0, total: 0 }, latency: 0, throughput: 0 },
-            failed: { count: { current: 0 }, latency: 0, throughput: 0 }
+            failed: { count: { historic: 0, current: 0, total: 0 }, latency: 0, throughput: 0 }
           )
         end
       end
@@ -113,7 +117,7 @@ module Outboxer
             dequeued: { count: { current: 0 }, latency: 0, throughput: 0 },
             publishing: { count: { current: 0 }, latency: 0, throughput: 0 },
             published: { count: { historic: 0, current: 0, total: 0 }, latency: 0, throughput: 0 },
-            failed: { count: { current: 0 }, latency: 0, throughput: 0 }
+            failed: { count: { historic: 0, current: 0, total: 0 }, latency: 0, throughput: 0 }
           )
         end
       end
