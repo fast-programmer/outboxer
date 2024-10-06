@@ -37,7 +37,7 @@ module Outboxer
     end
     # :nocov:
 
-    def create_monitoring_thread(concurrency:, monitoring_interval:, tick_interval:, logger:,
+    def create_monitoring_thread(monitoring_interval:, tick_interval:, logger:,
                                  time:, socket:, process:, kernel:)
       Thread.new do
         publisher_id = nil
@@ -65,18 +65,22 @@ module Outboxer
                 publisher_id = publisher.id
               end
 
-              messages = Models::Message
+              throughput = messages = Models::Message
                 .where(updated_by: name)
                 .where('updated_at >= ?', 1.second.ago)
-                .order(updated_at: :asc)
+                .count
+
+              last_updated_message = Models::Message
+                .where(updated_by: name)
+                .order(updated_at: :desc)
+                .first
 
               publisher.update!(
                 updated_at: current_time,
                 info: {
                   status: @status,
-                  concurrency: concurrency,
-                  throughput: messages.count,
-                  latency: (messages.first ? (time.now - messages.first.updated_at).to_i : 0).round(2),
+                  throughput: throughput,
+                  latency: last_updated_message.nil? ? 0 : (time.now - last_updated_message.updated_at).to_i,
                   cpu_usage: `ps -p #{process.pid} -o %cpu`.split("\n").last.to_f,
                   rss: `ps -p #{process.pid} -o rss`.split("\n").last.to_i,
                   rtt: rtt })
@@ -120,7 +124,6 @@ module Outboxer
       @status = Status::PUBLISHING
 
       monitoring_thread = create_monitoring_thread(
-        concurrency: concurrency,
         monitoring_interval: monitoring_interval,
         tick_interval: tick_interval,
         logger: logger,
