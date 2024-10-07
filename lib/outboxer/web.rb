@@ -23,6 +23,55 @@ module Outboxer
       def outboxer_path(path)
         "#{request.script_name}#{path}"
       end
+
+      def human_readable_size(kilobytes)
+        units = ['KB', 'MB', 'GB', 'TB']
+        size = kilobytes.to_f
+        unit = units.shift
+
+        while size > 1024 && units.any?
+          size /= 1024
+          unit = units.shift
+        end
+
+        "#{size.round(2)} #{unit}"
+      end
+
+      def time_in_words(from_time, to_time = Time.now)
+        seconds_diff = (to_time - from_time).to_i
+
+        case seconds_diff
+        when 0..59
+          "#{seconds_diff} #{'second'.pluralize(seconds_diff)}"
+        when 60..3599
+          minutes = seconds_diff / 60
+          "#{minutes} #{'minute'.pluralize(minutes)}"
+        when 3600..86399
+          hours = seconds_diff / 3600
+          "#{hours} #{'hour'.pluralize(hours)}"
+        else
+          days = seconds_diff / 86400
+          "#{days} #{'day'.pluralize(days)} ago"
+        end
+      end
+
+      def time_ago_in_words(from_time, to_time = Time.now)
+        seconds_diff = (to_time - from_time).to_i
+
+        case seconds_diff
+        when 0..59
+          "#{seconds_diff} #{'second'.pluralize(seconds_diff)} ago"
+        when 60..3599
+          minutes = seconds_diff / 60
+          "#{minutes} #{'minute'.pluralize(minutes)} ago"
+        when 3600..86399
+          hours = seconds_diff / 3600
+          "#{hours} #{'hour'.pluralize(hours)} ago"
+        else
+          days = seconds_diff / 86400
+          "#{days} #{'day'.pluralize(days)} ago"
+        end
+      end
     end
 
     error StandardError do
@@ -65,7 +114,8 @@ module Outboxer
         messages_metrics: messages_metrics,
         denormalised_query_params: denormalised_query_params,
         normalised_query_params: normalised_query_params,
-        normalised_query_string: normalised_query_string
+        normalised_query_string: normalised_query_string,
+        publishers: Models::Publisher.all
       }
     end
 
