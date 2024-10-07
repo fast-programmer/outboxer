@@ -17,10 +17,7 @@
                                 <th scope="col">Started</th>
                                 <th scope="col">Last Updated</th>
                                 <th scope="col">Status</th>
-                                <th scope="col">Throughput</th>
-                                <th scope="col">CPU</th>
-                                <th scope="col">RSS</th>
-                                <th scope="col">RTT</th>
+                                <th scope="col">Next Status</th>
                             </tr>
                         <% end %>
                     </thead>
@@ -31,10 +28,7 @@
                                 <td><%= time_ago_in_words(publisher.created_at) %></td>
                                 <td><%= time_ago_in_words(publisher.updated_at) %></td>
                                 <td class="text-capitalize"><%= publisher.status %></td>
-                                <td><%= publisher.info['throughput'] %> /s</td>
-                                <td><%= publisher.info['cpu_usage'] %>%</td>
-                                <td><%= human_readable_size(publisher.info['rss']) %></td>
-                                <td><%= publisher.info['rtt'] ? (publisher.info['rtt'] * 1000).round(2) : 0 %> ms</td>
+                                <td class="text-capitalize"><%= publisher.next_status %></td>
                             </tr>
                         <% end %>
                     </tbody>

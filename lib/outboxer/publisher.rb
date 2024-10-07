@@ -2,10 +2,7 @@ module Outboxer
   module Publisher
     extend self
 
-    @status = nil
     @trapped_signal = nil
-
-    Status = Models::Publisher::Status
 
     Signal.trap("TERM") { @trapped_signal = :term }
     Signal.trap("INT")  { @trapped_signal = :int }
@@ -14,33 +11,18 @@ module Outboxer
     Signal.trap("TTIN") { @trapped_signal = :ttin }
 
     def start(name:, current_time:)
-      original_status = @status
-
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           publisher = Models::Publisher.create!(
-            name: name, status: Status::PUBLISHING, info: {},
+            name: name, status: Status::PUBLISHING, next_status: nil, info: {},
             created_at: current_time, updated_at: current_time)
 
           publisher.id
         end
       end
-    rescue StandardError => exception
-      @status = original_status
-
-      logger.error "Outboxer publisher status failed to transition "\
-        "from #{original_status} to #{Status::PUBLISHING}"
-
-      logger.error "#{exception.class}: #{exception.message}"
-      exception.backtrace.each { |frame| logger.error frame }
-
-      raise
     end
 
-    # TODO: pass current_time
-    def pause(id:, logger:)
-      original_status = @status
-
+    def pause_async(id:, logger:, current_time:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           publisher = Models::Publisher.lock('FOR UPDATE NOWAIT').find_by!(id: id)
@@ -49,50 +31,12 @@ module Outboxer
             raise ArgumentError, "status must be #{Status::PUBLISHING}"
           end
 
-          publisher.update!(status: Status::PAUSING)
-
-          @status = publisher.status
+          publisher.update!(next_status: Status::PAUSED, updated_at: current_time)
         end
       end
-    rescue StandardError => exception
-      @status = original_status
-
-      logger.error "Outboxer publisher status failed to transition "\
-        "from #{original_status} to #{Status::PAUSING}"
-
-      logger.error "#{exception.class}: #{exception.message}"
-      exception.backtrace.each { |frame| logger.error frame }
     end
 
-    def paused(id:, logger:)
-      original_status = @status
-
-      ActiveRecord::Base.connection_pool.with_connection do
-        ActiveRecord::Base.transaction do
-          publisher = Models::Publisher.lock('FOR UPDATE NOWAIT').find_by!(id: id)
-
-          if publisher.status != Status::PAUSING
-            raise ArgumentError, "status must be #{Status::PAUSING}"
-          end
-
-          publisher.update!(status: Status::PAUSED)
-
-          @status = publisher.status
-        end
-      end
-    rescue StandardError => exception
-      @status = original_status
-
-      logger.error "Outboxer publisher status failed to transition "\
-        "from #{original_status} to #{Status::PAUSED}"
-
-      logger.error "#{exception.class}: #{exception.message}"
-      exception.backtrace.each { |frame| logger.error frame }
-    end
-
-    def resume(id:, logger:)
-      original_status = @status
-
+    def resume_async(id:, logger:, current_time:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           publisher = Models::Publisher.lock('FOR UPDATE NOWAIT').find_by!(id: id)
@@ -101,66 +45,18 @@ module Outboxer
             raise ArgumentError, "status must be #{Status::PAUSED}"
           end
 
-          publisher.update!(status: Status::RESUMING)
-
-          @status = publisher.status
+          publisher.update!(next_status: Status::PUBLISHING, updated_at: current_time)
         end
       end
-    rescue StandardError => exception
-      @status = original_status
-
-      logger.error "Outboxer publisher status failed to transition "\
-        "from #{original_status} to #{Status::RESUMING}"
-
-      logger.error "#{exception.class}: #{exception.message}"
-      exception.backtrace.each { |frame| logger.error frame }
     end
 
-    def resumed(id:, logger:)
-      original_status = @status
-
+    def terminate_async(id:, logger:, current_time:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           publisher = Models::Publisher.lock('FOR UPDATE NOWAIT').find_by!(id: id)
-
-          if publisher.status != Status::RESUMING
-            raise ArgumentError, "status must be #{Status::RESUMING}"
-          end
-
-          publisher.update!(status: Status::PUBLISHING)
-
-          @status = publisher.status
+          publisher.update!(next_status: Status::TERMINATING, updated_at: current_time)
         end
       end
-    rescue StandardError => exception
-      @status = original_status
-
-      logger.error "Outboxer publisher status failed to transition "\
-        "from #{original_status} to #{Status::PUBLISHING}"
-
-      logger.error "#{exception.class}: #{exception.message}"
-      exception.backtrace.each { |frame| logger.error frame }
-    end
-
-    def terminate(id:, logger:)
-      original_status = @status
-
-      ActiveRecord::Base.connection_pool.with_connection do
-        ActiveRecord::Base.transaction do
-          publisher = Models::Publisher.lock('FOR UPDATE NOWAIT').find_by!(id: id)
-          publisher.update!(status: Status::TERMINATING)
-
-          @status = publisher.status
-        end
-      end
-    rescue StandardError => exception
-      @status = original_status
-
-      logger.error "Outboxer publisher status failed to transition "\
-        "from #{original_status} to #{Status::TERMINATING}"
-
-      logger.error "#{exception.class}: #{exception.message}"
-      exception.backtrace.each { |frame| logger.error frame }
     end
 
     def terminated(id:, logger:)
@@ -175,18 +71,24 @@ module Outboxer
           publisher.destroy!
         end
       end
-    rescue StandardError => exception
-      @status = original_status
+    end
 
-      logger.error "Outboxer publisher status failed to transition "\
-        "from #{original_status} to (deleted)"
+    def update_status(id:, logger:, current_time:)
+      ActiveRecord::Base.connection_pool.with_connection do
+        ActiveRecord::Base.transaction do
+          publisher = Models::Publisher.lock('FOR UPDATE NOWAIT').find_by!(id: id)
 
-      logger.error "#{exception.class}: #{exception.message}"
-      exception.backtrace.each { |frame| logger.error frame }
+          if !publisher.next_status.nil?
+            publisher.update!(status: publisher.next_status, next_status: nil, updated_at: current_time)
+          end
+
+          publisher
+        end
+      end
     end
 
     # :nocov:
-    def sleep(duration, start_time:, tick_interval:, process:, kernel:) # TODO: include PAUSING and RESUMING in quick exit
+    def sleep(duration, start_time:, tick_interval:, process:, kernel:)
       while (@status != Status::TERMINATING) &&
           (process.clock_gettime(process::CLOCK_MONOTONIC) - start_time) < duration
         kernel.sleep(tick_interval)
@@ -194,20 +96,36 @@ module Outboxer
     end
     # :nocov:
 
-    def create_signal_thread(id:, signal_interval:, tick_interval:, logger:,
-                             process:, kernel:)
+    def create_trap_signal_thread(id:, interval:, tick_interval:, logger:,
+                                  time:, process:, kernel:)
       Thread.new do
         while @status != Status::TERMINATING
           if !@trapped_signal.nil?
             case @trapped_signal
             when :term
-              terminate(id: id, logger: logger)
+              terminate_async(id: id, logger: logger, current_time: time.now)
+
+              publisher = Publisher.update_status(id: id, logger: logger, current_time: time.now)
+
+              @status = publisher.status
             when :int
-              terminate(id: id, logger: logger)
+              terminate_async(id: id, logger: logger, current_time: time.now)
+
+              publisher = Publisher.update_status(id: id, logger: logger, current_time: time.now)
+
+              @status = publisher.status
             when :tstp
-              pause(id: id, logger: logger)
+              pause_async(id: id, logger: logger, current_time: time.now)
+
+              publisher = Publisher.update_status(id: id, logger: logger, current_time: time.now)
+
+              @status = publisher.status
             when :cont
-              resume(id: id, logger: logger)
+              resume_async(id: id, logger: logger, current_time: time.now)
+
+              publisher = Publisher.update_status(id: id, logger: logger, current_time: time.now)
+
+              @status = publisher.status
             when :ttin
               Thread.list.each_with_index do |thread, index|
                 logger.info thread.backtrace.join("\n") if thread.backtrace
@@ -218,42 +136,7 @@ module Outboxer
           end
 
           Publisher.sleep(
-            signal_interval,
-            start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
-            tick_interval: tick_interval,
-            process: process, kernel: kernel)
-        end
-      end
-    end
-
-    def create_monitor_thread(id:, monitor_interval:, tick_interval:, logger:,
-                              time:, process:, kernel:)
-      Thread.new do
-        while @status != Status::TERMINATING
-          ActiveRecord::Base.connection_pool.with_connection do
-            ActiveRecord::Base.transaction do
-              throughput = messages = Models::Message
-                .where(updated_by: name)
-                .where('updated_at >= ?', 1.second.ago)
-                .count
-
-              start_rtt = process.clock_gettime(process::CLOCK_MONOTONIC)
-              publisher = Models::Publisher.lock('FOR UPDATE NOWAIT').find_by!(id: id)
-              end_rtt = process.clock_gettime(process::CLOCK_MONOTONIC)
-              rtt = end_rtt - start_rtt
-
-              publisher.update!(
-                updated_at: time.now,
-                info: {
-                  throughput: throughput,
-                  cpu_usage: `ps -p #{process.pid} -o %cpu`.split("\n").last.to_f,
-                  rss: `ps -p #{process.pid} -o rss`.split("\n").last.to_i,
-                  rtt: rtt })
-            end
-          end
-
-          Publisher.sleep(
-            monitor_interval,
+            interval,
             start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
             tick_interval: tick_interval,
             process: process, kernel: kernel)
@@ -306,9 +189,30 @@ module Outboxer
       terminate(id: id, logger: logger)
     end
 
+    @status = nil
+
+    Status = Models::Publisher::Status
+
+    def create_update_status_thread(id:, interval:, tick_interval:, logger:,
+                                    time:, process:, kernel:)
+      Thread.new do
+        while @status != Status::TERMINATING
+          publisher = Publisher.update_status(id: id, logger: logger, current_time: time.now)
+
+          @status = publisher.status
+
+          Publisher.sleep(
+            interval,
+            start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
+            tick_interval: tick_interval,
+            process: process, kernel: kernel)
+        end
+      end
+    end
+
     def publish(
       batch_size: 100, concurrency: 1,
-      poll_interval: 5, tick_interval: 0.1, signal_interval: 1, monitor_interval: 10,
+      poll_interval: 5, tick_interval: 0.1, signal_interval: 1, status_interval: 1,
       logger: Logger.new($stdout, level: Logger::INFO),
       time: ::Time, socket: ::Socket, process: ::Process, kernel: ::Kernel,
       &block
@@ -319,11 +223,12 @@ module Outboxer
       logger.info "Outboxer config {"\
         " batch_size: #{batch_size}, concurrency: #{concurrency},"\
         " poll_interval: #{poll_interval}, tick_interval: #{tick_interval},"\
-        " signal_interval: #{signal_interval}, monitor_interval: #{monitor_interval} }"
-
-      id = start(name: "#{socket.gethostname}:#{process.pid}", current_time: time.now)
+        " signal_interval: #{signal_interval}, status_interval: #{status_interval} }"
 
       queue = Queue.new
+      @status = Status::PUBLISHING
+
+      id = start(name: "#{socket.gethostname}:#{process.pid}", current_time: time.now)
 
       publisher_threads = create_publisher_threads(
         queue: queue,
@@ -332,37 +237,35 @@ module Outboxer
         time: time,
         kernel: kernel)
 
-      # monitor_thread = create_monitor_thread(
-      #   id: id,
-      #   monitor_interval: monitor_interval,
-      #   tick_interval: tick_interval,
-      #   logger: logger,
-      #   time: time, process: process, kernel: kernel)
-
-      signal_thread = create_signal_thread(
+      trap_signal_thread = create_trap_signal_thread(
         id: id,
-        signal_interval: signal_interval,
+        interval: signal_interval,
         tick_interval: tick_interval,
         logger: logger,
-        process: process, kernel: kernel)
+        time: time, process: process, kernel: kernel)
 
-      while @status != Status::TERMINATING
+      update_status_thread = create_update_status_thread(
+        id: id,
+        interval: status_interval,
+        tick_interval: tick_interval,
+        logger: logger,
+        time: time, process: process, kernel: kernel)
+
+      loop do
         case @status
         when Status::PUBLISHING
           dequeue_messages(
             id: id, queue: queue, batch_size: batch_size,
             poll_interval: poll_interval, tick_interval:, logger: logger,
             process: process, kernel: kernel)
-        when Status::PAUSING
-          paused(id: id, logger: logger)
         when Status::PAUSED
           Publisher.sleep(
             tick_interval,
             start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
             tick_interval: tick_interval,
             process: process, kernel: kernel)
-        when Status::RESUMING
-          resumed(id: id, logger: logger)
+        when Status::TERMINATING
+          break
         end
       end
 
@@ -370,8 +273,8 @@ module Outboxer
 
       concurrency.times { queue.push(nil) }
       publisher_threads.each(&:join)
-      # monitor_thread.join
-      signal_thread.join
+      update_status_thread.join
+      trap_signal_thread.join
 
       terminated(id: id, logger: logger)
 
