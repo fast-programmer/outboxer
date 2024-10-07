@@ -12,7 +12,8 @@ options = {
   concurrency: ENV.fetch('OUTBOXER_CONCURRENCY', 1).to_i,
   poll_interval: ENV.fetch('OUTBOXER_POLL_INTERVAL', 5).to_f,
   tick_interval: ENV.fetch('OUTBOXER_TICK_INTERVAL', 0.1).to_f,
-  monitoring_interval: ENV.fetch('OUTBOXER_MONITORING_INTERVAL', 10).to_i,
+  signal_interval: ENV.fetch('OUTBOXER_SIGNAL_INTERVAL', 1).to_i,
+  monitor_interval: ENV.fetch('OUTBOXER_MONITOR_INTERVAL', 10).to_i,
   log_level: ENV.fetch('OUTBOXER_LOG_LEVEL', 'info').downcase,
   sidekiq_redis_url: ENV.fetch('SIDEKIQ_REDIS_URL', 'redis://localhost:6379/0')
 }
@@ -34,7 +35,8 @@ Outboxer::Publisher.publish(
   concurrency: options[:concurrency],
   poll_interval: options[:poll_interval],
   tick_interval: options[:tick_interval],
-  monitoring_interval: options[:monitoring_interval],
+  signal_interval: options[:signal_interval],
+  monitor_interval: options[:monitor_interval],
   logger: logger
 ) do |message|
   case message[:messageable_type]

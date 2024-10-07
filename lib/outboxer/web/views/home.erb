@@ -18,7 +18,6 @@
                                 <th scope="col">Last Updated</th>
                                 <th scope="col">Status</th>
                                 <th scope="col">Throughput</th>
-                                <th scope="col">Latency</th>
                                 <th scope="col">CPU</th>
                                 <th scope="col">RSS</th>
                                 <th scope="col">RTT</th>
@@ -31,12 +30,11 @@
                                 <td class="dynamic-name-column"><%= publisher.name %></td> <!-- Dynamic width for Name -->
                                 <td><%= time_ago_in_words(publisher.created_at) %></td>
                                 <td><%= time_ago_in_words(publisher.updated_at) %></td>
-                                <td class="text-capitalize"><%= publisher.info['status'] %></td>
+                                <td class="text-capitalize"><%= publisher.status %></td>
                                 <td><%= publisher.info['throughput'] %> /s</td>
-                                <td><%= publisher.info['latency'] %> /s</td>
                                 <td><%= publisher.info['cpu_usage'] %>%</td>
                                 <td><%= human_readable_size(publisher.info['rss']) %></td>
-                                <td><%= (publisher.info['rtt'] * 1000).round(2) %> ms</td>
+                                <td><%= publisher.info['rtt'] ? (publisher.info['rtt'] * 1000).round(2) : 0 %> ms</td>
                             </tr>
                         <% end %>
                     </tbody>
@@ -85,4 +83,3 @@
         </div>
     </div>
 </div>
-

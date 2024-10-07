@@ -3,6 +3,8 @@ class CreateOutboxerPublishers < ActiveRecord::Migration[6.1]
     ActiveRecord::Base.transaction do
       create_table :outboxer_publishers do |t|
         t.string :name, limit: 266, null: false
+        t.string :status, limit: 255, null: false
+
         t.json :info, null: false
 
         t.timestamps
