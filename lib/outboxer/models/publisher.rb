@@ -7,24 +7,18 @@ module Outboxer
 
       module Status
         PUBLISHING = 'publishing'
-        PAUSING = 'pausing'
-        PAUSED = 'paused'
-        RESUMING = 'resuming'
+        STOPPED = 'stopped'
         TERMINATING = 'terminating'
       end
 
       STATUSES = [
         Status::PUBLISHING,
-        Status::PAUSING,
-        Status::PAUSED,
-        Status::RESUMING,
+        Status::STOPPED,
         Status::TERMINATING,
       ]
 
       scope :publishing, -> { where(status: Status::PUBLISHING) }
-      scope :pausing, -> { where(status: Status::PAUSING) }
-      scope :paused, -> { where(status: Status::PAUSED) }
-      scope :resuming, -> { where(status: Status::RESUMING) }
+      scope :stopped, -> { where(status: Status::STOPPED) }
       scope :terminating, -> { where(status: Status::TERMINATING) }
 
       attribute :status, default: -> { Status::PUBLISHING }
