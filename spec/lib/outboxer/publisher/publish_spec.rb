@@ -15,8 +15,8 @@ module Outboxer
 
       let!(:queued_message) { create(:outboxer_message, :queued) }
 
-      context 'when paused and resumed during message publishing' do
-        it 'pauses and resumes the publishing process correctly' do
+      context 'when stopped and resumed during message publishing' do
+        it 'stops and resumes the publishing process correctly' do
           publish_thread = Thread.new do
             Outboxer::Publisher.publish(
               batch_size: batch_size,
@@ -24,7 +24,7 @@ module Outboxer
               tick_interval: tick_interval,
               logger: logger, kernel: kernel
             ) do |_message|
-              Outboxer::Publisher.pause
+              Outboxer::Publisher.stop
             end
           end
           sleep 2

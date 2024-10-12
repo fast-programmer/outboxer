@@ -2,149 +2,108 @@ module Outboxer
   module Publisher
     extend self
 
-    @trapped_signal = nil
+    def setup_signal_handlers(self_write)
+      signal_names = %w[INT TERM TTIN TSTP]
 
-    Signal.trap("TERM") { @trapped_signal = :term }
-    Signal.trap("INT")  { @trapped_signal = :int }
-    Signal.trap("TSTP") { @trapped_signal = :tstp }
-    Signal.trap("CONT") { @trapped_signal = :cont }
-    Signal.trap("TTIN") { @trapped_signal = :ttin }
+      signal_names.each do |signal_name|
+        old_handler = Signal.trap(signal_name) do
+          if old_handler.respond_to?(:call)
+            old_handler.call
+          end
 
-    def start(name:, current_time:)
+          self_write.puts(signal_name)
+        end
+      end
+    end
+
+    def create(identifier:, current_time: Time.now)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           publisher = Models::Publisher.create!(
-            name: name, status: Status::PUBLISHING, next_status: nil, info: {},
+            identifier: identifier, status: Status::PUBLISHING, info: {},
             created_at: current_time, updated_at: current_time)
 
-          publisher.id
+          {
+            id: publisher.id,
+            identifier: publisher.identifier,
+            status: publisher.status,
+            created_at: publisher.created_at,
+            updated_at: publisher.updated_at
+          }
         end
       end
     end
 
-    def stop_async(id:, logger:, current_time:)
+    def delete(identifier:, current_time: Time.now)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          publisher = Models::Publisher.lock('FOR UPDATE NOWAIT').find_by!(id: id)
+          publisher = Models::Publisher.where(identifier: identifier).lock.first!
 
-          if publisher.status != Status::PUBLISHING
-            raise ArgumentError, "status must be #{Status::PUBLISHING}"
-          end
-
-          publisher.update!(next_status: Status::STOPPED, updated_at: current_time)
-        end
-      end
-    end
-
-    def continue_async(id:, logger:, current_time:)
-      ActiveRecord::Base.connection_pool.with_connection do
-        ActiveRecord::Base.transaction do
-          publisher = Models::Publisher.lock('FOR UPDATE NOWAIT').find_by!(id: id)
-
-          if publisher.status != Status::STOPPED
-            raise ArgumentError, "status must be #{Status::STOPPED}"
-          end
-
-          publisher.update!(next_status: Status::PUBLISHING, updated_at: current_time)
-        end
-      end
-    end
-
-    def terminate_async(id:, logger:, current_time:)
-      ActiveRecord::Base.connection_pool.with_connection do
-        ActiveRecord::Base.transaction do
-          publisher = Models::Publisher.lock('FOR UPDATE NOWAIT').find_by!(id: id)
-          publisher.update!(next_status: Status::TERMINATING, updated_at: current_time)
-        end
-      end
-    end
-
-    def terminated(id:, logger:)
-      ActiveRecord::Base.connection_pool.with_connection do
-        ActiveRecord::Base.transaction do
-          publisher = Models::Publisher.lock('FOR UPDATE NOWAIT').find_by!(id: id)
-
-          if publisher.status != Status::TERMINATING
-            raise ArgumentError, "status must be #{Status::TERMINATING}"
-          end
-
+          publisher.signals.each { |signal| signal.destroy! }
           publisher.destroy!
         end
       end
     end
 
-    def update_status(id:, logger:, current_time:)
+    def create_signal(publisher_id:, name:, current_time: Time.now)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          publisher = Models::Publisher.lock('FOR UPDATE NOWAIT').find_by!(id: id)
+          signal = Models::Signal.create!(
+            publisher_id: publisher_id, name: name,
+            created_at: current_time, updated_at: current_time)
 
-          if !publisher.next_status.nil?
-            publisher.update!(status: publisher.next_status, next_status: nil, updated_at: current_time)
-          end
-
-          publisher
+          { id: signal.id, name: signal.name, created_at: signal.created_at }
         end
       end
     end
 
+    Status = Models::Publisher::Status
+
+    def stop
+      @status = Status::STOPPED
+    end
+
+    def resume
+      @status = Status::PUBLISHING
+    end
+
+    def terminate
+      @status = Status::TERMINATING
+    end
+
     # :nocov:
-    def sleep(duration, start_time:, tick_interval:, mutex:, process:, kernel:)
-      while (mutex.synchronize { @status } != Status::TERMINATING) &&
+    def sleep(duration, start_time:, tick_interval:, process:, kernel:)
+      while (@status != Status::TERMINATING) &&
           (process.clock_gettime(process::CLOCK_MONOTONIC) - start_time) < duration
         kernel.sleep(tick_interval)
       end
     end
     # :nocov:
 
-    def create_trap_signal_thread(id:, interval:, tick_interval:, logger:,
-                                  mutex:, time:, process:, kernel:)
+    def create_trap_signal_thread(publisher_id:)
+      self_read, self_write = IO.pipe
+      setup_signal_handlers(self_write)
+
       Thread.new do
-        while mutex.synchronize { @status } != Status::TERMINATING
-          if !@trapped_signal.nil?
-            case @trapped_signal
-            when :term
-              terminate_async(id: id, logger: logger, current_time: time.now)
+        if self_read.wait_readable
+          signal_name = self_read.gets.strip
 
-              mutex.synhronize do
-                publisher = Publisher.update_status(id: id, logger: logger, current_time: time.now)
-                @status = publisher.status
-              end
-            when :int
-              terminate_async(id: id, logger: logger, current_time: time.now)
-
-              mutex.synchronize do
-                publisher = Publisher.update_status(id: id, logger: logger, current_time: time.now)
-                @status = publisher.status
-              end
-            when :tstp
-              stop_async(id: id, logger: logger, current_time: time.now)
-
-              mutex.synhronize do
-                publisher = Publisher.update_status(id: id, logger: logger, current_time: time.now)
-                @status = publisher.status
-              end
-            when :cont
-              continue_async(id: id, logger: logger, current_time: time.now)
-
-              mutex.synchronize do
-                publisher = Publisher.update_status(id: id, logger: logger, current_time: time.now)
-                @status = publisher.status
-              end
-            when :ttin
-              Thread.list.each_with_index do |thread, index|
-                logger.info thread.backtrace.join("\n") if thread.backtrace
-              end
+          case signal_name
+          when 'INT'
+            terminate
+          when 'TERM'
+            terminate
+          when 'TSTP'
+            stop
+          when 'CONT'
+            resume
+          when 'TTIN'
+            Thread.list.each_with_index do |thread, index|
+              logger.info thread.backtrace.join("\n") if thread.backtrace
             end
-
-            @trapped_signal = nil
+          else
+            create_signal(publisher_id: publisher_id, name: signal_name)
           end
-
-          Publisher.sleep(
-            interval,
-            start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
-            tick_interval: tick_interval,
-            mutex: mutex,
-            process: process, kernel: kernel)
         end
       end
     end
@@ -161,9 +120,9 @@ module Outboxer
       end
     end
 
-    def dequeue_messages(id:, queue:, batch_size:, poll_interval: , tick_interval:,
-                         mutex:, logger:,
-                         process:, kernel:)
+    def dequeue_messages(queue:, batch_size:,
+                         poll_interval:, tick_interval:,
+                         logger:, process:, kernel:)
       dequeue_limit = batch_size - queue.size
 
       if dequeue_limit > 0
@@ -176,7 +135,6 @@ module Outboxer
             poll_interval,
             start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
             tick_interval: tick_interval,
-            mutex: mutex,
             process: process, kernel: kernel)
         end
       else
@@ -184,7 +142,6 @@ module Outboxer
           tick_interval,
           start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
           tick_interval: tick_interval,
-          mutex: mutex,
           process: process, kernel: kernel)
       end
     rescue StandardError => exception
@@ -194,57 +151,12 @@ module Outboxer
       logger.fatal "#{exception.class}: #{exception.message}"
       exception.backtrace.each { |frame| logger.fatal frame }
 
-      terminate(id: id, logger: logger)
+      terminate
     end
-
-    @status = nil
-
-    Status = Models::Publisher::Status
-
-    def create_update_status_thread(id:, interval:, tick_interval:,
-                                    mutex:, logger:,
-                                    time:, process:, kernel:)
-      Thread.new do
-        loop do
-          mutex.synchronize do
-            break if @status == Status::TERMINATING
-            publisher = Publisher.update_status(id: id, logger: logger, current_time: time.now)
-            @status = publisher.status
-          end
-
-          Publisher.sleep(
-            interval,
-            start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
-            tick_interval: tick_interval,
-            mutex: mutex,
-            process: process, kernel: kernel)
-        end
-      end
-    end
-
-    # def create_update_status_thread(id:, interval:, tick_interval:,
-    #                                 mutex:, logger:,
-    #                                 time:, process:, kernel:)
-    #   Thread.new do
-    #     while mutex.synchronize { @status } != Status::TERMINATING
-    #       mutex.synchronize do
-    #         publisher = Publisher.update_status(id: id, logger: logger, current_time: time.now)
-    #         @status = publisher.status
-    #       end
-
-    #       Publisher.sleep(
-    #         interval,
-    #         start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
-    #         tick_interval: tick_interval,
-    #         mutex: mutex,
-    #         process: process, kernel: kernel)
-    #     end
-    #   end
-    # end
 
     def publish(
       batch_size: 100, concurrency: 1,
-      poll_interval: 5, tick_interval: 0.1, signal_interval: 1, status_interval: 1,
+      poll_interval: 5, tick_interval: 0.1,
       logger: Logger.new($stdout, level: Logger::INFO),
       time: ::Time, socket: ::Socket, process: ::Process, kernel: ::Kernel,
       &block
@@ -252,53 +164,39 @@ module Outboxer
       logger.info "Outboxer v#{Outboxer::VERSION} publishing in ruby #{RUBY_VERSION} "\
         "(#{RUBY_RELEASE_DATE} revision #{RUBY_REVISION[0, 10]}) [#{RUBY_PLATFORM}]"
 
+      queue = Queue.new
+      @status = Status::PUBLISHING
+
+      identifier = "#{::Socket.gethostname}:#{::Process.pid}:#{::SecureRandom.hex(6)}"
+
+      publisher = create(identifier: identifier)
+
       logger.info "Outboxer config {"\
         " batch_size: #{batch_size}, concurrency: #{concurrency},"\
-        " poll_interval: #{poll_interval}, tick_interval: #{tick_interval},"\
-        " signal_interval: #{signal_interval}, status_interval: #{status_interval} }"
-
-      queue = Queue.new
-      mutex = Mutex.new
-
-      mutex.synchronize { @status = Status::PUBLISHING }
-
-      id = start(name: "#{socket.gethostname}:#{process.pid}", current_time: time.now)
+        " poll_interval: #{poll_interval}, tick_interval: #{tick_interval} }"\
 
       publisher_threads = create_publisher_threads(
         queue: queue,
         concurrency: concurrency,
         logger: logger,
         time: time,
-        kernel: kernel)
+        kernel: kernel,
+        &block)
 
-      trap_signal_thread = create_trap_signal_thread(
-        id: id,
-        interval: signal_interval,
-        tick_interval: tick_interval,
-        mutex: mutex, logger: logger,
-        time: time, process: process, kernel: kernel)
-
-      update_status_thread = create_update_status_thread(
-        id: id,
-        interval: status_interval,
-        tick_interval: tick_interval,
-        mutex: mutex, logger: logger,
-        time: time, process: process, kernel: kernel)
+      trap_signal_thread = create_trap_signal_thread(publisher_id: publisher[:id])
 
       loop do
-        case mutex.synchronize { @status }
+        case @status
         when Status::PUBLISHING
           dequeue_messages(
-            id: id, queue: queue, batch_size: batch_size,
+            queue: queue, batch_size: batch_size,
             poll_interval: poll_interval, tick_interval:,
-            mutex: mutex, logger: logger,
-            process: process, kernel: kernel)
+            logger: logger, process: process, kernel: kernel)
         when Status::STOPPED
           Publisher.sleep(
             tick_interval,
             start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
             tick_interval: tick_interval,
-            mutex: mutex,
             process: process, kernel: kernel)
         when Status::TERMINATING
           break
@@ -309,10 +207,9 @@ module Outboxer
 
       concurrency.times { queue.push(nil) }
       publisher_threads.each(&:join)
-      update_status_thread.join
-      trap_signal_thread.join
+      trap_signal_thread.kill
 
-      terminated(id: id, logger: logger)
+      delete(identifier: identifier)
 
       logger.info "Outboxer terminated"
     end
@@ -349,7 +246,7 @@ module Outboxer
         "in #{(time.now.utc - dequeued_at).round(3)}s"
       exception.backtrace.each { |frame| logger.fatal frame }
 
-      terminate(id: id, logger: logger)
+      terminate
     end
   end
 end
