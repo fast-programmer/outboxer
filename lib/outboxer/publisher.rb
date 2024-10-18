@@ -2,20 +2,6 @@ module Outboxer
   module Publisher
     extend self
 
-    def setup_signal_handlers(self_write)
-      signal_names = %w[INT TERM TTIN TSTP]
-
-      signal_names.each do |signal_name|
-        old_handler = Signal.trap(signal_name) do
-          if old_handler.respond_to?(:call)
-            old_handler.call
-          end
-
-          self_write.puts(signal_name)
-        end
-      end
-    end
-
     def create(identifier:, current_time: Time.now)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
@@ -38,74 +24,49 @@ module Outboxer
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           publisher = Models::Publisher.where(identifier: identifier).lock.first!
-
-          publisher.signals.each { |signal| signal.destroy! }
           publisher.destroy!
-        end
-      end
-    end
-
-    def create_signal(publisher_id:, name:, current_time: Time.now)
-      ActiveRecord::Base.connection_pool.with_connection do
-        ActiveRecord::Base.transaction do
-          signal = Models::Signal.create!(
-            publisher_id: publisher_id, name: name,
-            created_at: current_time, updated_at: current_time)
-
-          { id: signal.id, name: signal.name, created_at: signal.created_at }
         end
       end
     end
 
     Status = Models::Publisher::Status
 
-    def stop
-      @status = Status::STOPPED
-    end
-
-    def resume
-      @status = Status::PUBLISHING
-    end
-
-    def terminate
-      @status = Status::TERMINATING
-    end
-
     # :nocov:
-    def sleep(duration, start_time:, tick_interval:, process:, kernel:)
+    def sleep(duration, start_time:, tick_interval:, signal_read:, signal_write:, process:, kernel:)
       while (@status != Status::TERMINATING) &&
           (process.clock_gettime(process::CLOCK_MONOTONIC) - start_time) < duration
+        if IO.select([signal_read], nil, nil, 0)
+          signal_name = signal_read.gets.strip rescue nil
+
+          case signal_name
+          when 'INT', 'TERM'
+            @status = Status::TERMINATING
+          else
+            signal_write.puts(signal_name)
+          end
+        end
+
         kernel.sleep(tick_interval)
       end
     end
     # :nocov:
 
-    def create_trap_signal_thread(publisher_id:)
-      self_read, self_write = IO.pipe
-      setup_signal_handlers(self_write)
+    def trap_signals(id:)
+      signal_read, signal_write = IO.pipe
 
-      Thread.new do
-        if self_read.wait_readable
-          signal_name = self_read.gets.strip
+      signal_names = %w[TTIN TSTP CONT INT TERM]
 
-          case signal_name
-          when 'INT'
-            terminate
-          when 'TERM'
-            terminate
-          when 'TSTP'
-            stop
-          when 'CONT'
-            resume
-          when 'TTIN'
-            Thread.list.each_with_index do |thread, index|
-              logger.info thread.backtrace.join("\n") if thread.backtrace
-            end
-          else
-            create_signal(publisher_id: publisher_id, name: signal_name)
+      signal_names.each do |signal_name|
+        old_handler = Signal.trap(signal_name) do
+          if old_handler.respond_to?(:call)
+            old_handler.call
           end
+
+          signal_write.puts(signal_name)
         end
       end
+
+      [signal_read, signal_write]
     end
 
     def create_publisher_threads(queue:, concurrency:, logger:, time:, kernel:, &block)
@@ -122,6 +83,7 @@ module Outboxer
 
     def dequeue_messages(queue:, batch_size:,
                          poll_interval:, tick_interval:,
+                         signal_read:, signal_write:,
                          logger:, process:, kernel:)
       dequeue_limit = batch_size - queue.size
 
@@ -135,6 +97,8 @@ module Outboxer
             poll_interval,
             start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
             tick_interval: tick_interval,
+            signal_read: signal_read,
+            signal_write: signal_write,
             process: process, kernel: kernel)
         end
       else
@@ -142,6 +106,8 @@ module Outboxer
           tick_interval,
           start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
           tick_interval: tick_interval,
+          signal_read: signal_read,
+          signal_write: signal_write,
           process: process, kernel: kernel)
       end
     rescue StandardError => exception
@@ -151,7 +117,7 @@ module Outboxer
       logger.fatal "#{exception.class}: #{exception.message}"
       exception.backtrace.each { |frame| logger.fatal frame }
 
-      terminate
+      @status = Status::TERMINATING
     end
 
     def publish(
@@ -183,7 +149,7 @@ module Outboxer
         kernel: kernel,
         &block)
 
-      trap_signal_thread = create_trap_signal_thread(publisher_id: publisher[:id])
+     signal_read, signal_write = trap_signals(id: publisher[:id])
 
       loop do
         case @status
@@ -191,15 +157,34 @@ module Outboxer
           dequeue_messages(
             queue: queue, batch_size: batch_size,
             poll_interval: poll_interval, tick_interval:,
+            signal_read: signal_read, signal_write: signal_write,
             logger: logger, process: process, kernel: kernel)
         when Status::STOPPED
           Publisher.sleep(
             tick_interval,
             start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
             tick_interval: tick_interval,
+            signal_read: signal_read, signal_write: signal_write,
             process: process, kernel: kernel)
         when Status::TERMINATING
           break
+        end
+
+        if IO.select([signal_read], nil, nil, 0)
+          signal_name = signal_read.gets.strip rescue nil
+
+          case signal_name
+          when 'TTIN'
+            Thread.list.each_with_index do |thread, index|
+              logger.info thread.backtrace.join("\n") if thread.backtrace
+            end
+          when 'TSTP'
+            @status = Status::STOPPED
+          when 'CONT'
+            @status = Status::PUBLISHING
+          when 'INT', 'TERM'
+            @status = Status::TERMINATING
+          end
         end
       end
 
@@ -207,7 +192,6 @@ module Outboxer
 
       concurrency.times { queue.push(nil) }
       publisher_threads.each(&:join)
-      trap_signal_thread.kill
 
       delete(identifier: identifier)
 

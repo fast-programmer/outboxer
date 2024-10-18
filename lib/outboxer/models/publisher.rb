@@ -24,12 +24,6 @@ module Outboxer
 
       attribute :status, default: -> { Status::PUBLISHING }
       validates :status, inclusion: { in: STATUSES }, length: { maximum: 255 }
-
-      has_many :signals,
-        -> { order(created_at: :asc) },
-        foreign_key: 'publisher_id',
-        class_name: "Outboxer::Models::Signal",
-        dependent: :destroy
     end
   end
 end
