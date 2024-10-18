@@ -230,7 +230,7 @@ module Outboxer
         "in #{(time.now.utc - dequeued_at).round(3)}s"
       exception.backtrace.each { |frame| logger.fatal frame }
 
-      terminate
+      @status = Status::TERMINATING
     end
   end
 end
