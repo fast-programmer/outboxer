@@ -15,6 +15,29 @@ module Outboxer
 
       let!(:queued_message) { create(:outboxer_message, :queued) }
 
+      context 'when TTIN signal sent' do
+        it 'dumps stack trace' do
+          publish_thread = Thread.new do
+            Outboxer::Publisher.publish(
+              batch_size: batch_size,
+              poll_interval: poll_interval,
+              tick_interval: tick_interval,
+              logger: logger, kernel: kernel
+            ) do |_message|
+              ::Process.kill('TTIN', ::Process.pid)
+            end
+          end
+
+          sleep 1
+
+          ::Process.kill('TERM', ::Process.pid)
+
+          publish_thread.join
+
+          expect(logger).to have_received(:info).with(a_string_including('backtrace')).at_least(:once)
+        end
+      end
+
       context 'when stopped and resumed during message publishing' do
         it 'stops and resumes the publishing process correctly' do
           publish_thread = Thread.new do
