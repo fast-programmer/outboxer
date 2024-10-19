@@ -15,8 +15,8 @@ module Outboxer
 
       let!(:queued_message) { create(:outboxer_message, :queued) }
 
-      context 'when paused and resumed during message publishing' do
-        it 'pauses and resumes the publishing process correctly' do
+      context 'when TTIN signal sent' do
+        it 'dumps stack trace' do
           publish_thread = Thread.new do
             Outboxer::Publisher.publish(
               batch_size: batch_size,
@@ -24,15 +24,38 @@ module Outboxer
               tick_interval: tick_interval,
               logger: logger, kernel: kernel
             ) do |_message|
-              Outboxer::Publisher.pause
+              ::Process.kill('TTIN', ::Process.pid)
+            end
+          end
+
+          sleep 1
+
+          ::Process.kill('TERM', ::Process.pid)
+
+          publish_thread.join
+
+          expect(logger).to have_received(:info).with(a_string_including('backtrace')).at_least(:once)
+        end
+      end
+
+      context 'when stopped and resumed during message publishing' do
+        it 'stops and resumes the publishing process correctly' do
+          publish_thread = Thread.new do
+            Outboxer::Publisher.publish(
+              batch_size: batch_size,
+              poll_interval: poll_interval,
+              tick_interval: tick_interval,
+              logger: logger, kernel: kernel
+            ) do |_message|
+              ::Process.kill('TSTP', ::Process.pid)
             end
           end
           sleep 2
 
-          Outboxer::Publisher.resume
+          ::Process.kill('CONT', ::Process.pid)
           sleep 1
 
-          Outboxer::Publisher.terminate
+          ::Process.kill('TERM', ::Process.pid)
 
           publish_thread.join
         end
@@ -52,7 +75,7 @@ module Outboxer
             expect(message[:messageable_id]).to eq(queued_message.messageable_id)
             expect(message[:status]).to eq(Models::Message::Status::PUBLISHING)
 
-            Publisher.terminate
+            ::Process.kill('TERM', ::Process.pid)
           end
 
           expect(Models::Message.published.count).to eq(1)
@@ -71,7 +94,7 @@ module Outboxer
               logger: logger,
               kernel: kernel
             ) do |message|
-              Publisher.terminate
+              ::Process.kill('TERM', ::Process.pid)
 
               raise standard_error
             end
@@ -156,7 +179,7 @@ module Outboxer
               when 1
                 raise StandardError, 'queue error'
               else
-                Publisher.terminate
+                ::Process.kill('TERM', ::Process.pid)
 
                 []
               end
