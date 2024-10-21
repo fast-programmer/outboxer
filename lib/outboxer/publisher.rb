@@ -6,7 +6,13 @@ module Outboxer
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           publisher = Models::Publisher.create!(
-            key: key, status: Status::PUBLISHING, info: {},
+            key: key, status: Status::PUBLISHING, info: {
+              'throughput' => 0,
+              'latency' => 0,
+              'cpu' => 0,
+              'rss ' => 0,
+              'rtt' => 0
+            },
             created_at: current_time, updated_at: current_time)
 
           @status = Status::PUBLISHING
@@ -146,9 +152,56 @@ module Outboxer
       terminate(key: key)
     end
 
+    def create_heartbeat_thread(key:, heartbeat_interval:, tick_interval:, signal_read:,
+                               logger:, time:, socket:, process:, kernel:)
+      Thread.new do
+        while @status != Status::TERMINATING
+          current_time = time.now
+
+          cpu = `ps -p #{process.pid} -o %cpu`.split("\n").last.to_f
+          rss = `ps -p #{process.pid} -o rss`.split("\n").last.to_i
+
+          ActiveRecord::Base.connection_pool.with_connection do
+            ActiveRecord::Base.transaction do
+              start_rtt = process.clock_gettime(process::CLOCK_MONOTONIC)
+              publisher = Models::Publisher.lock.find_by!(key: key)
+              end_rtt = process.clock_gettime(process::CLOCK_MONOTONIC)
+              rtt = end_rtt - start_rtt
+
+              throughput = messages = Models::Message
+                .where(updated_by: key)
+                .where('updated_at >= ?', 1.second.ago)
+                .count
+
+              last_updated_message = Models::Message
+                .where(updated_by: name)
+                .order(updated_at: :desc)
+                .first
+
+              publisher.update!(
+                updated_at: current_time,
+                info: {
+                  throughput: throughput,
+                  latency: last_updated_message.nil? ? 0 : (time.now - last_updated_message.updated_at).to_i,
+                  cpu: cpu,
+                  rss: rss,
+                  rtt: rtt })
+            end
+          end
+
+          Publisher.sleep(
+            heartbeat_interval,
+            signal_read: signal_read,
+            start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
+            tick_interval: tick_interval,
+            process: process, kernel: kernel)
+        end
+      end
+    end
+
     def publish(
       batch_size: 100, concurrency: 1,
-      poll_interval: 5, tick_interval: 0.1,
+      poll_interval: 5, tick_interval: 0.1, heartbeat_interval: 5,
       logger: Logger.new($stdout, level: Logger::INFO),
       time: ::Time, socket: ::Socket, process: ::Process, kernel: ::Kernel,
       &block
@@ -172,6 +225,14 @@ module Outboxer
         &block)
 
       signal_read, _signal_write = trap_signals(id: publisher[:id])
+
+      heartbeat_thread = create_heartbeat_thread(
+        key: key,
+        heartbeat_interval: heartbeat_interval,
+        tick_interval: tick_interval,
+        signal_read: signal_read,
+        logger: logger,
+        time: time, socket: socket, process: process, kernel: kernel)
 
       loop do
         case @status
@@ -213,6 +274,7 @@ module Outboxer
 
       concurrency.times { queue.push(nil) }
       publisher_threads.each(&:join)
+      heartbeat_thread.join
 
       delete(key: key)
 

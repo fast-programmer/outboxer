@@ -17,7 +17,11 @@
                                 <th scope="col">Started</th>
                                 <th scope="col">Last Updated</th>
                                 <th scope="col">Status</th>
-                                <th scope="col">Actions</th>
+                                <th scope="col">Throughput</th>
+                                <th scope="col">Latency</th>
+                                <th scope="col">CPU</th>
+                                <th scope="col">RSS</th>
+                                <th scope="col">RTT</th>
                             </tr>
                         <% end %>
                     </thead>
@@ -28,17 +32,11 @@
                                 <td><%= time_ago_in_words(publisher.created_at) %></td>
                                 <td><%= time_ago_in_words(publisher.updated_at) %></td>
                                 <td class="text-capitalize"><%= publisher.status %></td>
-                                <td>
-                                    <a href="#" class="btn btn-sm btn-outline-success me-2" title="Continue">
-                                        <i class="bi bi-play-fill"></i>
-                                    </a>
-                                    <a href="#" class="btn btn-sm btn-outline-danger me-2" title="Stop">
-                                        <i class="bi bi-stop-fill"></i>
-                                    </a>
-                                    <a href="#" class="btn btn-sm btn-outline-warning" title="Terminate">
-                                        <i class="bi bi-exclamation-triangle-fill"></i>
-                                    </a>
-                                </td>
+                                <td><%= publisher.info['throughput'] %> /s</td>
+                                <td><%= publisher.info['latency'] %> /s</td>
+                                <td><%= publisher.info['cpu'] %>%</td>
+                                <td><%= human_readable_size(publisher.info['rss']) %></td>
+                                <td><%= (publisher.info['rtt'] * 1000).round(2) %> ms</td>
                             </tr>
                         <% end %>
                     </tbody>
