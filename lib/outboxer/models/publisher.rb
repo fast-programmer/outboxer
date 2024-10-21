@@ -3,8 +3,8 @@ module Outboxer
     class Publisher < ::ActiveRecord::Base
       self.table_name = :outboxer_publishers
 
-      validates :key, presence: true, length: { maximum: 279 }
-      # 255 (hostname) + 1 (colon) + 10 (PID) + 1 (colon) + 12 (unique ID) = 279 characters
+      validates :name, presence: true, length: { maximum: 263 }
+      # 255 (hostname) + 1 (colon) + 7 (pid)
 
       module Status
         PUBLISHING = 'publishing'
