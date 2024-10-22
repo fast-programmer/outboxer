@@ -2,6 +2,14 @@ module Outboxer
   module Publisher
     extend self
 
+    class Error < StandardError; end
+
+    class NotFound < Error
+      def initialize(id:)
+        super("Couldn't find Outboxer::Models::Publisher with 'id'=#{id}")
+      end
+    end
+
     def create(name:, current_time: Time.now)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
@@ -28,21 +36,30 @@ module Outboxer
       end
     end
 
-    def delete(name:, current_time: Time.now)
+    def delete(id:, current_time: Time.now)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          publisher = Models::Publisher.lock.find_by!(name: name)
-          publisher.destroy!
+          begin
+            publisher = Models::Publisher.lock.find_by!(id: id)
+            publisher.destroy!
+          rescue ActiveRecord::RecordNotFound
+            # no op
+          end
         end
       end
     end
 
     Status = Models::Publisher::Status
 
-    def stop(name:, current_time: Time.now)
+    def stop(id:, current_time: Time.now)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          publisher = Models::Publisher.lock.find_by!(name: name)
+          begin
+            publisher = Models::Publisher.lock.find(id)
+          rescue ActiveRecord::RecordNotFound => error
+            raise NotFound.new(id: id), cause: error
+          end
+
           publisher.update!(status: Status::STOPPED, updated_at: current_time)
 
           @status = Status::STOPPED
@@ -50,10 +67,15 @@ module Outboxer
       end
     end
 
-    def continue(name:, current_time: Time.now)
+    def continue(id:, current_time: Time.now)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          publisher = Models::Publisher.lock.find_by!(name: name)
+          begin
+            publisher = Models::Publisher.lock.find(id)
+          rescue ActiveRecord::RecordNotFound => error
+            raise NotFound.new(id: id), cause: error
+          end
+
           publisher.update!(status: Status::PUBLISHING, updated_at: current_time)
 
           @status = Status::PUBLISHING
@@ -61,13 +83,17 @@ module Outboxer
       end
     end
 
-    def terminate(name:, current_time: Time.now)
+    def terminate(id:, current_time: Time.now)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          publisher = Models::Publisher.lock.find_by!(name: name)
-          publisher.update!(status: Status::TERMINATING, updated_at: current_time)
+          begin
+            publisher = Models::Publisher.lock.find(id)
+            publisher.update!(status: Status::TERMINATING, updated_at: current_time)
 
-          @status = Status::TERMINATING
+            @status = Status::TERMINATING
+          rescue ActiveRecord::RecordNotFound
+            @status = Status::TERMINATING
+          end
         end
       end
     end
@@ -86,9 +112,7 @@ module Outboxer
     def trap_signals(id:)
       signal_read, signal_write = IO.pipe
 
-      signal_names = %w[TTIN TSTP CONT INT TERM]
-
-      signal_names.each do |signal_name|
+      %w[TTIN TSTP CONT INT TERM].each do |signal_name|
         old_handler = Signal.trap(signal_name) do
           if old_handler.respond_to?(:call)
             old_handler.call
@@ -101,14 +125,14 @@ module Outboxer
       [signal_read, signal_write]
     end
 
-    def create_publisher_threads(name:, queue:, concurrency:, logger:, time:, kernel:, &block)
+    def create_publisher_threads(id:, queue:, concurrency:, logger:, time:, kernel:, &block)
       concurrency.times.map do
         Thread.new do
           while (message = queue.pop)
             break if message.nil?
 
             publish_message(
-              name: name,
+              id: id,
               dequeued_message: message,
               logger: logger, time: time, kernel: kernel, &block)
           end
@@ -116,7 +140,7 @@ module Outboxer
       end
     end
 
-    def dequeue_messages(name:, queue:, batch_size:,
+    def dequeue_messages(id:, queue:, batch_size:,
                          poll_interval:, tick_interval:,
                          signal_read:, logger:, process:, kernel:)
       dequeue_limit = batch_size - queue.size
@@ -149,52 +173,78 @@ module Outboxer
       logger.fatal "#{exception.class}: #{exception.message}"
       exception.backtrace.each { |frame| logger.fatal frame }
 
-      terminate(name: name)
+      terminate(id: id)
     end
 
-    def create_heartbeat_thread(name:, heartbeat_interval:, tick_interval:, signal_read:,
-                               logger:, time:, socket:, process:, kernel:)
+    def create_heartbeat_thread(id:, name:,
+                                heartbeat_interval:, tick_interval:, signal_read:,
+                                logger:, time:, socket:, process:, kernel:)
       Thread.new do
         while @status != Status::TERMINATING
-          current_time = time.now
+          begin
+            current_time = time.now
 
-          cpu = `ps -p #{process.pid} -o %cpu`.split("\n").last.to_f
-          rss = `ps -p #{process.pid} -o rss`.split("\n").last.to_i
+            cpu = `ps -p #{process.pid} -o %cpu`.split("\n").last.to_f
+            rss = `ps -p #{process.pid} -o rss`.split("\n").last.to_i
 
-          ActiveRecord::Base.connection_pool.with_connection do
-            ActiveRecord::Base.transaction do
-              start_rtt = process.clock_gettime(process::CLOCK_MONOTONIC)
-              publisher = Models::Publisher.lock.find_by!(name: name)
-              end_rtt = process.clock_gettime(process::CLOCK_MONOTONIC)
-              rtt = end_rtt - start_rtt
+            ActiveRecord::Base.connection_pool.with_connection do
+              ActiveRecord::Base.transaction do
+                start_rtt = process.clock_gettime(process::CLOCK_MONOTONIC)
 
-              throughput = messages = Models::Message
-                .where(updated_by: name)
-                .where('updated_at >= ?', 1.second.ago)
-                .count
+                begin
+                  publisher = Models::Publisher.lock.find(id)
+                rescue ActiveRecord::RecordNotFound => error
+                  raise NotFound.new(id: id), cause: error
+                end
 
-              last_updated_message = Models::Message
-                .where(updated_by: name)
-                .order(updated_at: :desc)
-                .first
+                end_rtt = process.clock_gettime(process::CLOCK_MONOTONIC)
+                rtt = end_rtt - start_rtt
 
-              publisher.update!(
-                updated_at: current_time,
-                info: {
-                  throughput: throughput,
-                  latency: last_updated_message.nil? ? 0 : (time.now - last_updated_message.updated_at).to_i,
-                  cpu: cpu,
-                  rss: rss,
-                  rtt: rtt })
+                throughput = messages = Models::Message
+                  .where(updated_by: name)
+                  .where('updated_at >= ?', 1.second.ago)
+                  .count
+
+                last_updated_message = Models::Message
+                  .where(updated_by: name)
+                  .order(updated_at: :desc)
+                  .first
+
+                publisher.update!(
+                  updated_at: current_time,
+                  info: {
+                    throughput: throughput,
+                    latency: last_updated_message.nil? ? 0 : (time.now - last_updated_message.updated_at).to_i,
+                    cpu: cpu,
+                    rss: rss,
+                    rtt: rtt } )
+              end
             end
-          end
 
-          Publisher.sleep(
-            heartbeat_interval,
-            signal_read: signal_read,
-            start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
-            tick_interval: tick_interval,
-            process: process, kernel: kernel)
+            Publisher.sleep(
+              heartbeat_interval,
+              signal_read: signal_read,
+              start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
+              tick_interval: tick_interval,
+              process: process, kernel: kernel)
+
+          rescue StandardError => e
+            logger.error(e.message)
+            logger.error(e.backtrace.join("\n"))
+
+            Publisher.sleep(
+              heartbeat_interval,
+              signal_read: signal_read,
+              start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
+              tick_interval: tick_interval,
+              process: process, kernel: kernel)
+
+          rescue NotFound, Exception => e
+            logger.fatal(e.message)
+            logger.fatal(e.backtrace.join("\n"))
+
+            terminate(id: id)
+          end
         end
       end
     end
@@ -213,20 +263,21 @@ module Outboxer
       queue = Queue.new
 
       publisher = create(name: name)
+      id = publisher[:id]
 
       logger.info "Outboxer config {"\
         " batch_size: #{batch_size}, concurrency: #{concurrency},"\
         " poll_interval: #{poll_interval}, tick_interval: #{tick_interval} }"\
 
       publisher_threads = create_publisher_threads(
-        name: name, queue: queue, concurrency: concurrency,
+        id: id, queue: queue, concurrency: concurrency,
         logger: logger, time: time, kernel: kernel,
         &block)
 
       signal_read, _signal_write = trap_signals(id: publisher[:id])
 
       heartbeat_thread = create_heartbeat_thread(
-        name: name,
+        id: id, name: name,
         heartbeat_interval: heartbeat_interval,
         tick_interval: tick_interval,
         signal_read: signal_read,
@@ -237,7 +288,7 @@ module Outboxer
         case @status
         when Status::PUBLISHING
           dequeue_messages(
-            name: name,
+            id: id,
             queue: queue, batch_size: batch_size,
             poll_interval: poll_interval, tick_interval:,
             signal_read: signal_read, logger: logger, process: process, kernel: kernel)
@@ -260,11 +311,25 @@ module Outboxer
               logger.info thread.backtrace.join("\n") if thread.backtrace
             end
           when 'TSTP'
-            stop(name: name)
+            begin
+              stop(id: id)
+            rescue NotFound => e
+              logger.fatal(e.message)
+              logger.fatal(e.backtrace.join("\n"))
+
+              terminate(id: id)
+            end
           when 'CONT'
-            continue(name: name)
+            begin
+              continue(id: id)
+            rescue NotFound => e
+              logger.fatal(e.message)
+              logger.fatal(e.backtrace.join("\n"))
+
+              terminate(id: id)
+            end
           when 'INT', 'TERM'
-            terminate(name: name)
+            terminate(id: id)
           end
         end
       end
@@ -275,12 +340,12 @@ module Outboxer
       publisher_threads.each(&:join)
       heartbeat_thread.join
 
-      delete(name: name)
+      delete(id: id)
 
       logger.info "Outboxer terminated"
     end
 
-    def publish_message(name:, dequeued_message:, logger:, time:, kernel:, &block)
+    def publish_message(id:, dequeued_message:, logger:, time:, kernel:, &block)
       dequeued_at = dequeued_message[:updated_at]
 
       message = Message.publishing(id: dequeued_message[:id])
@@ -312,7 +377,7 @@ module Outboxer
         "in #{(time.now.utc - dequeued_at).round(3)}s"
       exception.backtrace.each { |frame| logger.fatal frame }
 
-      terminate(name: name)
+      terminate(id: id)
     end
   end
 end

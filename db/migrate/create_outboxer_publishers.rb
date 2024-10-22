@@ -11,8 +11,6 @@ class CreateOutboxerPublishers < ActiveRecord::Migration[6.1]
 
         t.timestamps
       end
-
-      add_index :outboxer_publishers, :name, unique: true
     end
   end
 

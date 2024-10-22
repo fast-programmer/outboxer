@@ -29,20 +29,22 @@ logger.level = Logger.const_get(options[:log_level].upcase)
 
 Outboxer::Database.connect(config: db_config, logger: logger)
 
-Outboxer::Publisher.publish(
-  batch_size: options[:batch_size],
-  concurrency: options[:concurrency],
-  poll_interval: options[:poll_interval],
-  tick_interval: options[:tick_interval],
-  heartbeat_interval: options[:heartbeat_interval],
-  logger: logger
-) do |message|
-  case message[:messageable_type]
-  when 'Event'
-    EventCreatedJob.perform_async({ 'id' => message[:messageable_id] })
+begin
+  Outboxer::Publisher.publish(
+    batch_size: options[:batch_size],
+    concurrency: options[:concurrency],
+    poll_interval: options[:poll_interval],
+    tick_interval: options[:tick_interval],
+    heartbeat_interval: options[:heartbeat_interval],
+    logger: logger
+  ) do |message|
+    case message[:messageable_type]
+    when 'Event'
+      EventCreatedJob.perform_async({ 'id' => message[:messageable_id] })
+    end
   end
+ensure
+  Outboxer::Database.disconnect(logger: logger)
 end
-
-Outboxer::Database.disconnect(logger: logger)
 
 # bin/outboxer_publisher
