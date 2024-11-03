@@ -1,6 +1,12 @@
-- warning_type: Command Injection
-  file: lib/outboxer/publisher.rb
-  line: 187
-- warning_type: Command Injection
-  file: lib/outboxer/publisher.rb
-  line: 188
+[
+  {
+    "warning_type": "Command Injection",
+    "file": "lib/outboxer/publisher.rb",
+    "line": 187
+  },
+  {
+    "warning_type": "Command Injection",
+    "file": "lib/outboxer/publisher.rb",
+    "line": 188
+  }
+]
