@@ -1,11 +1,13 @@
 {
   "ignored_warnings": [
     {
+      "fingerprint": "1c5ef0e65c33f7623a6ee8ad25776d3ff04ad14854fd09191147088740c4afb1",
       "warning_type": "Command Injection",
       "file": "lib/outboxer/publisher.rb",
       "line": 187
     },
     {
+      "fingerprint": "df8ee41d7c5028a1429c07753f227d3a6d50128f04364d957988e9a60863b375",
       "warning_type": "Command Injection",
       "file": "lib/outboxer/publisher.rb",
       "line": 188
