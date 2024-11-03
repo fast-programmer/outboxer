@@ -219,7 +219,7 @@ module Outboxer
                 signal = publisher.signals.order(created_at: :asc).first
 
                 if !signal.nil?
-                  handle_signal(id: id, name: signal.name)
+                  handle_signal(id: id, name: signal.name, logger: logger)
                   signal.destroy
                 end
 
@@ -275,7 +275,7 @@ module Outboxer
       end
     end
 
-    def handle_signal(id:, name:)
+    def handle_signal(id:, name:, logger:)
       case name
       when 'TTIN'
         Thread.list.each_with_index do |thread, index|
@@ -360,7 +360,7 @@ module Outboxer
         if IO.select([signal_read], nil, nil, 0)
           signal_name = signal_read.gets.strip rescue nil
 
-          handle_signal(id: id, name: signal_name)
+          handle_signal(id: id, name: signal_name, logger: logger)
         end
       end
 
