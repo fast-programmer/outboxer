@@ -2,7 +2,8 @@ module Outboxer
   module Messages
     extend self
 
-    def dequeue(limit: 1, publisher_id: nil, publisher_name: nil, current_utc_time: Time.now.utc)
+    def dequeue(limit: 1, publisher_id: nil, publisher_name: nil,
+                current_utc_time: Time.now.utc)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           messages = Models::Message
