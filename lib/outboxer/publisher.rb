@@ -41,6 +41,7 @@ module Outboxer
         ActiveRecord::Base.transaction do
           begin
             publisher = Models::Publisher.lock.find_by!(id: id)
+            publisher.signals.destroy_all
             publisher.destroy!
           rescue ActiveRecord::RecordNotFound
             # no op
