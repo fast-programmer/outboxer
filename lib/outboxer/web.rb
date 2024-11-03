@@ -6,19 +6,7 @@ require 'kaminari'
 require 'uri'
 require 'rack/flash'
 
-require 'i18n'
-require 'active_support/locale/en'
 require 'action_view'
-# require 'action_view/helpers/date_helper'
-
-I18n.load_path += Dir[File.join(Gem.loaded_specs['activesupport'].full_gem_path, 'lib', 'active_support', 'locale', '*.yml')]
-# I18n.load_path += Dir[File.expand_path('active_support/locale/en.yml', __dir__)]
-I18n.backend.load_translations
-I18n.default_locale = :en
-I18n.enforce_available_locales = true
-I18n.backend.reload!
-
-require 'pry-byebug'
 
 environment = ENV['APP_ENV'] || 'development'
 config = Outboxer::Database.config(environment: environment, pool: 5)
