@@ -12,6 +12,7 @@ options = {
   concurrency: ENV.fetch('OUTBOXER_CONCURRENCY', 1).to_i,
   poll_interval: ENV.fetch('OUTBOXER_POLL_INTERVAL', 10).to_f,
   tick_interval: ENV.fetch('OUTBOXER_TICK_INTERVAL', 0.1).to_f,
+  heartbeat_interval: ENV.fetch('OUTBOXER_HEARTBEAT_INTERVAL', 5).to_f,
   log_level: ENV.fetch('OUTBOXER_LOG_LEVEL', 'info').downcase,
   sidekiq_redis_url: ENV.fetch('SIDEKIQ_REDIS_URL', 'redis://localhost:6379/0')
 }
@@ -28,19 +29,22 @@ logger.level = Logger.const_get(options[:log_level].upcase)
 
 Outboxer::Database.connect(config: db_config, logger: logger)
 
-Outboxer::Publisher.publish(
-  batch_size: options[:batch_size],
-  concurrency: options[:concurrency],
-  poll_interval: options[:poll_interval],
-  tick_interval: options[:tick_interval],
-  logger: logger
-) do |message|
-  case message[:messageable_type]
-  when 'Event'
-    EventCreatedJob.perform_async({ 'id' => message[:messageable_id] })
+begin
+  Outboxer::Publisher.publish(
+    batch_size: options[:batch_size],
+    concurrency: options[:concurrency],
+    poll_interval: options[:poll_interval],
+    tick_interval: options[:tick_interval],
+    heartbeat_interval: options[:heartbeat_interval],
+    logger: logger
+  ) do |message|
+    case message[:messageable_type]
+    when 'Event'
+      EventCreatedJob.perform_async({ 'id' => message[:messageable_id] })
+    end
   end
+ensure
+  Outboxer::Database.disconnect(logger: logger)
 end
-
-Outboxer::Database.disconnect(logger: logger)
 
 # bin/outboxer_publisher

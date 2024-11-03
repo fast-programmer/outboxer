@@ -6,7 +6,7 @@ require 'kaminari'
 require 'uri'
 require 'rack/flash'
 
-require 'pry-byebug'
+require 'action_view'
 
 environment = ENV['APP_ENV'] || 'development'
 config = Outboxer::Database.config(environment: environment, pool: 5)
@@ -20,6 +20,8 @@ module Outboxer
     set :show_exceptions, false
 
     helpers do
+      include ActionView::Helpers::DateHelper
+
       def outboxer_path(path)
         "#{request.script_name}#{path}"
       end
@@ -35,42 +37,6 @@ module Outboxer
         end
 
         "#{size.round(2)} #{unit}"
-      end
-
-      def time_in_words(from_time, to_time = Time.now)
-        seconds_diff = (to_time - from_time).to_i
-
-        case seconds_diff
-        when 0..59
-          "#{seconds_diff} #{'second'.pluralize(seconds_diff)}"
-        when 60..3599
-          minutes = seconds_diff / 60
-          "#{minutes} #{'minute'.pluralize(minutes)}"
-        when 3600..86399
-          hours = seconds_diff / 3600
-          "#{hours} #{'hour'.pluralize(hours)}"
-        else
-          days = seconds_diff / 86400
-          "#{days} #{'day'.pluralize(days)} ago"
-        end
-      end
-
-      def time_ago_in_words(from_time, to_time = Time.now)
-        seconds_diff = (to_time - from_time).to_i
-
-        case seconds_diff
-        when 0..59
-          "#{seconds_diff} #{'second'.pluralize(seconds_diff)} ago"
-        when 60..3599
-          minutes = seconds_diff / 60
-          "#{minutes} #{'minute'.pluralize(minutes)} ago"
-        when 3600..86399
-          hours = seconds_diff / 3600
-          "#{hours} #{'hour'.pluralize(hours)} ago"
-        else
-          days = seconds_diff / 86400
-          "#{days} #{'day'.pluralize(days)} ago"
-        end
       end
     end
 
@@ -583,6 +549,30 @@ module Outboxer
       flash[:primary] = "Message #{params[:id]} was deleted"
 
       redirect to("/messages#{normalised_query_string}")
+    end
+
+    post '/publisher/:id/delete' do
+      denormalised_query_params = denormalise_query_params(
+        status: params[:status],
+        sort: params[:sort],
+        order: params[:order],
+        page: params[:page],
+        per_page: params[:per_page],
+        time_zone: params[:time_zone])
+
+      normalised_query_string = normalise_query_string(
+        status: denormalised_query_params[:status],
+        sort: denormalised_query_params[:sort],
+        order: denormalised_query_params[:order],
+        page: denormalised_query_params[:page],
+        per_page: denormalised_query_params[:per_page],
+        time_zone: denormalised_query_params[:time_zone])
+
+      Publisher.delete(id: params[:id])
+
+      flash[:primary] = "Publisher #{params[:id]} was deleted"
+
+      redirect to("#{normalised_query_string}")
     end
   end
 end
