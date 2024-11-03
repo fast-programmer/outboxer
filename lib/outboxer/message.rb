@@ -107,7 +107,7 @@ module Outboxer
     end
 
     def failed(id:, exception:, current_utc_time: Time.now.utc,
-      hostname: Socket.gethostname, process_id: Process.pid)
+               hostname: Socket.gethostname, process_id: Process.pid)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           message = Models::Message.order(created_at: :asc).lock.find_by!(id: id)

@@ -22,21 +22,35 @@
                                 <th scope="col">CPU</th>
                                 <th scope="col">RSS</th>
                                 <th scope="col">RTT</th>
+                                <th scope="col">Action</th> <!-- New Action column -->
                             </tr>
                         <% end %>
                     </thead>
                     <tbody>
                         <% publishers.each do |publisher| %>
                             <tr>
-                                <td class="dynamic-name-column"><%= publisher.name %></td> <!-- Dynamic width for Name -->
-                                <td><%= time_ago_in_words(publisher.created_at) %></td>
-                                <td><%= time_ago_in_words(publisher.updated_at) %></td>
+                                <td class="dynamic-name-column">
+                                    <%= publisher.name %>
+                                </td>
+                                <td><%= time_ago_in_words(publisher.created_at) %> ago</td>
+                                <td><%= time_ago_in_words(publisher.updated_at) %> ago</td>
                                 <td class="text-capitalize"><%= publisher.status %></td>
-                                <td><%= publisher.info['throughput'] %> /s</td>
-                                <td><%= publisher.info['latency'] %> /s</td>
+                                <td><%= publisher.info['throughput'] %></td>
+                                <td><%= publisher.info['latency'] %></td>
                                 <td><%= publisher.info['cpu'] %>%</td>
                                 <td><%= human_readable_size(publisher.info['rss']) %></td>
                                 <td><%= (publisher.info['rtt'] * 1000).round(2) %> ms</td>
+                                <td> <!-- Action column -->
+                                    <form action="<%= outboxer_path("/publisher/#{publisher[:id]}/delete") %>" method="post">
+                                        <% normalised_query_params.each do |key, param| %>
+                                            <input type="hidden" name="<%= key %>" value="<%= param %>">
+                                        <% end %>
+                                        <button type="submit" class="btn btn-sm btn-outline-danger d-flex align-items-center justify-content-center">
+                                            <i class="bi bi-trash me-1"></i>
+                                            <span>Delete</span>
+                                        </button>
+                                    </form>
+                                </td>
                             </tr>
                         <% end %>
                     </tbody>
