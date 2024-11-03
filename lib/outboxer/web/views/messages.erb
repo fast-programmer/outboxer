@@ -132,7 +132,7 @@
                                         <%= message[:updated_at] %>
                                     </td>
                                     <td>
-                                        <%= message[:updated_by] %>
+                                        <%= message[:updated_by_publisher_name].presence || '-' %>
                                     </td>
                                     <td>
                                         <!-- Action buttons -->

@@ -6,14 +6,13 @@ module Outboxer
 
     def queue(messageable: nil,
               messageable_type: nil, messageable_id: nil,
-              publisher_id: nil, publisher_name: nil,
               current_utc_time: Time.now.utc)
       message = Models::Message.create!(
         messageable_id: messageable&.id || messageable_id,
         messageable_type: messageable&.class&.name || messageable_type,
         status: Models::Message::Status::QUEUED,
-        updated_by_publisher_id: publisher_id,
-        updated_by_publisher_name: publisher_name,
+        updated_by_publisher_id: nil,
+        updated_by_publisher_name: nil,
         created_at: current_utc_time,
         updated_at: current_utc_time)
 

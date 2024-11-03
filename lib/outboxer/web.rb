@@ -162,7 +162,7 @@ module Outboxer
       messageable: 'Messageable',
       created_at: 'Created At',
       updated_at: 'Updated At',
-      updated_by: 'Updated By',
+      updated_by_publisher_name: 'Updated By',
     }
 
     def generate_pagination(current_page:, total_pages:, denormalised_query_params:)

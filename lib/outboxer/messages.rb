@@ -37,7 +37,7 @@ module Outboxer
     LIST_STATUS_OPTIONS = [nil, :queued, :dequeued, :publishing, :published, :failed]
     LIST_STATUS_DEFAULT = nil
 
-    LIST_SORT_OPTIONS = [:id, :status, :messageable, :created_at, :updated_at, :updated_by]
+    LIST_SORT_OPTIONS = [:id, :status, :messageable, :created_at, :updated_at, :updated_by_publisher_name]
     LIST_SORT_DEFAULT = :updated_at
 
     LIST_ORDER_OPTIONS = [:asc, :desc]
@@ -83,7 +83,8 @@ module Outboxer
       message_scope = status.nil? ? message_scope.all : message_scope.where(status: status)
 
       message_scope =
-        if sort.to_sym == :messageable
+        case sort.to_sym
+        when :messageable
           message_scope.order(messageable_type: order, messageable_id: order)
         else
           message_scope.order(sort => order)
