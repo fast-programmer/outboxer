@@ -125,28 +125,31 @@ module Outboxer
       [signal_read, signal_write]
     end
 
-    def create_publisher_threads(id:, queue:, concurrency:, logger:, time:, kernel:, &block)
+    def create_publisher_threads(id:, name:,
+                                 queue:, concurrency:,
+                                 logger:, time:, kernel:, &block)
       concurrency.times.map do
         Thread.new do
           while (message = queue.pop)
             break if message.nil?
 
             publish_message(
-              id: id,
-              dequeued_message: message,
+              id: id, name: name, dequeued_message: message,
               logger: logger, time: time, kernel: kernel, &block)
           end
         end
       end
     end
 
-    def dequeue_messages(id:, queue:, batch_size:,
+    def dequeue_messages(id:, name:,
+                         queue:, batch_size:,
                          poll_interval:, tick_interval:,
                          signal_read:, logger:, process:, kernel:)
       dequeue_limit = batch_size - queue.size
 
       if dequeue_limit > 0
-        dequeued_messages = Messages.dequeue(limit: dequeue_limit)
+        dequeued_messages = Messages.dequeue(
+          limit: dequeue_limit, publisher_id: id, publisher_name: name)
 
         if dequeued_messages.count > 0
           dequeued_messages.each { |message| queue.push(message) }
@@ -201,12 +204,12 @@ module Outboxer
                 rtt = end_rtt - start_rtt
 
                 throughput = messages = Models::Message
-                  .where(updated_by: name)
+                  .where(updated_by_publisher_id: id)
                   .where('updated_at >= ?', 1.second.ago)
                   .count
 
                 last_updated_message = Models::Message
-                  .where(updated_by: name)
+                  .where(updated_by_publisher_id: id)
                   .order(updated_at: :desc)
                   .first
 
@@ -270,7 +273,7 @@ module Outboxer
         " poll_interval: #{poll_interval}, tick_interval: #{tick_interval} }"\
 
       publisher_threads = create_publisher_threads(
-        id: id, queue: queue, concurrency: concurrency,
+        id: id, name: name, queue: queue, concurrency: concurrency,
         logger: logger, time: time, kernel: kernel,
         &block)
 
@@ -288,7 +291,7 @@ module Outboxer
         case @status
         when Status::PUBLISHING
           dequeue_messages(
-            id: id,
+            id: id, name: name,
             queue: queue, batch_size: batch_size,
             poll_interval: poll_interval, tick_interval:,
             signal_read: signal_read, logger: logger, process: process, kernel: kernel)
@@ -345,10 +348,12 @@ module Outboxer
       logger.info "Outboxer terminated"
     end
 
-    def publish_message(id:, dequeued_message:, logger:, time:, kernel:, &block)
+    def publish_message(id:, name:, dequeued_message:, logger:, time:, kernel:, &block)
       dequeued_at = dequeued_message[:updated_at]
 
-      message = Message.publishing(id: dequeued_message[:id])
+      message = Message.publishing(
+        id: dequeued_message[:id], publisher_id: id, publisher_name: name)
+
       logger.debug "Outboxer publishing message #{message[:id]} for "\
         "#{message[:messageable_type]}::#{message[:messageable_id]} "\
         "in #{(time.now.utc - dequeued_at).round(3)}s"
@@ -356,7 +361,7 @@ module Outboxer
       begin
         block.call(message)
       rescue Exception => exception
-        Message.failed(id: message[:id], exception: exception)
+        Message.failed(id: message[:id], exception: exception, publisher_id: id, publisher_name: name)
         logger.error "Outboxer failed to publish message #{message[:id]} for "\
           "#{message[:messageable_type]}::#{message[:messageable_id]} "\
           "in #{(time.now.utc - dequeued_at).round(3)}s"
@@ -364,7 +369,7 @@ module Outboxer
         raise
       end
 
-      Message.published(id: message[:id])
+      Message.published(id: message[:id], publisher_id: id, publisher_name: name)
       logger.debug "Outboxer published message #{message[:id]} for "\
         "#{message[:messageable_type]}::#{message[:messageable_id]} "\
         "in #{(time.now.utc - dequeued_at).round(3)}s"

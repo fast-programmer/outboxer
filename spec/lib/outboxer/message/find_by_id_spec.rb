@@ -4,7 +4,11 @@ module Outboxer
   RSpec.describe Message do
     describe '.find_by_id' do
       context 'when a failed message exists' do
-        let!(:message) { create(:outboxer_message, :failed) }
+        let!(:message) do
+          create(:outboxer_message, :failed,
+            updated_by_publisher_id: 666,
+            updated_by_publisher_name: 'server-01:47000')
+        end
         let!(:exception) { create(:outboxer_exception, message: message) }
         let!(:frame) { create(:outboxer_frame, exception: exception) }
 
@@ -15,6 +19,8 @@ module Outboxer
           expect(result[:status]).to eq('failed')
           expect(result[:created_at]).to eq(message.created_at.utc)
           expect(result[:updated_at]).to eq(message.updated_at.utc)
+          expect(result[:updated_by_publisher_id]).to eq(message.updated_by_publisher_id)
+          expect(result[:updated_by_publisher_name]).to eq(message.updated_by_publisher_name)
           expect(result[:exceptions].first[:id]).to eq(exception.id)
           expect(result[:exceptions].first[:class_name]).to eq(exception.class_name)
           expect(result[:exceptions].first[:message_text]).to eq(exception.message_text)

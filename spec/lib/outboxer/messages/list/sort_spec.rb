@@ -28,7 +28,7 @@ module Outboxer
           expect do
             Messages.list(sort: :invalid)
           end.to raise_error(
-            ArgumentError, "sort must be id status messageable created_at updated_at updated_by")
+            ArgumentError, "sort must be id status messageable created_at updated_at updated_by_publisher_name")
         end
       end
 

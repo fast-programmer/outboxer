@@ -4,7 +4,8 @@ FactoryBot.define do
     messageable_id { 1 }
     status { Outboxer::Models::Message::Status::QUEUED }
     created_at { 1.day.ago }
-    updated_by { 'server-01:47000' }
+    updated_by_publisher_id { 5 }
+    updated_by_publisher_name { 'server-01:47000' }
 
     trait :queued do
       status { Outboxer::Models::Message::Status::QUEUED }
