@@ -3,6 +3,9 @@ module Outboxer
     class Publisher < ::ActiveRecord::Base
       self.table_name = :outboxer_publishers
 
+      has_many :signals, class_name: 'Outboxer::Models::Signal',
+        foreign_key: 'publisher_id', dependent: :destroy
+
       validates :name, presence: true, length: { maximum: 263 }
       # 255 (hostname) + 1 (colon) + 7 (pid)
 

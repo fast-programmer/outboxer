@@ -41,10 +41,39 @@
                                 <td><%= human_readable_size(publisher.info['rss']) %></td>
                                 <td><%= (publisher.info['rtt'] * 1000).round(2) %> ms</td>
                                 <td> <!-- Action column -->
-                                    <form action="<%= outboxer_path("/publisher/#{publisher[:id]}/delete") %>" method="post">
-                                        <% normalised_query_params.each do |key, param| %>
-                                            <input type="hidden" name="<%= key %>" value="<%= param %>">
-                                        <% end %>
+                                    <!-- Pause Button -->
+                                    <form action="<%= outboxer_path("/publisher/#{publisher[:id]}/signals") %>" method="post" style="display: inline;">
+                                        <input type="hidden" name="name" value="TSTP">
+                                        <input type="hidden" name="time_zone" value="<%= params[:time_zone] %>">
+                                        <button type="submit" class="btn btn-sm btn-outline-warning d-flex align-items-center justify-content-center">
+                                            <i class="bi bi-pause-circle me-1"></i>
+                                            <span>Pause</span>
+                                        </button>
+                                    </form>
+
+                                    <!-- Resume Button -->
+                                    <form action="<%= outboxer_path("/publisher/#{publisher[:id]}/signals") %>" method="post" style="display: inline;">
+                                        <input type="hidden" name="name" value="CONT">
+                                        <input type="hidden" name="time_zone" value="<%= params[:time_zone] %>">
+                                        <button type="submit" class="btn btn-sm btn-outline-success d-flex align-items-center justify-content-center">
+                                            <i class="bi bi-play-circle me-1"></i>
+                                            <span>Resume</span>
+                                        </button>
+                                    </form>
+
+                                    <!-- Kill Button -->
+                                    <form action="<%= outboxer_path("/publisher/#{publisher[:id]}/signals") %>" method="post" style="display: inline;">
+                                        <input type="hidden" name="name" value="TERM">
+                                        <input type="hidden" name="time_zone" value="<%= params[:time_zone] %>">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger d-flex align-items-center justify-content-center">
+                                            <i class="bi bi-x-circle me-1"></i>
+                                            <span>Kill</span>
+                                        </button>
+                                    </form>
+
+                                    <!-- Delete Button -->
+                                    <form action="<%= outboxer_path("/publisher/#{publisher[:id]}/delete") %>" method="post" style="display: inline;">
+                                        <input type="hidden" name="time_zone" value="<%= params[:time_zone] %>">
                                         <button type="submit" class="btn btn-sm btn-outline-danger d-flex align-items-center justify-content-center">
                                             <i class="bi bi-trash me-1"></i>
                                             <span>Delete</span>

@@ -98,6 +98,22 @@ module Outboxer
       end
     end
 
+    def signal(id:, name:, current_utc_time: Time.now.utc)
+      ActiveRecord::Base.connection_pool.with_connection do
+        ActiveRecord::Base.transaction do
+          begin
+            publisher = Models::Publisher.lock.find(id)
+          rescue ActiveRecord::RecordNotFound => error
+            raise NotFound.new(id: id), cause: error
+          end
+
+          publisher.signals.create!(name: name, created_at: current_utc_time)
+
+          nil
+        end
+      end
+    end
+
     # :nocov:
     def sleep(duration, start_time:, tick_interval:, signal_read:, process:, kernel:)
       while (
@@ -200,6 +216,13 @@ module Outboxer
                   raise NotFound.new(id: id), cause: error
                 end
 
+                signal = publisher.signals.order(created_at: :asc).first
+
+                if !signal.nil?
+                  handle_signal(id: id, name: signal.name)
+                  signal.destroy
+                end
+
                 end_rtt = process.clock_gettime(process::CLOCK_MONOTONIC)
                 rtt = end_rtt - start_rtt
 
@@ -249,6 +272,35 @@ module Outboxer
             terminate(id: id)
           end
         end
+      end
+    end
+
+    def handle_signal(id:, name:)
+      case name
+      when 'TTIN'
+        Thread.list.each_with_index do |thread, index|
+          logger.info thread.backtrace.join("\n") if thread.backtrace
+        end
+      when 'TSTP'
+        begin
+          stop(id: id)
+        rescue NotFound => e
+          logger.fatal(e.message)
+          logger.fatal(e.backtrace.join("\n"))
+
+          terminate(id: id)
+        end
+      when 'CONT'
+        begin
+          continue(id: id)
+        rescue NotFound => e
+          logger.fatal(e.message)
+          logger.fatal(e.backtrace.join("\n"))
+
+          terminate(id: id)
+        end
+      when 'INT', 'TERM'
+        terminate(id: id)
       end
     end
 
@@ -308,32 +360,7 @@ module Outboxer
         if IO.select([signal_read], nil, nil, 0)
           signal_name = signal_read.gets.strip rescue nil
 
-          case signal_name
-          when 'TTIN'
-            Thread.list.each_with_index do |thread, index|
-              logger.info thread.backtrace.join("\n") if thread.backtrace
-            end
-          when 'TSTP'
-            begin
-              stop(id: id)
-            rescue NotFound => e
-              logger.fatal(e.message)
-              logger.fatal(e.backtrace.join("\n"))
-
-              terminate(id: id)
-            end
-          when 'CONT'
-            begin
-              continue(id: id)
-            rescue NotFound => e
-              logger.fatal(e.message)
-              logger.fatal(e.backtrace.join("\n"))
-
-              terminate(id: id)
-            end
-          when 'INT', 'TERM'
-            terminate(id: id)
-          end
+          handle_signal(id: id, name: signal_name)
         end
       end
 
