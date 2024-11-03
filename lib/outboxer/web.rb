@@ -102,7 +102,7 @@ module Outboxer
         per_page: denormalised_query_params[:per_page],
         time_zone: denormalised_query_params[:time_zone])
 
-      redirect to("/messages#{normalised_query_string}")
+      redirect to(normalised_query_string)
     end
 
     get '/messages' do
