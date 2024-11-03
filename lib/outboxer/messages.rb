@@ -2,8 +2,7 @@ module Outboxer
   module Messages
     extend self
 
-    def dequeue(limit: 1, current_utc_time: Time.now.utc,
-                hostname: Socket.gethostname, process_id: Process.pid)
+    def dequeue(limit: 1, publisher_id: nil, publisher_name: nil, current_utc_time: Time.now.utc)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           messages = Models::Message
@@ -19,7 +18,8 @@ module Outboxer
               .update_all(
                 status: Models::Message::Status::DEQUEUED,
                 updated_at: current_utc_time,
-                updated_by: "#{hostname}:#{process_id}")
+                updated_by_publisher_id: publisher_id,
+                updated_by_publisher_name: publisher_name)
           end
 
           messages.map do |message|
@@ -102,7 +102,8 @@ module Outboxer
             messageable_id: message.messageable_id,
             created_at: message.created_at.utc.in_time_zone(time_zone),
             updated_at: message.updated_at.utc.in_time_zone(time_zone),
-            updated_by: message.updated_by
+            updated_by_publisher_id: message.updated_by_publisher_id,
+            updated_by_publisher_name: message.updated_by_publisher_name
           }
         end,
         total_pages: messages.total_pages,
@@ -119,7 +120,7 @@ module Outboxer
     end
 
     def requeue_all(status:, batch_size: 100, time: Time,
-                    hostname: Socket.gethostname, process_id: Process.pid)
+                    publisher_id: nil, publisher_name: nil)
       if !can_requeue?(status: status)
         status_formatted = status.nil? ? 'nil' : status
 
@@ -146,7 +147,8 @@ module Outboxer
               .update_all(
                 status: Models::Message::Status::QUEUED,
                 updated_at: time.now.utc,
-                updated_by: "#{hostname}:#{process_id}")
+                updated_by_publisher_id: publisher_id,
+                updated_by_publisher_name: publisher_name)
 
             requeued_count += requeued_count_batch
           end
@@ -158,7 +160,7 @@ module Outboxer
       { requeued_count: requeued_count }
     end
 
-    def requeue_by_ids(ids:, time: Time, hostname: Socket.gethostname, process_id: Process.pid)
+    def requeue_by_ids(ids:, publisher_id: nil, publisher_name: nil, time: Time)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           locked_ids = Models::Message
@@ -172,7 +174,8 @@ module Outboxer
             .update_all(
               status: Models::Message::Status::QUEUED,
               updated_at: time.now.utc,
-              updated_by: "#{hostname}:#{process_id}")
+              updated_by_publisher_id: publisher_id,
+              updated_by_publisher_name: publisher_name)
 
           { requeued_count: requeued_count, not_requeued_ids: ids - locked_ids }
         end

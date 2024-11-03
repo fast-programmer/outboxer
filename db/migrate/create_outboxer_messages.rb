@@ -8,11 +8,16 @@ class CreateOutboxerMessages < ActiveRecord::Migration[6.1]
 
       t.timestamps
 
-      t.string :updated_by, limit: 255, null: false
+      t.string :updated_by_publisher_name, limit: 263
+      # 255 (hostname) + 1 (colon) + 7 (pid)
+
+      t.bigint :updated_by_publisher_id
     end
 
     add_index :outboxer_messages, :status
     add_index :outboxer_messages, [:status, :updated_at]
+
+    add_index :outboxer_messages, :updated_by_publisher_id
   end
 
   def down
