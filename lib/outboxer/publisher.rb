@@ -10,6 +10,32 @@ module Outboxer
       end
     end
 
+    def find_by_id(id:)
+      ActiveRecord::Base.connection_pool.with_connection do
+        ActiveRecord::Base.transaction do
+          publisher = Models::Publisher.includes(:signals).find_by!(id: id)
+
+          {
+            id: publisher.id,
+            name: publisher.name,
+            status: publisher.status,
+            info: publisher.info,
+            created_at: publisher.created_at.utc,
+            updated_at: publisher.updated_at.utc,
+            signals: publisher.signals.map do |signal|
+              {
+                id: signal.id,
+                name: signal.name,
+                created_at: signal.created_at.utc,
+              }
+            end
+          }
+        end
+      end
+    rescue ActiveRecord::RecordNotFound => error
+      raise NotFound.new(id: id), cause: error
+    end
+
     def create(name:, current_time: Time.now)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
