@@ -8,11 +8,11 @@ require_relative '../app/jobs/event_created_job'
 
 options = {
   env: ENV.fetch('OUTBOXER_ENV', 'development'),
-  buffer: ENV.fetch('OUTBOXER_BUFFER', 100).to_i,
-  concurrency: ENV.fetch('OUTBOXER_CONCURRENCY', 1).to_i,
-  poll: ENV.fetch('OUTBOXER_POLL', 10).to_f,
+  buffer: ENV.fetch('OUTBOXER_BUFFER', 1000).to_i,
+  concurrency: ENV.fetch('OUTBOXER_CONCURRENCY', 2).to_i,
+  poll: ENV.fetch('OUTBOXER_POLL', 5.0).to_f,
   tick: ENV.fetch('OUTBOXER_TICK', 0.1).to_f,
-  heartbeat: ENV.fetch('OUTBOXER_HEARTBEAT', 5).to_f,
+  heartbeat: ENV.fetch('OUTBOXER_HEARTBEAT', 5.0).to_f,
   log_level: ENV.fetch('OUTBOXER_LOG_LEVEL', 'info').downcase,
   sidekiq_redis_url: ENV.fetch('SIDEKIQ_REDIS_URL', 'redis://localhost:6379/0')
 }
