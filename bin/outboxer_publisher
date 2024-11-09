@@ -10,7 +10,7 @@ options = {
   env: ENV.fetch('OUTBOXER_ENV', 'development'),
   buffer: ENV.fetch('OUTBOXER_BUFFER', 100).to_i,
   concurrency: ENV.fetch('OUTBOXER_CONCURRENCY', 1).to_i,
-  poll: ENV.fetch('OUTBOXER_POLL', 10),
+  poll: ENV.fetch('OUTBOXER_POLL', 10).to_f,
   tick: ENV.fetch('OUTBOXER_TICK', 0.1).to_f,
   heartbeat: ENV.fetch('OUTBOXER_HEARTBEAT', 5).to_f,
   log_level: ENV.fetch('OUTBOXER_LOG_LEVEL', 'info').downcase,
