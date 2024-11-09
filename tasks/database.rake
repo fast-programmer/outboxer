@@ -6,8 +6,8 @@ require 'pry-byebug'
 namespace :outboxer do
   namespace :db do
     task :drop do
-      environment = ENV['OUTBOXER_ENV'] || 'development'
-      db_config = Outboxer::Database.config(environment: environment, pool: 1)
+      env = ENV['OUTBOXER_ENV'] || 'development'
+      db_config = Outboxer::Database.config(env: env, pool: 1)
 
       ActiveRecord::Base.establish_connection(db_config.merge('database' => 'postgres'))
       ActiveRecord::Base.connection.drop_database(db_config['database'])
@@ -15,8 +15,8 @@ namespace :outboxer do
     end
 
     task :create do
-      environment = ENV['OUTBOXER_ENV'] || 'development'
-      db_config = Outboxer::Database.config(environment: environment, pool: 1)
+      env = ENV['OUTBOXER_ENV'] || 'development'
+      db_config = Outboxer::Database.config(env: env, pool: 1)
 
       ActiveRecord::Base.establish_connection(db_config.merge('database' => 'postgres'))
       ActiveRecord::Base.connection.create_database(db_config['database'])
@@ -24,8 +24,8 @@ namespace :outboxer do
     end
 
     task :migrate do
-      environment = ENV['OUTBOXER_ENV'] || 'development'
-      db_config = Outboxer::Database.config(environment: environment, pool: 1)
+      env = ENV['OUTBOXER_ENV'] || 'development'
+      db_config = Outboxer::Database.config(env: env, pool: 1)
       ActiveRecord::Base.establish_connection(db_config)
 
       require_relative "../db/migrate/create_outboxer_settings"
@@ -50,8 +50,8 @@ namespace :outboxer do
     end
 
     task :seed do
-      environment = ENV['OUTBOXER_ENV'] || 'development'
-      db_config = Outboxer::Database.config(environment: environment, pool: 1)
+      env = ENV['OUTBOXER_ENV'] || 'development'
+      db_config = Outboxer::Database.config(evn: env, pool: 1)
       ActiveRecord::Base.establish_connection(db_config)
 
       require_relative "../db/seeds"
