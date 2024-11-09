@@ -116,12 +116,12 @@ module Outboxer
     end
 
     # :nocov:
-    def sleep(duration, start_time:, tick_interval:, signal_read:, process:, kernel:)
+    def sleep(duration, start_time:, tick:, signal_read:, process:, kernel:)
       while (
         (@status != Status::TERMINATING) &&
           ((process.clock_gettime(process::CLOCK_MONOTONIC) - start_time) < duration) &&
           !IO.select([signal_read], nil, nil, 0))
-        kernel.sleep(tick_interval)
+        kernel.sleep(tick)
       end
     end
     # :nocov:
@@ -161,10 +161,9 @@ module Outboxer
     end
 
     def dequeue_messages(id:, name:,
-                         queue:, batch_size:,
-                         poll_interval:, tick_interval:,
+                         queue:, buffer:, poll:, tick:,
                          signal_read:, logger:, process:, kernel:)
-      dequeue_limit = batch_size - queue.size
+      dequeue_limit = buffer - queue.size
 
       if dequeue_limit > 0
         dequeued_messages = Messages.dequeue(
@@ -174,17 +173,17 @@ module Outboxer
           dequeued_messages.each { |message| queue.push(message) }
         else
           Publisher.sleep(
-            poll_interval,
+            poll,
             start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
-            tick_interval: tick_interval,
+            tick: tick,
             signal_read: signal_read,
             process: process, kernel: kernel)
         end
       else
         Publisher.sleep(
-          tick_interval,
+          tick,
           start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
-          tick_interval: tick_interval,
+          tick: tick,
           signal_read: signal_read,
           process: process, kernel: kernel)
       end
@@ -199,7 +198,7 @@ module Outboxer
     end
 
     def create_heartbeat_thread(id:, name:,
-                                heartbeat_interval:, tick_interval:, signal_read:,
+                                heartbeat:, tick:, signal_read:,
                                 logger:, time:, socket:, process:, kernel:)
       Thread.new do
         Thread.current.name = "outboxer.heatbeat"
@@ -253,10 +252,10 @@ module Outboxer
             end
 
             Publisher.sleep(
-              heartbeat_interval,
+              heartbeat,
               signal_read: signal_read,
               start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
-              tick_interval: tick_interval,
+              tick: tick,
               process: process, kernel: kernel)
 
           rescue NotFound => e
@@ -271,10 +270,10 @@ module Outboxer
             logger.error(e.backtrace.join("\n"))
 
             Publisher.sleep(
-              heartbeat_interval,
+              heartbeat,
               signal_read: signal_read,
               start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
-              tick_interval: tick_interval,
+              tick: tick,
               process: process, kernel: kernel)
           rescue Exception => e
             logger.fatal("Thread TID-#{(Thread.object_id ^ process.pid).to_s(36)} #{Thread.current.name}")
@@ -324,8 +323,8 @@ module Outboxer
 
     def publish(
       name: "#{::Socket.gethostname}:#{::Process.pid}",
-      batch_size: 100, concurrency: 1,
-      poll_interval: 5, tick_interval: 0.1, heartbeat_interval: 5,
+      buffer: 100, concurrency: 1,
+      poll: 5, tick: 0.1, heartbeat: 5,
       logger: Logger.new($stdout, level: Logger::INFO),
       time: ::Time, socket: ::Socket, process: ::Process, kernel: ::Kernel,
       &block
@@ -341,8 +340,8 @@ module Outboxer
       id = publisher[:id]
 
       logger.info "Outboxer config {"\
-        " batch_size: #{batch_size}, concurrency: #{concurrency},"\
-        " poll_interval: #{poll_interval}, tick_interval: #{tick_interval} }"\
+        " buffer: #{buffer}, concurrency: #{concurrency},"\
+        " poll: #{poll}, tick: #{tick} }"\
 
       publisher_threads = create_publisher_threads(
         id: id, name: name, queue: queue, concurrency: concurrency,
@@ -353,8 +352,8 @@ module Outboxer
 
       heartbeat_thread = create_heartbeat_thread(
         id: id, name: name,
-        heartbeat_interval: heartbeat_interval,
-        tick_interval: tick_interval,
+        heartbeat: heartbeat,
+        tick: tick,
         signal_read: signal_read,
         logger: logger,
         time: time, socket: socket, process: process, kernel: kernel)
@@ -364,14 +363,14 @@ module Outboxer
         when Status::PUBLISHING
           dequeue_messages(
             id: id, name: name,
-            queue: queue, batch_size: batch_size,
-            poll_interval: poll_interval, tick_interval:,
+            queue: queue, buffer: buffer,
+            poll: poll, tick:,
             signal_read: signal_read, logger: logger, process: process, kernel: kernel)
         when Status::STOPPED
           Publisher.sleep(
-            tick_interval,
+            tick,
             start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
-            tick_interval: tick_interval,
+            tick: tick,
             signal_read: signal_read, process: process, kernel: kernel)
         when Status::TERMINATING
           break
