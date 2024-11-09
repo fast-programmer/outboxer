@@ -145,8 +145,10 @@ module Outboxer
     def create_publisher_threads(id:, name:,
                                  queue:, concurrency:,
                                  logger:, time:, kernel:, &block)
-      concurrency.times.map do
+      concurrency.times.each_with_index.map do |_, index|
         Thread.new do
+          Thread.current.name = "outboxer.publisher.#{index + 1}"
+
           while (message = queue.pop)
             break if message.nil?
 
@@ -200,6 +202,8 @@ module Outboxer
                                 heartbeat_interval:, tick_interval:, signal_read:,
                                 logger:, time:, socket:, process:, kernel:)
       Thread.new do
+        Thread.current.name = "outboxer.heatbeat"
+
         while @status != Status::TERMINATING
           begin
             current_time = time.now
@@ -220,7 +224,7 @@ module Outboxer
                 signal = publisher.signals.order(created_at: :asc).first
 
                 if !signal.nil?
-                  handle_signal(id: id, name: signal.name, logger: logger)
+                  handle_signal(id: id, name: signal.name, logger: logger, process: process)
                   signal.destroy
                 end
 
@@ -255,8 +259,15 @@ module Outboxer
               tick_interval: tick_interval,
               process: process, kernel: kernel)
 
+          rescue NotFound => e
+            logger.fatal("Thread TID-#{(Thread.object_id ^ process.pid).to_s(36)} #{Thread.current.name}")
+            logger.fatal("#{e.class} #{e.message}")
+            logger.fatal(e.backtrace.join("\n"))
+
+            terminate(id: id)
           rescue StandardError => e
-            logger.error(e.message)
+            logger.error("Thread TID-#{(Thread.object_id ^ process.pid).to_s(36)} #{Thread.current.name}")
+            logger.error("#{e.class} #{e.message}")
             logger.error(e.backtrace.join("\n"))
 
             Publisher.sleep(
@@ -265,9 +276,9 @@ module Outboxer
               start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
               tick_interval: tick_interval,
               process: process, kernel: kernel)
-
-          rescue NotFound, Exception => e
-            logger.fatal(e.message)
+          rescue Exception => e
+            logger.fatal("Thread TID-#{(Thread.object_id ^ process.pid).to_s(36)} #{Thread.current.name}")
+            logger.fatal("#{e.class} #{e.message}")
             logger.fatal(e.backtrace.join("\n"))
 
             terminate(id: id)
@@ -276,11 +287,17 @@ module Outboxer
       end
     end
 
-    def handle_signal(id:, name:, logger:)
+    def handle_signal(id:, name:, logger:, process:)
       case name
       when 'TTIN'
         Thread.list.each_with_index do |thread, index|
-          logger.info thread.backtrace.join("\n") if thread.backtrace
+          logger.info "Thread TID-#{(thread.object_id ^ process.pid).to_s(36)} #{thread.name}"
+
+          if thread.backtrace
+            logger.info thread.backtrace.join("\n")
+          else
+            logger.info "<no backtrace available>"
+          end
         end
       when 'TSTP'
         begin
@@ -313,6 +330,8 @@ module Outboxer
       time: ::Time, socket: ::Socket, process: ::Process, kernel: ::Kernel,
       &block
     )
+      Thread.current.name = "outboxer.main"
+
       logger.info "Outboxer v#{Outboxer::VERSION} publishing in ruby #{RUBY_VERSION} "\
         "(#{RUBY_RELEASE_DATE} revision #{RUBY_REVISION[0, 10]}) [#{RUBY_PLATFORM}]"
 
@@ -361,7 +380,7 @@ module Outboxer
         if IO.select([signal_read], nil, nil, 0)
           signal_name = signal_read.gets.strip rescue nil
 
-          handle_signal(id: id, name: signal_name, logger: logger)
+          handle_signal(id: id, name: signal_name, logger: logger, process: process)
         end
       end
 
