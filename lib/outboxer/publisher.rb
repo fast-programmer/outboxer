@@ -144,7 +144,7 @@ module Outboxer
 
     def create_publisher_threads(id:, name:,
                                  queue:, concurrency:,
-                                 logger:, time:, kernel:, &block)
+                                 logger:, process:, kernel:, &block)
       concurrency.times.each_with_index.map do |_, index|
         Thread.new do
           Thread.current.name = "outboxer.publisher.#{index + 1}"
@@ -154,7 +154,7 @@ module Outboxer
 
             publish_message(
               id: id, name: name, dequeued_message: message,
-              logger: logger, time: time, kernel: kernel, &block)
+              logger: logger, process: process, kernel: kernel, &block)
           end
         end
       end
@@ -327,8 +327,8 @@ module Outboxer
       name: "#{::Socket.gethostname}:#{::Process.pid}",
       env: 'development',
       db_config_path: ::File.expand_path('config/database.yml', ::Dir.pwd),
-      buffer: 100, concurrency: 1,
-      poll: 5, tick: 0.1, heartbeat: 5,
+      buffer: 1000, concurrency: 2,
+      poll: 5.0, tick: 0.1, heartbeat: 5.0,
       logger: Logger.new($stdout, level: Logger::INFO),
       database: Database,
       time: ::Time, socket: ::Socket, process: ::Process, kernel: ::Kernel,
@@ -354,7 +354,7 @@ module Outboxer
 
       publisher_threads = create_publisher_threads(
         id: id, name: name, queue: queue, concurrency: concurrency,
-        logger: logger, time: time, kernel: kernel,
+        logger: logger, process: process, kernel: kernel,
         &block)
 
       signal_read, _signal_write = trap_signals(id: publisher[:id])
@@ -405,15 +405,15 @@ module Outboxer
       database.disconnect(logger: logger)
     end
 
-    def publish_message(id:, name:, dequeued_message:, logger:, time:, kernel:, &block)
-      dequeued_at = dequeued_message[:updated_at]
+    def publish_message(id:, name:, dequeued_message:, logger:, kernel:, process:, &block)
+      dequeued_at = process.clock_gettime(Process::CLOCK_MONOTONIC)
 
       message = Message.publishing(
         id: dequeued_message[:id], publisher_id: id, publisher_name: name)
 
       logger.debug "Outboxer publishing message #{message[:id]} for "\
         "#{message[:messageable_type]}::#{message[:messageable_id]} "\
-        "in #{(time.now.utc - dequeued_at).round(3)}s"
+        "in #{(process.clock_gettime(Process::CLOCK_MONOTONIC) - dequeued_at).round(3)}s"
 
       begin
         block.call(message)
@@ -421,7 +421,7 @@ module Outboxer
         Message.failed(id: message[:id], exception: exception, publisher_id: id, publisher_name: name)
         logger.error "Outboxer failed to publish message #{message[:id]} for "\
           "#{message[:messageable_type]}::#{message[:messageable_id]} "\
-          "in #{(time.now.utc - dequeued_at).round(3)}s"
+          "in #{(process.clock_gettime(Process::CLOCK_MONOTONIC) - dequeued_at).round(3)}s"
 
         raise
       end
@@ -429,14 +429,14 @@ module Outboxer
       Message.published(id: message[:id], publisher_id: id, publisher_name: name)
       logger.debug "Outboxer published message #{message[:id]} for "\
         "#{message[:messageable_type]}::#{message[:messageable_id]} "\
-        "in #{(time.now.utc - dequeued_at).round(3)}s"
+        "in #{(process.clock_gettime(Process::CLOCK_MONOTONIC) - dequeued_at).round(3)}s"
     rescue StandardError => exception
       logger.error "#{exception.class}: #{exception.message} "\
-        "in #{(time.now.utc - dequeued_at).round(3)}s"
+        "in #{(process.clock_gettime(Process::CLOCK_MONOTONIC) - dequeued_at).round(3)}s"
       exception.backtrace.each { |frame| logger.error frame }
     rescue Exception => exception
       logger.fatal "#{exception.class}: #{exception.message} "\
-        "in #{(time.now.utc - dequeued_at).round(3)}s"
+        "in #{(process.clock_gettime(Process::CLOCK_MONOTONIC) - dequeued_at).round(3)}s"
       exception.backtrace.each { |frame| logger.fatal frame }
 
       terminate(id: id)
