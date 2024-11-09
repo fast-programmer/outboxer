@@ -260,13 +260,13 @@ module Outboxer
 
           rescue NotFound => e
             logger.fatal("Thread TID-#{(Thread.object_id ^ process.pid).to_s(36)} #{Thread.current.name}")
-            logger.fatal("#{e.class} #{e.message}")
+            logger.fatal("#{e.class}: #{e.message}")
             logger.fatal(e.backtrace.join("\n"))
 
             terminate(id: id)
           rescue StandardError => e
             logger.error("Thread TID-#{(Thread.object_id ^ process.pid).to_s(36)} #{Thread.current.name}")
-            logger.error("#{e.class} #{e.message}")
+            logger.error("#{e.class}: #{e.message}")
             logger.error(e.backtrace.join("\n"))
 
             Publisher.sleep(
@@ -277,7 +277,7 @@ module Outboxer
               process: process, kernel: kernel)
           rescue Exception => e
             logger.fatal("Thread TID-#{(Thread.object_id ^ process.pid).to_s(36)} #{Thread.current.name}")
-            logger.fatal("#{e.class} #{e.message}")
+            logger.fatal("#{e.class}: #{e.message}")
             logger.fatal(e.backtrace.join("\n"))
 
             terminate(id: id)
@@ -302,7 +302,8 @@ module Outboxer
         begin
           stop(id: id)
         rescue NotFound => e
-          logger.fatal(e.message)
+          logger.fatal("Thread TID-#{(Thread.object_id ^ process.pid).to_s(36)} #{Thread.current.name}")
+          logger.fatal("#{e.class}: #{e.message}")
           logger.fatal(e.backtrace.join("\n"))
 
           terminate(id: id)
@@ -311,7 +312,8 @@ module Outboxer
         begin
           continue(id: id)
         rescue NotFound => e
-          logger.fatal(e.message)
+          logger.fatal("Thread TID-#{(Thread.object_id ^ process.pid).to_s(36)} #{Thread.current.name}")
+          logger.fatal("#{e.class}: #{e.message}")
           logger.fatal(e.backtrace.join("\n"))
 
           terminate(id: id)
@@ -323,25 +325,32 @@ module Outboxer
 
     def publish(
       name: "#{::Socket.gethostname}:#{::Process.pid}",
+      env: 'development',
+      db_config_path: ::File.expand_path('config/database.yml', ::Dir.pwd),
       buffer: 100, concurrency: 1,
       poll: 5, tick: 0.1, heartbeat: 5,
       logger: Logger.new($stdout, level: Logger::INFO),
+      database: Database,
       time: ::Time, socket: ::Socket, process: ::Process, kernel: ::Kernel,
       &block
     )
       Thread.current.name = "outboxer.main"
 
-      logger.info "Outboxer v#{Outboxer::VERSION} publishing in ruby #{RUBY_VERSION} "\
+      logger.info "Outboxer v#{Outboxer::VERSION} running in ruby #{RUBY_VERSION} "\
         "(#{RUBY_RELEASE_DATE} revision #{RUBY_REVISION[0, 10]}) [#{RUBY_PLATFORM}]"
+
+      logger.info "Outboxer config\n"\
+        "name: #{name}\nenv: #{env}\ndb_config_path: #{db_config_path}\n"\
+        "buffer: #{buffer}\nconcurrency: #{concurrency}\n"\
+        "poll: #{poll}\ntick: #{tick}\nheartbeat: #{heartbeat}"
+
+      db_config = database.config(env: env, pool: concurrency + 2, path: db_config_path)
+      database.connect(config: db_config, logger: logger)
 
       queue = Queue.new
 
       publisher = create(name: name)
       id = publisher[:id]
-
-      logger.info "Outboxer config {"\
-        " buffer: #{buffer}, concurrency: #{concurrency},"\
-        " poll: #{poll}, tick: #{tick} }"\
 
       publisher_threads = create_publisher_threads(
         id: id, name: name, queue: queue, concurrency: concurrency,
@@ -392,6 +401,8 @@ module Outboxer
       delete(id: id)
 
       logger.info "Outboxer terminated"
+    ensure
+      database.disconnect(logger: logger)
     end
 
     def publish_message(id:, name:, dequeued_message:, logger:, time:, kernel:, &block)

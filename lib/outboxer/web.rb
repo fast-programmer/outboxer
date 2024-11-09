@@ -8,8 +8,9 @@ require 'rack/flash'
 
 require 'action_view'
 
-environment = ENV['APP_ENV'] || 'development'
-config = Outboxer::Database.config(environment: environment, pool: 5)
+env = ENV['OUTBOXER_ENV'] || 'development'
+
+config = Outboxer::Database.config(env: env, pool: 5)
 Outboxer::Database.connect(config: config)
 
 module Outboxer

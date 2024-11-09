@@ -7,10 +7,10 @@ require 'outboxer'
 require_relative '../app/jobs/event_created_job'
 
 options = {
-  environment: ENV.fetch('OUTBOXER_ENV', 'development'),
+  env: ENV.fetch('OUTBOXER_ENV', 'development'),
   buffer: ENV.fetch('OUTBOXER_BUFFER', 100).to_i,
   concurrency: ENV.fetch('OUTBOXER_CONCURRENCY', 1).to_i,
-  poll: ENV.fetch('OUTBOXER_POLL', 10).to_f,
+  poll: ENV.fetch('OUTBOXER_POLL', 10),
   tick: ENV.fetch('OUTBOXER_TICK', 0.1).to_f,
   heartbeat: ENV.fetch('OUTBOXER_HEARTBEAT', 5).to_f,
   log_level: ENV.fetch('OUTBOXER_LOG_LEVEL', 'info').downcase,
@@ -18,33 +18,25 @@ options = {
 }
 
 Sidekiq.configure_client do |config|
-  config.redis = { url: options[:sidekiq_redis_url], size: 2 }
+  config.redis = { url: options[:sidekiq_redis_url], size: options[:concurrency] }
 end
-
-db_config = Outboxer::Database.config(
-  environment: options[:environment], pool: options[:concurrency] + 2)
 
 logger = Sidekiq.logger
 logger.level = Logger.const_get(options[:log_level].upcase)
 
-Outboxer::Database.connect(config: db_config, logger: logger)
-
-begin
-  Outboxer::Publisher.publish(
-    buffer: options[:buffer],
-    concurrency: options[:concurrency],
-    poll: options[:poll],
-    tick: options[:tick],
-    heartbeat: options[:heartbeat],
-    logger: logger
-  ) do |message|
-    case message[:messageable_type]
-    when 'Event'
-      EventCreatedJob.perform_async({ 'id' => message[:messageable_id] })
-    end
+Outboxer::Publisher.publish(
+  env: options[:env],
+  buffer: options[:buffer],
+  concurrency: options[:concurrency],
+  poll: options[:poll],
+  tick: options[:tick],
+  heartbeat: options[:heartbeat],
+  logger: logger,
+) do |message|
+  case message[:messageable_type]
+  when 'Event'
+    EventCreatedJob.perform_async({ 'id' => message[:messageable_id] })
   end
-ensure
-  Outboxer::Database.disconnect(logger: logger)
 end
 
 # bin/outboxer_publisher
