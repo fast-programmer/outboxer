@@ -53,15 +53,13 @@ end
 bin/rails g outboxer:publisher
 ```
 
-### 5. handle event created out of band
+### 5. publish message out of band
 
 ```ruby
 Outboxer::Publisher.publish(...) do |message|
   case message[:messageable_type]
   when 'Event'
-    event = Event.find(message[:messageable_id])
-
-    # handle event here
+    EventCreatedJob.perform_async({ 'id' => message[:messageable_id] })
   end
 end
 ```
