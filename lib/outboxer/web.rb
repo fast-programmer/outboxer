@@ -102,7 +102,7 @@ module Outboxer
         per_page: denormalised_query_params[:per_page],
         time_zone: denormalised_query_params[:time_zone])
 
-      redirect to("/messages#{normalised_query_string}")
+      redirect to(normalised_query_string)
     end
 
     get '/messages' do
@@ -573,6 +573,30 @@ module Outboxer
       flash[:primary] = "Publisher #{params[:id]} was deleted"
 
       redirect to("#{normalised_query_string}")
+    end
+
+    post '/publisher/:id/signals' do
+      denormalised_query_params = denormalise_query_params(
+        status: params[:status],
+        sort: params[:sort],
+        order: params[:order],
+        page: params[:page],
+        per_page: params[:per_page],
+        time_zone: params[:time_zone])
+
+      normalised_query_string = normalise_query_string(
+        status: denormalised_query_params[:status],
+        sort: denormalised_query_params[:sort],
+        order: denormalised_query_params[:order],
+        page: denormalised_query_params[:page],
+        per_page: denormalised_query_params[:per_page],
+        time_zone: denormalised_query_params[:time_zone])
+
+      Publisher.signal(id: params[:id], name: params[:name])
+
+      flash[:primary] = "Publisher #{params[:id]} signalled #{params[:name]}"
+
+      redirect to(normalised_query_string)
     end
   end
 end

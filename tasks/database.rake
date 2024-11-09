@@ -43,6 +43,9 @@ namespace :outboxer do
       require_relative "../db/migrate/create_outboxer_publishers"
       CreateOutboxerPublishers.new.up
 
+      require_relative "../db/migrate/create_outboxer_signals"
+      CreateOutboxerSignals.new.up
+
       ActiveRecord::Base.connection.disconnect!
     end
 

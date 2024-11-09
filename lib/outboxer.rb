@@ -11,9 +11,7 @@ require_relative "outboxer/models/exception"
 require_relative "outboxer/models/message"
 
 require_relative "outboxer/models/publisher"
-
-require_relative "outboxer/socket"
-require_relative "outboxer/process"
+require_relative "outboxer/models/signal"
 
 require_relative "outboxer/logger"
 require_relative "outboxer/database"
