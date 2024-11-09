@@ -13,8 +13,7 @@ if max_messages_count <= 0
 end
 
 db_config = Outboxer::Database.config(
-  environment: ENV.fetch('OUTBOXER_ENV', 'development'), pool: 1)
-
+  env: ENV.fetch('OUTBOXER_ENV', 'development'), pool: 1)
 Outboxer::Database.connect(config: db_config)
 
 Signal.trap('INT') do

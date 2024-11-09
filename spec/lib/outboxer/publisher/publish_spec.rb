@@ -3,10 +3,12 @@ require 'spec_helper'
 module Outboxer
   RSpec.describe Publisher do
     describe '.publish' do
+      let(:env) { 'test' }
       let(:buffer) { 1 }
       let(:poll) { 1 }
       let(:tick) { 0.1 }
       let(:logger) { instance_double(Logger, debug: true, error: true, fatal: true, info: true) }
+      let(:database) { class_double(Database, config: nil, connect: nil, disconnect: nil) }
       let(:kernel) { class_double(Kernel, sleep: nil) }
 
       before do
@@ -19,9 +21,11 @@ module Outboxer
         it 'dumps stack trace' do
           publish_thread = Thread.new do
             Outboxer::Publisher.publish(
+              env: env,
               buffer: buffer,
               poll: poll,
               tick: tick,
+              database: database,
               logger: logger, kernel: kernel
             ) do |_message|
               ::Process.kill('TTIN', ::Process.pid)
@@ -42,10 +46,13 @@ module Outboxer
         it 'stops and resumes the publishing process correctly' do
           publish_thread = Thread.new do
             Outboxer::Publisher.publish(
+              env: env,
               buffer: buffer,
               poll: poll,
               tick: tick,
-              logger: logger, kernel: kernel
+              logger: logger,
+              database: database,
+              kernel: kernel
             ) do |_message|
               ::Process.kill('TSTP', ::Process.pid)
             end
@@ -64,10 +71,12 @@ module Outboxer
       context 'when message published successfully' do
         it 'sets the message to published' do
           Publisher.publish(
+            env: env,
             buffer: buffer,
             poll: poll,
             tick: tick,
             logger: logger,
+            database: database,
             kernel: kernel
           ) do |message|
             expect(message[:id]).to eq(queued_message.id)
@@ -88,10 +97,12 @@ module Outboxer
 
           before do
             Publisher.publish(
+              env: env,
               buffer: buffer,
               poll: poll,
               tick: tick,
               logger: logger,
+              database: database,
               kernel: kernel
             ) do |message|
               ::Process.kill('TERM', ::Process.pid)
@@ -132,10 +143,12 @@ module Outboxer
 
           before do
             Publisher.publish(
+              env: env,
               buffer: buffer,
               poll: poll,
               tick: tick,
               logger: logger,
+              database: database,
               kernel: kernel
             ) do |dequeued_message|
               raise no_memory_error
@@ -188,10 +201,12 @@ module Outboxer
             expect(logger).to receive(:error).with(include('StandardError: queue error')).once
 
             Publisher.publish(
+              env: env,
               buffer: buffer,
               poll: poll,
               tick: tick,
               logger: logger,
+              database: database,
               kernel: kernel)
           end
         end
@@ -206,10 +221,12 @@ module Outboxer
               .once
 
             Publisher.publish(
+              env: env,
               buffer: buffer,
               poll: poll,
               tick: tick,
               logger: logger,
+              database: database,
               kernel: kernel)
           end
         end
