@@ -8,7 +8,7 @@ module Outboxer
           create(:outboxer_publisher,
             name: 'server-09:67000',
             status: Models::Publisher::Status::PUBLISHING,
-            info: {
+            metrics: {
               'throughput' => 1000,
               'latency' => 0,
               'cpu' => '10.5%',
@@ -38,7 +38,7 @@ module Outboxer
           expect(result[:id]).to eq(publisher.id)
           expect(result[:name]).to eq(publisher.name)
           expect(result[:status]).to eq('publishing')
-          expect(result[:info]).to eq({
+          expect(result[:metrics]).to eq({
             'throughput' => 1000,
             'latency' => 0,
             'cpu' => '10.5%',

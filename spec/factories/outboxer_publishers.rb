@@ -2,7 +2,7 @@ FactoryBot.define do
   factory :outboxer_publisher, class: 'Outboxer::Models::Publisher' do
     name { 'server-01:57000' }
     status { Outboxer::Models::Publisher::Status::PUBLISHING }
-    info {
+    metrics {
       {
         'throughput' => 1000,
         'latency' => 0,

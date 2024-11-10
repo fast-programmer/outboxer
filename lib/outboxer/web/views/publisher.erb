@@ -49,7 +49,7 @@
             </div>
         </div>
         <div class="card-body">
-            <!-- Publisher Details Table -->
+            <h5>Details</h5>
             <table class="table">
                 <tbody>
                     <tr>
@@ -71,29 +71,28 @@
                 </tbody>
             </table>
 
-            <!-- Info Attributes -->
-            <h5>Info</h5>
+            <h5>Metrics</h5>
             <table class="table table-sm">
                 <tbody>
                     <tr>
                         <th scope="row">Throughput</th>
-                        <td><%= publisher[:info]['throughput'] %></td>
+                        <td><%= publisher[:metrics]['throughput'] %></td>
                     </tr>
                     <tr>
                         <th scope="row">Latency</th>
-                        <td><%= publisher[:info]['latency'] %></td>
+                        <td><%= publisher[:metrics]['latency'] %></td>
                     </tr>
                     <tr>
                         <th scope="row">CPU</th>
-                        <td><%= publisher[:info]['cpu'] %>%</td>
+                        <td><%= publisher[:metrics]['cpu'] %>%</td>
                     </tr>
                     <tr>
                         <th scope="row">RSS</th>
-                        <td><%= human_readable_size(publisher[:info]['rss']) %></td>
+                        <td><%= human_readable_size(publisher[:metrics]['rss']) %></td>
                     </tr>
                     <tr>
                         <th scope="row">RTT</th>
-                        <td><%= (publisher[:info]['rtt'] * 1000).round(2) %> ms</td>
+                        <td><%= (publisher[:metrics]['rtt'] * 1000).round(2) %> ms</td>
                     </tr>
                 </tbody>
             </table>
