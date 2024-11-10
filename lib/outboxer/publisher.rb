@@ -19,6 +19,7 @@ module Outboxer
             id: publisher.id,
             name: publisher.name,
             status: publisher.status,
+            settings: publisher.settings,
             metrics: publisher.metrics,
             created_at: publisher.created_at.utc,
             updated_at: publisher.updated_at.utc,
@@ -36,18 +37,27 @@ module Outboxer
       raise NotFound.new(id: id), cause: error
     end
 
-    def create(name:, current_time: Time.now)
+    def create(name:, buffer:, concurrency:,
+               tick:, poll:, heartbeat:, current_time: Time.now)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           publisher = Models::Publisher.create!(
-            name: name, status: Status::PUBLISHING, metrics: {
+            name: name,
+            status: Status::PUBLISHING,
+            settings: {
+              'buffer' => buffer,
+              'concurrency' => concurrency,
+              'tick' => tick,
+              'poll' => poll,
+              'heartbeat' => heartbeat },
+            metrics: {
               'throughput' => 0,
               'latency' => 0,
               'cpu' => 0,
               'rss ' => 0,
-              'rtt' => 0
-            },
-            created_at: current_time, updated_at: current_time)
+              'rtt' => 0 },
+            created_at: current_time,
+            updated_at: current_time)
 
           @status = Status::PUBLISHING
 
@@ -55,6 +65,7 @@ module Outboxer
             id: publisher.id,
             name: publisher.name,
             status: publisher.status,
+            settings: publisher.settings,
             metrics: publisher.metrics,
             created_at: publisher.created_at,
             updated_at: publisher.updated_at
@@ -355,7 +366,7 @@ module Outboxer
       env: 'development',
       db_config_path: ::File.expand_path('config/database.yml', ::Dir.pwd),
       buffer: 1000, concurrency: 2,
-      poll: 5.0, tick: 0.1, heartbeat: 5.0,
+      tick: 0.1, poll: 5.0, heartbeat: 5.0,
       logger: Logger.new($stdout, level: Logger::INFO),
       database: Database,
       time: ::Time, socket: ::Socket, process: ::Process, kernel: ::Kernel,
@@ -376,7 +387,9 @@ module Outboxer
 
       queue = Queue.new
 
-      publisher = create(name: name)
+      publisher = create(
+        name: name, buffer: buffer, concurrency: concurrency,
+        tick: tick, poll: poll, heartbeat: heartbeat)
       id = publisher[:id]
 
       publisher_threads = create_publisher_threads(

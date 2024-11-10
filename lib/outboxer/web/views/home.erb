@@ -34,6 +34,10 @@
                                        href="<%= outboxer_path("/publisher/#{publisher[:id]}#{normalise_query_string(time_zone: denormalised_query_params[:time_zone])}") %>">
                                         <%= publisher.name %>
                                     </a>
+                                    <div class="text-muted small mt-1">
+                                        buffer: <%= publisher[:settings]['buffer'] %>, concurrency: <%= publisher[:settings]['concurrency'] %><br>
+                                        tick: <%= publisher[:settings]['tick'] %>, poll: <%= publisher[:settings]['poll'] %>, heartbeat: <%= publisher[:settings]['heartbeat'] %>
+                                    </div>
                                 </td>
                                 <td><%= time_ago_in_words(publisher.created_at) %> ago</td>
                                 <td><%= time_ago_in_words(publisher.updated_at) %> ago</td>
