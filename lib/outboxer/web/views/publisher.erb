@@ -57,22 +57,22 @@
                         <td><%= publisher[:id] %></td>
                     </tr>
                     <tr>
-                        <th scope="row">Status</th>
-                        <td><%= publisher[:status] %></td>
-                    </tr>
-                    <tr>
                         <th scope="row">Created At</th>
-                        <td><%= publisher[:created_at].in_time_zone(denormalised_query_params[:time_zone]) %></td>
+                        <td title="<%= publisher[:created_at].in_time_zone(denormalised_query_params[:time_zone]) %>">
+                            <%= time_ago_in_words(publisher[:created_at]) %> ago
+                        </td>
                     </tr>
                     <tr>
                         <th scope="row">Updated At</th>
-                        <td><%= publisher[:updated_at].in_time_zone(denormalised_query_params[:time_zone]) %></td>
+                        <td title="<%= publisher[:updated_at].in_time_zone(denormalised_query_params[:time_zone]) %>">
+                            <%= time_ago_in_words(publisher[:updated_at]) %> ago
+                        </td>
                     </tr>
                 </tbody>
             </table>
 
-            <!-- Metrics Attributes -->
-            <h5>Metrics</h5>
+            <!-- Info Attributes -->
+            <h5>Info</h5>
             <table class="table table-sm">
                 <tbody>
                     <tr>
