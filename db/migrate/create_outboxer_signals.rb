@@ -5,7 +5,7 @@ class CreateOutboxerSignals < ActiveRecord::Migration[6.1]
         t.string :name, limit: 9, null: false
         t.references :publisher, foreign_key: { to_table: :outboxer_publishers }, null: false
 
-        t.timestamps
+        t.datetime :created_at, null: false
       end
     end
   end
