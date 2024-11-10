@@ -51,7 +51,7 @@ namespace :outboxer do
 
     task :seed do
       env = ENV['OUTBOXER_ENV'] || 'development'
-      db_config = Outboxer::Database.config(evn: env, pool: 1)
+      db_config = Outboxer::Database.config(env: env, pool: 1)
       ActiveRecord::Base.establish_connection(db_config)
 
       require_relative "../db/seeds"

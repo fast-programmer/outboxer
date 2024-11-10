@@ -7,7 +7,7 @@ class CreateOutboxerPublishers < ActiveRecord::Migration[6.1]
 
         t.string :status, limit: 255, null: false
 
-        t.json :info, null: false
+        t.json :metrics, null: false
 
         t.timestamps
       end

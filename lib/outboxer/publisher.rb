@@ -19,7 +19,7 @@ module Outboxer
             id: publisher.id,
             name: publisher.name,
             status: publisher.status,
-            info: publisher.info,
+            metrics: publisher.metrics,
             created_at: publisher.created_at.utc,
             updated_at: publisher.updated_at.utc,
             signals: publisher.signals.map do |signal|
@@ -40,7 +40,7 @@ module Outboxer
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           publisher = Models::Publisher.create!(
-            name: name, status: Status::PUBLISHING, info: {
+            name: name, status: Status::PUBLISHING, metrics: {
               'throughput' => 0,
               'latency' => 0,
               'cpu' => 0,
@@ -55,6 +55,7 @@ module Outboxer
             id: publisher.id,
             name: publisher.name,
             status: publisher.status,
+            metrics: publisher.metrics,
             created_at: publisher.created_at,
             updated_at: publisher.updated_at
           }
@@ -268,7 +269,7 @@ module Outboxer
 
                 publisher.update!(
                   updated_at: current_time,
-                  info: {
+                  metrics: {
                     throughput: throughput,
                     latency: last_updated_message.nil? ? 0 : (time.now - last_updated_message.updated_at).to_i,
                     cpu: cpu,
