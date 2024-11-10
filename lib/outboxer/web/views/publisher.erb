@@ -1,0 +1,125 @@
+<div class="container my-4">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="mb-0">Publisher <%= publisher[:id] %></h3>
+            <div class="card-header-buttons">
+                <!-- Pause Button -->
+                <form action="<%= outboxer_path("/publisher/#{publisher[:id]}/signals") %>" method="post" style="display: inline;">
+                    <input type="hidden" name="name" value="TSTP">
+                    <input type="hidden" name="time_zone" value="<%= denormalised_query_params[:time_zone] %>">
+                    <button type="submit" class="btn btn-sm btn-outline-warning" title="Pause">
+                        <i class="bi bi-pause-circle"></i>
+                    </button>
+                </form>
+
+                <!-- Resume Button -->
+                <form action="<%= outboxer_path("/publisher/#{publisher[:id]}/signals") %>" method="post" style="display: inline;">
+                    <input type="hidden" name="name" value="CONT">
+                    <input type="hidden" name="time_zone" value="<%= denormalised_query_params[:time_zone] %>">
+                    <button type="submit" class="btn btn-sm btn-outline-success" title="Resume">
+                        <i class="bi bi-play-circle"></i>
+                    </button>
+                </form>
+
+                <!-- Dump Threads Button -->
+                <form action="<%= outboxer_path("/publisher/#{publisher[:id]}/signals") %>" method="post" style="display: inline;">
+                    <input type="hidden" name="name" value="TTIN">
+                    <input type="hidden" name="time_zone" value="<%= denormalised_query_params[:time_zone] %>">
+                    <button type="submit" class="btn btn-sm btn-outline-secondary" title="Dump Threads">
+                        <i class="bi bi-bug"></i>
+                    </button>
+                </form>
+
+                <!-- Kill Button -->
+                <form action="<%= outboxer_path("/publisher/#{publisher[:id]}/signals") %>" method="post" style="display: inline;">
+                    <input type="hidden" name="name" value="TERM">
+                    <input type="hidden" name="time_zone" value="<%= denormalised_query_params[:time_zone] %>">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Kill">
+                        <i class="bi bi-x-circle"></i>
+                    </button>
+                </form>
+
+                <!-- Delete Button -->
+                <form action="<%= outboxer_path("/publisher/#{publisher[:id]}/delete") %>" method="post" style="display: inline;">
+                    <input type="hidden" name="time_zone" value="<%= denormalised_query_params[:time_zone] %>">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+        <div class="card-body">
+            <!-- Publisher Details Table -->
+            <table class="table">
+                <tbody>
+                    <tr>
+                        <th scope="row">Id</th>
+                        <td><%= publisher[:id] %></td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Created At</th>
+                        <td title="<%= publisher[:created_at].in_time_zone(denormalised_query_params[:time_zone]) %>">
+                            <%= time_ago_in_words(publisher[:created_at]) %> ago
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Updated At</th>
+                        <td title="<%= publisher[:updated_at].in_time_zone(denormalised_query_params[:time_zone]) %>">
+                            <%= time_ago_in_words(publisher[:updated_at]) %> ago
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Info Attributes -->
+            <h5>Info</h5>
+            <table class="table table-sm">
+                <tbody>
+                    <tr>
+                        <th scope="row">Throughput</th>
+                        <td><%= publisher[:info]['throughput'] %></td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Latency</th>
+                        <td><%= publisher[:info]['latency'] %></td>
+                    </tr>
+                    <tr>
+                        <th scope="row">CPU</th>
+                        <td><%= publisher[:info]['cpu'] %>%</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">RSS</th>
+                        <td><%= human_readable_size(publisher[:info]['rss']) %></td>
+                    </tr>
+                    <tr>
+                        <th scope="row">RTT</th>
+                        <td><%= (publisher[:info]['rtt'] * 1000).round(2) %> ms</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Signals Details -->
+            <h5>Signals</h5>
+            <% if publisher[:signals].any? %>
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th scope="col">Name</th>
+                            <th scope="col">Timestamp</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% publisher[:signals].each do |signal| %>
+                            <tr>
+                                <td><%= signal[:name] %></td>
+                                <td><%= signal[:created_at].in_time_zone(denormalised_query_params[:time_zone]) %></td>
+                            </tr>
+                        <% end %>
+                    </tbody>
+                </table>
+            <% else %>
+                <p>There are no signals to display</p>
+            <% end %>
+        </div>
+    </div>
+</div>
