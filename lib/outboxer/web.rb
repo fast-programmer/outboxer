@@ -77,12 +77,14 @@ module Outboxer
 
       messages_metrics = Messages.metrics
 
+      publishers = Publishers.all
+
       erb :home, locals: {
         messages_metrics: messages_metrics,
         denormalised_query_params: denormalised_query_params,
         normalised_query_params: normalised_query_params,
         normalised_query_string: normalised_query_string,
-        publishers: Models::Publisher.all
+        publishers: publishers
       }
     end
 

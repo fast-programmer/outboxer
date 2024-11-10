@@ -32,21 +32,21 @@
                                 <td class="dynamic-name-column">
                                     <a class="custom-link"
                                        href="<%= outboxer_path("/publisher/#{publisher[:id]}#{normalise_query_string(time_zone: denormalised_query_params[:time_zone])}") %>">
-                                        <%= publisher.name %>
+                                        <%= publisher[:name] %>
                                     </a>
                                     <div class="text-muted small mt-1">
                                         buffer: <%= publisher[:settings]['buffer'] %>, concurrency: <%= publisher[:settings]['concurrency'] %><br>
                                         tick: <%= publisher[:settings]['tick'] %>, poll: <%= publisher[:settings]['poll'] %>, heartbeat: <%= publisher[:settings]['heartbeat'] %>
                                     </div>
                                 </td>
-                                <td><%= time_ago_in_words(publisher.created_at) %> ago</td>
-                                <td><%= time_ago_in_words(publisher.updated_at) %> ago</td>
-                                <td class="text-capitalize"><%= publisher.status %></td>
-                                <td><%= publisher.metrics['throughput'] %></td>
-                                <td><%= publisher.metrics['latency'] %></td>
-                                <td><%= publisher.metrics['cpu'] %>%</td>
-                                <td><%= human_readable_size(publisher.metrics['rss']) %></td>
-                                <td><%= (publisher.metrics['rtt'] * 1000).round(2) %> ms</td>
+                                <td><%= time_ago_in_words(publisher[:created_at]) %> ago</td>
+                                <td><%= time_ago_in_words(publisher[:updated_at]) %> ago</td>
+                                <td class="text-capitalize"><%= publisher[:status] %></td>
+                                <td><%= publisher[:metrics]['throughput'] %></td>
+                                <td><%= publisher[:metrics]['latency'] %></td>
+                                <td><%= publisher[:metrics]['cpu'] %>%</td>
+                                <td><%= human_readable_size(publisher[:metrics]['rss']) %></td>
+                                <td><%= (publisher[:metrics]['rtt'] * 1000).round(2) %> ms</td>
                                 <td>
                                     <div class="d-flex gap-1">
                                         <!-- Pause Button -->
