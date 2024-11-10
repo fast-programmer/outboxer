@@ -75,12 +75,26 @@
             <h5>Metrics</h5>
             <table class="table table-sm">
                 <tbody>
-                    <% publisher[:info].each do |key, value| %>
-                        <tr>
-                            <th scope="row"><%= key.capitalize %></th>
-                            <td><%= value %></td>
-                        </tr>
-                    <% end %>
+                    <tr>
+                        <th scope="row">Throughput</th>
+                        <td><%= publisher[:info]['throughput'] %></td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Latency</th>
+                        <td><%= publisher[:info]['latency'] %></td>
+                    </tr>
+                    <tr>
+                        <th scope="row">CPU</th>
+                        <td><%= publisher[:info]['cpu'] %>%</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">RSS</th>
+                        <td><%= human_readable_size(publisher[:info]['rss']) %></td>
+                    </tr>
+                    <tr>
+                        <th scope="row">RTT</th>
+                        <td><%= (publisher[:info]['rtt'] * 1000).round(2) %> ms</td>
+                    </tr>
                 </tbody>
             </table>
 
