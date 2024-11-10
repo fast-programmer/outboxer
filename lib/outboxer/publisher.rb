@@ -48,7 +48,7 @@ module Outboxer
               'buffer' => buffer,
               'concurrency' => concurrency,
               'tick' => tick,
-              'poll ' => poll,
+              'poll' => poll,
               'heartbeat' => heartbeat },
             metrics: {
               'throughput' => 0,
@@ -366,7 +366,7 @@ module Outboxer
       env: 'development',
       db_config_path: ::File.expand_path('config/database.yml', ::Dir.pwd),
       buffer: 1000, concurrency: 2,
-      poll: 5.0, tick: 0.1, heartbeat: 5.0,
+      tick: 0.1, poll: 5.0, heartbeat: 5.0,
       logger: Logger.new($stdout, level: Logger::INFO),
       database: Database,
       time: ::Time, socket: ::Socket, process: ::Process, kernel: ::Kernel,
