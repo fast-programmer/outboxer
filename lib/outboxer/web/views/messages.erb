@@ -132,7 +132,14 @@
                                         <%= message[:updated_at] %>
                                     </td>
                                     <td>
-                                        <%= message[:updated_by_publisher_name].presence || '-' %>
+                                        <% if message[:updated_by_publisher_id].present? && message[:updated_by_publisher_name].present? %>
+                                            <a class="custom-link"
+                                                href="<%= outboxer_path("/publisher/#{message[:updated_by_publisher_id]}#{normalise_query_string(status: nil, time_zone: denormalised_query_params[:time_zone])}") %>">
+                                                <%= message[:updated_by_publisher_name] %>
+                                            </a>
+                                        <% else %>
+                                          -
+                                        <% end %>
                                     </td>
                                     <td>
                                         <!-- Action buttons -->

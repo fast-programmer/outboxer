@@ -55,7 +55,12 @@
                     </tr>
                     <tr>
                         <th scope="row">Updated By</th>
-                        <td><%= message[:updated_by] %></td>
+                        <td>
+                            <a class="custom-link"
+                                href="<%= outboxer_path("/publisher/#{message[:updated_by_publisher_id]}#{normalise_query_string(time_zone: denormalised_query_params[:time_zone])}") %>">
+                                <%= message[:updated_by_publisher_name] %>
+                            </a>
+                        </td>
                     </tr>
                 </tbody>
             </table>

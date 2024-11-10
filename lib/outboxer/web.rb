@@ -579,7 +579,10 @@ module Outboxer
 
       publisher = Publisher.find_by_id(id: params[:id])
 
+      messages_metrics = Messages.metrics
+
       erb :publisher, locals: {
+        messages_metrics: messages_metrics,
         denormalised_query_params: denormalised_query_params,
         normalised_query_params: normalised_query_params,
         normalised_query_string: normalised_query_string,
