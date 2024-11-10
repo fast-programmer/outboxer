@@ -71,6 +71,32 @@
                 </tbody>
             </table>
 
+            <h5>Settings</h5>
+            <table class="table table-sm">
+                <tbody>
+                    <tr>
+                        <th scope="row">Buffer</th>
+                        <td><%= publisher[:settings]['buffer'] %></td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Concurrency</th>
+                        <td><%= publisher[:settings]['concurrency'] %></td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Tick</th>
+                        <td><%= publisher[:settings]['tick'] %> seconds</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Poll</th>
+                        <td><%= publisher[:settings]['poll'] %> seconds</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Heartbeat</th>
+                        <td><%= publisher[:settings]['heartbeat'] %> seconds</td>
+                    </tr>
+                </tbody>
+            </table>
+
             <h5>Metrics</h5>
             <table class="table table-sm">
                 <tbody>
