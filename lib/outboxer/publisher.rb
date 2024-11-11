@@ -226,11 +226,13 @@ module Outboxer
           process: process, kernel: kernel)
       end
     rescue StandardError => exception
-      logger.error "#{exception.class}: #{exception.message}"
-      exception.backtrace.each { |frame| logger.error frame }
+      logger.error("Thread TID-#{(Thread.object_id ^ process.pid).to_s(36)}\n"\
+                   "#{Thread.current.name} - #{exception.class}: #{exception.message}\n" \
+                   "#{e.backtrace.join("\n")}")
     rescue Exception => exception
-      logger.fatal "#{exception.class}: #{exception.message}"
-      exception.backtrace.each { |frame| logger.fatal frame }
+      logger.fatal("Thread TID-#{(Thread.object_id ^ process.pid).to_s(36)}\n"\
+                   "#{Thread.current.name} - #{exception.class}: #{exception.message}\n" \
+                   "#{exception.backtrace.join("\n")}")
 
       terminate(id: id)
     end
@@ -297,15 +299,15 @@ module Outboxer
               process: process, kernel: kernel)
 
           rescue NotFound => e
-            logger.fatal("Thread TID-#{(Thread.object_id ^ process.pid).to_s(36)} #{Thread.current.name}")
-            logger.fatal("#{e.class}: #{e.message}")
-            logger.fatal(e.backtrace.join("\n"))
+            logger.fatal("Thread TID-#{(Thread.object_id ^ process.pid).to_s(36)}\n"\
+                         "#{Thread.current.name} - #{e.class}: #{e.message}\n" \
+                         "#{e.backtrace.join("\n")}")
 
             terminate(id: id)
           rescue StandardError => e
-            logger.error("Thread TID-#{(Thread.object_id ^ process.pid).to_s(36)} #{Thread.current.name}")
-            logger.error("#{e.class}: #{e.message}")
-            logger.error(e.backtrace.join("\n"))
+            logger.error("Thread TID-#{(Thread.object_id ^ process.pid).to_s(36)}\n"\
+                         "#{Thread.current.name} - #{e.class}: #{e.message}\n" \
+                         "#{e.backtrace.join("\n")}")
 
             Publisher.sleep(
               heartbeat,
@@ -314,9 +316,9 @@ module Outboxer
               tick: tick,
               process: process, kernel: kernel)
           rescue Exception => e
-            logger.fatal("Thread TID-#{(Thread.object_id ^ process.pid).to_s(36)} #{Thread.current.name}")
-            logger.fatal("#{e.class}: #{e.message}")
-            logger.fatal(e.backtrace.join("\n"))
+            logger.fatal("Thread TID-#{(Thread.object_id ^ process.pid).to_s(36)}\n"\
+                         "#{Thread.current.name} - #{e.class}: #{e.message}\n" \
+                         "#{e.backtrace.join("\n")}")
 
             terminate(id: id)
           end
@@ -328,6 +330,11 @@ module Outboxer
       case name
       when 'TTIN'
         Thread.list.each_with_index do |thread, index|
+          logger.error("Thread TID-#{(Thread.object_id ^ process.pid).to_s(36)}\n"\
+                       "#{Thread.current.name} - #{e.class}: #{e.message}\n" \
+                       "#{e.backtrace.join("\n")}")
+
+          # TODO: 
           logger.info "Thread TID-#{(thread.object_id ^ process.pid).to_s(36)} #{thread.name}"
 
           if thread.backtrace
@@ -340,9 +347,9 @@ module Outboxer
         begin
           stop(id: id)
         rescue NotFound => e
-          logger.fatal("Thread TID-#{(Thread.object_id ^ process.pid).to_s(36)} #{Thread.current.name}")
-          logger.fatal("#{e.class}: #{e.message}")
-          logger.fatal(e.backtrace.join("\n"))
+          logger.fatal("Thread TID-#{(Thread.object_id ^ process.pid).to_s(36)}\n"\
+                       "#{Thread.current.name} - #{e.class}: #{e.message}\n" \
+                       "#{e.backtrace.join("\n")}")
 
           terminate(id: id)
         end
