@@ -39,6 +39,16 @@ module Outboxer
 
         "#{size.round(2)} #{unit}"
       end
+
+      def time_ago_in_words(time)
+        seconds_diff = (Time.now - time).to_i
+
+        if seconds_diff < 60
+          "#{seconds_diff} #{seconds_diff == 1 ? 'second' : 'seconds'}"
+        else
+          super
+        end
+      end
     end
 
     error StandardError do
