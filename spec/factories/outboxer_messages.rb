@@ -11,8 +11,8 @@ FactoryBot.define do
       status { Outboxer::Models::Message::Status::QUEUED }
     end
 
-    trait :dequeued do
-      status { Outboxer::Models::Message::Status::DEQUEUED }
+    trait :buffered do
+      status { Outboxer::Models::Message::Status::BUFFERED }
     end
 
     trait :publishing do

@@ -2,8 +2,8 @@ module Outboxer
   module Messages
     extend self
 
-    def dequeue(limit: 1, publisher_id: nil, publisher_name: nil,
-                current_utc_time: Time.now.utc)
+    def buffer(limit: 1, publisher_id: nil, publisher_name: nil,
+               current_utc_time: Time.now.utc)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           messages = Models::Message
@@ -17,7 +17,7 @@ module Outboxer
             Models::Message
               .where(id: messages.map { |message| message[:id] })
               .update_all(
-                status: Models::Message::Status::DEQUEUED,
+                status: Models::Message::Status::BUFFERED,
                 updated_at: current_utc_time,
                 updated_by_publisher_id: publisher_id,
                 updated_by_publisher_name: publisher_name)
@@ -35,7 +35,7 @@ module Outboxer
       end
     end
 
-    LIST_STATUS_OPTIONS = [nil, :queued, :dequeued, :publishing, :published, :failed]
+    LIST_STATUS_OPTIONS = [nil, :queued, :buffered, :publishing, :published, :failed]
     LIST_STATUS_DEFAULT = nil
 
     LIST_SORT_OPTIONS = [:id, :status, :messageable, :created_at, :updated_at, :updated_by_publisher_name]
@@ -115,7 +115,7 @@ module Outboxer
       }
     end
 
-    REQUEUE_STATUSES = [:dequeued, :publishing, :failed]
+    REQUEUE_STATUSES = [:buffered, :publishing, :failed]
 
     def can_requeue?(status:)
       REQUEUE_STATUSES.include?(status&.to_sym)

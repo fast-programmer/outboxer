@@ -191,24 +191,24 @@ module Outboxer
             break if message.nil?
 
             publish_message(
-              id: id, name: name, dequeued_message: message,
+              id: id, name: name, buffered_message: message,
               logger: logger, process: process, kernel: kernel, &block)
           end
         end
       end
     end
 
-    def dequeue_messages(id:, name:,
-                         queue:, buffer:, poll:, tick:,
-                         signal_read:, logger:, process:, kernel:)
-      dequeue_limit = buffer - queue.size
+    def buffer_messages(id:, name:,
+                        queue:, buffer:, poll:, tick:,
+                        signal_read:, logger:, process:, kernel:)
+      buffer_limit = buffer - queue.size
 
-      if dequeue_limit > 0
-        dequeued_messages = Messages.dequeue(
-          limit: dequeue_limit, publisher_id: id, publisher_name: name)
+      if buffer_limit > 0
+        buffered_messages = Messages.buffer(
+          limit: buffer_limit, publisher_id: id, publisher_name: name)
 
-        if dequeued_messages.count > 0
-          dequeued_messages.each { |message| queue.push(message) }
+        if buffered_messages.count > 0
+          buffered_messages.each { |message| queue.push(message) }
         else
           Publisher.sleep(
             poll,
@@ -410,7 +410,7 @@ module Outboxer
       loop do
         case @status
         when Status::PUBLISHING
-          dequeue_messages(
+          buffer_messages(
             id: id, name: name,
             queue: queue, buffer: buffer,
             poll: poll, tick:,
@@ -445,14 +445,14 @@ module Outboxer
       database.disconnect(logger: logger)
     end
 
-    def publish_message(id:, name:, dequeued_message:, logger:, kernel:, process:, &block)
-      dequeued_at = process.clock_gettime(Process::CLOCK_MONOTONIC)
+    def publish_message(id:, name:, buffered_message:, logger:, kernel:, process:, &block)
+      buffered_at = process.clock_gettime(Process::CLOCK_MONOTONIC)
 
       message = Message.publishing(
-        id: dequeued_message[:id], publisher_id: id, publisher_name: name)
+        id: buffered_message[:id], publisher_id: id, publisher_name: name)
       logger.debug "Outboxer publishing message #{message[:id]} for "\
         "#{message[:messageable_type]}::#{message[:messageable_id]} "\
-        "in #{(process.clock_gettime(Process::CLOCK_MONOTONIC) - dequeued_at).round(3)}s"
+        "in #{(process.clock_gettime(Process::CLOCK_MONOTONIC) - buffered_at).round(3)}s"
 
       begin
         block.call(message)
@@ -460,7 +460,7 @@ module Outboxer
         Message.failed(id: message[:id], exception: e, publisher_id: id, publisher_name: name)
         logger.debug "Outboxer failed to publish message #{message[:id]} for "\
           "#{message[:messageable_type]}::#{message[:messageable_id]} "\
-          "in #{(process.clock_gettime(Process::CLOCK_MONOTONIC) - dequeued_at).round(3)}s"
+          "in #{(process.clock_gettime(Process::CLOCK_MONOTONIC) - buffered_at).round(3)}s"
 
         raise
       end
@@ -468,7 +468,7 @@ module Outboxer
       Message.published(id: message[:id], publisher_id: id, publisher_name: name)
       logger.debug "Outboxer published message #{message[:id]} for "\
         "#{message[:messageable_type]}::#{message[:messageable_id]} "\
-        "in #{(process.clock_gettime(Process::CLOCK_MONOTONIC) - dequeued_at).round(3)}s"
+        "in #{(process.clock_gettime(Process::CLOCK_MONOTONIC) - buffered_at).round(3)}s"
     rescue StandardError => e
       logger.error(
         "#{e.class}: #{e.message}\n"\

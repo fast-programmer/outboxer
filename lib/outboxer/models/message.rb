@@ -19,7 +19,7 @@ module Outboxer
 
       module Status
         QUEUED = 'queued'
-        DEQUEUED = 'dequeued'
+        BUFFERED = 'buffered'
         PUBLISHING = 'publishing'
         PUBLISHED = 'published'
         FAILED = 'failed'
@@ -27,14 +27,14 @@ module Outboxer
 
       STATUSES = [
         Status::QUEUED,
-        Status::DEQUEUED,
+        Status::BUFFERED,
         Status::PUBLISHING,
         Status::PUBLISHED,
         Status::FAILED
       ]
 
       scope :queued, -> { where(status: Status::QUEUED) }
-      scope :dequeued, -> { where(status: Status::DEQUEUED) }
+      scope :buffered, -> { where(status: Status::BUFFERED) }
       scope :publishing, -> { where(status: Status::PUBLISHING) }
       scope :published, -> { where(status: Status::PUBLISHED) }
       scope :failed, -> { where(status: Status::FAILED) }

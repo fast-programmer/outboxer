@@ -17,7 +17,7 @@ module Outboxer
       end
 
       let!(:message_1) { create(:outboxer_message, :queued) }
-      let!(:message_2) { create(:outboxer_message, :dequeued) }
+      let!(:message_2) { create(:outboxer_message, :buffered) }
 
       let!(:message_3) { create(:outboxer_message, :failed) }
       let!(:exception_1) { create(:outboxer_exception, message: message_3) }
@@ -54,9 +54,9 @@ module Outboxer
         end
       end
 
-      context 'when status is dequeued' do
+      context 'when status is buffered' do
         before do
-          Messages.delete_all(status: Message::Status::DEQUEUED, batch_size: 1)
+          Messages.delete_all(status: Message::Status::BUFFERED, batch_size: 1)
         end
 
         it 'deletes queued messages' do

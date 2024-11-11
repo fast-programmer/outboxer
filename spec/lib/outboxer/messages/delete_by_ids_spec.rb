@@ -20,7 +20,7 @@ module Outboxer
       let!(:exception_1) { create(:outboxer_exception, message: message_1) }
       let!(:frame_1) { create(:outboxer_frame, exception: exception_1) }
 
-      let!(:message_2) { create(:outboxer_message, :dequeued) }
+      let!(:message_2) { create(:outboxer_message, :buffered) }
       let!(:exception_2) { create(:outboxer_exception, message: message_2) }
       let!(:frame_2) { create(:outboxer_frame, exception: exception_2) }
 

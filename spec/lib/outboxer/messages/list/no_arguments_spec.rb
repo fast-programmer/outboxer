@@ -16,7 +16,7 @@ module Outboxer
       end
 
       let!(:message_3) do
-        create(:outboxer_message, :dequeued,
+        create(:outboxer_message, :buffered,
           messageable_type: 'Event', messageable_id: '3',
           updated_by_publisher_id: 43000, updated_by_publisher_name: 'server-03:43000')
       end

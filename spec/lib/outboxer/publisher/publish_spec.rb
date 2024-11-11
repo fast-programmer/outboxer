@@ -150,7 +150,7 @@ module Outboxer
               logger: logger,
               database: database,
               kernel: kernel
-            ) do |dequeued_message|
+            ) do |buffered_message|
               raise no_memory_error
             end
           end
@@ -181,11 +181,11 @@ module Outboxer
           end
         end
 
-        context 'when Messages.dequeue raises a StandardError' do
+        context 'when Messages.buffer raises a StandardError' do
           it 'logs the error and continues processing' do
             call_count = 0
 
-            allow(Messages).to receive(:dequeue) do
+            allow(Messages).to receive(:buffer) do
               call_count += 1
 
               case call_count
@@ -211,9 +211,9 @@ module Outboxer
           end
         end
 
-        context 'when Messages.dequeue raises an Exception' do
+        context 'when Messages.buffer raises an Exception' do
           it 'logs the exception and shuts down' do
-            allow(Messages).to receive(:dequeue)
+            allow(Messages).to receive(:buffer)
               .and_raise(NoMemoryError, 'failed to allocate memory')
 
             expect(logger).to receive(:fatal)

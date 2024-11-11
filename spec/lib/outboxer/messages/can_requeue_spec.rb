@@ -5,7 +5,7 @@ module Outboxer
   RSpec.describe Messages do
     describe '.can_requeue?' do
       let!(:message_1) { create(:outboxer_message, :queued) }
-      let!(:message_2) { create(:outboxer_message, :dequeued) }
+      let!(:message_2) { create(:outboxer_message, :buffered) }
       let!(:message_3) { create(:outboxer_message, :failed) }
       let!(:message_4) { create(:outboxer_message, :failed) }
       let!(:message_5) { create(:outboxer_message, :publishing) }
@@ -16,9 +16,9 @@ module Outboxer
         end
       end
 
-      context 'when status is dequeued' do
+      context 'when status is buffered' do
         it 'returns true' do
-          expect(Messages.can_requeue?(status: Message::Status::DEQUEUED)).to eq true
+          expect(Messages.can_requeue?(status: Message::Status::BUFFERED)).to eq true
         end
       end
 

@@ -59,7 +59,7 @@ module Outboxer
         ActiveRecord::Base.transaction do
           message = Models::Message.lock.find_by!(id: id)
 
-          if message.status != Models::Message::Status::DEQUEUED
+          if message.status != Models::Message::Status::BUFFERED
             raise ArgumentError,
               "cannot transition outboxer message #{message.id} " \
               "from #{message.status} to #{Models::Message::Status::PUBLISHING}"
@@ -159,7 +159,7 @@ module Outboxer
       end
     end
 
-    REQUEUE_STATUSES = [:dequeued, :publishing, :failed]
+    REQUEUE_STATUSES = [:buffered, :publishing, :failed]
 
     def can_requeue?(status:)
       REQUEUE_STATUSES.include?(status&.to_sym)

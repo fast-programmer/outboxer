@@ -3,9 +3,9 @@ require 'spec_helper'
 module Outboxer
   RSpec.describe Message do
     describe '.publishing' do
-      context 'when dequeued message' do
-        let!(:dequeued_message) { create(:outboxer_message, :dequeued) }
-        let!(:publishing_message) { Message.publishing(id: dequeued_message.id) }
+      context 'when buffered message' do
+        let!(:buffered_message) { create(:outboxer_message, :buffered) }
+        let!(:publishing_message) { Message.publishing(id: buffered_message.id) }
 
         it 'returns publishing message' do
           expect(publishing_message[:id]).to eq(Models::Message.publishing.last.id)
