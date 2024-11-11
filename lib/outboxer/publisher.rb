@@ -260,6 +260,9 @@ module Outboxer
                   raise NotFound.new(id: id), cause: error
                 end
 
+                end_rtt = process.clock_gettime(process::CLOCK_MONOTONIC)
+                rtt = end_rtt - start_rtt
+
                 signal = publisher.signals.order(created_at: :asc).first
 
                 if !signal.nil?
@@ -267,10 +270,8 @@ module Outboxer
                   signal.destroy
                 end
 
-                end_rtt = process.clock_gettime(process::CLOCK_MONOTONIC)
-                rtt = end_rtt - start_rtt
-
-                throughput = messages = Models::Message
+                throughput = Models::Message
+                  .where(status: Models::Message::Status::PUBLISHED)
                   .where(updated_by_publisher_id: id)
                   .where('updated_at >= ?', 1.second.ago)
                   .count

@@ -8,16 +8,24 @@ class CreateOutboxerMessages < ActiveRecord::Migration[6.1]
 
       t.timestamps
 
-      t.string :updated_by_publisher_name, limit: 263
-      # 255 (hostname) + 1 (colon) + 7 (pid)
-
+      t.string :updated_by_publisher_name, limit: 263 # 255 (hostname) + 1 (colon) + 7 (pid)
       t.bigint :updated_by_publisher_id
     end
 
-    add_index :outboxer_messages, :status
-    add_index :outboxer_messages, [:status, :updated_at]
+    # messages by status count
+    add_index :outboxer_messages, :status, name: 'idx_outboxer_status'
 
-    add_index :outboxer_messages, :updated_by_publisher_id
+    # messages by status latency
+    add_index :outboxer_messages, [:status, :updated_at],
+      name: 'idx_outboxer_status_updated_at'
+
+    # publisher latency
+    add_index :outboxer_messages, [:updated_by_publisher_id, :updated_at],
+      name: 'idx_outboxer_pub_id_updated_at'
+
+    # publisher throughput
+    add_index :outboxer_messages, [:status, :updated_by_publisher_id, :updated_at],
+      name: 'idx_outboxer_status_pub_id_updated_at'
   end
 
   def down
