@@ -185,7 +185,7 @@ module Outboxer
                                  logger:, process:, kernel:, &block)
       concurrency.times.each_with_index.map do |_, index|
         Thread.new do
-          Thread.current.name = "outboxer.publisher.#{index + 1}"
+          Thread.current.name = "publisher-#{index + 1}"
 
           while (message = queue.pop)
             break if message.nil?
@@ -225,12 +225,14 @@ module Outboxer
           signal_read: signal_read,
           process: process, kernel: kernel)
       end
-    rescue StandardError => exception
-      logger.error "#{exception.class}: #{exception.message}"
-      exception.backtrace.each { |frame| logger.error frame }
-    rescue Exception => exception
-      logger.fatal "#{exception.class}: #{exception.message}"
-      exception.backtrace.each { |frame| logger.fatal frame }
+    rescue StandardError => e
+      logger.error(
+        "#{e.class}: #{e.message}\n"\
+        "#{e.backtrace.join("\n")}")
+    rescue Exception => e
+      logger.fatal(
+        "#{e.class}: #{e.message}\n"\
+        "#{e.backtrace.join("\n")}")
 
       terminate(id: id)
     end
@@ -239,7 +241,7 @@ module Outboxer
                                 heartbeat:, tick:, signal_read:,
                                 logger:, time:, socket:, process:, kernel:)
       Thread.new do
-        Thread.current.name = "outboxer.heatbeat"
+        Thread.current.name = "heartbeat"
 
         while @status != Status::TERMINATING
           begin
@@ -298,15 +300,15 @@ module Outboxer
               process: process, kernel: kernel)
 
           rescue NotFound => e
-            logger.fatal("Thread TID-#{(Thread.object_id ^ process.pid).to_s(36)} #{Thread.current.name}")
-            logger.fatal("#{e.class}: #{e.message}")
-            logger.fatal(e.backtrace.join("\n"))
+            logger.fatal(
+              "#{e.class}: #{e.message}\n"\
+              "#{e.backtrace.join("\n")}")
 
             terminate(id: id)
           rescue StandardError => e
-            logger.error("Thread TID-#{(Thread.object_id ^ process.pid).to_s(36)} #{Thread.current.name}")
-            logger.error("#{e.class}: #{e.message}")
-            logger.error(e.backtrace.join("\n"))
+            logger.error(
+              "#{e.class}: #{e.message}\n"\
+              "#{e.backtrace.join("\n")}")
 
             Publisher.sleep(
               heartbeat,
@@ -315,9 +317,9 @@ module Outboxer
               tick: tick,
               process: process, kernel: kernel)
           rescue Exception => e
-            logger.fatal("Thread TID-#{(Thread.object_id ^ process.pid).to_s(36)} #{Thread.current.name}")
-            logger.fatal("#{e.class}: #{e.message}")
-            logger.fatal(e.backtrace.join("\n"))
+            logger.fatal(
+              "#{e.class}: #{e.message}\n"\
+              "#{e.backtrace.join("\n")}")
 
             terminate(id: id)
           end
@@ -329,35 +331,37 @@ module Outboxer
       case name
       when 'TTIN'
         Thread.list.each_with_index do |thread, index|
-          logger.info "Thread TID-#{(thread.object_id ^ process.pid).to_s(36)} #{thread.name}"
-
-          if thread.backtrace
-            logger.info thread.backtrace.join("\n")
-          else
-            logger.info "<no backtrace available>"
-          end
+          logger.info(
+            "Outboxer dumping thread #{thread.name || thread.object_id}\n"\
+            "#{thread.backtrace.present? ? thread.backtrace.join("\n") : '<no backtrace available>'}")
         end
       when 'TSTP'
+        logger.info("Outboxer pausing threads")
+
         begin
           stop(id: id)
         rescue NotFound => e
-          logger.fatal("Thread TID-#{(Thread.object_id ^ process.pid).to_s(36)} #{Thread.current.name}")
-          logger.fatal("#{e.class}: #{e.message}")
-          logger.fatal(e.backtrace.join("\n"))
+          logger.fatal(
+            "#{e.class}: #{e.message}\n"\
+            "#{e.backtrace.join("\n")}")
 
           terminate(id: id)
         end
       when 'CONT'
+        logger.info("Outboxer resuming threads")
+
         begin
           continue(id: id)
         rescue NotFound => e
-          logger.fatal("Thread TID-#{(Thread.object_id ^ process.pid).to_s(36)} #{Thread.current.name}")
-          logger.fatal("#{e.class}: #{e.message}")
-          logger.fatal(e.backtrace.join("\n"))
+          logger.fatal(
+            "#{e.class}: #{e.message}\n"\
+            "#{e.backtrace.join("\n")}")
 
           terminate(id: id)
         end
       when 'INT', 'TERM'
+        logger.info("Outboxer terminating threads")
+
         terminate(id: id)
       end
     end
@@ -373,15 +377,10 @@ module Outboxer
       time: ::Time, socket: ::Socket, process: ::Process, kernel: ::Kernel,
       &block
     )
-      Thread.current.name = "outboxer.main"
+      Thread.current.name = "main"
 
       logger.info "Outboxer v#{Outboxer::VERSION} running in ruby #{RUBY_VERSION} "\
         "(#{RUBY_RELEASE_DATE} revision #{RUBY_REVISION[0, 10]}) [#{RUBY_PLATFORM}]"
-
-      logger.info "Outboxer config\n"\
-        "name: #{name}\nenv: #{env}\ndb_config_path: #{db_config_path}\n"\
-        "buffer: #{buffer}\nconcurrency: #{concurrency}\n"\
-        "poll: #{poll}\ntick: #{tick}\nheartbeat: #{heartbeat}"
 
       db_config = database.config(env: env, pool: concurrency + 2, path: db_config_path)
       database.connect(config: db_config, logger: logger)
@@ -451,16 +450,15 @@ module Outboxer
 
       message = Message.publishing(
         id: dequeued_message[:id], publisher_id: id, publisher_name: name)
-
       logger.debug "Outboxer publishing message #{message[:id]} for "\
         "#{message[:messageable_type]}::#{message[:messageable_id]} "\
         "in #{(process.clock_gettime(Process::CLOCK_MONOTONIC) - dequeued_at).round(3)}s"
 
       begin
         block.call(message)
-      rescue Exception => exception
-        Message.failed(id: message[:id], exception: exception, publisher_id: id, publisher_name: name)
-        logger.error "Outboxer failed to publish message #{message[:id]} for "\
+      rescue Exception => e
+        Message.failed(id: message[:id], exception: e, publisher_id: id, publisher_name: name)
+        logger.debug "Outboxer failed to publish message #{message[:id]} for "\
           "#{message[:messageable_type]}::#{message[:messageable_id]} "\
           "in #{(process.clock_gettime(Process::CLOCK_MONOTONIC) - dequeued_at).round(3)}s"
 
@@ -471,14 +469,14 @@ module Outboxer
       logger.debug "Outboxer published message #{message[:id]} for "\
         "#{message[:messageable_type]}::#{message[:messageable_id]} "\
         "in #{(process.clock_gettime(Process::CLOCK_MONOTONIC) - dequeued_at).round(3)}s"
-    rescue StandardError => exception
-      logger.error "#{exception.class}: #{exception.message} "\
-        "in #{(process.clock_gettime(Process::CLOCK_MONOTONIC) - dequeued_at).round(3)}s"
-      exception.backtrace.each { |frame| logger.error frame }
-    rescue Exception => exception
-      logger.fatal "#{exception.class}: #{exception.message} "\
-        "in #{(process.clock_gettime(Process::CLOCK_MONOTONIC) - dequeued_at).round(3)}s"
-      exception.backtrace.each { |frame| logger.fatal frame }
+    rescue StandardError => e
+      logger.error(
+        "#{e.class}: #{e.message}\n"\
+        "#{e.backtrace.join("\n")}")
+    rescue Exception => e
+      logger.fatal(
+        "#{e.class}: #{e.message}\n"\
+        "#{e.backtrace.join("\n")}")
 
       terminate(id: id)
     end
