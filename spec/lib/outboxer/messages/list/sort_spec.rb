@@ -11,7 +11,7 @@ module Outboxer
     end
 
     let!(:message_3) do
-      create(:outboxer_message, :dequeued, messageable_type: 'Event', messageable_id: '3')
+      create(:outboxer_message, :buffered, messageable_type: 'Event', messageable_id: '3')
     end
 
     let!(:message_4) do
@@ -46,7 +46,7 @@ module Outboxer
             Messages
               .list(sort: :status, order: :asc)[:messages]
               .map { |message| message[:status] }
-          ).to eq([:dequeued, :failed, :publishing, :queued, :queued])
+          ).to eq([:buffered, :failed, :publishing, :queued, :queued])
         end
 
         it 'sorts messages by status in descending order' do
@@ -54,7 +54,7 @@ module Outboxer
             Messages
               .list(sort: :status, order: :desc)[:messages]
               .map { |message| message[:status] }
-          ).to eq([:queued, :queued, :publishing, :failed, :dequeued])
+          ).to eq([:queued, :queued, :publishing, :failed, :buffered])
         end
       end
 

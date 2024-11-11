@@ -15,7 +15,7 @@ module Outboxer
     end
 
     let!(:message_3) do
-      create(:outboxer_message, :dequeued,
+      create(:outboxer_message, :buffered,
         messageable_type: 'Event', messageable_id: '3',
         updated_by_publisher_id: 43000, updated_by_publisher_name: 'server-03:43000')
     end
@@ -72,9 +72,9 @@ module Outboxer
         end
       end
 
-      context 'with dequeued status' do
-        it 'returns dequeued messages' do
-          expect(Messages.list(status: :dequeued)).to eq({
+      context 'with buffered status' do
+        it 'returns buffered messages' do
+          expect(Messages.list(status: :buffered)).to eq({
             current_page: 1, limit_value: 100, total_count: 1, total_pages: 1,
             messages: [
               {

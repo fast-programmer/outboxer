@@ -4,7 +4,7 @@ module Outboxer
   RSpec.describe Messages do
     describe '.requeue_all' do
       let!(:message_1) { create(:outboxer_message, :queued) }
-      let!(:message_2) { create(:outboxer_message, :dequeued) }
+      let!(:message_2) { create(:outboxer_message, :buffered) }
       let!(:message_3) { create(:outboxer_message, :failed) }
       let!(:message_4) { create(:outboxer_message, :failed) }
       let!(:message_5) { create(:outboxer_message, :publishing) }
@@ -21,9 +21,9 @@ module Outboxer
         end
       end
 
-      context 'when status is dequeued' do
+      context 'when status is buffered' do
         before do
-          Messages.requeue_all(status: Message::Status::DEQUEUED, batch_size: 1)
+          Messages.requeue_all(status: Message::Status::BUFFERED, batch_size: 1)
         end
 
         it 'sets queued messages to queued' do
@@ -49,7 +49,7 @@ module Outboxer
         it 'raises ArgumentError with message' do
           expect do
             Messages.requeue_all(status: nil, batch_size: 1)
-          end.to raise_error(ArgumentError, "Status nil must be one of dequeued, publishing, failed")
+          end.to raise_error(ArgumentError, "Status nil must be one of buffered, publishing, failed")
         end
       end
     end
