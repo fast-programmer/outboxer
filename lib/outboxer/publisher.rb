@@ -233,7 +233,7 @@ module Outboxer
       logger.fatal(
         "#{e.class}: #{e.message}\n"\
         "#{e.backtrace.join("\n")}")
-n
+
       terminate(id: id)
     end
 
