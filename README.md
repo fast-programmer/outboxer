@@ -21,7 +21,7 @@ gem 'outboxer'
 bundle install
 ```
 
-## Usage
+## Set up
 
 ### 1. generate schema
 
@@ -35,7 +35,13 @@ bin/rails g outboxer:schema
 bin/rake db:migrate
 ```
 
-###  3. queue message after event created
+### 3. generate publisher
+
+```bash
+bin/rails g outboxer:publisher
+```
+
+###  4. after model creation, queue message
 
 ```ruby
 class Event < ActiveRecord::Base
@@ -47,16 +53,10 @@ class Event < ActiveRecord::Base
 end
 ```
 
-### 4. generate publisher
-
-```bash
-bin/rails g outboxer:publisher
-```
-
 ### 5. publish message out of band
 
 ```ruby
-Outboxer::Publisher.publish(...) do |message|
+Outboxer::Publisher.publish do |message|
   case message[:messageable_type]
   when 'Event'
     EventCreatedJob.perform_async({ 'id' => message[:messageable_id] })
@@ -70,25 +70,15 @@ end
 bin/outboxer_publisher
 ```
 
-### 7. periodically delete published messages
+## Management
 
-```ruby
-# called through your scheduling infrastructure
-# sidekiq scheduler, whenever, clockwork or a custom process
-
-Outboxer::Messages.delete_all(
-  status: Outboxer::Message::PUBLISHED,
-  batch_size: 100,
-  older_than: Time.now - 60)
-```
-
-### 8. manage messages via ui
+Outboxer provides a sidekiq like UI to help manage your messages.
 
 <img width="1257" alt="Screenshot 2024-05-20 at 8 47 57 pm" src="https://github.com/fast-programmer/outboxer/assets/394074/0446bc7e-9d5f-4fe1-b210-ff394bdacdd6">
 
-#### rails
+### rails
 
-##### config/routes.rb
+#### config/routes.rb
 
 ```ruby
 require 'outboxer/web'
@@ -98,9 +88,9 @@ Rails.application.routes.draw do
 end
 ```
 
-#### rack
+### rack
 
-##### config.ru
+#### config.ru
 
 ```ruby
 require 'outboxer/web'
@@ -108,14 +98,6 @@ require 'outboxer/web'
 map '/outboxer' do
   run Outboxer::Web
 end
-```
-
-### 9. monitor message publisher
-
-<img width="310" alt="Screenshot 2024-05-20 at 10 41 57 pm" src="https://github.com/fast-programmer/outboxer/assets/394074/1222ad47-15e3-44d1-bb45-6abc6b3e4325">
-
-```bash
-run bin/outboxer_publishermon
 ```
 
 ## Contributing
