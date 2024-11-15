@@ -4,7 +4,7 @@ module Outboxer
 
     generators do
       require_relative '../../generators/schema_generator'
-      require_relative '../../generators/message_publisher_generator'
+      require_relative '../../generators/publisher_generator'
     end
   end
 end
