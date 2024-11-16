@@ -13,7 +13,7 @@ module Outboxer
         namespace :db do
           desc "Load outboxer's seed data"
           task seed: :environment do
-            load File.expand_path('../../../db/seeds.rb', __dir__)
+            load File.expand_path('../../db/seeds.rb', __dir__)
           end
         end
       end
