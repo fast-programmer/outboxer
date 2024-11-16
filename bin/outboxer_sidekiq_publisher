@@ -1,7 +1,10 @@
 #!/usr/bin/env ruby
 
 require 'bundler/setup'
+require 'sidekiq'
 require 'outboxer'
+
+require_relative '../app/jobs/event_created_job'
 
 options = {
   env: ENV.fetch('OUTBOXER_ENV', 'development'),
@@ -11,7 +14,12 @@ options = {
   tick: ENV.fetch('OUTBOXER_TICK', 0.1).to_f,
   heartbeat: ENV.fetch('OUTBOXER_HEARTBEAT', 5.0).to_f,
   log_level: ENV.fetch('OUTBOXER_LOG_LEVEL', 'INFO'),
+  redis_url: ENV.fetch('OUTBOXER_REDIS_URL', 'redis://localhost:6379/0')
 }
+
+Sidekiq.configure_client do |config|
+  config.redis = { url: options[:redis_url], size: options[:concurrency] }
+end
 
 logger = Outboxer::Logger.new($stdout, level: options[:log_level])
 
@@ -26,7 +34,7 @@ Outboxer::Publisher.publish(
 ) do |message|
   case message[:messageable_type]
   when 'Event'
-    # TODO: publish message here
+    EventCreatedJob.perform_async({ 'id' => message[:messageable_id] })
 
     logger.info "Outboxer published message #{message[:id]} for "\
       "#{message[:messageable_type]}::#{message[:messageable_id]}"
