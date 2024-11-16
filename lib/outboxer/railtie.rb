@@ -11,7 +11,7 @@ module Outboxer
     rake_tasks do
       namespace :outboxer do
         namespace :db do
-          desc "Seed the database with Outboxer defaults"
+          desc "Load outboxer's seed data"
           task seed: :environment do
             load File.expand_path('../../../db/seeds.rb', __dir__)
           end
