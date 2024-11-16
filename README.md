@@ -97,11 +97,11 @@ bin/rails c
 Event.create!
 ```
 
-3. Observe that the message was published via sidekiq, bunny etc
+3. Observe that the event was published out of band via sidekiq, bunny etc
 
 ## Management
 
-Outboxer provides a sidekiq like UI to help manage your messages.
+Outboxer provides a sidekiq like UI to help manage your messages
 
 <img width="1257" alt="Screenshot 2024-05-20 at 8 47 57 pm" src="https://github.com/fast-programmer/outboxer/assets/394074/0446bc7e-9d5f-4fe1-b210-ff394bdacdd6">
 
