@@ -9,7 +9,7 @@ require_relative '../app/jobs/event_created_job'
 options = {
   env: ENV.fetch('OUTBOXER_ENV', 'development'),
   buffer: ENV.fetch('OUTBOXER_BUFFER', 1000).to_i,
-  concurrency: ENV.fetch('OUTBOXER_CONCURRENCY', 1).to_i,
+  concurrency: ENV.fetch('OUTBOXER_CONCURRENCY', 2).to_i,
   poll: ENV.fetch('OUTBOXER_POLL', 5.0).to_f,
   tick: ENV.fetch('OUTBOXER_TICK', 0.1).to_f,
   heartbeat: ENV.fetch('OUTBOXER_HEARTBEAT', 5.0).to_f,
