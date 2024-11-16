@@ -19,6 +19,7 @@ Gem::Specification.new do |spec|
 
   spec_files = Dir.chdir(__dir__) do
     [
+      'db/seeds.rb',
       'db/migrate/**/*',
       'generators/**/*',
       'LICENCE.txt',
