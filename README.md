@@ -7,7 +7,7 @@
 
 Outboxer is an ActiveRecord implementation of the transactional outbox pattern for PostgreSQL and MySQL databases.
 
-## Installation
+## Setup
 
 ### 1. add gem to gemfile
 
@@ -21,27 +21,25 @@ gem 'outboxer'
 bundle install
 ```
 
-## Set up
-
-### 1. generate schema
+### 3. generate schema
 
 ```bash
 bin/rails g outboxer:schema
 ```
 
-### 2. migrate schema
+### 4. migrate schema
 
 ```bash
 bin/rake db:migrate
 ```
 
-### 3. generate publisher
+### 5. generate publisher
 
 ```bash
 bin/rails g outboxer:publisher
 ```
 
-###  4. after model creation, queue message
+###  6. queue message after model creation
 
 ```ruby
 class Event < ActiveRecord::Base
@@ -53,7 +51,9 @@ class Event < ActiveRecord::Base
 end
 ```
 
-### 5. publish message out of band
+### 7. publish message out of band
+
+#### Sidekiq
 
 ```ruby
 Outboxer::Publisher.publish do |message|
@@ -64,11 +64,40 @@ Outboxer::Publisher.publish do |message|
 end
 ```
 
-### 6. run publisher
+#### Bunny
+
+```ruby
+Outboxer::Publisher.publish do |message|
+  case message[:messageable_type]
+  when 'Event'
+    queue.publish({ 'id' => message[:messageable_id] }.to_json, persistent: true)
+  end
+end
+```
+
+### 8. run publisher
 
 ```bash
 bin/outboxer_publisher
 ```
+
+## Testing
+
+To confirm outboxer is set up correctly:
+
+1. Open your Rails console:
+
+```bash
+bin/rails c
+```
+
+2. Run the following command to create a test event:
+
+```ruby
+Event.create!
+```
+
+3. Observe that the message was published via sidekiq, bunny etc
 
 ## Management
 
