@@ -33,13 +33,27 @@ bin/rails g outboxer:schema
 bin/rake db:migrate
 ```
 
-### 5. generate publisher
+### 5. seed database
+
+```bash
+bin/rake outboxer:db:seed
+```
+
+### 6. generate publisher
+
+#### sidekiq
+
+```bash
+bin/rails g outboxer:sidekiq_publisher
+```
+
+#### custom
 
 ```bash
 bin/rails g outboxer:publisher
 ```
 
-###  6. queue message after model creation
+###  7. queue message after model creation
 
 ```ruby
 class Event < ActiveRecord::Base
@@ -51,7 +65,7 @@ class Event < ActiveRecord::Base
 end
 ```
 
-### 7. publish message out of band
+### 8. publish message out of band
 
 #### Sidekiq
 
@@ -75,13 +89,13 @@ Outboxer::Publisher.publish do |message|
 end
 ```
 
-### 8. run publisher
+### 9. run publisher
 
 ```bash
 bin/outboxer_publisher
 ```
 
-## Testing
+## Manual Testing
 
 To confirm outboxer is set up correctly:
 

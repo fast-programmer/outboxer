@@ -448,11 +448,7 @@ module Outboxer
     def publish_message(id:, name:, buffered_message:, logger:, kernel:, process:, &block)
       buffered_at = process.clock_gettime(Process::CLOCK_MONOTONIC)
 
-      message = Message.publishing(
-        id: buffered_message[:id], publisher_id: id, publisher_name: name)
-      logger.debug "Outboxer publishing message #{message[:id]} for "\
-        "#{message[:messageable_type]}::#{message[:messageable_id]} "\
-        "in #{(process.clock_gettime(Process::CLOCK_MONOTONIC) - buffered_at).round(3)}s"
+      message = Message.publishing(id: buffered_message[:id], publisher_id: id, publisher_name: name)
 
       begin
         block.call(message)
