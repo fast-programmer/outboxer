@@ -70,7 +70,7 @@ end
 Outboxer::Publisher.publish do |message|
   case message[:messageable_type]
   when 'Event'
-    queue.publish({ 'id' => message[:messageable_id] }.to_json, persistent: true)
+    queue.publish(JSON.generate({ 'id' => message[:messageable_id] }), persistent: true)
   end
 end
 ```
