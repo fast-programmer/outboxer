@@ -35,6 +35,14 @@ bin/rake db:migrate
 
 ### 5. generate publisher
 
+#### sidekiq
+
+```bash
+bin/rails g outboxer:sidekiq_publisher
+```
+
+#### custom
+
 ```bash
 bin/rails g outboxer:publisher
 ```
