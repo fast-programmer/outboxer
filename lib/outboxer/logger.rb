@@ -6,11 +6,14 @@ module Outboxer
       super(*args, **kwargs)
 
       self.formatter = proc do |severity, datetime, progname, msg|
-        formatted_time = datetime.strftime('%Y-%m-%dT%H:%M:%S.%LZ')
-        pid = Process.pid
-        tid = Thread.current.object_id.to_s(36)
-        level = severity
-        "#{formatted_time} pid=#{pid} tid=#{tid} #{level}: #{msg}\n"
+        current_thread = ::Thread.current
+
+        pid = current_thread['outboxer_pid'] ||= ::Process.pid
+
+        tid = current_thread["outboxer_tid"] ||=
+          (current_thread.name || (current_thread.object_id ^ pid).to_s(36))
+
+        "#{datetime.utc.iso8601(3)} pid=#{pid} tid=#{tid} #{severity}: #{msg}\n"
       end
     end
   end
