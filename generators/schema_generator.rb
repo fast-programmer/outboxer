@@ -14,12 +14,28 @@ module Outboxer
 
     def copy_migrations
       migration_template(
+        "db/migrate/create_outboxer_settings.rb",
+        "db/migrate/create_outboxer_settings.rb")
+
+      migration_template(
         "db/migrate/create_outboxer_messages.rb",
         "db/migrate/create_outboxer_messages.rb")
 
       migration_template(
         "db/migrate/create_outboxer_exceptions.rb",
         "db/migrate/create_outboxer_exceptions.rb")
+
+      migration_template(
+        "db/migrate/create_outboxer_frames.rb",
+        "db/migrate/create_outboxer_frames.rb")
+
+      migration_template(
+        "db/migrate/create_outboxer_publishers.rb",
+        "db/migrate/create_outboxer_publishers.rb")
+
+      migration_template(
+        "db/migrate/create_outboxer_signals.rb",
+        "db/migrate/create_outboxer_signals.rb")
     end
   end
 end
