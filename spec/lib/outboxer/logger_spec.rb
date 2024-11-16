@@ -5,7 +5,8 @@ require 'stringio'
 module Outboxer
   RSpec.describe Logger do
     let(:output) { StringIO.new }
-    let(:logger) { Logger.new(output) }
+    let(:level) { 'info' }
+    let(:logger) { Logger.new(output, level: Logger.const_get(level.upcase)) }
 
     describe 'logging' do
       it 'logs messages with correct format' do
