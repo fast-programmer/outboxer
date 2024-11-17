@@ -173,8 +173,8 @@ module Outboxer
       id: 'Id',
       status: 'Status',
       messageable: 'Messageable',
-      created_at: 'Created At',
-      updated_at: 'Updated At',
+      created_at: 'Created',
+      updated_at: 'Updated',
       updated_by_publisher_name: 'Updated By',
     }
 
