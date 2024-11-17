@@ -1,7 +1,7 @@
 <div class="container my-4">
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h3 class="mb-0">Publisher <%= publisher[:id] %></h3>
+            <h3 class="mb-0">Publisher::<%= publisher[:id] %></h3>
             <div class="card-header-buttons">
                 <!-- Pause Button -->
                 <form action="<%= outboxer_path("/publisher/#{publisher[:id]}/signals") %>" method="post" style="display: inline;">
