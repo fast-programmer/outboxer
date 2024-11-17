@@ -5,8 +5,8 @@ module Outboxer
     Status = Models::Message::Status
 
     def queue(messageable: nil,
-      messageable_type: nil, messageable_id: nil,
-      current_utc_time: Time.now.utc)
+              messageable_type: nil, messageable_id: nil,
+              current_utc_time: Time.now.utc)
       message = Models::Message.create!(
         messageable_id: messageable&.id || messageable_id,
         messageable_type: messageable&.class&.name || messageable_type,
