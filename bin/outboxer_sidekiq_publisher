@@ -34,12 +34,9 @@ Outboxer::Publisher.publish(
 ) do |message|
   case message[:messageable_type]
   when 'Event'
-    publishing_at = ::Process.clock_gettime(::Process::CLOCK_MONOTONIC)
-
     EventCreatedJob.perform_async({ 'id' => message[:messageable_id] })
 
     logger.info "Outboxer published message id=#{message[:id]} "\
-      "messageable=#{message[:messageable_type]}/#{message[:messageable_id]} "\
-      "in #{(Outboxer.format_duration_ms(start_time: publishing_at))}"
+      "messageable=#{message[:messageable_type]}/#{message[:messageable_id]}"\
   end
 end
