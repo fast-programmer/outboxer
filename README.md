@@ -109,29 +109,33 @@ end
 bin/outboxer_publisher
 ```
 
-## Manual Testing
-
-To confirm outboxer is set up correctly:
-
-1. Open your Rails console:
+### 10. open rails console
 
 ```bash
 bin/rails c
 ```
 
-2. Run the following command to create a test event:
+### 11. create event
 
 ```ruby
 Event.create!
 ```
 
-3. Observe that the event was published out of band via sidekiq, bunny etc
+### 12. Observe published message
+
+Confirm the message has been published out of band
 
 ## Management
 
 Outboxer provides a sidekiq like UI to help manage your messages
 
-<img width="1257" alt="Screenshot 2024-05-20 at 8 47 57 pm" src="https://github.com/fast-programmer/outboxer/assets/394074/0446bc7e-9d5f-4fe1-b210-ff394bdacdd6">
+### Publishers
+
+<img width="1277" alt="Screenshot 2024-11-17 at 2 46 55 pm" src="https://github.com/user-attachments/assets/45089da1-3e3c-4fff-8457-1d9ebf2949b4">
+
+### Messages
+
+<img width="1279" alt="Screenshot 2024-11-17 at 2 47 34 pm" src="https://github.com/user-attachments/assets/74deca7a-4299-41bd-ac58-401c670d72d9">
 
 ### rails
 
