@@ -17,7 +17,7 @@ module Outboxer
 
           expect(result[:id]).to eq(message.id)
           expect(result[:status]).to eq('failed')
-          expect(result[:created_at]).to eq(message.created_at.utc)
+          expect(result[:queued_at]).to eq(message.queued_at.utc)
           expect(result[:updated_at]).to eq(message.updated_at.utc)
           expect(result[:updated_by_publisher_id]).to eq(message.updated_by_publisher_id)
           expect(result[:updated_by_publisher_name]).to eq(message.updated_by_publisher_name)

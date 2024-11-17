@@ -28,7 +28,7 @@ module Outboxer
           expect do
             Messages.list(sort: :invalid)
           end.to raise_error(
-            ArgumentError, "sort must be id status messageable created_at updated_at updated_by_publisher_name")
+            ArgumentError, "sort must be id status messageable queued_at updated_at updated_by_publisher_name")
         end
       end
 
@@ -76,19 +76,19 @@ module Outboxer
         end
       end
 
-      context 'with sort by created_at' do
-        it 'sorts messages by created_at in ascending order' do
+      context 'with sort by queued_at' do
+        it 'sorts messages by queued_at in ascending order' do
           expect(
             Messages
-              .list(sort: :created_at, order: :asc)[:messages]
+              .list(sort: :queued_at, order: :asc)[:messages]
               .map { |message| message[:id] }
           ).to eq([1, 2, 3, 4, 5])
         end
 
-        it 'sorts messages by created_at in descending order' do
+        it 'sorts messages by queued_at in descending order' do
           expect(
             Messages
-              .list(sort: :created_at, order: :desc)[:messages]
+              .list(sort: :queued_at, order: :desc)[:messages]
               .map { |message| message[:id] }
           ).to eq([5, 4, 3, 2, 1])
         end
