@@ -132,8 +132,8 @@ module Outboxer
             ).once
 
             expect(logger).to have_received(:debug).with(
-              a_string_matching("failed to publish message #{queued_message.id} for " \
-                "#{queued_message[:messageable_type]}::#{queued_message[:messageable_id]}")
+              a_string_matching("failed to publish message id=#{queued_message.id} " \
+                "messageable=#{queued_message[:messageable_type]}::#{queued_message[:messageable_id]}")
             ).once
           end
         end
@@ -171,8 +171,8 @@ module Outboxer
 
           it 'logs errors' do
             expect(logger).to have_received(:debug).with(
-              a_string_matching("failed to publish message #{queued_message.id} for " \
-                "#{queued_message[:messageable_type]}::#{queued_message[:messageable_id]}")
+              a_string_matching("failed to publish message id=#{queued_message.id} " \
+                "messageable=#{queued_message[:messageable_type]}::#{queued_message[:messageable_id]}")
             ).once
 
             expect(logger).to have_received(:fatal).with(

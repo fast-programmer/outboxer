@@ -44,6 +44,7 @@ module Outboxer
                 messageable_type: message_1.messageable_type,
                 messageable_id: message_1.messageable_id,
                 queued_at: message_1.queued_at,
+                buffered_at: message_1.buffered_at,
                 updated_at: message_1.updated_at,
                 updated_by_publisher_id: message_1.updated_by_publisher_id,
                 updated_by_publisher_name: message_1.updated_by_publisher_name
@@ -54,6 +55,7 @@ module Outboxer
                 messageable_type: message_2.messageable_type,
                 messageable_id: message_2.messageable_id,
                 queued_at: message_2.queued_at,
+                buffered_at: message_2.buffered_at,
                 updated_at: message_2.updated_at,
                 updated_by_publisher_id: message_2.updated_by_publisher_id,
                 updated_by_publisher_name: message_2.updated_by_publisher_name
@@ -64,6 +66,7 @@ module Outboxer
                 messageable_type: message_3.messageable_type,
                 messageable_id: message_3.messageable_id,
                 queued_at: message_3.queued_at,
+                buffered_at: message_3.buffered_at,
                 updated_at: message_3.updated_at,
                 updated_by_publisher_id: message_3.updated_by_publisher_id,
                 updated_by_publisher_name: message_3.updated_by_publisher_name
@@ -74,6 +77,7 @@ module Outboxer
                 messageable_type: message_4.messageable_type,
                 messageable_id: message_4.messageable_id,
                 queued_at: message_4.queued_at,
+                buffered_at: message_4.buffered_at,
                 updated_at: message_4.updated_at,
                 updated_by_publisher_id: message_4.updated_by_publisher_id,
                 updated_by_publisher_name: message_4.updated_by_publisher_name
@@ -84,6 +88,7 @@ module Outboxer
                 messageable_type: message_5.messageable_type,
                 messageable_id: message_5.messageable_id,
                 queued_at: message_5.queued_at,
+                buffered_at: message_5.buffered_at,
                 updated_at: message_5.updated_at,
                 updated_by_publisher_id: message_5.updated_by_publisher_id,
                 updated_by_publisher_name: message_5.updated_by_publisher_name

@@ -182,7 +182,7 @@ module Outboxer
 
     def create_publisher_threads(id:, name:,
                                  queue:, concurrency:,
-                                 logger:, process:, kernel:, &block)
+                                 logger:, kernel:, &block)
       concurrency.times.each_with_index.map do |_, index|
         Thread.new do
           Thread.current.name = "publisher-#{index + 1}"
@@ -192,7 +192,7 @@ module Outboxer
 
             publish_message(
               id: id, name: name, buffered_message: message,
-              logger: logger, process: process, kernel: kernel, &block)
+              logger: logger, kernel: kernel, &block)
           end
         end
       end
@@ -394,7 +394,7 @@ module Outboxer
 
       publisher_threads = create_publisher_threads(
         id: id, name: name, queue: queue, concurrency: concurrency,
-        logger: logger, process: process, kernel: kernel,
+        logger: logger, kernel: kernel,
         &block)
 
       signal_read, _signal_write = trap_signals(id: publisher[:id])
@@ -445,26 +445,29 @@ module Outboxer
       database.disconnect(logger: logger)
     end
 
-    def publish_message(id:, name:, buffered_message:, logger:, kernel:, process:, &block)
-      buffered_at = process.clock_gettime(Process::CLOCK_MONOTONIC)
-
-      message = Message.publishing(id: buffered_message[:id], publisher_id: id, publisher_name: name)
+    def publish_message(id:, name:, buffered_message:, logger:, kernel:, &block)
+      publishing_message = Message.publishing(
+        id: buffered_message[:id], publisher_id: id, publisher_name: name)
 
       begin
-        block.call(message)
+        block.call(publishing_message)
       rescue Exception => e
-        Message.failed(id: message[:id], exception: e, publisher_id: id, publisher_name: name)
-        logger.debug "Outboxer failed to publish message #{message[:id]} for "\
-          "#{message[:messageable_type]}::#{message[:messageable_id]} "\
-          "in #{(process.clock_gettime(Process::CLOCK_MONOTONIC) - buffered_at).round(3)}s"
+        failed_message = Message.failed(
+          id: publishing_message[:id], exception: e, publisher_id: id, publisher_name: name)
+
+        logger.debug "Outboxer failed to publish message id=#{failed_message[:id]} "\
+          "messageable=#{failed_message[:messageable_type]}::#{failed_message[:messageable_id]} "\
+          "in #{(failed_message[:updated_at] - failed_message[:queued_at]).round(3)}s"
 
         raise
       end
 
-      Message.published(id: message[:id], publisher_id: id, publisher_name: name)
-      logger.debug "Outboxer published message #{message[:id]} for "\
-        "#{message[:messageable_type]}::#{message[:messageable_id]} "\
-        "in #{(process.clock_gettime(Process::CLOCK_MONOTONIC) - buffered_at).round(3)}s"
+      published_message = Message.published(
+        id: publishing_message[:id], publisher_id: id, publisher_name: name)
+
+      logger.debug "Outboxer published message id=#{published_message[:id]} "\
+        "messageable=#{published_message[:messageable_type]}::#{published_message[:messageable_id]} "\
+        "in #{(published_message[:updated_at] - published_message[:queued_at]).round(3)}s"
     rescue StandardError => e
       logger.error(
         "#{e.class}: #{e.message}\n"\
