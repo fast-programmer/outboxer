@@ -207,7 +207,7 @@ module Outboxer
       id: 'Id',
       status: 'Status',
       messageable: 'Messageable',
-      created_at: 'Created',
+      queued_at: 'Queued',
       updated_at: 'Updated',
       updated_by_publisher_name: 'Updated By',
     }

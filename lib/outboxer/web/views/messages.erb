@@ -125,8 +125,8 @@
                                             <%= message[:messageable_type] %>::<%= message[:messageable_id] %>
                                         </a>
                                     </td>
-                                    <td title="<%= message[:created_at].in_time_zone(denormalised_query_params[:time_zone]) %>">
-                                        <%= time_ago_in_words(message[:created_at]) %> ago
+                                    <td title="<%= message[:queued_at].in_time_zone(denormalised_query_params[:time_zone]) %>">
+                                        <%= time_ago_in_words(message[:queued_at]) %> ago
                                     </td>
                                     <td title="<%= message[:updated_at].in_time_zone(denormalised_query_params[:time_zone]) %>">
                                         <%= time_ago_in_words(message[:updated_at]) %> ago
