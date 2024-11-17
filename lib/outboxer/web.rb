@@ -27,10 +27,18 @@ module Outboxer
         "#{request.script_name}#{path}"
       end
 
+      def number_to_delimited(number:, delimiter: ',', separator: '.')
+        return "-" if number.nil?
+
+        integer, decimal = number.to_s.split('.')
+        formatted_integer = integer.chars.reverse.each_slice(3).map(&:join).join(delimiter).reverse
+        [formatted_integer, decimal].compact.join(separator)
+      end
+
       def pretty_throughput(per_second: 0)
         return "-" if per_second == 0
 
-        "#{per_second} /s"
+        "#{number_to_delimited(number: per_second)} /s"
       end
 
       def pretty_duration_from_period(start_time:, end_time: ::Process.clock_gettime(::Process::CLOCK_MONOTONIC))
@@ -56,7 +64,7 @@ module Outboxer
         units.each do |unit|
           value = seconds * unit[:scale]
           if value >= 1 || unit[:name] == "ns"
-            return "#{value.round(0)} #{unit[:name]}"
+            return "#{number_to_delimited(number: value.round(0))} #{unit[:name]}"
           end
         end
       end
@@ -71,7 +79,7 @@ module Outboxer
           unit = units.shift
         end
 
-        "#{size.round(0)} #{unit}"
+        "#{number_to_delimited(number: size.round(0))} #{unit}"
       end
 
       def time_ago_in_words(time)
