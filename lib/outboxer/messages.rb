@@ -18,6 +18,7 @@ module Outboxer
               .where(id: messages.map { |message| message[:id] })
               .update_all(
                 status: Models::Message::Status::BUFFERED,
+                buffered_at: current_utc_time,
                 updated_at: current_utc_time,
                 updated_by_publisher_id: publisher_id,
                 updated_by_publisher_name: publisher_name)

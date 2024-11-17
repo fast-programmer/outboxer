@@ -14,17 +14,25 @@ FactoryBot.define do
 
     trait :buffered do
       status { Outboxer::Models::Message::Status::BUFFERED }
+
+      buffered_at { 23.hours.ago }
     end
 
     trait :publishing do
       status { Outboxer::Models::Message::Status::PUBLISHING }
+
+      buffered_at { 23.hours.ago }
     end
 
     trait :published do
       status { Outboxer::Models::Message::Status::PUBLISHED }
+
+      buffered_at { 23.hours.ago }
     end
 
     trait :failed do
+      buffered_at { 23.hours.ago }
+
       status { Outboxer::Models::Message::Status::FAILED }
     end
   end
