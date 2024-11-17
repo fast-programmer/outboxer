@@ -102,23 +102,23 @@
                 <tbody>
                     <tr>
                         <th scope="row">Throughput</th>
-                        <td><%= publisher[:metrics]['throughput'] %></td>
+                        <td><%= pretty_throughput(per_second: publisher[:metrics]['throughput']) %></td>
                     </tr>
                     <tr>
                         <th scope="row">Latency</th>
-                        <td><%= publisher[:metrics]['latency'] %></td>
+                        <td><%= pretty_duration_from_seconds(seconds: publisher[:metrics]['latency']) %></td>
                     </tr>
                     <tr>
                         <th scope="row">CPU</th>
-                        <td><%= publisher[:metrics]['cpu'] %>%</td>
+                        <td><%= publisher[:metrics]['cpu'].round(0) %>%</td>
                     </tr>
                     <tr>
                         <th scope="row">RSS</th>
-                        <td><%= human_readable_size(publisher[:metrics]['rss']) %></td>
+                        <td><%= human_readable_size(kilobytes: publisher[:metrics]['rss']) %></td>
                     </tr>
                     <tr>
                         <th scope="row">RTT</th>
-                        <td><%= (publisher[:metrics]['rtt'] * 1000).round(2) %> ms</td>
+                        <td><%= pretty_duration_from_seconds(seconds: publisher[:metrics]['rtt']) %></td>
                     </tr>
                 </tbody>
             </table>

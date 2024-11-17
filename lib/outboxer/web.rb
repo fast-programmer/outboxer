@@ -27,7 +27,41 @@ module Outboxer
         "#{request.script_name}#{path}"
       end
 
-      def human_readable_size(kilobytes)
+      def pretty_throughput(per_second: 0)
+        return "-" if per_second == 0
+
+        "#{per_second} /s"
+      end
+
+      def pretty_duration_from_period(start_time:, end_time: ::Process.clock_gettime(::Process::CLOCK_MONOTONIC))
+        pretty_duration(seconds: end_time - start_time)
+      end
+
+      def pretty_duration_from_seconds(seconds:)
+        return "-" if seconds <= 0
+
+        units = [
+          { name: "y", scale: 1.0 / 31_536_000 },  # 1 year = 31,536,000 seconds (365 days)
+          { name: "mo", scale: 1.0 / 2_592_000 },  # 1 month = 2,592,000 seconds (30 days)
+          { name: "w", scale: 1.0 / 604_800 },     # 1 week = 604,800 seconds
+          { name: "d", scale: 1.0 / 86_400 },      # 1 day = 86,400 seconds
+          { name: "h", scale: 1.0 / 3_600 },       # 1 hour = 3,600 seconds
+          { name: "min", scale: 1.0 / 60 },        # 1 minute = 60 seconds
+          { name: "s", scale: 1 },                 # 1 second = 1 second
+          { name: "ms", scale: 1_000 },            # 1 millisecond = 1/1,000 second
+          { name: "µs", scale: 1_000_000 },        # 1 microsecond = 1/1,000,000 second
+          { name: "ns", scale: 1_000_000_000 }     # 1 nanosecond = 1/1,000,000,000 second
+        ].freeze
+
+        units.each do |unit|
+          value = seconds * unit[:scale]
+          if value >= 1 || unit[:name] == "ns"
+            return "#{value.round(0)} #{unit[:name]}"
+          end
+        end
+      end
+
+      def human_readable_size(kilobytes:)
         units = ['KB', 'MB', 'GB', 'TB']
         size = kilobytes.to_f
         unit = units.shift
@@ -37,7 +71,7 @@ module Outboxer
           unit = units.shift
         end
 
-        "#{size.round(2)} #{unit}"
+        "#{size.round(0)} #{unit}"
       end
 
       def time_ago_in_words(time)
