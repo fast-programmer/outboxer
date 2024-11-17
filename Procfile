@@ -3,4 +3,4 @@
 # outboxer_published_messages_deleter: bin/outboxer_published_messages_deleter
 # outboxer_publisher: bin/outboxer_publisher
 # outboxer_app: bundle exec rerun "rackup -p 4567"
-outboxer_publisher_1: bin/outboxer_publisher
+outboxer_sidekiq_publisher_1: bin/outboxer_sidekiq_publisher
