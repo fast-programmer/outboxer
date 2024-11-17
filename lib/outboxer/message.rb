@@ -12,11 +12,20 @@ module Outboxer
         messageable_type: messageable&.class&.name || messageable_type,
         status: Models::Message::Status::QUEUED,
         queued_at: current_utc_time,
+        buffered_at: nil,
         updated_at: current_utc_time,
         updated_by_publisher_id: nil,
         updated_by_publisher_name: nil)
 
-      { id: message.id }
+      {
+        id: message.id,
+        status: message.status,
+        messageable_type: message.messageable_type,
+        messageable_id: message.messageable_id,
+        queued_at: message.queued_at,
+        buffered_at: message.buffered_at,
+        updated_at: message.updated_at,
+      }
     end
 
     def find_by_id(id:)
@@ -75,7 +84,10 @@ module Outboxer
             id: id,
             status: message.status,
             messageable_type: message.messageable_type,
-            messageable_id: message.messageable_id
+            messageable_id: message.messageable_id,
+            queued_at: message.queued_at,
+            buffered_at: message.buffered_at,
+            updated_at: message.updated_at
           }
         end
       end
@@ -103,7 +115,10 @@ module Outboxer
             id: id,
             status: message.status,
             messageable_type: message.messageable_type,
-            messageable_id: message.messageable_id
+            messageable_id: message.messageable_id,
+            queued_at: message.queued_at,
+            buffered_at: message.buffered_at,
+            updated_at: message.updated_at
           }
         end
       end
@@ -135,7 +150,15 @@ module Outboxer
             outboxer_exception.frames.create!(index: index, text: frame)
           end
 
-          { id: id }
+          {
+            id: id,
+            status: message.status,
+            messageable_type: message.messageable_type,
+            messageable_id: message.messageable_id,
+            queued_at: message.queued_at,
+            buffered_at: message.buffered_at,
+            updated_at: message.updated_at
+          }
         end
       end
     end
@@ -173,6 +196,7 @@ module Outboxer
 
           message.update!(
             status: Models::Message::Status::QUEUED,
+            buffered_at: nil,
             updated_at: current_utc_time,
             updated_by_publisher_id: publisher_id,
             updated_by_publisher_name: publisher_name)

@@ -3,7 +3,7 @@ module Outboxer
     extend self
 
     def buffer(limit: 1, publisher_id: nil, publisher_name: nil,
-               current_utc_time: Time.now.utc)
+               current_utc_time: ::Time.now.utc)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           messages = Models::Message
@@ -11,13 +11,14 @@ module Outboxer
             .order(updated_at: :asc)
             .lock('FOR UPDATE SKIP LOCKED')
             .limit(limit)
-            .select(:id, :messageable_type, :messageable_id)
+            .select(:id, :messageable_type, :messageable_id, :queued_at)
 
           if messages.present?
             Models::Message
               .where(id: messages.map { |message| message[:id] })
               .update_all(
                 status: Models::Message::Status::BUFFERED,
+                buffered_at: current_utc_time,
                 updated_at: current_utc_time,
                 updated_by_publisher_id: publisher_id,
                 updated_by_publisher_name: publisher_name)
@@ -26,8 +27,11 @@ module Outboxer
           messages.map do |message|
             {
               id: message.id,
+              status: Models::Message::Status::BUFFERED,
               messageable_type: message.messageable_type,
               messageable_id: message.messageable_id,
+              queued_at: message.queued_at,
+              buffered_at: current_utc_time,
               updated_at: current_utc_time
             }
           end
@@ -103,6 +107,7 @@ module Outboxer
             messageable_type: message.messageable_type,
             messageable_id: message.messageable_id,
             queued_at: message.queued_at.utc.in_time_zone(time_zone),
+            buffered_at: message&.buffered_at&.utc&.in_time_zone(time_zone),
             updated_at: message.updated_at.utc.in_time_zone(time_zone),
             updated_by_publisher_id: message.updated_by_publisher_id,
             updated_by_publisher_name: message.updated_by_publisher_name
