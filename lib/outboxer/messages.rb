@@ -32,6 +32,7 @@ module Outboxer
               messageable_id: message.messageable_id,
               queued_at: message.queued_at,
               buffered_at: current_utc_time,
+              publishing_at: nil,
               updated_at: current_utc_time
             }
           end
@@ -108,6 +109,7 @@ module Outboxer
             messageable_id: message.messageable_id,
             queued_at: message.queued_at.utc.in_time_zone(time_zone),
             buffered_at: message&.buffered_at&.utc&.in_time_zone(time_zone),
+            publishing_at: message&.publishing_at&.utc&.in_time_zone(time_zone),
             updated_at: message.updated_at.utc.in_time_zone(time_zone),
             updated_by_publisher_id: message.updated_by_publisher_id,
             updated_by_publisher_name: message.updated_by_publisher_name
