@@ -21,4 +21,5 @@ require_relative "outboxer/publisher"
 require_relative "outboxer/publishers"
 
 module Outboxer
+
 end
