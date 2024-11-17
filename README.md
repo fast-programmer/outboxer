@@ -56,9 +56,9 @@ bin/rails g outboxer:publisher
 ###  7. queue message after model creation
 
 ```ruby
-class Event < ActiveRecord::Base
-  # your existing model
+# your existing model
 
+class Event < ActiveRecord::Base
   after_create do |event|
     Outboxer::Message.queue(messageable: event)
   end
