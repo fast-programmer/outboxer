@@ -6,7 +6,7 @@ class CreateOutboxerMessages < ActiveRecord::Migration[6.1]
       t.string :messageable_id, limit: 255, null: false
       t.string :messageable_type, limit: 255, null: false
 
-      t.datetime :created_at, precision: 6, null: false
+      t.datetime :queued_at, precision: 6, null: false
       t.datetime :updated_at, precision: 6, null: false
 
       t.string :updated_by_publisher_name, limit: 263 # 255 (hostname) + 1 (colon) + 7 (pid)
