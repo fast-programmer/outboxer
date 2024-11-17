@@ -89,6 +89,20 @@ Outboxer::Publisher.publish do |message|
 end
 ```
 
+#### Custom
+
+```ruby
+Outboxer::Publisher.publish do |message|
+  case message[:messageable_type]
+  when 'Event'
+    # publish message here
+
+    logger.info "Outboxer published message #{message[:id]} for "\
+      "#{message[:messageable_type]}::#{message[:messageable_id]}"
+  end
+end
+```
+
 ### 9. run publisher
 
 ```bash
