@@ -122,14 +122,14 @@
                                     <td><%= message[:status] %></td>
                                     <td>
                                         <a href="<%= outboxer_path("/message/#{message[:id]}/messageable#{normalised_query_string}") %>" class="custom-link">
-                                            <%= message[:messageable_type] %>::<%= message[:messageable_id] %>
+                                            <%= message[:messageable_type] %>/<%= message[:messageable_id] %>
                                         </a>
                                     </td>
-                                    <td>
-                                        <%= message[:created_at] %>
+                                    <td title="<%= message[:created_at].in_time_zone(denormalised_query_params[:time_zone]) %>">
+                                        <%= time_ago_in_words(message[:created_at]) %> ago
                                     </td>
-                                    <td>
-                                        <%= message[:updated_at] %>
+                                    <td title="<%= message[:updated_at].in_time_zone(denormalised_query_params[:time_zone]) %>">
+                                        <%= time_ago_in_words(message[:updated_at]) %> ago
                                     </td>
                                     <td>
                                         <% if message[:updated_by_publisher_id].present? && message[:updated_by_publisher_name].present? %>
