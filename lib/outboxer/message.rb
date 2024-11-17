@@ -11,10 +11,10 @@ module Outboxer
         messageable_id: messageable&.id || messageable_id,
         messageable_type: messageable&.class&.name || messageable_type,
         status: Models::Message::Status::QUEUED,
+        queued_at: current_utc_time,
+        updated_at: current_utc_time,
         updated_by_publisher_id: nil,
-        updated_by_publisher_name: nil,
-        created_at: current_utc_time,
-        updated_at: current_utc_time)
+        updated_by_publisher_name: nil)
 
       { id: message.id }
     end
@@ -29,7 +29,7 @@ module Outboxer
             status: message.status,
             messageable_type: message.messageable_type,
             messageable_id: message.messageable_id,
-            created_at: message.created_at.utc,
+            queued_at: message.queued_at.utc,
             updated_at: message.updated_at.utc,
             updated_by_publisher_id: message.updated_by_publisher_id,
             updated_by_publisher_name: message.updated_by_publisher_name,
@@ -114,7 +114,7 @@ module Outboxer
                current_utc_time: Time.now.utc)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          message = Models::Message.order(created_at: :asc).lock.find_by!(id: id)
+          message = Models::Message.order(queued_at: :asc).lock.find_by!(id: id)
 
           if message.status != Models::Message::Status::PUBLISHING
             raise ArgumentError,

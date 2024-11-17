@@ -3,7 +3,8 @@ FactoryBot.define do
     messageable_type { 'Event' }
     messageable_id { 1 }
     status { Outboxer::Models::Message::Status::QUEUED }
-    created_at { 1.day.ago }
+    queued_at { 1.day.ago }
+    updated_at { 1.day.ago }
     updated_by_publisher_id { 5 }
     updated_by_publisher_name { 'server-01:47000' }
 

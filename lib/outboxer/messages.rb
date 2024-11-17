@@ -38,7 +38,7 @@ module Outboxer
     LIST_STATUS_OPTIONS = [nil, :queued, :buffered, :publishing, :published, :failed]
     LIST_STATUS_DEFAULT = nil
 
-    LIST_SORT_OPTIONS = [:id, :status, :messageable, :created_at, :updated_at, :updated_by_publisher_name]
+    LIST_SORT_OPTIONS = [:id, :status, :messageable, :queued_at, :updated_at, :updated_by_publisher_name]
     LIST_SORT_DEFAULT = :updated_at
 
     LIST_ORDER_OPTIONS = [:asc, :desc]
@@ -102,7 +102,7 @@ module Outboxer
             status: message.status.to_sym,
             messageable_type: message.messageable_type,
             messageable_id: message.messageable_id,
-            created_at: message.created_at.utc.in_time_zone(time_zone),
+            queued_at: message.queued_at.utc.in_time_zone(time_zone),
             updated_at: message.updated_at.utc.in_time_zone(time_zone),
             updated_by_publisher_id: message.updated_by_publisher_id,
             updated_by_publisher_name: message.updated_by_publisher_name
