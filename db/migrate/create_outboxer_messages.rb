@@ -10,6 +10,8 @@ class CreateOutboxerMessages < ActiveRecord::Migration[6.1]
 
       t.datetime :buffered_at, precision: 6
 
+      t.datetime :publishing_at, precision: 6
+
       t.datetime :updated_at, precision: 6, null: false
       t.string :updated_by_publisher_name, limit: 263 # 255 (hostname) + 1 (colon) + 7 (pid)
       t.bigint :updated_by_publisher_id
