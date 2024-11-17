@@ -37,6 +37,6 @@ Outboxer::Publisher.publish(
     EventCreatedJob.perform_async({ 'id' => message[:messageable_id] })
 
     logger.info "Outboxer published message id=#{message[:id]} "\
-      "messageable=#{message[:messageable_type]}/#{message[:messageable_id]}"\
+      "messageable=#{message[:messageable_type]}::#{message[:messageable_id]}"\
   end
 end

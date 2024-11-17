@@ -1,7 +1,7 @@
 <div class="container my-4">
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h3 class="mb-0">Publisher <%= publisher[:id] %></h3>
+            <h3 class="mb-0">Publisher::<%= publisher[:id] %></h3>
             <div class="card-header-buttons">
                 <!-- Pause Button -->
                 <form action="<%= outboxer_path("/publisher/#{publisher[:id]}/signals") %>" method="post" style="display: inline;">
@@ -102,23 +102,23 @@
                 <tbody>
                     <tr>
                         <th scope="row">Throughput</th>
-                        <td><%= publisher[:metrics]['throughput'] %></td>
+                        <td><%= pretty_throughput(per_second: publisher[:metrics]['throughput']) %></td>
                     </tr>
                     <tr>
                         <th scope="row">Latency</th>
-                        <td><%= publisher[:metrics]['latency'] %></td>
+                        <td><%= pretty_duration_from_seconds(seconds: publisher[:metrics]['latency']) %></td>
                     </tr>
                     <tr>
                         <th scope="row">CPU</th>
-                        <td><%= publisher[:metrics]['cpu'] %>%</td>
+                        <td><%= publisher[:metrics]['cpu'].round(0) %>%</td>
                     </tr>
                     <tr>
                         <th scope="row">RSS</th>
-                        <td><%= human_readable_size(publisher[:metrics]['rss']) %></td>
+                        <td><%= human_readable_size(kilobytes: publisher[:metrics]['rss']) %></td>
                     </tr>
                     <tr>
                         <th scope="row">RTT</th>
-                        <td><%= (publisher[:metrics]['rtt'] * 1000).round(2) %> ms</td>
+                        <td><%= pretty_duration_from_seconds(seconds: publisher[:metrics]['rtt']) %></td>
                     </tr>
                 </tbody>
             </table>

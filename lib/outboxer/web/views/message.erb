@@ -1,7 +1,7 @@
 <div class="container my-4">
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h3 class="mb-0">Message <%= message[:id] %></h3>
+            <h3 class="mb-0">Message::<%= message[:id] %></h3>
             <div class="card-header-buttons">
                 <!-- Requeue Form -->
                 <form action="<%= outboxer_path("/message/#{message[:id]}/requeue") %>" method="post" style="display: inline;">
@@ -43,7 +43,7 @@
                     </tr>
                     <tr>
                         <th scope="row">Status</th>
-                        <td><%= message[:status] %></td>
+                        <td class="text-capitalize"><%= message[:status] %></td>
                     </tr>
                     <tr>
                         <th scope="row">Created</th>
