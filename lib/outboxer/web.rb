@@ -56,7 +56,7 @@ module Outboxer
         units.each do |unit|
           value = seconds * unit[:scale]
           if value >= 1 || unit[:name] == "ns"
-            return "#{value.round(0)} #{unit[:name]}"
+            return "#{value.round(0)}#{unit[:name]}"
           end
         end
       end
