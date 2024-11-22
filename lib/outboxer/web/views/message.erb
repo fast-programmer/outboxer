@@ -68,53 +68,63 @@
                     </tr>
                 </tbody>
             </table>
-            <!-- Latency Breakdown -->
+
+            <!-- Latency Timeline -->
             <div class="mt-4">
-                <h4>Latency Breakdown</h4>
-                <div class="progress position-relative" style="height: 30px;">
-                    <% queue_latency = message[:buffered_at].present? ? (message[:buffered_at] - message[:queued_at]) : 0 %>
-                    <% buffer_latency = message[:publishing_at].present? ? (message[:publishing_at] - message[:buffered_at]) : 0 %>
-                    <% publish_latency = (message[:updated_at] - message[:publishing_at]) %>
-                    <% total_latency = queue_latency + buffer_latency + publish_latency %>
-                    <% queue_percent = (queue_latency / total_latency * 100).round %>
-                    <% buffer_percent = (buffer_latency / total_latency * 100).round %>
-                    <% publish_percent = (publish_latency / total_latency * 100).round %>
+                <h4>Latency Timeline</h4>
+                <ul class="list-group">
+                    <% 
+                        # Inline latency calculations
+                        queue_latency = message[:buffered_at] ? (message[:buffered_at] - message[:queued_at]) : 0
+                        buffer_latency = message[:publishing_at] ? (message[:publishing_at] - message[:buffered_at]) : 0
+                        publish_latency = message[:updated_at] - message[:publishing_at]
+                        total_latency = queue_latency + buffer_latency + publish_latency
+
+                        queue_percent = (queue_latency / total_latency * 100).round(2)
+                        buffer_percent = (buffer_latency / total_latency * 100).round(2)
+                        publish_percent = (publish_latency / total_latency * 100).round(2)
+                    %>
 
                     <!-- Queue Latency -->
-                    <div class="progress-bar bg-primary" role="progressbar" 
-                        style="width: <%= queue_percent %>%;" 
-                        aria-valuenow="<%= queue_latency %>" aria-valuemin="0" aria-valuemax="<%= total_latency %>"
-                        data-bs-toggle="tooltip" data-bs-placement="top" title="Queue Latency: <%= pretty_duration_from_seconds(seconds: queue_latency) %> (<%= queue_percent %>% of total)">
-                        <%= pretty_duration_from_seconds(seconds: queue_latency) %> (<%= queue_percent %>%)
-                    </div>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>Queued</strong> to <strong>Buffered</strong>
+                        </div>
+                        <div>
+                            <span><%= pretty_duration_from_seconds(seconds: queue_latency) %></span>
+                            (<%= queue_percent %>% of total)
+                        </div>
+                    </li>
 
                     <!-- Buffer Latency -->
-                    <div class="progress-bar bg-warning text-dark" role="progressbar" 
-                        style="width: <%= buffer_percent %>%;" 
-                        aria-valuenow="<%= buffer_latency %>" aria-valuemin="0" aria-valuemax="<%= total_latency %>"
-                        data-bs-toggle="tooltip" data-bs-placement="top" title="Buffer Latency: <%= pretty_duration_from_seconds(seconds: buffer_latency) %> (<%= buffer_percent %>% of total)">
-                        <%= pretty_duration_from_seconds(seconds: buffer_latency) %> (<%= buffer_percent %>%)
-                    </div>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>Buffered</strong> to <strong>Publishing</strong>
+                        </div>
+                        <div>
+                            <span><%= pretty_duration_from_seconds(seconds: buffer_latency) %></span>
+                            (<%= buffer_percent %>% of total)
+                        </div>
+                    </li>
 
                     <!-- Publish Latency -->
-                    <div class="progress-bar bg-success" role="progressbar" 
-                        style="width: <%= publish_percent %>%;" 
-                        aria-valuenow="<%= publish_latency %>" aria-valuemin="0" aria-valuemax="<%= total_latency %>"
-                        data-bs-toggle="tooltip" data-bs-placement="top" title="Publish Latency: <%= pretty_duration_from_seconds(seconds: publish_latency) %> (<%= publish_percent %>% of total)">
-                        <%= pretty_duration_from_seconds(seconds: publish_latency) %> (<%= publish_percent %>%)
-                    </div>
-                </div>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>Publishing</strong> to <strong>Published</strong>
+                        </div>
+                        <div>
+                            <span><%= pretty_duration_from_seconds(seconds: publish_latency) %></span>
+                            (<%= publish_percent %>% of total)
+                        </div>
+                    </li>
+                </ul>
 
-                <!-- Legend -->
-                <div class="mt-3">
-                    <ul class="list-unstyled">
-                        <li><strong>Latency:</strong> <%= pretty_duration_from_seconds(seconds: total_latency) %></li>
-                        <li><span class="badge bg-primary">Queue Latency</span>: Time from <strong>queued_at</strong> to <strong>buffered_at</strong> (<%= pretty_duration_from_seconds(seconds: queue_latency) %>, <%= queue_percent %>% of total)</li>
-                        <li><span class="badge bg-warning text-dark">Buffer Latency</span>: Time from <strong>buffered_at</strong> to <strong>publishing_at</strong> (<%= pretty_duration_from_seconds(seconds: buffer_latency) %>, <%= buffer_percent %>% of total)</li>
-                        <li><span class="badge bg-success">Publish Latency</span>: Time from <strong>publishing_at</strong> to <strong>published_at</strong> or <strong>failed_at</strong> (<%= pretty_duration_from_seconds(seconds: publish_latency) %>, <%= publish_percent %>% of total)</li>
-                    </ul>
+                <!-- Total Latency -->
+                <div class="mt-3 text-end">
+                    <strong>Total Latency:</strong> <%= pretty_duration_from_seconds(seconds: total_latency) %>
                 </div>
             </div>
+
             <div class="accordion" id="exceptionsAccordion">
                 <% message[:exceptions].each_with_index do |exception, index| %>
                     <div class="accordion-item">
