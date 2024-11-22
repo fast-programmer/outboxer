@@ -151,11 +151,16 @@ module Outboxer
               .lock('FOR UPDATE SKIP LOCKED')
               .pluck(:id)
 
+            current_utc_time = time.now.utc
+
             requeued_count_batch = Models::Message
               .where(id: locked_ids)
               .update_all(
                 status: Models::Message::Status::QUEUED,
-                updated_at: time.now.utc,
+                queued_at: current_utc_time,
+                buffered_at: nil,
+                publishing_at: nil,
+                updated_at: current_utc_time,
                 updated_by_publisher_id: publisher_id,
                 updated_by_publisher_name: publisher_name)
 
