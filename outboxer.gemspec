@@ -33,7 +33,6 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_dependency "activerecord", "~> 7.0"
-  spec.add_dependency "kaminari", "~> 1.0"
   spec.add_dependency "rack-flash3", "~> 1.0"
   spec.add_dependency "rackup", "~> 2.0"
   spec.add_dependency "sinatra", "~> 4.0"

@@ -1,5 +1,4 @@
 require "active_record"
-require "kaminari"
 
 require_relative "outboxer/version"
 require_relative "outboxer/railtie" if defined?(Rails)

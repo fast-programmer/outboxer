@@ -90,7 +90,7 @@
                         <tr>
                             <th scope="col">Transition</th>
                             <th scope="col">Duration</th>
-                            <th scope="col">% of Total</th>
+                            <th scope="col">%</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -108,40 +108,38 @@
                             <td><%= buffer_percent %>%</td>
                         </tr>
 
-                        <% case message[:status] %>
-                        <% when Outboxer::Message::Status::PUBLISHED %>
+                        <% if message[:status] == Outboxer::Message::Status::PUBLISHED %>
                             <!-- Publish Latency for Published -->
                             <tr>
                                 <td>Publishing to Published</td>
                                 <td><%= pretty_duration_from_seconds_to_milliseconds(seconds: publish_latency) %></td>
-                                <td><%= publish_percent %>%</td>
+                                <td><%= publish_percent %></td>
                             </tr>
-                        <% when Outboxer::Message::Status::FAILED %>
+                        <% elsif message[:status] == Outboxer::Message::Status::FAILED %>
                             <!-- Publish Latency for Failed -->
                             <tr>
                                 <td>Publishing to Failed</td>
                                 <td><%= pretty_duration_from_seconds_to_milliseconds(seconds: publish_latency) %></td>
-                                <td><%= publish_percent %>%</td>
+                                <td><%= publish_percent %></td>
                             </tr>
                         <% else %>
-                            <!-- Publish Latency for Published -->
+                            <!-- Publish Latency for Other -->
                             <tr>
                                 <td>Publishing to Published</td>
                                 <td><%= pretty_duration_from_seconds_to_milliseconds(seconds: publish_latency) %></td>
-                                <td><%= publish_percent %>%</td>
+                                <td><%= publish_percent %></td>
                             </tr>
                         <% end %>
                     </tbody>
                     <tfoot>
                         <tr>
-                            <th>Total Latency</th>
+                            <th>Total</th>
                             <td><%= pretty_duration_from_seconds_to_milliseconds(seconds: total_latency) %></td>
                             <td>100%</td>
                         </tr>
                     </tfoot>
                 </table>
             </div>
-
 
             <div class="accordion" id="exceptionsAccordion">
                 <% message[:exceptions].each_with_index do |exception, index| %>

@@ -87,28 +87,29 @@ module Outboxer
         raise ArgumentError, "time_zone must be valid"
       end
 
-      message_scope = Models::Message
-        .left_joins(:publisher)
+      base_scope = Models::Message.left_joins(:publisher)
+      base_scope = status.nil? ? base_scope.all : base_scope.where('outboxer_messages.status = ?', status)
+
+      total_count = base_scope.count
+
+      sorted_scope = case sort.to_sym
+                    when :messageable
+                      base_scope.order(messageable_type: order, messageable_id: order)
+                    else
+                      base_scope.order(sort => order)
+                    end
+
+      offset = (page - 1) * per_page
+      paginated_messages = sorted_scope
         .select(
           'outboxer_messages.*',
           'CASE WHEN outboxer_publishers.id IS NOT NULL THEN 1 ELSE 0 END AS publisher_exists')
+        .offset(offset).limit(per_page)
 
-      message_scope = status.nil? ? message_scope.all : message_scope.where('outboxer_messages.status = ?', status)
-
-      message_scope =
-        case sort.to_sym
-        when :messageable
-          message_scope.order(messageable_type: order, messageable_id: order)
-        else
-          message_scope.order(sort => order)
-        end
-
-      messages = ActiveRecord::Base.connection_pool.with_connection do
-        message_scope.page(page).per(per_page)
-      end
+      total_pages = (total_count.to_f / per_page).ceil
 
       {
-        messages: messages.map do |message|
+        messages: paginated_messages.map do |message|
           {
             id: message.id,
             status: message.status.to_sym,
@@ -123,10 +124,10 @@ module Outboxer
             publisher_exists: message.publisher_exists == 1
           }
         end,
-        total_pages: messages.total_pages,
-        current_page: messages.current_page,
-        limit_value: messages.limit_value,
-        total_count: messages.total_count
+        total_pages: total_pages,
+        current_page: page,
+        limit_value: per_page,
+        total_count: total_count
       }
     end
 
