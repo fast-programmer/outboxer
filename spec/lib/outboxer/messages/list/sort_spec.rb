@@ -3,23 +3,29 @@ require 'spec_helper'
 module Outboxer
   RSpec.describe Messages do
     let!(:message_1) do
-      create(:outboxer_message, :queued, messageable_type: 'Event', messageable_id: '1')
+      create(:outboxer_message, :queued,
+        messageable_type: 'Event', messageable_id: '1',
+        updated_at: 10.seconds.ago)
     end
 
     let!(:message_2) do
-      create(:outboxer_message, :failed, messageable_type: 'Event', messageable_id: '2')
+      create(:outboxer_message, :failed, messageable_type: 'Event', messageable_id: '2',
+        updated_at: 9.seconds.ago)
     end
 
     let!(:message_3) do
-      create(:outboxer_message, :buffered, messageable_type: 'Event', messageable_id: '3')
+      create(:outboxer_message, :buffered, messageable_type: 'Event', messageable_id: '3',
+        updated_at: 8.seconds.ago)
     end
 
     let!(:message_4) do
-      create(:outboxer_message, :queued, messageable_type: 'Event', messageable_id: '4')
+      create(:outboxer_message, :queued, messageable_type: 'Event', messageable_id: '4',
+        updated_at: 7.seconds.ago)
     end
 
     let!(:message_5) do
-      create(:outboxer_message, :publishing, messageable_type: 'Event', messageable_id: '5')
+      create(:outboxer_message, :publishing, messageable_type: 'Event', messageable_id: '5',
+        updated_at: 6.seconds.ago)
     end
 
     describe '.list' do

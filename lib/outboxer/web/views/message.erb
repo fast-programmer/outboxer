@@ -68,6 +68,77 @@
                     </tr>
                 </tbody>
             </table>
+
+            <div class="container my-4">
+                <h4>Latency</h4>
+                <%
+                    queue_latency = message[:buffered_at] && message[:queued_at] ? (message[:buffered_at] - message[:queued_at]) : 0
+                    buffer_latency = message[:publishing_at] && message[:buffered_at] ? (message[:publishing_at] - message[:buffered_at]) : 0
+                    publish_latency = message[:publishing_at] ? (message[:updated_at] - message[:publishing_at]) : 0
+                    total_latency = queue_latency + buffer_latency + publish_latency
+
+                    queue_percent = total_latency > 0 ? (queue_latency / total_latency * 100).round(2) : 0
+                    buffer_percent = total_latency > 0 ? (buffer_latency / total_latency * 100).round(2) : 0
+                    publish_percent = total_latency > 0 ? (publish_latency / total_latency * 100).round(2) : 0
+                %>
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th scope="col">Transition</th>
+                            <th scope="col">Duration</th>
+                            <th scope="col">% of Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Queue Latency -->
+                        <tr>
+                            <td>Queued to Buffered</td>
+                            <td><%= pretty_duration_from_seconds_to_milliseconds(seconds: queue_latency) %></td>
+                            <td><%= queue_percent %>%</td>
+                        </tr>
+
+                        <!-- Buffer Latency -->
+                        <tr>
+                            <td>Buffered to Publishing</td>
+                            <td><%= pretty_duration_from_seconds_to_milliseconds(seconds: buffer_latency) %></td>
+                            <td><%= buffer_percent %>%</td>
+                        </tr>
+
+                        <% case message[:status] %>
+                        <% when Outboxer::Message::Status::PUBLISHED %>
+                            <!-- Publish Latency for Published -->
+                            <tr>
+                                <td>Publishing to Published</td>
+                                <td><%= pretty_duration_from_seconds_to_milliseconds(seconds: publish_latency) %></td>
+                                <td><%= publish_percent %>%</td>
+                            </tr>
+                        <% when Outboxer::Message::Status::FAILED %>
+                            <!-- Publish Latency for Failed -->
+                            <tr>
+                                <td>Publishing to Failed</td>
+                                <td><%= pretty_duration_from_seconds_to_milliseconds(seconds: publish_latency) %></td>
+                                <td><%= publish_percent %>%</td>
+                            </tr>
+                        <% else %>
+                            <!-- Publish Latency for Published -->
+                            <tr>
+                                <td>Publishing to Published</td>
+                                <td><%= pretty_duration_from_seconds_to_milliseconds(seconds: publish_latency) %></td>
+                                <td><%= publish_percent %>%</td>
+                            </tr>
+                        <% end %>
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th>Total Latency</th>
+                            <td><%= pretty_duration_from_seconds_to_milliseconds(seconds: total_latency) %></td>
+                            <td>100%</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+
             <div class="accordion" id="exceptionsAccordion">
                 <% message[:exceptions].each_with_index do |exception, index| %>
                     <div class="accordion-item">
