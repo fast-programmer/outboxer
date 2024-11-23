@@ -2,11 +2,7 @@ PATH
   remote: .
   specs:
     outboxer (1.0.0.pre.beta)
-      activerecord (~> 7.0)
-      rack-flash3 (~> 1.0)
-      rackup (~> 2.0)
-      sidekiq (~> 7.0)
-      sinatra (~> 4.0)
+      activerecord (>= 7.0.8.6)
 
 GEM
   remote: https://rubygems.org/
@@ -62,6 +58,7 @@ GEM
       ruby2_keywords (~> 0.0.1)
     mutex_m (0.2.0)
     mysql2 (0.5.6)
+    nio4r (2.7.4)
     parallel (1.24.0)
     parser (3.3.1.0)
       ast (~> 2.4.1)
@@ -73,19 +70,20 @@ GEM
     pry-byebug (3.10.1)
       byebug (~> 11.0)
       pry (>= 0.13, < 0.15)
+    puma (6.5.0)
+      nio4r (~> 2.0)
     racc (1.8.0)
     rack (3.1.8)
     rack-flash3 (1.0.5)
       rack
-    rack-protection (4.1.0)
+    rack-protection (4.1.1)
       base64 (>= 0.1.0)
       logger (>= 1.6.0)
       rack (>= 3.0.0, < 4)
     rack-session (2.0.0)
       rack (>= 3.0.0)
-    rackup (2.1.0)
+    rackup (2.2.1)
       rack (>= 3)
-      webrick (~> 1.8)
     rainbow (3.1.1)
     rake (13.2.1)
     rb-fsevent (0.11.2)
@@ -136,11 +134,11 @@ GEM
       simplecov_json_formatter (~> 0.1)
     simplecov-html (0.12.3)
     simplecov_json_formatter (0.1.4)
-    sinatra (4.1.0)
+    sinatra (4.1.1)
       logger (>= 1.6.0)
       mustermann (~> 3.0)
       rack (>= 3.0.0, < 4)
-      rack-protection (= 4.1.0)
+      rack-protection (= 4.1.1)
       rack-session (>= 2.0.0, < 3)
       tilt (~> 2.0)
     tilt (2.4.0)
@@ -148,7 +146,6 @@ GEM
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
     unicode-display_width (2.5.0)
-    webrick (1.8.2)
     yard (0.9.36)
 
 PLATFORMS
@@ -159,7 +156,6 @@ PLATFORMS
   x86_64-linux
 
 DEPENDENCIES
-  activerecord (~> 7.0)
   database_cleaner (~> 2.0)
   dotenv (~> 3.0)
   factory_bot (~> 6.0)
@@ -168,12 +164,16 @@ DEPENDENCIES
   outboxer!
   pg (~> 1.5)
   pry-byebug (~> 3.0)
+  puma (~> 6.5)
+  rack-flash3 (~> 1.0)
+  rackup (~> 2.0)
   rake (~> 13.0)
   rerun (~> 0.0)
   rspec (~> 3.0)
   rubocop (~> 1.0)
   sidekiq (~> 7.2)
   simplecov (~> 0.0)
+  sinatra (~> 4.0)
   yard (>= 0.9.36, < 1.0)
 
 BUNDLED WITH

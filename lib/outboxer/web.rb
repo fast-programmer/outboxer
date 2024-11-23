@@ -1,5 +1,33 @@
 require 'bundler/setup'
 
+require 'bundler/setup'
+
+logger = defined?(Rails) ? Rails.logger : (defined?(Sinatra) ? Sinatra::Base.logger : Logger.new($stdout))
+
+begin
+  require 'sinatra'
+rescue LoadError
+  error_message = <<~ERROR
+    [Outboxer::Web] Sinatra is required to run the web interface. Add this to your Gemfile:
+      gem 'sinatra'
+    Then run `bundle install` to install the required gem.
+  ERROR
+  logger.error(error_message.strip)
+  raise LoadError, error_message.strip
+end
+
+begin
+  require 'rack/flash'
+rescue LoadError
+  error_message = <<~ERROR
+    [Outboxer::Web] Rack::Flash is required for flash messaging. Add this to your Gemfile:
+      gem 'rack-flash3'
+    Then run `bundle install` to install the required gem.
+  ERROR
+  logger.error(error_message.strip)
+  raise LoadError, error_message.strip
+end
+
 require 'outboxer'
 require 'sinatra/base'
 require 'uri'
