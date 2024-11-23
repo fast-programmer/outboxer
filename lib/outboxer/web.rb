@@ -78,6 +78,37 @@ module Outboxer
         result.join(" ")
       end
 
+      def pretty_duration_from_seconds_to_milliseconds(seconds:)
+        return "-" if seconds <= 0
+
+        # Units for 1 second and above
+        larger_units = [
+          { name: "s", scale: 1 },       # 1 second
+          { name: "min", scale: 60 },    # 1 minute = 60 seconds
+          { name: "h", scale: 3_600 },   # 1 hour = 3,600 seconds
+          { name: "d", scale: 86_400 },  # 1 day = 86,400 seconds
+          { name: "w", scale: 604_800 }, # 1 week = 604,800 seconds
+          { name: "mo", scale: 2_592_000 }, # 1 month = 2,592,000 seconds
+          { name: "y", scale: 31_536_000 } # 1 year = 31,536,000 seconds
+        ].freeze
+
+        result = []
+
+        # Handle larger units first
+        larger_units.reverse.each do |unit|
+          next if seconds < unit[:scale] && result.empty? # Skip smaller units until the first significant one
+
+          value, seconds = seconds.divmod(unit[:scale])
+          result << "#{value.to_i}#{unit[:name]}" if value > 0
+        end
+
+        # Handle milliseconds explicitly
+        milliseconds = (seconds * 1_000).round
+        result << "#{milliseconds}ms" if milliseconds > 0 || result.empty?
+
+        result.join(" ")
+      end
+
       def human_readable_size(kilobytes:)
         units = ['KB', 'MB', 'GB', 'TB']
         size = kilobytes.to_f

@@ -93,28 +93,45 @@
                         <!-- Queue Latency -->
                         <tr>
                             <td>Queued to Buffered</td>
-                            <td><%= pretty_duration_from_seconds(seconds: queue_latency) %></td>
+                            <td><%= pretty_duration_from_seconds_to_milliseconds(seconds: queue_latency) %></td>
                             <td><%= queue_percent %>%</td>
                         </tr>
 
                         <!-- Buffer Latency -->
                         <tr>
                             <td>Buffered to Publishing</td>
-                            <td><%= pretty_duration_from_seconds(seconds: buffer_latency) %></td>
+                            <td><%= pretty_duration_from_seconds_to_milliseconds(seconds: buffer_latency) %></td>
                             <td><%= buffer_percent %>%</td>
                         </tr>
 
-                        <!-- Publish Latency -->
-                        <tr>
-                            <td>Publishing to Published</td>
-                            <td><%= pretty_duration_from_seconds(seconds: publish_latency) %></td>
-                            <td><%= publish_percent %>%</td>
-                        </tr>
+                        <% case message[:status] %>
+                        <% when Outboxer::Message::Status::PUBLISHED %>
+                            <!-- Publish Latency for Published -->
+                            <tr>
+                                <td>Publishing to Published</td>
+                                <td><%= pretty_duration_from_seconds_to_milliseconds(seconds: publish_latency) %></td>
+                                <td><%= publish_percent %>%</td>
+                            </tr>
+                        <% when Outboxer::Message::Status::FAILED %>
+                            <!-- Publish Latency for Failed -->
+                            <tr>
+                                <td>Publishing to Failed</td>
+                                <td><%= pretty_duration_from_seconds_to_milliseconds(seconds: publish_latency) %></td>
+                                <td><%= publish_percent %>%</td>
+                            </tr>
+                        <% else %>
+                            <!-- Publish Latency for Published -->
+                            <tr>
+                                <td>Publishing to Published</td>
+                                <td><%= pretty_duration_from_seconds_to_milliseconds(seconds: publish_latency) %></td>
+                                <td><%= publish_percent %>%</td>
+                            </tr>
+                        <% end %>
                     </tbody>
                     <tfoot>
                         <tr>
                             <th>Total Latency</th>
-                            <td><%= pretty_duration_from_seconds(seconds: total_latency) %></td>
+                            <td><%= pretty_duration_from_seconds_to_milliseconds(seconds: total_latency) %></td>
                             <td>100%</td>
                         </tr>
                     </tfoot>
