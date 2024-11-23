@@ -67,7 +67,8 @@ module Outboxer
                 publishing_at: message_1.publishing_at,
                 updated_at: message_1.updated_at,
                 publisher_id: message_1.publisher_id,
-                publisher_name: message_1.publisher_name
+                publisher_name: message_1.publisher_name,
+                publisher_exists: false
               },
               {
                 id: message_4.id,
@@ -79,7 +80,8 @@ module Outboxer
                 publishing_at: message_4.publishing_at,
                 updated_at: message_4.updated_at,
                 publisher_id: message_4.publisher_id,
-                publisher_name: message_4.publisher_name
+                publisher_name: message_4.publisher_name,
+                publisher_exists: false
               }
             ]
           })
@@ -101,7 +103,8 @@ module Outboxer
                 publishing_at: message_3.publishing_at,
                 updated_at: message_3.updated_at,
                 publisher_id: message_3.publisher_id,
-                publisher_name: message_3.publisher_name
+                publisher_name: message_3.publisher_name,
+                publisher_exists: false
               }
             ]
           })
@@ -123,7 +126,8 @@ module Outboxer
                 publishing_at: message_5.publishing_at,
                 updated_at: message_5.updated_at,
                 publisher_id: message_5.publisher_id,
-                publisher_name: message_5.publisher_name
+                publisher_name: message_5.publisher_name,
+                publisher_exists: false
               }
             ]
           })
@@ -145,7 +149,8 @@ module Outboxer
                 publishing_at: message_2.publishing_at,
                 updated_at: message_2.updated_at,
                 publisher_id: message_2.publisher_id,
-                publisher_name: message_2.publisher_name
+                publisher_name: message_2.publisher_name,
+                publisher_exists: false
               }
             ]
           })

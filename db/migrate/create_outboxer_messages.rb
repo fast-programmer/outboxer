@@ -14,8 +14,8 @@ class CreateOutboxerMessages < ActiveRecord::Migration[6.1]
 
       t.datetime :updated_at, precision: 6, null: false
 
-      t.string :publisher_name, limit: 263 # 255 (hostname) + 1 (colon) + 7 (pid)
       t.bigint :publisher_id
+      t.string :publisher_name, limit: 263 # 255 (hostname) + 1 (colon) + 7 (pid)
     end
 
     # messages by status count

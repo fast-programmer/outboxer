@@ -3,6 +3,8 @@ module Outboxer
     class Message < ::ActiveRecord::Base
       self.table_name = :outboxer_messages
 
+      belongs_to :publisher, class_name: "Outboxer::Models::Publisher"
+
       module Status
         QUEUED = 'queued'
         BUFFERED = 'buffered'

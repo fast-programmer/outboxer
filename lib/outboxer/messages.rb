@@ -86,7 +86,12 @@ module Outboxer
       end
 
       message_scope = Models::Message
-      message_scope = status.nil? ? message_scope.all : message_scope.where(status: status)
+        .left_joins(:publisher)
+        .select(
+          'outboxer_messages.*',
+          'CASE WHEN outboxer_publishers.id IS NOT NULL THEN true ELSE false END AS publisher_exists')
+
+      message_scope = status.nil? ? message_scope.all : message_scope.where('outboxer_messages.status = ?', status)
 
       message_scope =
         case sort.to_sym
@@ -112,7 +117,8 @@ module Outboxer
             publishing_at: message&.publishing_at&.utc&.in_time_zone(time_zone),
             updated_at: message.updated_at.utc.in_time_zone(time_zone),
             publisher_id: message.publisher_id,
-            publisher_name: message.publisher_name
+            publisher_name: message.publisher_name,
+            publisher_exists: message.publisher_exists
           }
         end,
         total_pages: messages.total_pages,
