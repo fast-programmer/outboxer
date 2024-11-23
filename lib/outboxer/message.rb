@@ -15,8 +15,8 @@ module Outboxer
         buffered_at: nil,
         publishing_at: nil,
         updated_at: current_utc_time,
-        updated_by_publisher_id: nil,
-        updated_by_publisher_name: nil)
+        publisher_id: nil,
+        publisher_name: nil)
 
       {
         id: message.id,
@@ -44,8 +44,8 @@ module Outboxer
             buffered_at: message&.buffered_at&.utc,
             publishing_at: message&.publishing_at&.utc,
             updated_at: message.updated_at.utc,
-            updated_by_publisher_id: message.updated_by_publisher_id,
-            updated_by_publisher_name: message.updated_by_publisher_name,
+            publisher_id: message.publisher_id,
+            publisher_name: message.publisher_name,
             exceptions: message.exceptions.map do |exception|
               {
                 id: exception.id,
@@ -82,8 +82,8 @@ module Outboxer
             status: Models::Message::Status::PUBLISHING,
             publishing_at: current_utc_time,
             updated_at: current_utc_time,
-            updated_by_publisher_id: publisher_id,
-            updated_by_publisher_name: publisher_name)
+            publisher_id: publisher_id,
+            publisher_name: publisher_name)
 
           {
             id: id,
@@ -114,8 +114,8 @@ module Outboxer
           message.update!(
             status: Models::Message::Status::PUBLISHED,
             updated_at: current_utc_time,
-            updated_by_publisher_id: publisher_id,
-            updated_by_publisher_name: publisher_name)
+            publisher_id: publisher_id,
+            publisher_name: publisher_name)
 
           {
             id: id,
@@ -147,8 +147,8 @@ module Outboxer
           message.update!(
             status: Models::Message::Status::FAILED,
             updated_at: current_utc_time,
-            updated_by_publisher_id: publisher_id,
-            updated_by_publisher_name: publisher_name)
+            publisher_id: publisher_id,
+            publisher_name: publisher_name)
 
           outboxer_exception = message.exceptions.create!(
             class_name: exception.class.name, message_text: exception.message)
@@ -208,8 +208,8 @@ module Outboxer
             buffered_at: nil,
             publishing_at: nil,
             updated_at: current_utc_time,
-            updated_by_publisher_id: publisher_id,
-            updated_by_publisher_name: publisher_name)
+            publisher_id: publisher_id,
+            publisher_name: publisher_name)
 
           { id: id }
         end

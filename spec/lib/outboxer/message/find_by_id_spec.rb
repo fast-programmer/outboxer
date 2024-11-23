@@ -6,8 +6,8 @@ module Outboxer
       context 'when a failed message exists' do
         let!(:message) do
           create(:outboxer_message, :failed,
-            updated_by_publisher_id: 666,
-            updated_by_publisher_name: 'server-01:47000')
+            publisher_id: 666,
+            publisher_name: 'server-01:47000')
         end
         let!(:exception) { create(:outboxer_exception, message: message) }
         let!(:frame) { create(:outboxer_frame, exception: exception) }
@@ -19,8 +19,8 @@ module Outboxer
           expect(result[:status]).to eq('failed')
           expect(result[:queued_at]).to eq(message.queued_at.utc)
           expect(result[:updated_at]).to eq(message.updated_at.utc)
-          expect(result[:updated_by_publisher_id]).to eq(message.updated_by_publisher_id)
-          expect(result[:updated_by_publisher_name]).to eq(message.updated_by_publisher_name)
+          expect(result[:publisher_id]).to eq(message.publisher_id)
+          expect(result[:publisher_name]).to eq(message.publisher_name)
           expect(result[:exceptions].first[:id]).to eq(exception.id)
           expect(result[:exceptions].first[:class_name]).to eq(exception.class_name)
           expect(result[:exceptions].first[:message_text]).to eq(exception.message_text)

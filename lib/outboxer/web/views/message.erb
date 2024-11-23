@@ -61,8 +61,8 @@
                         <th scope="row">Updated By</th>
                         <td>
                             <a class="custom-link"
-                                href="<%= outboxer_path("/publisher/#{message[:updated_by_publisher_id]}#{normalise_query_string}") %>">
-                                <%= message[:updated_by_publisher_name] %>
+                                href="<%= outboxer_path("/publisher/#{message[:publisher_id]}#{normalise_query_string}") %>">
+                                <%= message[:publisher_name] %>
                             </a>
                         </td>
                     </tr>
