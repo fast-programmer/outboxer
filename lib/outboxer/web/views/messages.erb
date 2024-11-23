@@ -132,10 +132,10 @@
                                         <%= time_ago_in_words(message[:updated_at]) %> ago
                                     </td>
                                     <td>
-                                        <% if message[:updated_by_publisher_id].present? && message[:updated_by_publisher_name].present? %>
+                                        <% if message[:publisher_id].present? && message[:publisher_name].present? %>
                                             <a class="custom-link"
-                                                href="<%= outboxer_path("/publisher/#{message[:updated_by_publisher_id]}#{normalise_query_string(status: nil, time_zone: denormalised_query_params[:time_zone])}") %>">
-                                                <%= message[:updated_by_publisher_name] %>
+                                                href="<%= outboxer_path("/publisher/#{message[:publisher_id]}#{normalise_query_string(status: nil, time_zone: denormalised_query_params[:time_zone])}") %>">
+                                                <%= message[:publisher_name] %>
                                             </a>
                                         <% else %>
                                           -

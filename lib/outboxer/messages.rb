@@ -20,8 +20,8 @@ module Outboxer
                 status: Models::Message::Status::BUFFERED,
                 buffered_at: current_utc_time,
                 updated_at: current_utc_time,
-                updated_by_publisher_id: publisher_id,
-                updated_by_publisher_name: publisher_name)
+                publisher_id: publisher_id,
+                publisher_name: publisher_name)
           end
 
           messages.map do |message|
@@ -43,7 +43,7 @@ module Outboxer
     LIST_STATUS_OPTIONS = [nil, :queued, :buffered, :publishing, :published, :failed]
     LIST_STATUS_DEFAULT = nil
 
-    LIST_SORT_OPTIONS = [:id, :status, :messageable, :queued_at, :updated_at, :updated_by_publisher_name]
+    LIST_SORT_OPTIONS = [:id, :status, :messageable, :queued_at, :updated_at, :publisher_name]
     LIST_SORT_DEFAULT = :updated_at
 
     LIST_ORDER_OPTIONS = [:asc, :desc]
@@ -111,8 +111,8 @@ module Outboxer
             buffered_at: message&.buffered_at&.utc&.in_time_zone(time_zone),
             publishing_at: message&.publishing_at&.utc&.in_time_zone(time_zone),
             updated_at: message.updated_at.utc.in_time_zone(time_zone),
-            updated_by_publisher_id: message.updated_by_publisher_id,
-            updated_by_publisher_name: message.updated_by_publisher_name
+            publisher_id: message.publisher_id,
+            publisher_name: message.publisher_name
           }
         end,
         total_pages: messages.total_pages,
@@ -161,8 +161,8 @@ module Outboxer
                 buffered_at: nil,
                 publishing_at: nil,
                 updated_at: current_utc_time,
-                updated_by_publisher_id: publisher_id,
-                updated_by_publisher_name: publisher_name)
+                publisher_id: publisher_id,
+                publisher_name: publisher_name)
 
             requeued_count += requeued_count_batch
           end
@@ -188,8 +188,8 @@ module Outboxer
             .update_all(
               status: Models::Message::Status::QUEUED,
               updated_at: time.now.utc,
-              updated_by_publisher_id: publisher_id,
-              updated_by_publisher_name: publisher_name)
+              publisher_id: publisher_id,
+              publisher_name: publisher_name)
 
           { requeued_count: requeued_count, not_requeued_ids: ids - locked_ids }
         end

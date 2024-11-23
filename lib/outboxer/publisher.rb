@@ -272,12 +272,12 @@ module Outboxer
 
                 throughput = Models::Message
                   .where(status: Models::Message::Status::PUBLISHED)
-                  .where(updated_by_publisher_id: id)
+                  .where(publisher_id: id)
                   .where('updated_at >= ?', 1.second.ago)
                   .count
 
                 last_updated_message = Models::Message
-                  .where(updated_by_publisher_id: id)
+                  .where(publisher_id: id)
                   .order(updated_at: :desc)
                   .first
 

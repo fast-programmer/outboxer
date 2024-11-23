@@ -9,8 +9,8 @@ FactoryBot.define do
     publishing_at { 8.seconds.ago }
     updated_at { 7.seconds.ago }
 
-    updated_by_publisher_id { 5 }
-    updated_by_publisher_name { 'server-01:47000' }
+    publisher_id { 5 }
+    publisher_name { 'server-01:47000' }
 
     trait :queued do
       status { Outboxer::Models::Message::Status::QUEUED }
