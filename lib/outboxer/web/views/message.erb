@@ -72,14 +72,14 @@
             <div class="container my-4">
                 <h4>Latency</h4>
                 <%
-                    queue_latency = message[:buffered_at] ? (message[:buffered_at] - message[:queued_at]) : 0
-                    buffer_latency = message[:publishing_at] ? (message[:publishing_at] - message[:buffered_at]) : 0
-                    publish_latency = message[:updated_at] - message[:publishing_at]
+                    queue_latency = message[:buffered_at] && message[:queued_at] ? (message[:buffered_at] - message[:queued_at]) : 0
+                    buffer_latency = message[:publishing_at] && message[:buffered_at] ? (message[:publishing_at] - message[:buffered_at]) : 0
+                    publish_latency = message[:publishing_at] ? (message[:updated_at] - message[:publishing_at]) : 0
                     total_latency = queue_latency + buffer_latency + publish_latency
 
-                    queue_percent = (queue_latency / total_latency * 100).round(2)
-                    buffer_percent = (buffer_latency / total_latency * 100).round(2)
-                    publish_percent = (publish_latency / total_latency * 100).round(2)
+                    queue_percent = total_latency > 0 ? (queue_latency / total_latency * 100).round(2) : 0
+                    buffer_percent = total_latency > 0 ? (buffer_latency / total_latency * 100).round(2) : 0
+                    publish_percent = total_latency > 0 ? (publish_latency / total_latency * 100).round(2) : 0
                 %>
                 <table class="table table-bordered">
                     <thead>
