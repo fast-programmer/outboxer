@@ -129,11 +129,11 @@
                                         <%= status %>
                                     </a>
                                 </td>
-                                <td><%= messages_metrics[status.to_sym][:count][:current] %></td>
+                                <td><%= pretty_number(number: messages_metrics[status.to_sym][:count][:current]) %></td>
                                 <td><%= pretty_throughput(per_second: messages_metrics[status.to_sym][:throughput]) %></td>
                                 <td><%= pretty_duration_from_seconds(seconds: messages_metrics[status.to_sym][:latency]) %></td>
-                                <td><%= messages_metrics[status.to_sym][:count][:historic] || '-' %></td>
-                                <td><%= messages_metrics[status.to_sym][:count][:total] || '-' %></td>
+                                <td><%= pretty_number(number: messages_metrics[status.to_sym][:count][:historic]) %></td>
+                                <td><%= pretty_number(number: messages_metrics[status.to_sym][:count][:total]) %></td>
                             </tr>
                         <% end %>
                     </tbody>

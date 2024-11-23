@@ -27,10 +27,18 @@ module Outboxer
         "#{request.script_name}#{path}"
       end
 
+      def pretty_number(number:, delimiter: ',', separator: '.')
+        return "-" if number.nil?
+
+        integer, decimal = number.to_s.split('.')
+        formatted_integer = integer.chars.reverse.each_slice(3).map(&:join).join(delimiter).reverse
+        [formatted_integer, decimal].compact.join(separator)
+      end
+
       def pretty_throughput(per_second: 0)
         return "-" if per_second == 0
 
-        "#{per_second} /s"
+        "#{pretty_number(number: per_second)} /s"
       end
 
       def pretty_duration_from_period(start_time:, end_time: ::Process.clock_gettime(::Process::CLOCK_MONOTONIC))
@@ -62,7 +70,7 @@ module Outboxer
         if seconds < 1
           sub_second_units.reverse_each do |unit|
             value = seconds / unit[:scale]
-            return "#{value.to_i}#{unit[:name]}" if value >= 1
+            return "#{pretty_number(number: value.to_i)}#{unit[:name]}" if value >= 1
           end
         end
 
@@ -72,7 +80,7 @@ module Outboxer
           next if seconds < unit[:scale] && result.empty? # Skip smaller units until the first significant one
 
           value, seconds = seconds.divmod(unit[:scale])
-          result << "#{value.to_i}#{unit[:name]}" if value > 0
+          result << "#{pretty_number(number: value.to_i)}#{unit[:name]}" if value > 0
         end
 
         result.join(" ")
@@ -104,7 +112,7 @@ module Outboxer
 
         # Handle milliseconds explicitly
         milliseconds = (seconds * 1_000).round
-        result << "#{milliseconds}ms" if milliseconds > 0 || result.empty?
+        result << "#{pretty_number(number: milliseconds)}ms" if milliseconds > 0 || result.empty?
 
         result.join(" ")
       end
@@ -119,7 +127,7 @@ module Outboxer
           unit = units.shift
         end
 
-        "#{size.round(0)} #{unit}"
+        "#{pretty_number(number: size.round(0))} #{unit}"
       end
 
       def time_ago_in_words(time)
