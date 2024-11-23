@@ -3,9 +3,11 @@ module Outboxer
     extend self
 
     def buffer(limit: 1, publisher_id: nil, publisher_name: nil,
-               current_utc_time: ::Time.now.utc)
+               time: ::Time)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
+          current_utc_time = time.now.utc
+
           messages = Models::Message
             .where(status: Models::Message::Status::QUEUED)
             .order(updated_at: :asc)
@@ -134,7 +136,7 @@ module Outboxer
       REQUEUE_STATUSES.include?(status&.to_sym)
     end
 
-    def requeue_all(status:, batch_size: 100, time: Time,
+    def requeue_all(status:, batch_size: 100, time: ::Time,
                     publisher_id: nil, publisher_name: nil)
       if !can_requeue?(status: status)
         status_formatted = status.nil? ? 'nil' : status
