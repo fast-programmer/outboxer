@@ -58,12 +58,16 @@
                         </td>
                     </tr>
                     <tr>
-                        <th scope="row">Updated By</th>
+                        <th scope="row">Publisher</th>
                         <td>
-                            <a class="custom-link"
-                                href="<%= outboxer_path("/publisher/#{message[:publisher_id]}#{normalise_query_string}") %>">
-                                <%= message[:publisher_name] %>
-                            </a>
+                            <% if message[:publisher_exists] %>
+                                <a class="custom-link"
+                                    href="<%= outboxer_path("/publisher/#{message[:publisher_id]}#{normalise_query_string}") %>">
+                                    <%= message[:publisher_name] %>
+                                </a>
+                            <% else %>
+                                <%= message[:publisher_name] || '-' %>
+                            <% end %>
                         </td>
                     </tr>
                 </tbody>

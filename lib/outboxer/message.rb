@@ -33,7 +33,13 @@ module Outboxer
     def find_by_id(id:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          message = Models::Message.includes(exceptions: :frames).find_by!(id: id)
+          message = Models::Message
+            .left_joins(:publisher)
+            .includes(exceptions: :frames)
+            .select(
+              'outboxer_messages.*',
+              'CASE WHEN outboxer_publishers.id IS NOT NULL THEN 1 ELSE 0 END AS publisher_exists')
+            .find_by!('outboxer_messages.id = ?', id)
 
           {
             id: message.id,
@@ -46,6 +52,7 @@ module Outboxer
             updated_at: message.updated_at.utc,
             publisher_id: message.publisher_id,
             publisher_name: message.publisher_name,
+            publisher_exists: message.publisher_exists == 1,
             exceptions: message.exceptions.map do |exception|
               {
                 id: exception.id,
