@@ -407,8 +407,6 @@ module Outboxer
         logger: logger,
         time: time, socket: socket, process: process, kernel: kernel)
 
-      GC.start(full_mark: true, immediate_sweep: true)
-
       loop do
         case @status
         when Status::PUBLISHING
