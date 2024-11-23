@@ -103,7 +103,7 @@ module Outboxer
       paginated_messages = sorted_scope
         .select(
           'outboxer_messages.*',
-          'CASE WHEN outboxer_publishers.id IS NOT NULL THEN TRUE ELSE FALSE END AS publisher_exists')
+          'CASE WHEN outboxer_publishers.id IS NOT NULL THEN 1 ELSE 0 END AS publisher_exists')
         .offset(offset).limit(per_page)
 
       total_pages = (total_count.to_f / per_page).ceil
@@ -121,7 +121,7 @@ module Outboxer
             updated_at: message.updated_at.utc.in_time_zone(time_zone),
             publisher_id: message.publisher_id,
             publisher_name: message.publisher_name,
-            publisher_exists: message.publisher_exists
+            publisher_exists: message.publisher_exists == 1
           }
         end,
         total_pages: total_pages,
