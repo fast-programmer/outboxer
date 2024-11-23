@@ -38,9 +38,11 @@ module Outboxer
     end
 
     def create(name:, buffer:, concurrency:,
-               tick:, poll:, heartbeat:, current_time: Time.now)
+               tick:, poll:, heartbeat:, time: ::Time)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
+          current_utc_time = time.now.utc
+
           publisher = Models::Publisher.create!(
             name: name,
             status: Status::PUBLISHING,
@@ -56,8 +58,8 @@ module Outboxer
               'cpu' => 0,
               'rss ' => 0,
               'rtt' => 0 },
-            created_at: current_time,
-            updated_at: current_time)
+            created_at: current_utc_time,
+            updated_at: current_utc_time)
 
           @status = Status::PUBLISHING
 
@@ -74,7 +76,7 @@ module Outboxer
       end
     end
 
-    def delete(id:, current_time: Time.now)
+    def delete(id:, time: ::Time)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           begin
@@ -90,7 +92,7 @@ module Outboxer
 
     Status = Models::Publisher::Status
 
-    def stop(id:, current_time: Time.now)
+    def stop(id:, time: ::Time)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           begin
@@ -99,14 +101,14 @@ module Outboxer
             raise NotFound.new(id: id), cause: error
           end
 
-          publisher.update!(status: Status::STOPPED, updated_at: current_time)
+          publisher.update!(status: Status::STOPPED, updated_at: time.now.utc)
 
           @status = Status::STOPPED
         end
       end
     end
 
-    def continue(id:, current_time: Time.now)
+    def continue(id:, time: ::Time)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           begin
@@ -115,19 +117,19 @@ module Outboxer
             raise NotFound.new(id: id), cause: error
           end
 
-          publisher.update!(status: Status::PUBLISHING, updated_at: current_time)
+          publisher.update!(status: Status::PUBLISHING, updated_at: time.now.utc)
 
           @status = Status::PUBLISHING
         end
       end
     end
 
-    def terminate(id:, current_time: Time.now)
+    def terminate(id:, time: ::Time)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           begin
             publisher = Models::Publisher.lock.find(id)
-            publisher.update!(status: Status::TERMINATING, updated_at: current_time)
+            publisher.update!(status: Status::TERMINATING, updated_at: time.now.utc)
 
             @status = Status::TERMINATING
           rescue ActiveRecord::RecordNotFound
@@ -137,7 +139,7 @@ module Outboxer
       end
     end
 
-    def signal(id:, name:, current_utc_time: Time.now.utc)
+    def signal(id:, name:, time: ::Time)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           begin
@@ -146,7 +148,7 @@ module Outboxer
             raise NotFound.new(id: id), cause: error
           end
 
-          publisher.signals.create!(name: name, created_at: current_utc_time)
+          publisher.signals.create!(name: name, created_at: time.now.utc)
 
           nil
         end
@@ -245,8 +247,6 @@ module Outboxer
 
         while @status != Status::TERMINATING
           begin
-            current_time = time.now
-
             cpu = `ps -p #{process.pid} -o %cpu`.split("\n").last.to_f
             rss = `ps -p #{process.pid} -o rss`.split("\n").last.to_i
 
@@ -282,7 +282,7 @@ module Outboxer
                   .first
 
                 publisher.update!(
-                  updated_at: current_time,
+                  updated_at: time.now.utc,
                   metrics: {
                     throughput: throughput,
                     latency: last_updated_message.nil? ? 0 : (time.now - last_updated_message.updated_at).to_i,

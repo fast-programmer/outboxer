@@ -3,7 +3,7 @@ module Outboxer
     extend self
 
     def buffer(limit: 1, publisher_id: nil, publisher_name: nil,
-               current_utc_time: ::Time.now.utc)
+               time: ::Time)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           messages = Models::Message
@@ -12,6 +12,8 @@ module Outboxer
             .lock('FOR UPDATE SKIP LOCKED')
             .limit(limit)
             .select(:id, :messageable_type, :messageable_id, :queued_at)
+
+          current_utc_time = time.now.utc
 
           if messages.present?
             Models::Message
@@ -134,7 +136,7 @@ module Outboxer
       REQUEUE_STATUSES.include?(status&.to_sym)
     end
 
-    def requeue_all(status:, batch_size: 100, time: Time,
+    def requeue_all(status:, batch_size: 100, time: ::Time,
                     publisher_id: nil, publisher_name: nil)
       if !can_requeue?(status: status)
         status_formatted = status.nil? ? 'nil' : status
@@ -285,7 +287,7 @@ module Outboxer
       end
     end
 
-    def metrics(current_utc_time: Time.now.utc)
+    def metrics(time: ::Time)
       metrics = { all: { count: { current: 0 } } }
 
       Models::Message::STATUSES.each do |status|
@@ -293,6 +295,8 @@ module Outboxer
       end
 
       grouped_messages = nil
+
+      current_utc_time = time.now.utc
 
       ActiveRecord::Base.connection_pool.with_connection do
         time_condition = ActiveRecord::Base.sanitize_sql_array([

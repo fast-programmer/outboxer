@@ -6,7 +6,9 @@ module Outboxer
 
     def queue(messageable: nil,
               messageable_type: nil, messageable_id: nil,
-              current_utc_time: Time.now.utc)
+              time: ::Time)
+      current_utc_time = time.now.utc
+
       message = Models::Message.create!(
         messageable_id: messageable&.id || messageable_id,
         messageable_type: messageable&.class&.name || messageable_type,
@@ -74,7 +76,7 @@ module Outboxer
     end
 
     def publishing(id:, publisher_id: nil, publisher_name: nil,
-                   current_utc_time: Time.now.utc)
+                   time: ::Time)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           message = Models::Message.lock.find_by!(id: id)
@@ -84,6 +86,8 @@ module Outboxer
               "cannot transition outboxer message #{message.id} " \
               "from #{message.status} to #{Models::Message::Status::PUBLISHING}"
           end
+
+          current_utc_time = time.now.utc
 
           message.update!(
             status: Models::Message::Status::PUBLISHING,
@@ -107,7 +111,7 @@ module Outboxer
     end
 
     def published(id:, publisher_id: nil, publisher_name: nil,
-                  current_utc_time: Time.now.utc)
+                  time: ::Time)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           message = Models::Message.lock.find_by!(id: id)
@@ -120,7 +124,7 @@ module Outboxer
 
           message.update!(
             status: Models::Message::Status::PUBLISHED,
-            updated_at: current_utc_time,
+            updated_at: time.now.utc,
             publisher_id: publisher_id,
             publisher_name: publisher_name)
 
@@ -140,7 +144,7 @@ module Outboxer
 
     def failed(id:, exception:,
                publisher_id: nil, publisher_name: nil,
-               current_utc_time: Time.now.utc)
+               time: ::Time)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           message = Models::Message.order(queued_at: :asc).lock.find_by!(id: id)
@@ -153,7 +157,7 @@ module Outboxer
 
           message.update!(
             status: Models::Message::Status::FAILED,
-            updated_at: current_utc_time,
+            updated_at: time.now.utc,
             publisher_id: publisher_id,
             publisher_name: publisher_name)
 
@@ -204,10 +208,12 @@ module Outboxer
     end
 
     def requeue(id:, publisher_id: nil, publisher_name: nil,
-                current_utc_time: Time.now.utc)
+                time: ::Time)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           message = Models::Message.lock.find_by!(id: id)
+
+          current_utc_time = time.now.utc
 
           message.update!(
             status: Models::Message::Status::QUEUED,
