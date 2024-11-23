@@ -38,7 +38,7 @@ module Outboxer
             .includes(exceptions: :frames)
             .select(
               'outboxer_messages.*',
-              'CASE WHEN outboxer_publishers.id IS NOT NULL THEN true ELSE false END AS publisher_exists')
+              'CASE WHEN outboxer_publishers.id IS NOT NULL THEN 1 ELSE 0 END AS publisher_exists')
             .find_by!('outboxer_messages.id = ?', id)
 
           {
@@ -52,7 +52,7 @@ module Outboxer
             updated_at: message.updated_at.utc,
             publisher_id: message.publisher_id,
             publisher_name: message.publisher_name,
-            publisher_exists: message.publisher_exists,
+            publisher_exists: message.publisher_exists == 1,
             exceptions: message.exceptions.map do |exception|
               {
                 id: exception.id,

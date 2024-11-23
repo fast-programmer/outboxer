@@ -89,7 +89,7 @@ module Outboxer
         .left_joins(:publisher)
         .select(
           'outboxer_messages.*',
-          'CASE WHEN outboxer_publishers.id IS NOT NULL THEN true ELSE false END AS publisher_exists')
+          'CASE WHEN outboxer_publishers.id IS NOT NULL THEN 1 ELSE 0 END AS publisher_exists')
 
       message_scope = status.nil? ? message_scope.all : message_scope.where('outboxer_messages.status = ?', status)
 
@@ -118,7 +118,7 @@ module Outboxer
             updated_at: message.updated_at.utc.in_time_zone(time_zone),
             publisher_id: message.publisher_id,
             publisher_name: message.publisher_name,
-            publisher_exists: message.publisher_exists
+            publisher_exists: message.publisher_exists == 1
           }
         end,
         total_pages: messages.total_pages,
