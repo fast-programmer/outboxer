@@ -5,8 +5,6 @@ require 'sinatra/base'
 require 'uri'
 require 'rack/flash'
 
-require 'action_view'
-
 env = ENV['OUTBOXER_ENV'] || 'development'
 
 config = Outboxer::Database.config(env: env, pool: 5)
@@ -20,8 +18,6 @@ module Outboxer
     set :show_exceptions, false
 
     helpers do
-      include ActionView::Helpers::DateHelper
-
       def outboxer_path(path)
         "#{request.script_name}#{path}"
       end
@@ -130,12 +126,22 @@ module Outboxer
       end
 
       def time_ago_in_words(time)
-        seconds_diff = (Time.now - time).to_i
+        seconds = (::Time.now - time).to_i
 
-        if seconds_diff < 60
-          "#{seconds_diff} #{seconds_diff == 1 ? 'second' : 'seconds'}"
+        if seconds < 60
+          "#{seconds} #{seconds == 1 ? 'second' : 'seconds'}"
         else
-          super
+          prefix = seconds.negative? ? "from now" : "ago"
+          seconds = seconds.abs
+
+          case seconds
+          when 0..59 then "#{seconds} seconds #{prefix}"
+          when 60..3599 then "#{seconds / 60} minutes #{prefix}"
+          when 3600..86399 then "#{seconds / 3600} hours #{prefix}"
+          when 86400..2591999 then "#{seconds / 86400} days #{prefix}"
+          when 2592000..31103999 then "#{seconds / 2592000} months #{prefix}"
+          else "#{seconds / 31104000} years #{prefix}"
+          end
         end
       end
     end
