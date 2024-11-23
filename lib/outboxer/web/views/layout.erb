@@ -73,7 +73,7 @@
                     <li class="nav-item">
                         <a class="nav-link <%= 'active' if denormalised_query_params[:status] == nil %>"
                            href="<%= outboxer_path("/messages#{normalise_query_string(status: nil, time_zone: denormalised_query_params[:time_zone])}") %>">
-                            All (<%= messages_metrics[:all][:count][:current] %>)
+                            All (<%= pretty_number(number: messages_metrics[:all][:count][:current]) %>)
                         </a>
                     </li>
 
@@ -81,7 +81,7 @@
                         <li class="nav-item">
                             <a class="nav-link <%= 'active' if denormalised_query_params[:status] == status[:key] %>"
                                href="<%= outboxer_path("/messages#{normalise_query_string(status: status[:key], time_zone: params[:time_zone])}") %>">
-                                <%= status[:name] %> (<%= messages_metrics[status[:key].to_sym][:count][:current] %>)
+                                <%= status[:name] %> (<%= pretty_number(number: messages_metrics[status[:key].to_sym][:count][:current]) %>)
                             </a>
                         </li>
                     <% end %>
