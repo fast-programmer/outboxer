@@ -6,33 +6,55 @@ module Outboxer
 
     def queue(messageable: nil,
               messageable_type: nil, messageable_id: nil,
-              current_utc_time: Time.now.utc)
+              time: ::Time)
+      current_utc_time = time.now.utc
+
       message = Models::Message.create!(
         messageable_id: messageable&.id || messageable_id,
         messageable_type: messageable&.class&.name || messageable_type,
         status: Models::Message::Status::QUEUED,
-        updated_by_publisher_id: nil,
-        updated_by_publisher_name: nil,
-        created_at: current_utc_time,
-        updated_at: current_utc_time)
+        queued_at: current_utc_time,
+        buffered_at: nil,
+        publishing_at: nil,
+        updated_at: current_utc_time,
+        publisher_id: nil,
+        publisher_name: nil)
 
-      { id: message.id }
+      {
+        id: message.id,
+        status: message.status,
+        messageable_type: message.messageable_type,
+        messageable_id: message.messageable_id,
+        queued_at: message.queued_at,
+        buffered_at: message.buffered_at,
+        publishing_at: nil,
+        updated_at: message.updated_at,
+      }
     end
 
     def find_by_id(id:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          message = Models::Message.includes(exceptions: :frames).find_by!(id: id)
+          message = Models::Message
+            .left_joins(:publisher)
+            .includes(exceptions: :frames)
+            .select(
+              'outboxer_messages.*',
+              'CASE WHEN outboxer_publishers.id IS NOT NULL THEN 1 ELSE 0 END AS publisher_exists')
+            .find_by!('outboxer_messages.id = ?', id)
 
           {
             id: message.id,
             status: message.status,
             messageable_type: message.messageable_type,
             messageable_id: message.messageable_id,
-            created_at: message.created_at.utc,
+            queued_at: message.queued_at.utc,
+            buffered_at: message&.buffered_at&.utc,
+            publishing_at: message&.publishing_at&.utc,
             updated_at: message.updated_at.utc,
-            updated_by_publisher_id: message.updated_by_publisher_id,
-            updated_by_publisher_name: message.updated_by_publisher_name,
+            publisher_id: message.publisher_id,
+            publisher_name: message.publisher_name,
+            publisher_exists: message.publisher_exists == 1,
             exceptions: message.exceptions.map do |exception|
               {
                 id: exception.id,
@@ -54,7 +76,7 @@ module Outboxer
     end
 
     def publishing(id:, publisher_id: nil, publisher_name: nil,
-                   current_utc_time: Time.now.utc)
+                   time: ::Time)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           message = Models::Message.lock.find_by!(id: id)
@@ -65,24 +87,31 @@ module Outboxer
               "from #{message.status} to #{Models::Message::Status::PUBLISHING}"
           end
 
+          current_utc_time = time.now.utc
+
           message.update!(
             status: Models::Message::Status::PUBLISHING,
+            publishing_at: current_utc_time,
             updated_at: current_utc_time,
-            updated_by_publisher_id: publisher_id,
-            updated_by_publisher_name: publisher_name)
+            publisher_id: publisher_id,
+            publisher_name: publisher_name)
 
           {
             id: id,
             status: message.status,
             messageable_type: message.messageable_type,
-            messageable_id: message.messageable_id
+            messageable_id: message.messageable_id,
+            queued_at: message.queued_at,
+            buffered_at: message.buffered_at,
+            publishing_at: message.publishing_at,
+            updated_at: message.updated_at
           }
         end
       end
     end
 
     def published(id:, publisher_id: nil, publisher_name: nil,
-                  current_utc_time: Time.now.utc)
+                  time: ::Time)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           message = Models::Message.lock.find_by!(id: id)
@@ -95,15 +124,19 @@ module Outboxer
 
           message.update!(
             status: Models::Message::Status::PUBLISHED,
-            updated_at: current_utc_time,
-            updated_by_publisher_id: publisher_id,
-            updated_by_publisher_name: publisher_name)
+            updated_at: time.now.utc,
+            publisher_id: publisher_id,
+            publisher_name: publisher_name)
 
           {
             id: id,
             status: message.status,
             messageable_type: message.messageable_type,
-            messageable_id: message.messageable_id
+            messageable_id: message.messageable_id,
+            queued_at: message.queued_at,
+            buffered_at: message.buffered_at,
+            publishing_at: message.publishing_at,
+            updated_at: message.updated_at
           }
         end
       end
@@ -111,10 +144,10 @@ module Outboxer
 
     def failed(id:, exception:,
                publisher_id: nil, publisher_name: nil,
-               current_utc_time: Time.now.utc)
+               time: ::Time)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          message = Models::Message.order(created_at: :asc).lock.find_by!(id: id)
+          message = Models::Message.order(queued_at: :asc).lock.find_by!(id: id)
 
           if message.status != Models::Message::Status::PUBLISHING
             raise ArgumentError,
@@ -124,9 +157,9 @@ module Outboxer
 
           message.update!(
             status: Models::Message::Status::FAILED,
-            updated_at: current_utc_time,
-            updated_by_publisher_id: publisher_id,
-            updated_by_publisher_name: publisher_name)
+            updated_at: time.now.utc,
+            publisher_id: publisher_id,
+            publisher_name: publisher_name)
 
           outboxer_exception = message.exceptions.create!(
             class_name: exception.class.name, message_text: exception.message)
@@ -135,7 +168,16 @@ module Outboxer
             outboxer_exception.frames.create!(index: index, text: frame)
           end
 
-          { id: id }
+          {
+            id: id,
+            status: message.status,
+            messageable_type: message.messageable_type,
+            messageable_id: message.messageable_id,
+            queued_at: message.queued_at,
+            buffered_at: message.buffered_at,
+            publishing_at: message.publishing_at,
+            updated_at: message.updated_at
+          }
         end
       end
     end
@@ -166,16 +208,21 @@ module Outboxer
     end
 
     def requeue(id:, publisher_id: nil, publisher_name: nil,
-                current_utc_time: Time.now.utc)
+                time: ::Time)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           message = Models::Message.lock.find_by!(id: id)
 
+          current_utc_time = time.now.utc
+
           message.update!(
             status: Models::Message::Status::QUEUED,
+            queued_at: current_utc_time,
+            buffered_at: nil,
+            publishing_at: nil,
             updated_at: current_utc_time,
-            updated_by_publisher_id: publisher_id,
-            updated_by_publisher_name: publisher_name)
+            publisher_id: publisher_id,
+            publisher_name: publisher_name)
 
           { id: id }
         end

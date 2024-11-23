@@ -3,7 +3,7 @@ module Outboxer
     extend self
 
     def buffer(limit: 1, publisher_id: nil, publisher_name: nil,
-               current_utc_time: Time.now.utc)
+               time: ::Time)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           messages = Models::Message
@@ -11,23 +11,30 @@ module Outboxer
             .order(updated_at: :asc)
             .lock('FOR UPDATE SKIP LOCKED')
             .limit(limit)
-            .select(:id, :messageable_type, :messageable_id)
+            .select(:id, :messageable_type, :messageable_id, :queued_at)
+
+          current_utc_time = time.now.utc
 
           if messages.present?
             Models::Message
               .where(id: messages.map { |message| message[:id] })
               .update_all(
                 status: Models::Message::Status::BUFFERED,
+                buffered_at: current_utc_time,
                 updated_at: current_utc_time,
-                updated_by_publisher_id: publisher_id,
-                updated_by_publisher_name: publisher_name)
+                publisher_id: publisher_id,
+                publisher_name: publisher_name)
           end
 
           messages.map do |message|
             {
               id: message.id,
+              status: Models::Message::Status::BUFFERED,
               messageable_type: message.messageable_type,
               messageable_id: message.messageable_id,
+              queued_at: message.queued_at,
+              buffered_at: current_utc_time,
+              publishing_at: nil,
               updated_at: current_utc_time
             }
           end
@@ -38,7 +45,7 @@ module Outboxer
     LIST_STATUS_OPTIONS = [nil, :queued, :buffered, :publishing, :published, :failed]
     LIST_STATUS_DEFAULT = nil
 
-    LIST_SORT_OPTIONS = [:id, :status, :messageable, :created_at, :updated_at, :updated_by_publisher_name]
+    LIST_SORT_OPTIONS = [:id, :status, :messageable, :queued_at, :updated_at, :publisher_name]
     LIST_SORT_DEFAULT = :updated_at
 
     LIST_ORDER_OPTIONS = [:asc, :desc]
@@ -81,7 +88,12 @@ module Outboxer
       end
 
       message_scope = Models::Message
-      message_scope = status.nil? ? message_scope.all : message_scope.where(status: status)
+        .left_joins(:publisher)
+        .select(
+          'outboxer_messages.*',
+          'CASE WHEN outboxer_publishers.id IS NOT NULL THEN 1 ELSE 0 END AS publisher_exists')
+
+      message_scope = status.nil? ? message_scope.all : message_scope.where('outboxer_messages.status = ?', status)
 
       message_scope =
         case sort.to_sym
@@ -102,10 +114,13 @@ module Outboxer
             status: message.status.to_sym,
             messageable_type: message.messageable_type,
             messageable_id: message.messageable_id,
-            created_at: message.created_at.utc.in_time_zone(time_zone),
+            queued_at: message.queued_at.utc.in_time_zone(time_zone),
+            buffered_at: message&.buffered_at&.utc&.in_time_zone(time_zone),
+            publishing_at: message&.publishing_at&.utc&.in_time_zone(time_zone),
             updated_at: message.updated_at.utc.in_time_zone(time_zone),
-            updated_by_publisher_id: message.updated_by_publisher_id,
-            updated_by_publisher_name: message.updated_by_publisher_name
+            publisher_id: message.publisher_id,
+            publisher_name: message.publisher_name,
+            publisher_exists: message.publisher_exists == 1
           }
         end,
         total_pages: messages.total_pages,
@@ -121,7 +136,7 @@ module Outboxer
       REQUEUE_STATUSES.include?(status&.to_sym)
     end
 
-    def requeue_all(status:, batch_size: 100, time: Time,
+    def requeue_all(status:, batch_size: 100, time: ::Time,
                     publisher_id: nil, publisher_name: nil)
       if !can_requeue?(status: status)
         status_formatted = status.nil? ? 'nil' : status
@@ -144,13 +159,18 @@ module Outboxer
               .lock('FOR UPDATE SKIP LOCKED')
               .pluck(:id)
 
+            current_utc_time = time.now.utc
+
             requeued_count_batch = Models::Message
               .where(id: locked_ids)
               .update_all(
                 status: Models::Message::Status::QUEUED,
-                updated_at: time.now.utc,
-                updated_by_publisher_id: publisher_id,
-                updated_by_publisher_name: publisher_name)
+                queued_at: current_utc_time,
+                buffered_at: nil,
+                publishing_at: nil,
+                updated_at: current_utc_time,
+                publisher_id: publisher_id,
+                publisher_name: publisher_name)
 
             requeued_count += requeued_count_batch
           end
@@ -176,8 +196,8 @@ module Outboxer
             .update_all(
               status: Models::Message::Status::QUEUED,
               updated_at: time.now.utc,
-              updated_by_publisher_id: publisher_id,
-              updated_by_publisher_name: publisher_name)
+              publisher_id: publisher_id,
+              publisher_name: publisher_name)
 
           { requeued_count: requeued_count, not_requeued_ids: ids - locked_ids }
         end
@@ -267,7 +287,7 @@ module Outboxer
       end
     end
 
-    def metrics(current_utc_time: Time.now.utc)
+    def metrics(time: ::Time)
       metrics = { all: { count: { current: 0 } } }
 
       Models::Message::STATUSES.each do |status|
@@ -275,6 +295,8 @@ module Outboxer
       end
 
       grouped_messages = nil
+
+      current_utc_time = time.now.utc
 
       ActiveRecord::Base.connection_pool.with_connection do
         time_condition = ActiveRecord::Base.sanitize_sql_array([

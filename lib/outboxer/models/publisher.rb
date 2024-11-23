@@ -27,6 +27,8 @@ module Outboxer
 
       attribute :status, default: -> { Status::PUBLISHING }
       validates :status, inclusion: { in: STATUSES }, length: { maximum: 255 }
+
+      has_many :messages, class_name: 'Outboxer::Models::Message'
     end
   end
 end

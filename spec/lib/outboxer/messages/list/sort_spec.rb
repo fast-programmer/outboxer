@@ -3,23 +3,29 @@ require 'spec_helper'
 module Outboxer
   RSpec.describe Messages do
     let!(:message_1) do
-      create(:outboxer_message, :queued, messageable_type: 'Event', messageable_id: '1')
+      create(:outboxer_message, :queued,
+        messageable_type: 'Event', messageable_id: '1',
+        updated_at: 10.seconds.ago)
     end
 
     let!(:message_2) do
-      create(:outboxer_message, :failed, messageable_type: 'Event', messageable_id: '2')
+      create(:outboxer_message, :failed, messageable_type: 'Event', messageable_id: '2',
+        updated_at: 9.seconds.ago)
     end
 
     let!(:message_3) do
-      create(:outboxer_message, :buffered, messageable_type: 'Event', messageable_id: '3')
+      create(:outboxer_message, :buffered, messageable_type: 'Event', messageable_id: '3',
+        updated_at: 8.seconds.ago)
     end
 
     let!(:message_4) do
-      create(:outboxer_message, :queued, messageable_type: 'Event', messageable_id: '4')
+      create(:outboxer_message, :queued, messageable_type: 'Event', messageable_id: '4',
+        updated_at: 7.seconds.ago)
     end
 
     let!(:message_5) do
-      create(:outboxer_message, :publishing, messageable_type: 'Event', messageable_id: '5')
+      create(:outboxer_message, :publishing, messageable_type: 'Event', messageable_id: '5',
+        updated_at: 6.seconds.ago)
     end
 
     describe '.list' do
@@ -28,7 +34,7 @@ module Outboxer
           expect do
             Messages.list(sort: :invalid)
           end.to raise_error(
-            ArgumentError, "sort must be id status messageable created_at updated_at updated_by_publisher_name")
+            ArgumentError, "sort must be id status messageable queued_at updated_at publisher_name")
         end
       end
 
@@ -76,19 +82,19 @@ module Outboxer
         end
       end
 
-      context 'with sort by created_at' do
-        it 'sorts messages by created_at in ascending order' do
+      context 'with sort by queued_at' do
+        it 'sorts messages by queued_at in ascending order' do
           expect(
             Messages
-              .list(sort: :created_at, order: :asc)[:messages]
+              .list(sort: :queued_at, order: :asc)[:messages]
               .map { |message| message[:id] }
           ).to eq([1, 2, 3, 4, 5])
         end
 
-        it 'sorts messages by created_at in descending order' do
+        it 'sorts messages by queued_at in descending order' do
           expect(
             Messages
-              .list(sort: :created_at, order: :desc)[:messages]
+              .list(sort: :queued_at, order: :desc)[:messages]
               .map { |message| message[:id] }
           ).to eq([5, 4, 3, 2, 1])
         end

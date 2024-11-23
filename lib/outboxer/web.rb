@@ -48,25 +48,73 @@ module Outboxer
       def pretty_duration_from_seconds(seconds:)
         return "-" if seconds <= 0
 
-        units = [
-          { name: "y", scale: 1.0 / 31_536_000 },  # 1 year = 31,536,000 seconds (365 days)
-          { name: "mo", scale: 1.0 / 2_592_000 },  # 1 month = 2,592,000 seconds (30 days)
-          { name: "w", scale: 1.0 / 604_800 },     # 1 week = 604,800 seconds
-          { name: "d", scale: 1.0 / 86_400 },      # 1 day = 86,400 seconds
-          { name: "h", scale: 1.0 / 3_600 },       # 1 hour = 3,600 seconds
-          { name: "min", scale: 1.0 / 60 },        # 1 minute = 60 seconds
-          { name: "s", scale: 1 },                 # 1 second = 1 second
-          { name: "ms", scale: 1_000 },            # 1 millisecond = 1/1,000 second
-          { name: "µs", scale: 1_000_000 },        # 1 microsecond = 1/1,000,000 second
-          { name: "ns", scale: 1_000_000_000 }     # 1 nanosecond = 1/1,000,000,000 second
+        # Units for sub-second durations
+        sub_second_units = [
+          { name: "ns", scale: 1e-9 },    # 1 nanosecond = 10^-9 seconds
+          { name: "μs", scale: 1e-6 },   # 1 microsecond = 10^-6 seconds
+          { name: "ms", scale: 1e-3 }    # 1 millisecond = 10^-3 seconds
         ].freeze
 
-        units.each do |unit|
-          value = seconds * unit[:scale]
-          if value >= 1 || unit[:name] == "ns"
-            return "#{number_to_delimited(number: value.round(0))} #{unit[:name]}"
+        # Units for 1 second and above
+        larger_units = [
+          { name: "s", scale: 1 },       # 1 second
+          { name: "min", scale: 60 },    # 1 minute = 60 seconds
+          { name: "h", scale: 3_600 },   # 1 hour = 3,600 seconds
+          { name: "d", scale: 86_400 },  # 1 day = 86,400 seconds
+          { name: "w", scale: 604_800 }, # 1 week = 604,800 seconds
+          { name: "mo", scale: 2_592_000 }, # 1 month = 2,592,000 seconds
+          { name: "y", scale: 31_536_000 } # 1 year = 31,536,000 seconds
+        ].freeze
+
+        # Handle sub-second durations
+        if seconds < 1
+          sub_second_units.reverse_each do |unit|
+            value = seconds / unit[:scale]
+            return "#{value.to_i}#{unit[:name]}" if value >= 1
           end
         end
+
+        # Handle durations of 1 second and above
+        result = []
+        larger_units.reverse.each do |unit|
+          next if seconds < unit[:scale] && result.empty? # Skip smaller units until the first significant one
+
+          value, seconds = seconds.divmod(unit[:scale])
+          result << "#{value.to_i}#{unit[:name]}" if value > 0
+        end
+
+        result.join(" ")
+      end
+
+      def pretty_duration_from_seconds_to_milliseconds(seconds:)
+        return "-" if seconds <= 0
+
+        # Units for 1 second and above
+        larger_units = [
+          { name: "s", scale: 1 },       # 1 second
+          { name: "min", scale: 60 },    # 1 minute = 60 seconds
+          { name: "h", scale: 3_600 },   # 1 hour = 3,600 seconds
+          { name: "d", scale: 86_400 },  # 1 day = 86,400 seconds
+          { name: "w", scale: 604_800 }, # 1 week = 604,800 seconds
+          { name: "mo", scale: 2_592_000 }, # 1 month = 2,592,000 seconds
+          { name: "y", scale: 31_536_000 } # 1 year = 31,536,000 seconds
+        ].freeze
+
+        result = []
+
+        # Handle larger units first
+        larger_units.reverse.each do |unit|
+          next if seconds < unit[:scale] && result.empty? # Skip smaller units until the first significant one
+
+          value, seconds = seconds.divmod(unit[:scale])
+          result << "#{value.to_i}#{unit[:name]}" if value > 0
+        end
+
+        # Handle milliseconds explicitly
+        milliseconds = (seconds * 1_000).round
+        result << "#{milliseconds}ms" if milliseconds > 0 || result.empty?
+
+        result.join(" ")
       end
 
       def human_readable_size(kilobytes:)
@@ -215,9 +263,9 @@ module Outboxer
       id: 'Id',
       status: 'Status',
       messageable: 'Messageable',
-      created_at: 'Created',
+      queued_at: 'Queued',
       updated_at: 'Updated',
-      updated_by_publisher_name: 'Updated By',
+      publisher_name: 'Publisher',
     }
 
     def generate_pagination(current_page:, total_pages:, denormalised_query_params:)
