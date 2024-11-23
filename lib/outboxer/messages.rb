@@ -6,14 +6,14 @@ module Outboxer
                time: ::Time)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          current_utc_time = time.now.utc
-
           messages = Models::Message
             .where(status: Models::Message::Status::QUEUED)
             .order(updated_at: :asc)
             .lock('FOR UPDATE SKIP LOCKED')
             .limit(limit)
             .select(:id, :messageable_type, :messageable_id, :queued_at)
+
+          current_utc_time = time.now.utc
 
           if messages.present?
             Models::Message
@@ -296,9 +296,9 @@ module Outboxer
 
       grouped_messages = nil
 
-      current_utc_time = time.now.utc
-
       ActiveRecord::Base.connection_pool.with_connection do
+        current_utc_time = time.now.utc
+
         time_condition = ActiveRecord::Base.sanitize_sql_array([
           'updated_at >= ?', current_utc_time - 1.second])
 
