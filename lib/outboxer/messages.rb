@@ -285,7 +285,7 @@ module Outboxer
       end
     end
 
-    def metrics(current_utc_time: Time.now.utc)
+    def metrics(time: ::Time)
       metrics = { all: { count: { current: 0 } } }
 
       Models::Message::STATUSES.each do |status|
@@ -293,6 +293,8 @@ module Outboxer
       end
 
       grouped_messages = nil
+
+      current_utc_time = time.now.utc
 
       ActiveRecord::Base.connection_pool.with_connection do
         time_condition = ActiveRecord::Base.sanitize_sql_array([
