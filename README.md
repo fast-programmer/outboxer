@@ -131,7 +131,7 @@ Outboxer provides a sidekiq like UI to help manage your messages
 
 ### Publishers
 
-<img width="1277" alt="Screenshot 2024-11-17 at 2 46 55 pm" src="https://github.com/user-attachments/assets/45089da1-3e3c-4fff-8457-1d9ebf2949b4">
+<img width="1410" alt="Screenshot 2024-11-23 at 5 47 14 pm" src="https://github.com/user-attachments/assets/097946cf-e3e2-4ba2-a095-8176ef7e3178">
 
 ### Messages
 
