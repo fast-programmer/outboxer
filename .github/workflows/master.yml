@@ -109,3 +109,51 @@ jobs:
         DATABASE_PORT: 3306
         DATABASE_HOST: 127.0.0.1
       run: bin/rspec spec
+
+  # accountify_tests:
+  #   runs-on: ubuntu-latest
+  #   name: Run Accountify Lifecycle Test
+  #   steps:
+  #   - uses: actions/checkout@v3
+  #   - name: Set up Ruby
+  #     uses: ruby/setup-ruby@v1
+  #     with:
+  #       ruby-version: '3.3.6'
+  #   - name: Clone Accountify Repository and Set Up Outboxer
+  #     run: |
+  #       git clone git@github.com:fast-programmer/accountify_app.git
+  #       cd accountify_app
+  #       echo "gem 'outboxer', git: 'https://github.com/fast-programmer/outboxer.git', branch: 'master'" >> Gemfile
+  #       bundle install
+  #       bin/rails g outboxer:schema
+  #       bin/rake db:migrate
+  #       bin/rails db:setup
+  #       bin/rake outboxer:db:seed
+  #       bin/rails g outboxer:sidekiq_publisher
+  #       echo "
+  #       class Event < ActiveRecord::Base
+  #         after_create do |event|
+  #           Outboxer::Message.queue(messageable: event)
+  #         end
+  #       end
+  #       " > app/models/event.rb
+  #   - name: Publish Messages
+  #     run: |
+  #       cd accountify_app
+  #       echo "
+  #       Outboxer::Publisher.publish do |message|
+  #         case message[:messageable_type]
+  #         when 'Event'
+  #           puts \"Message published for Event \#{message[:messageable_id]}\"
+  #         end
+  #       end
+  #       " > script/publish_messages.rb
+  #       bundle exec ruby script/publish_messages.rb
+  #   - name: Create Event and Verify Outboxer
+  #     run: |
+  #       cd accountify_app
+  #       bin/rails runner "Event.create!"
+  #   - name: Run Accountify Lifecycle Test
+  #     run: |
+  #       cd accountify_app
+  #       bundle exec ruby script/accountify/invoice/test_lifecycle.rb
