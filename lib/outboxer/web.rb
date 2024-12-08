@@ -1,8 +1,6 @@
 require 'bundler/setup'
 
-require 'bundler/setup'
-
-logger = defined?(Rails) ? Rails.logger : (defined?(Sinatra) ? Sinatra::Base.logger : Logger.new($stdout))
+logger = Logger.new($stdout)
 
 begin
   require 'sinatra'
@@ -41,6 +39,7 @@ Outboxer::Database.connect(config: config)
 module Outboxer
   class Web < Sinatra::Base
     use Rack::Flash
+    set :logger, Logger.new($stdout)
     set :views, File.expand_path('../web/views', __FILE__)
     set :public_folder, File.expand_path('../web/public', __FILE__)
     set :show_exceptions, false
