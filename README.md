@@ -39,7 +39,17 @@ bin/rake db:migrate
 bin/rake outboxer:db:seed
 ```
 
-### 6. generate publisher
+###  6. queue message after event creation
+
+```ruby
+class Event < ActiveRecord::Base
+  after_create do |event|
+    Outboxer::Message.queue(messageable: event)
+  end
+end
+```
+
+### 7. generate publisher
 
 #### sidekiq
 
@@ -51,16 +61,6 @@ bin/rails g outboxer:sidekiq_publisher
 
 ```bash
 bin/rails g outboxer:publisher
-```
-
-###  7. queue message after event creation
-
-```ruby
-class Event < ActiveRecord::Base
-  after_create do |event|
-    Outboxer::Message.queue(messageable: event)
-  end
-end
 ```
 
 ### 8. publish message out of band
