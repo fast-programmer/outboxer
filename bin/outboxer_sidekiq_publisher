@@ -4,7 +4,7 @@ require 'bundler/setup'
 require 'sidekiq'
 require 'outboxer'
 
-require_relative '../app/jobs/event_created_job'
+require_relative '../app/jobs/outboxer_integration/message/publish_job'
 
 options = {
   env: ENV.fetch('OUTBOXER_ENV', 'development'),
@@ -32,11 +32,6 @@ Outboxer::Publisher.publish(
   heartbeat: options[:heartbeat],
   logger: logger
 ) do |message|
-  case message[:messageable_type]
-  when 'Event'
-    EventCreatedJob.perform_async({ 'id' => message[:messageable_id] })
-
-    logger.info "Outboxer published message id=#{message[:id]} "\
-      "messageable=#{message[:messageable_type]}::#{message[:messageable_id]}"\
-  end
+  OutboxerIntegration::Message::PublishJob.perform_async({
+    'messageable_id' => message[:messageable_id], 'messageable_type' => message[:messageable_type] })
 end
