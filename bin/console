@@ -4,6 +4,9 @@ require 'bundler/setup'
 
 require 'outboxer'
 require 'sidekiq'
+require 'irb'
+
+require_relative "../app/models/event"
 
 env = ENV['OUTBOXER_ENV'] || 'development'
 config = Outboxer::Database.config(env: env, pool: 1)
@@ -14,5 +17,7 @@ Sidekiq.configure_client do |config|
   config.redis = { url: redis_url, size: 1 }
 end
 
-require 'irb'
+ActiveRecord::Base.logger = Logger.new($stdout)
+ActiveRecord::Base.logger.level = Logger::DEBUG
+
 IRB.start(__FILE__)

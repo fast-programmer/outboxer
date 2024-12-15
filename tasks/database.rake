@@ -28,6 +28,9 @@ namespace :outboxer do
       db_config = Outboxer::Database.config(env: env, pool: 1)
       ActiveRecord::Base.establish_connection(db_config)
 
+      require_relative "../db/migrate/create_events"
+      CreateEvents.new.up
+
       require_relative "../db/migrate/create_outboxer_settings"
       CreateOutboxerSettings.new.up
 
