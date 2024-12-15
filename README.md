@@ -44,7 +44,7 @@ bin/rake outboxer:db:seed
 #### new event
 
 ```bash
-bin/rake g outboxer:event
+bin/rails g outboxer:event
 ```
 
 #### existing event
