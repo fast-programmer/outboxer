@@ -53,11 +53,9 @@ bin/rails g outboxer:sidekiq_publisher
 bin/rails g outboxer:publisher
 ```
 
-###  7. queue message after model creation
+###  7. queue message after event creation (in same transaction)
 
 ```ruby
-# your existing model
-
 class Event < ActiveRecord::Base
   after_create do |event|
     Outboxer::Message.queue(messageable: event)
@@ -71,21 +69,7 @@ end
 
 ```ruby
 Outboxer::Publisher.publish do |message|
-  case message[:messageable_type]
-  when 'Event'
-    EventCreatedJob.perform_async({ 'id' => message[:messageable_id] })
-  end
-end
-```
-
-#### Bunny
-
-```ruby
-Outboxer::Publisher.publish do |message|
-  case message[:messageable_type]
-  when 'Event'
-    queue.publish(JSON.generate({ 'id' => message[:messageable_id] }), persistent: true)
-  end
+  OutboxerIntegration::Message::PublishJob.perform_async(message)
 end
 ```
 
@@ -93,13 +77,7 @@ end
 
 ```ruby
 Outboxer::Publisher.publish do |message|
-  case message[:messageable_type]
-  when 'Event'
-    # publish message here
-
-    logger.info "Outboxer published message #{message[:id]} for "\
-      "#{message[:messageable_type]}::#{message[:messageable_id]}"
-  end
+  # publish message to custom broker here
 end
 ```
 
