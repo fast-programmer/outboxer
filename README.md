@@ -53,7 +53,7 @@ bin/rails g outboxer:sidekiq_publisher
 bin/rails g outboxer:publisher
 ```
 
-###  7. queue message after event creation (in same transaction)
+###  7. queue message after event creation
 
 ```ruby
 class Event < ActiveRecord::Base
