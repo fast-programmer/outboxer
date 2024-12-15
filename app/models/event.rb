@@ -1,16 +1,22 @@
 class Event < ActiveRecord::Base
   self.table_name = 'events'
 
-  # # validations
+  # validations
 
-  # validates :user_id, :tenant_id, presence: true
-  # validates :eventable_type, :eventable_id, presence: true
+  # validates :user_id, presence: true
+  # validates :tenant_id, presence: true
+  # validates :created_at, presence: true
 
-  # # associations
+  # validates :type, presence: true
+
+  # validates :eventable_id, presence: true
+  # validates :eventable_type, presence: true
+
+  # associations
 
   # belongs_to :eventable, polymorphic: true
 
-  # # callbacks
+  # callbacks
 
   after_create do |event|
     Outboxer::Message.queue(messageable: event)

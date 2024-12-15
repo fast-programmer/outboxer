@@ -3,17 +3,14 @@ class CreateEvents < ActiveRecord::Migration[6.1]
     create_table :events do |t|
       # t.bigint :user_id, null: false
       # t.bigint :tenant_id, null: false
+      # t.datetime :created_at, null: false
 
-      # t.text :type, null: false
+      # t.string :type, limit: 255, null: false
+      # t.json :headers
+      # t.json :body
 
       # t.text :eventable_type, null: false
       # t.bigint :eventable_id, null: false
-
-      # t.json :headers
-
-      # t.json :body
-
-      # t.datetime :created_at, null: false
     end
 
     # add_index :events, [:eventable_type, :eventable_id]

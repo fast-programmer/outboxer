@@ -41,6 +41,14 @@ bin/rake outboxer:db:seed
 
 ###  6. queue message after event creation
 
+#### new event
+
+```bash
+bin/rails g outboxer:event
+```
+
+#### existing event
+
 ```ruby
 class Event < ActiveRecord::Base
   after_create do |event|
