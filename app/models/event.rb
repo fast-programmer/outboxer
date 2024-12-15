@@ -1,38 +1,18 @@
-class Event
-  attr_accessor :id, :type
+class Event < ActiveRecord::Base
+  self.table_name = 'events'
 
-  def self.find(id)
-    new(
-      id: id,
-      type: 'Accountify::Contact::CreatedEvent',
-      created_at: Time.now.utc,
-      header: {
-        'user' => { 'id' => 1, 'name' => 'Alice', 'email' => 'alice@example.com' },
-        'location' => { 'city' => 'New York', 'coordinates' => { 'lat' => 40.7128, 'lon' => -74.0060 } }
-      },
-      body: {
-        'title' => 'Event Title',
-        'description' => 'This is a description of the event.',
-        'attendees' => [{ 'id' => 1, 'name' => 'Bob' }, { 'id' => 2, 'name' => 'Charlie' }]
-      }
-    )
-  end
+  # # validations
 
-  def initialize(id:, type:, created_at:, header:, body:)
-    @id = id
-    @type = type
-    @created_at = created_at
-    @header = header
-    @body = body
-  end
+  # validates :user_id, :tenant_id, presence: true
+  # validates :eventable_type, :eventable_id, presence: true
 
-  def attributes
-    {
-      'id' => @id,
-      'type' => @type,
-      'created_at' => @created_at,
-      'header' => @header,
-      'body' => @body
-    }
+  # # associations
+
+  # belongs_to :eventable, polymorphic: true
+
+  # # callbacks
+
+  after_create do |event|
+    Outboxer::Message.queue(messageable: event)
   end
 end
