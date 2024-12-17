@@ -2,7 +2,7 @@ require 'rack/test'
 
 require 'spec_helper'
 
-require_relative "../../lib/outboxer/web"
+require_relative "../../../lib/outboxer/web"
 
 RSpec.describe 'GET /', type: :request do
   include Rack::Test::Methods
