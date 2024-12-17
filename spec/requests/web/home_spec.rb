@@ -1,5 +1,3 @@
-require 'rack/test'
-
 require 'spec_helper'
 
 require_relative "../../../lib/outboxer/web"
