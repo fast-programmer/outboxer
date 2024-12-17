@@ -38,7 +38,10 @@ Outboxer::Database.connect(config: config)
 
 module Outboxer
   class Web < Sinatra::Base
+    enable :sessions
+
     use Rack::Flash
+
     set :logger, Logger.new($stdout)
     set :views, File.expand_path('../web/views', __FILE__)
     set :public_folder, File.expand_path('../web/public', __FILE__)
