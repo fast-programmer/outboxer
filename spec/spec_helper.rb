@@ -3,6 +3,7 @@ SimpleCov.start
 require 'database_cleaner'
 require 'pry-byebug'
 require 'factory_bot'
+require 'rack/test'
 
 Dir[File.join(__dir__, 'factories/**/*.rb')].each { |f| require f }
 
