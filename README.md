@@ -21,10 +21,10 @@ gem 'outboxer'
 bundle install
 ```
 
-### 3. generate schema
+### 3. generate schema, publisher script and job
 
 ```bash
-bin/rails g outboxer:schema
+bin/rails g outboxer:install
 ```
 
 ### 4. migrate schema
@@ -33,81 +33,41 @@ bin/rails g outboxer:schema
 bin/rake db:migrate
 ```
 
-### 5. seed database
-
-```bash
-bin/rake outboxer:db:seed
-```
-
-###  6. queue message after event creation
-
-#### new event
-
-```bash
-bin/rails g outboxer:event
-```
-
-#### existing event
+### 5. handle published message in sidekiq job
 
 ```ruby
-class Event < ActiveRecord::Base
-  after_create do |event|
-    Outboxer::Message.queue(messageable: event)
+module OutboxerIntegration
+  module Message
+    class PublishJob
+      include Sidekiq::Job
+
+      def perform_async(args)
+        # TODO: handle published message here
+      end
+    end
   end
 end
 ```
 
-### 7. generate publisher
-
-#### sidekiq
-
-```bash
-bin/rails g outboxer:sidekiq_publisher
-```
-
-#### custom
-
-```bash
-bin/rails g outboxer:publisher
-```
-
-### 8. publish message out of band
-
-#### Sidekiq
-
-```ruby
-Outboxer::Publisher.publish do |message|
-  OutboxerIntegration::Message::PublishJob.perform_async(message)
-end
-```
-
-#### Custom
-
-```ruby
-Outboxer::Publisher.publish do |message|
-  # publish message to custom broker here
-end
-```
-
-### 9. run publisher
+### 6. run publisher
 
 ```bash
 bin/outboxer_publisher
 ```
 
-### 10. open rails console
+### 7. open rails console
 
 ```bash
 bin/rails c
 ```
 
-### 11. create event
+### 8. create event
 
 ```ruby
 Event.create!
 ```
 
-### 12. Observe published message
+### 9. Observe published message
 
 Confirm the message has been published out of band
 
