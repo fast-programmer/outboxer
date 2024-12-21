@@ -4,7 +4,7 @@ module OutboxerIntegration
       include Sidekiq::Job
 
       def perform(args)
-        Sidekiq.logger.info "OutboxerIntegration::Message::PublishJob#perform args: #{args.inspect}"
+        Sidekiq.logger.info "OutboxerIntegration::Message::PublishJob#perform: #{args.inspect}"
       end
     end
   end

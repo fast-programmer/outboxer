@@ -33,7 +33,7 @@ bin/rails g outboxer:install
 bin/rake db:migrate
 ```
 
-### 5. handle message in sidekiq job
+### 5. handle messageable in generated sidekiq job
 
 ```ruby
 module OutboxerIntegration
@@ -42,7 +42,7 @@ module OutboxerIntegration
       include Sidekiq::Job
 
       def perform(args)
-        # TODO: handle message here
+        # TODO: handle messageable here
       end
     end
   end
