@@ -35,6 +35,6 @@ Outboxer::Publisher.publish(
   OutboxerIntegration::Message::PublishJob.perform_async({
     'messageable_id' => message[:messageable_id], 'messageable_type' => message[:messageable_type] })
 
-  logger.info "Outboxer published message #{message[:id]} for "\
+  logger.info "Outboxer published message #{message[:id]} to sidekiq for "\
       "#{message[:messageable_type]}::#{message[:messageable_id]}"
 end

@@ -61,15 +61,35 @@ bin/outboxer_publisher
 bin/rails c
 ```
 
-### 8. create event
+### 8. create test event
 
 ```ruby
-Event.create!
+TestEvent.create!
+```
+
+```
+TRANSACTION (0.2ms)  BEGIN
+TestEvent Create (1.2ms)  INSERT INTO "events" ....
+Outboxer::Models::Message Create (1.8ms)  INSERT INTO "outboxer_messages" ...
+TRANSACTION (0.4ms)  COMMIT
+=>
+#<TestEvent:0x000000010a329eb0
+ id: 1,
+ user_id: nil,
+ tenant_id: nil,
+ type: "TestEvent",
+ body: nil,
+ created_at: Sat, 21 Dec 2024 09:11:56.459083000 UTC +00:00>
 ```
 
 ### 9. Observe published message
 
-Confirm the message has been published out of band
+
+Confirm the message has been published out of band e.g.
+
+```
+2024-12-21T09:12:01.303Z pid=13171 tid=publisher-1 INFO: Outboxer published message 1 to sidekiq for TestEvent::1
+```
 
 ## Management
 
