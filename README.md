@@ -41,8 +41,8 @@ module OutboxerIntegration
     class PublishJob
       include Sidekiq::Job
 
-      def perform_async(args)
-        # TODO: handle published message here
+      def perform(args)
+        # TODO: handle message here
       end
     end
   end

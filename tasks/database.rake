@@ -57,8 +57,6 @@ namespace :outboxer do
       db_config = Outboxer::Database.config(env: env, pool: 1)
       ActiveRecord::Base.establish_connection(db_config)
 
-      require_relative "../db/seeds"
-
       ActiveRecord::Base.connection.disconnect!
     end
 
