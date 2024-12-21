@@ -44,6 +44,10 @@ module Outboxer
     set :public_folder, File.expand_path('../web/public', __FILE__)
     set :show_exceptions, false
 
+    configure do
+      Settings.upsert_defaults
+    end
+
     helpers do
       def outboxer_path(path)
         "#{request.script_name}#{path}"
