@@ -385,7 +385,7 @@ module Outboxer
       db_config = database.config(env: env, pool: concurrency + 2, path: db_config_path)
       database.connect(config: db_config, logger: logger)
 
-      Settings.upsert_defaults
+      Settings.create
 
       queue = Queue.new
 

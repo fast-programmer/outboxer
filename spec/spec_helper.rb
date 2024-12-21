@@ -41,6 +41,6 @@ RSpec.configure do |config|
       # ignore
     end
 
-    Outboxer::Settings.upsert_defaults
+    Outboxer::Settings.create
   end
 end

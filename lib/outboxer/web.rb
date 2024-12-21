@@ -45,7 +45,7 @@ module Outboxer
     set :show_exceptions, false
 
     configure do
-      Settings.upsert_defaults
+      Settings.create
     end
 
     helpers do
