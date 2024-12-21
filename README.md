@@ -33,7 +33,7 @@ bin/rails g outboxer:install
 bin/rake db:migrate
 ```
 
-### 5. handle published message in sidekiq job
+### 5. handle message in sidekiq job
 
 ```ruby
 module OutboxerIntegration
