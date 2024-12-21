@@ -41,6 +41,6 @@ RSpec.configure do |config|
       # ignore
     end
 
-    load File.join(File.dirname(__FILE__), '../db/seeds.rb')
+    Outboxer::Settings.create
   end
 end

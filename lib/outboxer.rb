@@ -14,6 +14,7 @@ require_relative "outboxer/models/signal"
 
 require_relative "outboxer/logger"
 require_relative "outboxer/database"
+require_relative "outboxer/settings"
 require_relative "outboxer/message"
 require_relative "outboxer/messages"
 require_relative "outboxer/publisher"
