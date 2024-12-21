@@ -4,12 +4,16 @@ module Outboxer
 
     def create
       ActiveRecord::Base.connection_pool.with_connection do
-        ActiveRecord::Base.transaction do
-          Models::Setting.upsert(
-            { name: 'messages.published.count.historic', value: '0' }, unique_by: :name)
+        begin
+          Outboxer::Models::Setting.create!(name: 'messages.published.count.historic', value: '0')
+        rescue ActiveRecord::RecordNotUnique
+          # no op as record already exists
+        end
 
-          Models::Setting.upsert(
-            { name: 'messages.failed.count.historic', value: '0' }, unique_by: :name)
+        begin
+          Outboxer::Models::Setting.create!(name: 'messages.failed.count.historic', value: '0')
+        rescue ActiveRecord::RecordNotUnique
+          # no op as record already exists
         end
       end
     end
