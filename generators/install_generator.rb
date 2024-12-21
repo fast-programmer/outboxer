@@ -46,6 +46,10 @@ module Outboxer
       copy_file(
         "app/models/event.rb",
         "app/models/event.rb")
+
+      copy_file(
+        "app/models/test_event.rb",
+        "app/models/test_event.rb")
     end
 
     def copy_bin_file
