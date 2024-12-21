@@ -1,22 +1,30 @@
-class CreateEvents < ActiveRecord::Migration[6.1]
+class CreateEvents < ActiveRecord::Migration[7.0]
   def up
     create_table :events do |t|
-      # t.bigint :user_id, null: false
-      # t.bigint :tenant_id, null: false
-      # t.datetime :created_at, null: false
-
-      # t.string :type, limit: 255, null: false
-      # t.json :headers
-      # t.json :body
-
-      # t.text :eventable_type, null: false
-      # t.bigint :eventable_id, null: false
+      t.bigint :user_id
+      t.bigint :tenant_id
+      t.string :type, null: false, limit: 255
+      t.send(json_column_type, :body)
+      t.datetime :created_at, null: false
     end
-
-    # add_index :events, [:eventable_type, :eventable_id]
   end
 
   def down
     drop_table :events if table_exists?(:events)
+  end
+
+  private
+
+  def json_column_type
+    case ActiveRecord::Base.connection.adapter_name
+    when /PostgreSQL/
+      :jsonb
+    when /MySQL/, /MariaDB/
+      :json
+    when /SQLite/
+      :text
+    else
+      :json
+    end
   end
 end

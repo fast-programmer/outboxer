@@ -1,5 +1,5 @@
 module Outboxer
-  class SchemaGenerator < Rails::Generators::Base
+  class InstallGenerator < Rails::Generators::Base
     include Rails::Generators::Migration
 
     source_root File.expand_path('../', __dir__)
@@ -36,6 +36,31 @@ module Outboxer
       migration_template(
         "db/migrate/create_outboxer_signals.rb",
         "db/migrate/create_outboxer_signals.rb")
+
+      migration_template(
+        "db/migrate/create_events.rb",
+        "db/migrate/create_events.rb")
+    end
+
+    def copy_model
+      copy_file(
+        "app/models/event.rb",
+        "app/models/event.rb")
+
+      copy_file(
+        "app/models/test_event.rb",
+        "app/models/test_event.rb")
+    end
+
+    def copy_bin_file
+      template "bin/outboxer_publisher", "bin/outboxer_publisher"
+      run "chmod +x bin/outboxer_publisher"
+    end
+
+    def copy_job
+      copy_file(
+        "app/jobs/outboxer_integration/message/publish_job.rb",
+        "app/jobs/outboxer_integration/message/publish_job.rb")
     end
   end
 end
