@@ -5,7 +5,7 @@
 
 ## Background
 
-Outboxer is an ActiveRecord implementation of the transactional outbox pattern for PostgreSQL and MySQL databases.
+Outboxer is a Rails 7 implementation of the transactional outbox pattern.
 
 ## Setup
 
@@ -21,7 +21,7 @@ gem 'outboxer'
 bundle install
 ```
 
-### 3. generate schema, publisher script and job
+### 3. generate schema and publisher
 
 ```bash
 bin/rails g outboxer:install
@@ -36,8 +36,6 @@ bin/rake db:migrate
 ### 5. Publish message
 
 ```ruby
-# bin/outboxer_publisher
-
 Outboxer::Publisher.publish do |message|
   # TODO: publish message to your broker here
 
@@ -45,6 +43,8 @@ Outboxer::Publisher.publish do |message|
       "#{message[:messageable_type]}::#{message[:messageable_id]}"
 end
 ```
+
+See: [publisher best practices](https://github.com/fast-programmer/outboxer/wiki/Publisher-best-practices) for common integration examples including with sidekiq
 
 ### 6. run publisher
 
