@@ -38,9 +38,6 @@ bin/rake db:migrate
 ```ruby
 Outboxer::Publisher.publish do |message|
   # TODO: publish message to your broker here
-
-  logger.info "Outboxer published message #{message[:id]} for "\
-      "#{message[:messageable_type]}::#{message[:messageable_id]}"
 end
 ```
 
