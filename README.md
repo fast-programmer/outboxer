@@ -33,19 +33,16 @@ bin/rails g outboxer:install
 bin/rake db:migrate
 ```
 
-### 5. handle messageable in generated sidekiq job
+### 5. Publish message
 
 ```ruby
-module OutboxerIntegration
-  module Message
-    class PublishJob
-      include Sidekiq::Job
+# bin/outboxer_publisher
 
-      def perform(args)
-        # TODO: handle messageable here
-      end
-    end
-  end
+Outboxer::Publisher.publish do |message|
+  # TODO: publish message to your broker here
+
+  logger.info "Outboxer published message #{message[:id]} for "\
+      "#{message[:messageable_type]}::#{message[:messageable_id]}"
 end
 ```
 
