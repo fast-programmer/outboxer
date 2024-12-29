@@ -1,5 +1,5 @@
 module OutboxerIntegration
-  class Test
+  class Test < ActiveRecord::Base
     class StartedEvent < ::Event
     end
   end
