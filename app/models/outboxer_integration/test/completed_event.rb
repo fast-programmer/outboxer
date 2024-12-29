@@ -1,6 +1,6 @@
 module OutboxerIntegration
   class Test
-    class CompletedEvent < Event
+    class CompletedEvent < ::Event
     end
   end
 end

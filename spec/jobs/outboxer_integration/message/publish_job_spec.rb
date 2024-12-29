@@ -10,10 +10,10 @@ module OutboxerIntegration
   module Message
     RSpec.describe PublishJob, type: :job do
       describe '#perform' do
-        context 'when OutboxerIntegration::Models::Test::StartedEvent' do
+        context 'when OutboxerIntegration::Test::StartedEvent' do
           let(:args) do
             {
-              'messageable_type' => 'OutboxerIntegration::Models::Test::StartedEvent',
+              'messageable_type' => 'OutboxerIntegration::Test::StartedEvent',
               'messageable_id' => '123'
             }
           end
@@ -45,7 +45,7 @@ module OutboxerIntegration
         context 'when job class does not exist' do
           let(:args) do
             {
-              'messageable_type' => 'OutboxerIntegration::Models::Invoice::NonexistentEvent',
+              'messageable_type' => 'OutboxerIntegration::Invoice::NonexistentEvent',
               'messageable_id' => '123'
             }
           end

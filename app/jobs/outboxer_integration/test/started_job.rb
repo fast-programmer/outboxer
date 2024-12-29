@@ -1,5 +1,5 @@
 module OutboxerIntegration
-  module Test
+  class Test
     class StartedJob
       include Sidekiq::Job
 

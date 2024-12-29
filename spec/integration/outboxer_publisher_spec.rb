@@ -1,6 +1,13 @@
 require 'spec_helper'
 
-RSpec.describe 'Outboxer publisher e2e test', type: :integration do
+require 'sidekiq'
+require 'sidekiq/testing'
+
+require File.join(Dir.pwd, 'app/models/event')
+require File.join(Dir.pwd, 'app/models/outboxer_integration/test/started_event')
+require File.join(Dir.pwd, 'app/models/outboxer_integration/test/completed_event')
+
+RSpec.describe 'Outboxer e2e test', type: :integration do
   let(:test_id) { rand(1_000) + 1 }
 
   it 'performs job handler async' do
@@ -20,7 +27,7 @@ RSpec.describe 'Outboxer publisher e2e test', type: :integration do
     sidekiq_env = {
       "RAILS_ENV" => "test",
       "REDIS_URL" => "redis://localhost:6379/0" }
-    sidekiq_cmd = "bundle exec sidekiq -c 10 -q default"
+    sidekiq_cmd = "bundle exec sidekiq -c 10 -q default -r ./config/sidekiq.rb"
     sidekiq_pid = spawn(sidekiq_env, sidekiq_cmd)
 
     max_attempts = 10
@@ -38,7 +45,7 @@ RSpec.describe 'Outboxer publisher e2e test', type: :integration do
     end
 
     expect(completed_event.body['test']['id']).to eql(test_id)
-  rescue
+  ensure
     if sidekiq_pid
       Process.kill("TERM", sidekiq_pid)
       Process.wait(sidekiq_pid)

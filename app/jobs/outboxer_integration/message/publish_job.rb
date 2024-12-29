@@ -3,7 +3,7 @@ module OutboxerIntegration
     class PublishJob
       include Sidekiq::Job
 
-      MESSAGEABLE_TYPE_REGEX = /\A([A-Za-z]+)::Models::([A-Za-z]+)::([A-Za-z]+)Event\z/
+      MESSAGEABLE_TYPE_REGEX = /\A([A-Za-z]+)::([A-Za-z]+)::([A-Za-z]+)Event\z/
 
       def perform(args)
         captures = args['messageable_type'].match(MESSAGEABLE_TYPE_REGEX)&.captures
