@@ -42,14 +42,18 @@ module Outboxer
         "db/migrate/create_events.rb")
     end
 
-    def copy_model
+    def copy_models
       copy_file(
         "app/models/event.rb",
         "app/models/event.rb")
 
       copy_file(
-        "app/models/test_event.rb",
-        "app/models/test_event.rb")
+        "app/models/outboxer_integration/test/started_event.rb",
+        "app/models/outboxer_integration/test/started_event.rb")
+
+      copy_file(
+        "app/models/outboxer_integration/test/completed_event.rb",
+        "app/models/outboxer_integration/test/completed_event.rb")
     end
 
     def copy_bin_file
@@ -57,10 +61,20 @@ module Outboxer
       run "chmod +x bin/outboxer_publisher"
     end
 
-    def copy_job
+    def copy_jobs
       copy_file(
         "app/jobs/outboxer_integration/message/publish_job.rb",
         "app/jobs/outboxer_integration/message/publish_job.rb")
+
+      copy_file(
+        "app/jobs/outboxer_integration/test/started_job.rb",
+        "app/jobs/outboxer_integration/test/started_job.rb")
+    end
+
+    def copy_specs
+      copy_file(
+        "spec/bin/outboxer_publisher_spec.rb",
+        "spec/bin/outboxer_publisher_spec.rb")
     end
   end
 end

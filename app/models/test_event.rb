@@ -1,2 +1,0 @@
-class TestEvent < Event
-end
