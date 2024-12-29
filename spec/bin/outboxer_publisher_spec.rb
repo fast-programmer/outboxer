@@ -7,10 +7,10 @@ require File.join(Dir.pwd, 'app/models/event')
 require File.join(Dir.pwd, 'app/models/outboxer_integration/test/started_event')
 require File.join(Dir.pwd, 'app/models/outboxer_integration/test/completed_event')
 
-RSpec.describe 'Outboxer e2e test' do
+RSpec.describe 'bin/outboxer_publisher' do
   let(:test_id) { rand(1_000) + 1 }
 
-  it 'performs job handler async' do
+  it 'performs event job handler async' do
     Sidekiq::Testing.disable!
 
     OutboxerIntegration::Test::StartedEvent.create!(
