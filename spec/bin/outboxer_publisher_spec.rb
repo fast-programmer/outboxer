@@ -15,20 +15,7 @@ RSpec.describe 'bin/outboxer_publisher' do
     user_id = rand(1_000) + 1
     tenant_id = rand(1_000) + 1
 
-    test = nil
-
-    ActiveRecord::Base.transaction do
-      test = OutboxerIntegration::Test.create!(
-        tenant_id: tenant_id)
-
-      OutboxerIntegration::Test::StartedEvent.create!(
-        user_id: user_id,
-        tenant_id: tenant_id,
-        eventable: test,
-        body: {
-          'test' => {
-            'id' => test.id } })
-    end
+    test, _events = OutboxerIntegration::Test.start(user_id: user_id, tenant_id: tenant_id)
 
     outboxer_publisher_env = {
       "OUTBOXER_ENV" => "test",
@@ -47,7 +34,7 @@ RSpec.describe 'bin/outboxer_publisher' do
     completed_event = nil
 
     max_attempts.times do |attempt|
-      test = OutboxerIntegration::Test.find(test.id)
+      test = OutboxerIntegration::Test.find(test[:id])
       completed_event = OutboxerIntegration::Test::CompletedEvent.last
       break if completed_event && (test.events.last == completed_event)
 
