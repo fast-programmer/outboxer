@@ -3,7 +3,7 @@ module OutboxerIntegration
     self.table_name = 'outboxer_integration_tests'
 
     def self.start(user_id: nil, tenant_id: nil)
-      ActiveRecord::Base.transaction do
+      transaction do
         test = create!(tenant_id: tenant_id)
 
         event = StartedEvent.create!(
@@ -19,7 +19,7 @@ module OutboxerIntegration
     end
 
     def self.complete(event_id:)
-      ActiveRecord::Base.transaction do
+      transaction do
         started_event = StartedEvent.find(event_id)
         test = started_event.eventable
         test.touch
