@@ -4,12 +4,20 @@ module OutboxerIntegration
       include Sidekiq::Job
 
       def perform(args)
-        started_event = Test::StartedEvent.find(args['event_id'])
+        ActiveRecord::Base.transaction do
+          started_event = Test::StartedEvent.find(args['event_id'])
 
-        Test::CompletedEvent.create!(
-          body: {
-            'test' => {
-              'id' => started_event.body['test']['id'] } })
+          test = Test.find(started_event.eventable_id)
+          test.touch
+
+          Test::CompletedEvent.create!(
+            user_id: started_event.user_id,
+            tenant_id: started_event.tenant_id,
+            eventable: test,
+            body: {
+              'test' => {
+                'id' => started_event.body['test']['id'] } })
+        end
       end
     end
   end

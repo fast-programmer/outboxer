@@ -48,6 +48,10 @@ module Outboxer
         "app/models/event.rb")
 
       copy_file(
+        "app/models/outboxer_integration/test.rb",
+        "app/models/outboxer_integration/test.rb")
+
+      copy_file(
         "app/models/outboxer_integration/test/started_event.rb",
         "app/models/outboxer_integration/test/started_event.rb")
 
