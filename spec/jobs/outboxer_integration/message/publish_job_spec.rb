@@ -1,8 +1,8 @@
 require 'spec_helper'
 require 'sidekiq'
 
-require_relative '../../../../app/jobs/outboxer_integration/message/publish_job'
-require_relative '../../../../app/jobs/outboxer_integration/test/started_job'
+require_relative '../../../../app/jobs/outboxer_integration/message_publish_job'
+require_relative '../../../../app/jobs/outboxer_integration/test_started_job'
 
 require 'sidekiq/testing'
 

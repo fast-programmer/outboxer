@@ -1,12 +1,12 @@
 module OutboxerIntegration
-  class Test < ActiveRecord::Base
+  class Test < ActiveRecord::Base # ApplicationRecord
     self.table_name = 'outboxer_integration_tests'
 
     def self.start(user_id: nil, tenant_id: nil)
       transaction do
         test = create!(tenant_id: tenant_id)
 
-        event = StartedEvent.create!(
+        event = TestStartedEvent.create!(
           user_id: user_id,
           tenant_id: tenant_id,
           eventable: test,
@@ -20,11 +20,11 @@ module OutboxerIntegration
 
     def self.complete(event_id:)
       transaction do
-        started_event = StartedEvent.find(event_id)
+        started_event = TestStartedEvent.find(event_id)
         test = started_event.eventable
         test.touch
 
-        event = CompletedEvent.create!(
+        event = TestCompletedEvent.create!(
           user_id: started_event.user_id,
           tenant_id: started_event.tenant_id,
           eventable: test,

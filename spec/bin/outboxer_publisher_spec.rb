@@ -5,8 +5,8 @@ require 'sidekiq/testing'
 
 require File.join(Dir.pwd, 'app/models/event')
 require File.join(Dir.pwd, 'app/models/outboxer_integration/test.rb')
-require File.join(Dir.pwd, 'app/models/outboxer_integration/test/started_event')
-require File.join(Dir.pwd, 'app/models/outboxer_integration/test/completed_event')
+require File.join(Dir.pwd, 'app/models/outboxer_integration/test_started_event')
+require File.join(Dir.pwd, 'app/models/outboxer_integration/test_completed_event')
 
 RSpec.describe 'bin/outboxer_publisher' do
   it 'performs event job handler async' do
@@ -18,8 +18,8 @@ RSpec.describe 'bin/outboxer_publisher' do
     test, _events = OutboxerIntegration::Test.start(user_id: user_id, tenant_id: tenant_id)
 
     outboxer_publisher_env = {
-      "OUTBOXER_ENV" => "test",
-      "OUTBOXER_REDIS_URL" => "redis://localhost:6379/0" }
+      "RAILS_ENV" => "test",
+      "REDIS_URL" => "redis://localhost:6379/0" }
     outboxer_publisher_cmd = File.join(Dir.pwd, 'bin', 'outboxer_publisher')
     outboxer_publisher_pid = spawn(outboxer_publisher_env, outboxer_publisher_cmd)
 
@@ -31,20 +31,20 @@ RSpec.describe 'bin/outboxer_publisher' do
 
     max_attempts = 10
 
-    completed_event = nil
+    test_completed_event = nil
 
     max_attempts.times do |attempt|
       test = OutboxerIntegration::Test.find(test[:id])
-      completed_event = OutboxerIntegration::Test::CompletedEvent.last
-      break if completed_event && (test.events.last == completed_event)
+      test_completed_event = OutboxerIntegration::TestCompletedEvent.last
+      break if test_completed_event && (test.events.last == test_completed_event)
 
       sleep 1
 
-      Sidekiq.logger.warn "OutboxerIntegration::Test::CompletedEvent not found. "\
+      Sidekiq.logger.warn "OutboxerIntegration::TestCompletedEvent not found. "\
         "Retrying (attempt #{attempt + 1}/#{max_attempts})..."
     end
 
-    expect(completed_event.body['test']['id']).to eql(test.id)
+    expect(test_completed_event.body['test']['id']).to eql(test.id)
   ensure
     if sidekiq_pid
       Process.kill("TERM", sidekiq_pid)
