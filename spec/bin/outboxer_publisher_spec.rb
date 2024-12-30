@@ -17,17 +17,15 @@ RSpec.describe 'bin/outboxer_publisher' do
 
     test, _events = OutboxerIntegration::Test.start(user_id: user_id, tenant_id: tenant_id)
 
-    outboxer_publisher_env = {
+    env = {
       "RAILS_ENV" => "test",
       "REDIS_URL" => "redis://localhost:6379/0" }
-    outboxer_publisher_cmd = File.join(Dir.pwd, 'bin', 'outboxer_publisher')
-    outboxer_publisher_pid = spawn(outboxer_publisher_env, outboxer_publisher_cmd)
 
-    sidekiq_env = {
-      "RAILS_ENV" => "test",
-      "REDIS_URL" => "redis://localhost:6379/0" }
+    outboxer_publisher_cmd = File.join(Dir.pwd, 'bin', 'outboxer_publisher')
+    outboxer_publisher_pid = spawn(env, outboxer_publisher_cmd)
+
     sidekiq_cmd = "bundle exec sidekiq -c 10 -q default -r ./config/sidekiq.rb"
-    sidekiq_pid = spawn(sidekiq_env, sidekiq_cmd)
+    sidekiq_pid = spawn(env, sidekiq_cmd)
 
     max_attempts = 10
 

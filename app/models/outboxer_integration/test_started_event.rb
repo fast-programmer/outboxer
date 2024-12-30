@@ -1,4 +1,4 @@
 module OutboxerIntegration
-  class TestStartedEvent < ::Event
+  class TestStartedEvent < Event
   end
 end
