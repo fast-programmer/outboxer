@@ -1,40 +1,15 @@
 #!/usr/bin/env ruby
 
 require 'bundler/setup'
+
 require 'sidekiq'
 require 'outboxer'
 
-require_relative '../app/jobs/outboxer_integration/message/publish_job'
+require_relative '../app/jobs/outboxer_integration/publish_message_job'
 
-options = {
-  env: ENV.fetch('OUTBOXER_ENV', 'development'),
-  buffer: ENV.fetch('OUTBOXER_BUFFER', 1000).to_i,
-  concurrency: ENV.fetch('OUTBOXER_CONCURRENCY', 2).to_i,
-  poll: ENV.fetch('OUTBOXER_POLL', 5.0).to_f,
-  tick: ENV.fetch('OUTBOXER_TICK', 0.1).to_f,
-  heartbeat: ENV.fetch('OUTBOXER_HEARTBEAT', 5.0).to_f,
-  log_level: ENV.fetch('OUTBOXER_LOG_LEVEL', 'INFO'),
-  redis_url: ENV.fetch('OUTBOXER_REDIS_URL', 'redis://localhost:6379/0')
-}
-
-Sidekiq.configure_client do |config|
-  config.redis = { url: options[:redis_url], size: options[:concurrency] }
-end
-
-logger = Outboxer::Logger.new($stdout, level: options[:log_level])
-
-Outboxer::Publisher.publish(
-  env: options[:env],
-  buffer: options[:buffer],
-  concurrency: options[:concurrency],
-  poll: options[:poll],
-  tick: options[:tick],
-  heartbeat: options[:heartbeat],
-  logger: logger
-) do |message|
-  OutboxerIntegration::Message::PublishJob.perform_async({
-    'messageable_id' => message[:messageable_id], 'messageable_type' => message[:messageable_type] })
-
-  logger.info "Outboxer published message id=#{message[:id]} "\
-    "messageable_type=#{message[:messageable_type]} messageable_id=#{message[:messageable_id]}"
+Outboxer::Publisher.publish do |message|
+  OutboxerIntegration::PublishMessageJob.perform_async({
+    'message_id' => message[:id],
+    'messageable_id' => message[:messageable_id],
+    'messageable_type' => message[:messageable_type] })
 end
