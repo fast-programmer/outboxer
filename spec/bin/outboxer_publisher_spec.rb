@@ -3,10 +3,10 @@ require 'spec_helper'
 require 'sidekiq'
 require 'sidekiq/testing'
 
-require File.join(Dir.pwd, 'app/models/event')
-require File.join(Dir.pwd, 'app/models/outboxer_integration/test.rb')
-require File.join(Dir.pwd, 'app/models/outboxer_integration/test_started_event')
-require File.join(Dir.pwd, 'app/models/outboxer_integration/test_completed_event')
+require_relative '../../app/models/event'
+require_relative '../../app/models/outboxer_integration/test'
+require_relative '../../app/models/outboxer_integration/test_started_event'
+require_relative '../../app/models/outboxer_integration/test_completed_event'
 
 RSpec.describe 'bin/outboxer_publisher' do
   it 'performs event job handler async' do
@@ -24,7 +24,7 @@ RSpec.describe 'bin/outboxer_publisher' do
     outboxer_publisher_cmd = File.join(Dir.pwd, 'bin', 'outboxer_publisher')
     outboxer_publisher_pid = spawn(env, outboxer_publisher_cmd)
 
-    sidekiq_cmd = "bundle exec sidekiq -c 10 -q default -r ./config/sidekiq.rb"
+    sidekiq_cmd = "bundle exec sidekiq -c 1 -q default -r ./config/sidekiq.rb"
     sidekiq_pid = spawn(env, sidekiq_cmd)
 
     max_attempts = 10

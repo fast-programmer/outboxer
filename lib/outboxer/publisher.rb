@@ -368,9 +368,9 @@ module Outboxer
 
     def publish(
       name: "#{::Socket.gethostname}:#{::Process.pid}",
-      env: 'development',
+      env: ::ENV.fetch('RAILS_ENV', 'development'),
       db_config_path: ::File.expand_path('config/database.yml', ::Dir.pwd),
-      buffer: 1000, concurrency: 2,
+      buffer: 10, concurrency: 1,
       tick: 0.1, poll: 5.0, heartbeat: 5.0,
       logger: Logger.new($stdout, level: Logger::INFO),
       database: Database,
