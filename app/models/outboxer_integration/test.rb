@@ -1,5 +1,5 @@
 module OutboxerIntegration
-  class Test < ActiveRecord::Base # ApplicationRecord
+  class Test < ApplicationRecord
     self.table_name = 'outboxer_integration_tests'
 
     def self.start(user_id: nil, tenant_id: nil)

@@ -3,6 +3,7 @@ require 'spec_helper'
 require 'sidekiq'
 require 'sidekiq/testing'
 
+require_relative '../../app/models/application_record'
 require_relative '../../app/models/event'
 require_relative '../../app/models/outboxer_integration/test'
 require_relative '../../app/models/outboxer_integration/test_started_event'
