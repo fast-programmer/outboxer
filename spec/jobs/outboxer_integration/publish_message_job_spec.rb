@@ -50,9 +50,6 @@ module OutboxerIntegration
         end
 
         it 'does not enqueue any job and handles the error silently' do
-          allow_any_instance_of(String).to receive(:constantize)
-            .and_raise(NameError.new("uninitialized constant"))
-
           expect {
             PublishMessageJob.new.perform(args)
           }.not_to change { Sidekiq::Worker.jobs.size }
