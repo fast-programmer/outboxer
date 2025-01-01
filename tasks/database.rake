@@ -6,8 +6,8 @@ require 'pry-byebug'
 namespace :outboxer do
   namespace :db do
     task :drop do
-      env = ENV['OUTBOXER_ENV'] || 'development'
-      db_config = Outboxer::Database.config(env: env, pool: 1)
+      environment = ENV['RAILS_ENV'] || 'development'
+      db_config = Outboxer::Database.config(environment: environment, pool: 1)
 
       ActiveRecord::Base.establish_connection(db_config.merge('database' => 'postgres'))
       ActiveRecord::Base.connection.drop_database(db_config['database'])
@@ -15,8 +15,8 @@ namespace :outboxer do
     end
 
     task :create do
-      env = ENV['OUTBOXER_ENV'] || 'development'
-      db_config = Outboxer::Database.config(env: env, pool: 1)
+      environment = ENV['RAILS_ENV'] || 'development'
+      db_config = Outboxer::Database.config(environment: environment, pool: 1)
 
       ActiveRecord::Base.establish_connection(db_config.merge('database' => 'postgres'))
       ActiveRecord::Base.connection.create_database(db_config['database'])
@@ -24,9 +24,12 @@ namespace :outboxer do
     end
 
     task :migrate do
-      env = ENV['OUTBOXER_ENV'] || 'development'
-      db_config = Outboxer::Database.config(env: env, pool: 1)
+      environment = ENV['RAILS_ENV'] || 'development'
+      db_config = Outboxer::Database.config(environment: environment, pool: 1)
       ActiveRecord::Base.establish_connection(db_config)
+
+      require_relative "../db/migrate/create_outboxer_integration_tests"
+      CreateOutboxerIntegrationTests.new.up
 
       require_relative "../db/migrate/create_events"
       CreateEvents.new.up
@@ -53,11 +56,9 @@ namespace :outboxer do
     end
 
     task :seed do
-      env = ENV['OUTBOXER_ENV'] || 'development'
-      db_config = Outboxer::Database.config(env: env, pool: 1)
+      environment = ENV['RAILS_ENV'] || 'development'
+      db_config = Outboxer::Database.config(environment: environment, pool: 1)
       ActiveRecord::Base.establish_connection(db_config)
-
-      require_relative "../db/seeds"
 
       ActiveRecord::Base.connection.disconnect!
     end
@@ -68,8 +69,8 @@ namespace :outboxer do
   end
 end
 
-# OUTBOXER_ENV=development bin/rake outboxer:db:drop
-# OUTBOXER_ENV=development bin/rake outboxer:db:create
-# OUTBOXER_ENV=development bin/rake outboxer:db:migrate
-# OUTBOXER_ENV=development bin/rake outboxer:db:seed
-# OUTBOXER_ENV=development bin/rake outboxer:db:reset
+# RAILS_ENV=development bin/rake outboxer:db:drop
+# RAILS_ENV=development bin/rake outboxer:db:create
+# RAILS_ENV=development bin/rake outboxer:db:migrate
+# RAILS_ENV=development bin/rake outboxer:db:seed
+# RAILS_ENV=development bin/rake outboxer:db:reset

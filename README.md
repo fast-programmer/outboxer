@@ -5,7 +5,7 @@
 
 ## Background
 
-Outboxer is an ActiveRecord implementation of the transactional outbox pattern for PostgreSQL and MySQL databases.
+Outboxer is a Rails 7 implementation of the transactional outbox pattern.
 
 ## Setup
 
@@ -21,10 +21,10 @@ gem 'outboxer'
 bundle install
 ```
 
-### 3. generate schema
+### 3. generate schema and publisher
 
 ```bash
-bin/rails g outboxer:schema
+bin/rails g outboxer:install
 ```
 
 ### 4. migrate schema
@@ -33,83 +33,57 @@ bin/rails g outboxer:schema
 bin/rake db:migrate
 ```
 
-### 5. seed database
-
-```bash
-bin/rake outboxer:db:seed
-```
-
-###  6. queue message after event creation
-
-#### new event
-
-```bash
-bin/rails g outboxer:event
-```
-
-#### existing event
-
-```ruby
-class Event < ActiveRecord::Base
-  after_create do |event|
-    Outboxer::Message.queue(messageable: event)
-  end
-end
-```
-
-### 7. generate publisher
-
-#### sidekiq
-
-```bash
-bin/rails g outboxer:sidekiq_publisher
-```
-
-#### custom
-
-```bash
-bin/rails g outboxer:publisher
-```
-
-### 8. publish message out of band
-
-#### Sidekiq
+### 5. Publish message
 
 ```ruby
 Outboxer::Publisher.publish do |message|
-  OutboxerIntegration::Message::PublishJob.perform_async(message)
+  # TODO: publish message to your broker here
 end
 ```
 
-#### Custom
+See: [publisher best practices](https://github.com/fast-programmer/outboxer/wiki/Publisher-best-practices) for common integration examples including with sidekiq
 
-```ruby
-Outboxer::Publisher.publish do |message|
-  # publish message to custom broker here
-end
-```
-
-### 9. run publisher
+### 6. run publisher
 
 ```bash
 bin/outboxer_publisher
 ```
 
-### 10. open rails console
+### 7. open rails console
 
 ```bash
 bin/rails c
 ```
 
-### 11. create event
+### 8. create test event
 
 ```ruby
-Event.create!
+TestEvent.create!
 ```
 
-### 12. Observe published message
+```
+TRANSACTION (0.2ms)  BEGIN
+TestEvent Create (1.2ms)  INSERT INTO "events" ....
+Outboxer::Models::Message Create (1.8ms)  INSERT INTO "outboxer_messages" ...
+TRANSACTION (0.4ms)  COMMIT
+=>
+#<TestEvent:0x000000010a329eb0
+ id: 1,
+ user_id: nil,
+ tenant_id: nil,
+ type: "TestEvent",
+ body: nil,
+ created_at: Sat, 21 Dec 2024 09:11:56.459083000 UTC +00:00>
+```
 
-Confirm the message has been published out of band
+### 9. Observe published message
+
+
+Confirm the message has been published out of band e.g.
+
+```
+2024-12-21T09:12:01.303Z pid=13171 tid=publisher-1 INFO: Outboxer published message 1 to sidekiq for TestEvent::1
+```
 
 ## Management
 

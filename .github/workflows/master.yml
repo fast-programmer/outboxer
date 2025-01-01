@@ -41,6 +41,10 @@ jobs:
         ports:
           - 5432:5432
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+      redis:
+        image: redis
+        ports:
+          - 6379:6379
     steps:
     - uses: actions/checkout@v3
     - name: set up ruby
@@ -54,9 +58,9 @@ jobs:
         export PGPASSWORD=outboxer_password
         psql -h localhost -U outboxer_developer -d outboxer_test -c 'SELECT version();'
     - name: run database migrations
-      run: OUTBOXER_ENV=test bin/rake outboxer:db:migrate
+      run: RAILS_ENV=test bin/rake outboxer:db:migrate
     - name: run rspec
-      run: OUTBOXER_ENV=test bin/rspec spec
+      run: RAILS_ENV=test bin/rspec spec
 
   mysql:
     runs-on: ubuntu-latest
@@ -82,6 +86,10 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
+      redis:
+        image: redis
+        ports:
+          - 6379:6379
     steps:
     - uses: actions/checkout@v3
     - name: set up ruby
@@ -96,7 +104,7 @@ jobs:
         mysql -h 127.0.0.1 -P 3306 -u outboxer_developer -poutboxer_password outboxer_test -e 'SELECT VERSION();'
     - name: run database migrations
       env:
-        OUTBOXER_ENV: test
+        RAILS_ENV: test
         DATABASE_ADAPTER: mysql2
         DATABASE_HOST: 127.0.0.1
         DATABASE_PORT: 3306
@@ -104,7 +112,7 @@ jobs:
         bin/rake outboxer:db:migrate
     - name: run rspec
       env:
-        OUTBOXER_ENV: test
+        RAILS_ENV: test
         DATABASE_ADAPTER: mysql2
         DATABASE_PORT: 3306
         DATABASE_HOST: 127.0.0.1

@@ -3,7 +3,7 @@ require 'spec_helper'
 module Outboxer
   RSpec.describe Publisher do
     describe '.publish' do
-      let(:env) { 'test' }
+      let(:environment) { 'test' }
       let(:buffer) { 1 }
       let(:poll) { 1 }
       let(:tick) { 0.1 }
@@ -21,7 +21,7 @@ module Outboxer
         it 'dumps stack trace' do
           publish_thread = Thread.new do
             Outboxer::Publisher.publish(
-              env: env,
+              environment: environment,
               buffer: buffer,
               poll: poll,
               tick: tick,
@@ -46,7 +46,7 @@ module Outboxer
         it 'stops and resumes the publishing process correctly' do
           publish_thread = Thread.new do
             Outboxer::Publisher.publish(
-              env: env,
+              environment: environment,
               buffer: buffer,
               poll: poll,
               tick: tick,
@@ -71,7 +71,7 @@ module Outboxer
       context 'when message published successfully' do
         it 'sets the message to published' do
           Publisher.publish(
-            env: env,
+            environment: environment,
             buffer: buffer,
             poll: poll,
             tick: tick,
@@ -97,7 +97,7 @@ module Outboxer
 
           before do
             Publisher.publish(
-              env: env,
+              environment: environment,
               buffer: buffer,
               poll: poll,
               tick: tick,
@@ -143,7 +143,7 @@ module Outboxer
 
           before do
             Publisher.publish(
-              env: env,
+              environment: environment,
               buffer: buffer,
               poll: poll,
               tick: tick,
@@ -201,7 +201,7 @@ module Outboxer
             expect(logger).to receive(:error).with(include('StandardError: queue error')).once
 
             Publisher.publish(
-              env: env,
+              environment: environment,
               buffer: buffer,
               poll: poll,
               tick: tick,
@@ -221,7 +221,7 @@ module Outboxer
               .once
 
             Publisher.publish(
-              env: env,
+              environment: environment,
               buffer: buffer,
               poll: poll,
               tick: tick,

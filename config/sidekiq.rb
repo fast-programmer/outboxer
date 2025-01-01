@@ -1,11 +1,13 @@
 require 'bundler/setup'
-require 'outboxer'
 require 'active_record'
 require 'sidekiq'
 
-require_relative '../app/jobs/event_created_job'
+require 'outboxer'
 
-environment = ENV['APP_ENV'] || 'development'
+Dir[File.expand_path('../app/models/**/*.rb', __dir__)].each { |file| require file }
+Dir[File.expand_path('../app/jobs/**/*.rb', __dir__)].each { |file| require file }
+
+environment = ENV['RAILS_ENV'] || 'development'
 
 db_config_content = File.read('config/database.yml')
 db_config_erb_result = ERB.new(db_config_content).result

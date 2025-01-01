@@ -31,9 +31,9 @@ require 'sinatra/base'
 require 'uri'
 require 'rack/flash'
 
-env = ENV['OUTBOXER_ENV'] || 'development'
+environment = ENV['RAILS_ENV'] || 'development'
 
-config = Outboxer::Database.config(env: env, pool: 5)
+config = Outboxer::Database.config(environment: environment, pool: 5)
 Outboxer::Database.connect(config: config)
 
 module Outboxer
@@ -46,6 +46,10 @@ module Outboxer
     set :views, File.expand_path('../web/views', __FILE__)
     set :public_folder, File.expand_path('../web/public', __FILE__)
     set :show_exceptions, false
+
+    configure do
+      Settings.create
+    end
 
     helpers do
       def outboxer_path(path)

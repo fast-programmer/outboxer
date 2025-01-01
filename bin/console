@@ -6,10 +6,12 @@ require 'outboxer'
 require 'sidekiq'
 require 'irb'
 
-require_relative "../app/models/event"
+Dir.glob(File.join(__dir__, '../app/models/**/*.rb')).each do |file|
+  require_relative file
+end
 
-env = ENV['OUTBOXER_ENV'] || 'development'
-config = Outboxer::Database.config(env: env, pool: 1)
+environment = ENV['RAILS_ENV'] || 'development'
+config = Outboxer::Database.config(environment: environment, pool: 1)
 Outboxer::Database.connect(config: config)
 
 Sidekiq.configure_client do |config|

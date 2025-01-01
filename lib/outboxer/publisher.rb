@@ -368,9 +368,9 @@ module Outboxer
 
     def publish(
       name: "#{::Socket.gethostname}:#{::Process.pid}",
-      env: 'development',
+      environment: ::ENV.fetch('RAILS_ENV', 'development'),
       db_config_path: ::File.expand_path('config/database.yml', ::Dir.pwd),
-      buffer: 1000, concurrency: 2,
+      buffer: 100, concurrency: 1,
       tick: 0.1, poll: 5.0, heartbeat: 5.0,
       logger: Logger.new($stdout, level: Logger::INFO),
       database: Database,
@@ -382,8 +382,11 @@ module Outboxer
       logger.info "Outboxer v#{Outboxer::VERSION} running in ruby #{RUBY_VERSION} "\
         "(#{RUBY_RELEASE_DATE} revision #{RUBY_REVISION[0, 10]}) [#{RUBY_PLATFORM}]"
 
-      db_config = database.config(env: env, pool: concurrency + 2, path: db_config_path)
+      db_config = database.config(
+        environment: environment, pool: concurrency + 2, path: db_config_path)
       database.connect(config: db_config, logger: logger)
+
+      Settings.create
 
       queue = Queue.new
 
