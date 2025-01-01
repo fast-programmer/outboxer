@@ -31,9 +31,9 @@ require 'sinatra/base'
 require 'uri'
 require 'rack/flash'
 
-env = ENV['OUTBOXER_ENV'] || 'development'
+environment = ENV['RAILS_ENV'] || 'development'
 
-config = Outboxer::Database.config(env: env, pool: 5)
+config = Outboxer::Database.config(environment: environment, pool: 5)
 Outboxer::Database.connect(config: config)
 
 module Outboxer
