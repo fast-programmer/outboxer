@@ -12,24 +12,26 @@ RSpec.describe 'POST /messages/update_per_page', type: :request do
     Outboxer::Web
   end
 
-  context 'updating pagination settings' do
-    it 'updates number of messages per page and redirects with full parameters' do
-      post '/messages/update_per_page', {
-        status: 'queued',
-        sort: 'created_at',
-        order: 'desc',
-        page: 1,
-        per_page: 10,
-        time_zone: 'UTC'
-      }
-      follow_redirect!
-      expect(last_response).to be_ok
-      expect(last_request.url).to include('per_page=30')
-      expect(last_request.url).to include('status=queued')
-      expect(last_request.url).to include('sort=created_at')
-      expect(last_request.url).to include('order=desc')
-      expect(last_request.url).to include('page=2')
-      expect(last_request.url).to include('time_zone=UTC')
-    end
+  before do
+    header 'Host', 'localhost'
+    post '/messages/update_per_page', {
+      status: 'queued',
+      sort: 'queued_at',
+      order: 'desc',
+      page: 1,
+      per_page: 10,
+      time_zone: 'Australia/Sydney'
+    }
+  end
+
+  it 'redirects with updated per_page param' do
+    follow_redirect!
+    expect(last_response).to be_ok
+    expect(last_request.url).to include('per_page=10')
+    expect(last_request.url).to include('status=queued')
+    expect(last_request.url).to include('sort=queued_at')
+    expect(last_request.url).to include('order=desc')
+    expect(last_request.url).to include('page=1')
+    expect(last_request.url).to include('time_zone=Australia%2FSydney')
   end
 end

@@ -526,7 +526,7 @@ module Outboxer
         time_zone: denormalised_query_params[:time_zone])
 
       result = Messages.requeue_all(
-        status: denormalised_query_params[:status], older_than: Time.now.utc)
+        status: denormalised_query_params[:status])
 
       message_text = result[:requeued_count] == 1 ? 'message' : 'messages'
       flash[:primary] = "#{result[:requeued_count]} #{message_text} have been queued"

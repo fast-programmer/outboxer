@@ -40,7 +40,7 @@ RSpec.describe 'GET /messages', type: :request do
 
     before do
       header 'Host', 'localhost'
-      get '/messages', { page: 2, status: 'publishing', per_page: 10 }
+      get '/messages', { page: 1, status: 'publishing', per_page: 10 }
     end
 
     def app

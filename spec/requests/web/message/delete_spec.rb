@@ -5,15 +5,15 @@ require_relative "../../../../lib/outboxer/web"
 RSpec.describe 'POST /message/:id/delete', type: :request do
   include Rack::Test::Methods
 
+  def app
+    Outboxer::Web
+  end
+
   let(:message) { create(:outboxer_message, :failed) }
 
   before do
     header 'Host', 'localhost'
     post "/message/#{message.id}/delete"
-  end
-
-  def app
-    Outboxer::Web
   end
 
   it 'deletes message' do
