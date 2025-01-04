@@ -33,56 +33,77 @@ bin/rails g outboxer:install
 bin/rake db:migrate
 ```
 
-### 5. Publish message
+### 5. Publish message to redis via sidekiq job
 
 ```ruby
 Outboxer::Publisher.publish do |message|
-  # TODO: publish message to your broker here
+  OutboxerIntegration::PublishMessageJob.perform_async({
+    'message_id' => message[:id],
+    'messageable_id' => message[:messageable_id],
+    'messageable_type' => message[:messageable_type] })
 end
 ```
 
-See: [publisher best practices](https://github.com/fast-programmer/outboxer/wiki/Publisher-best-practices) for common integration examples including with sidekiq
+### 6. route message to handler via sidekiq job
 
-### 6. run publisher
+```ruby
+module OutboxerIntegration
+  class PublishMessageJob
+    include Sidekiq::Job
+
+    def perform(args)
+      # route message to job handler
+    end
+  end
+end
+```
+
+### 7. run publisher
 
 ```bash
 bin/outboxer_publisher
 ```
 
-### 7. open rails console
+### 8. run sidekiq
+
+```bash
+bin/sidekiq
+```
+
+### 9. open rails console
 
 ```bash
 bin/rails c
 ```
 
-### 8. create test event
+### 10. create test started event
 
 ```ruby
-TestEvent.create!
+OutboxerIntegration::TestStartedEvent.create!
 ```
 
 ```
 TRANSACTION (0.2ms)  BEGIN
-TestEvent Create (1.2ms)  INSERT INTO "events" ....
+OutboxerIntegration::TestStartedEvent Create (1.2ms)  INSERT INTO "events" ....
 Outboxer::Models::Message Create (1.8ms)  INSERT INTO "outboxer_messages" ...
 TRANSACTION (0.4ms)  COMMIT
 =>
-#<TestEvent:0x000000010a329eb0
+#<OutboxerIntegration::TestStartedEvent:0x000000010a329eb0
  id: 1,
  user_id: nil,
  tenant_id: nil,
- type: "TestEvent",
+ type: "OutboxerIntegration::TestStartedEvent",
  body: nil,
  created_at: Sat, 21 Dec 2024 09:11:56.459083000 UTC +00:00>
 ```
 
-### 9. Observe published message
+### 11. Observe published message
 
 
 Confirm the message has been published out of band e.g.
 
 ```
-2024-12-21T09:12:01.303Z pid=13171 tid=publisher-1 INFO: Outboxer published message 1 to sidekiq for TestEvent::1
+2024-12-21T09:12:01.303Z pid=13171 tid=publisher-1 INFO: Outboxer published message 1 to sidekiq for OutboxerIntegration::TestStartedEvent::1
 ```
 
 ## Management
