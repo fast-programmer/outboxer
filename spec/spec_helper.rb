@@ -5,7 +5,7 @@ require "pry-byebug"
 require "factory_bot"
 require "rack/test"
 
-Dir[File.join(__dir__, "factories/**/*.rb")].each { |f| require f }
+Dir[File.join(__dir__, "factories/**/*.rb")].sort.each { |f| require f }
 
 require_relative "../lib/outboxer"
 
