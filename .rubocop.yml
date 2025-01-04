@@ -172,6 +172,8 @@ Style/MapToSet: # new in 1.42
   Enabled: true
 Style/MinMaxComparison: # new in 1.42
   Enabled: true
+Style/MutableConstant:
+  Enabled: false
 Style/MultilineInPatternThen: # new in 1.16
   Enabled: true
 Style/NegatedIfElseCondition: # new in 1.2
