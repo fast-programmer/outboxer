@@ -1,28 +1,37 @@
 require 'spec_helper'
 
-require_relative "../../../../lib/outboxer/web"
+require_relative '../../../../../app/models/application_record'
+require_relative '../../../../../app/models/event'
+
+require_relative "../../../../../lib/outboxer/web"
 
 RSpec.describe 'POST /message/:id/requeue', type: :request do
   include Rack::Test::Methods
-
-  let(:message) { create(:outboxer_message, :failed) }
-
-  before do
-    header 'Host', 'localhost'
-    post "/message/#{message.id}/requeue"
-  end
 
   def app
     Outboxer::Web
   end
 
-  it 'requeues a message' do
+  let!(:event) { Event.create!(id: 1, type: 'Event') }
+  let!(:message) do
+    Outboxer::Models::Message.find_by!(messageable_type: 'Event', messageable_id: event.id)
+  end
+
+  before do
+    header 'Host', 'localhost'
+
+    post "/message/#{message.id}/requeue"
+
+    follow_redirect!
+
     message.reload
+  end
+
+  it 'requeues a message' do
     expect(message.status).to eql('queued')
   end
 
   it 'redirects with flash' do
-    follow_redirect!
     expect(last_response).to be_ok
     expect(last_request.env['x-rack.flash'][:primary]).to include('was queued')
   end

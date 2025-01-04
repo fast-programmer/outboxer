@@ -1,9 +1,9 @@
 require 'spec_helper'
 
-require_relative '../../../../app/models/application_record'
-require_relative '../../../../app/models/event'
+require_relative '../../../../../app/models/application_record'
+require_relative '../../../../../app/models/event'
 
-require_relative "../../../../lib/outboxer/web"
+require_relative "../../../../../lib/outboxer/web"
 
 RSpec.describe 'POST /messages/update', type: :request do
   include Rack::Test::Methods
@@ -14,17 +14,17 @@ RSpec.describe 'POST /messages/update', type: :request do
 
   let!(:event_1) { Event.create!(id: 1, type: 'Event') }
   let!(:message_1) do
-    Outboxer::Models::Message.find_by!(messageable_type: 'Event', messageable_id: event_1)
+    Outboxer::Models::Message.find_by!(messageable_type: 'Event', messageable_id: event_1.id)
   end
 
   let!(:event_2) { Event.create!(id: 2, type: 'Event') }
   let!(:message_2) do
-    Outboxer::Models::Message.find_by!(messageable_type: 'Event', messageable_id: event_2)
+    Outboxer::Models::Message.find_by!(messageable_type: 'Event', messageable_id: event_2.id)
   end
 
   let!(:event_3) { Event.create!(id: 3, type: 'Event') }
   let!(:message_3) do
-    Outboxer::Models::Message.find_by!(messageable_type: 'Event', messageable_id: event_3)
+    Outboxer::Models::Message.find_by!(messageable_type: 'Event', messageable_id: event_3.id)
   end
 
   before do

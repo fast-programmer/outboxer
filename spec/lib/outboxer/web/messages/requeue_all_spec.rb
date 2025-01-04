@@ -1,11 +1,9 @@
-
-
 require 'spec_helper'
 
-require_relative '../../../../app/models/application_record'
-require_relative '../../../../app/models/event'
+require_relative '../../../../../app/models/application_record'
+require_relative '../../../../../app/models/event'
 
-require_relative "../../../../lib/outboxer/web"
+require_relative "../../../../../lib/outboxer/web"
 
 RSpec.describe 'POST /messages/requeue_all', type: :request do
   include Rack::Test::Methods
@@ -35,6 +33,7 @@ RSpec.describe 'POST /messages/requeue_all', type: :request do
       message_3.update!(status: Outboxer::Models::Message::Status::FAILED)
 
       header 'Host', 'localhost'
+
       post '/messages/requeue_all', {
         page: 1,
         per_page: 10,
@@ -61,6 +60,7 @@ RSpec.describe 'POST /messages/requeue_all', type: :request do
       message_3.update!(status: Outboxer::Models::Message::Status::FAILED)
 
       header 'Host', 'localhost'
+
       post '/messages/requeue_all', {
         status: :failed,
         page: 1,
@@ -69,6 +69,7 @@ RSpec.describe 'POST /messages/requeue_all', type: :request do
         order: :desc,
         time_zone: 'Australia/Sydney'
       }
+
       follow_redirect!
     end
 

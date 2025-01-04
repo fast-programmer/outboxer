@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-require_relative "../../../lib/outboxer/web"
+require_relative "../../../../lib/outboxer/web"
 
 RSpec.describe 'GET /', type: :request do
   include Rack::Test::Methods
@@ -12,6 +12,7 @@ RSpec.describe 'GET /', type: :request do
   context 'when there are no publishers' do
     before do
       header 'Host', 'localhost'
+
       get '/'
     end
 
@@ -26,6 +27,7 @@ RSpec.describe 'GET /', type: :request do
 
     before do
       header 'Host', 'localhost'
+
       get '/'
     end
 

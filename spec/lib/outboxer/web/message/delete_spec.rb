@@ -1,6 +1,9 @@
 require 'spec_helper'
 
-require_relative "../../../../lib/outboxer/web"
+require_relative '../../../../../app/models/application_record'
+require_relative '../../../../../app/models/event'
+
+require_relative "../../../../../lib/outboxer/web"
 
 RSpec.describe 'POST /message/:id/delete', type: :request do
   include Rack::Test::Methods
@@ -9,11 +12,17 @@ RSpec.describe 'POST /message/:id/delete', type: :request do
     Outboxer::Web
   end
 
-  let(:message) { create(:outboxer_message, :failed) }
+  let!(:event) { Event.create!(id: 1, type: 'Event') }
+  let!(:message) do
+    Outboxer::Models::Message.find_by!(messageable_type: 'Event', messageable_id: event.id)
+  end
 
   before do
     header 'Host', 'localhost'
+
     post "/message/#{message.id}/delete"
+
+    follow_redirect!
   end
 
   it 'deletes message' do
@@ -21,7 +30,6 @@ RSpec.describe 'POST /message/:id/delete', type: :request do
   end
 
   it 'redirects with flash' do
-    follow_redirect!
     expect(last_response).to be_ok
     expect(last_request.env['x-rack.flash'][:primary]).to include('was deleted')
   end
