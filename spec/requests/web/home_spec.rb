@@ -9,12 +9,29 @@ RSpec.describe 'GET /', type: :request do
     Outboxer::Web
   end
 
-  it 'loads the home page' do
-    header 'Host', 'localhost'
+  context 'when there are no publishers' do
+    before do
+      header 'Host', 'localhost'
+      get '/'
+    end
 
-    get '/'
+    it "doesn't show any publishers" do
+      expect(last_response).to be_ok
+      expect(last_response.body).to include('There are no publishers to display')
+    end
+  end
 
-    expect(last_response).to be_ok
-    expect(last_response.body).to include('There are no publishers to display')
+  context 'when there is a publisher' do
+    let!(:publisher) { create(:outboxer_publisher, :publishing, name: 'localhost:14325') }
+
+    before do
+      header 'Host', 'localhost'
+      get '/'
+    end
+
+    it "shows publisher" do
+      expect(last_response).to be_ok
+      expect(last_response.body).to include(publisher.name)
+    end
   end
 end
