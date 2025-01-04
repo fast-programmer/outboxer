@@ -1,10 +1,10 @@
-require 'spec_helper'
+require "spec_helper"
 
 module Outboxer
   RSpec.describe Message do
-    describe '.find_by_id' do
-      context 'when a failed message exists' do
-        let(:publisher) { create(:outboxer_publisher, id: 666, name: 'server-01:666') }
+    describe ".find_by_id" do
+      context "when a failed message exists" do
+        let(:publisher) { create(:outboxer_publisher, id: 666, name: "server-01:666") }
 
         let!(:message) do
           create(:outboxer_message, :failed,
@@ -14,11 +14,11 @@ module Outboxer
         let!(:exception) { create(:outboxer_exception, message: message) }
         let!(:frame) { create(:outboxer_frame, exception: exception) }
 
-        it 'returns the message, exceptions and frames' do
+        it "returns the message, exceptions and frames" do
           result = Message.find_by_id(id: message.id)
 
           expect(result[:id]).to eq(message.id)
-          expect(result[:status]).to eq('failed')
+          expect(result[:status]).to eq("failed")
           expect(result[:queued_at]).to eq(message.queued_at.utc)
           expect(result[:updated_at]).to eq(message.updated_at.utc)
           expect(result[:publisher_id]).to eq(message.publisher_id)
@@ -33,8 +33,8 @@ module Outboxer
         end
       end
 
-      context 'when the message does not exist' do
-        it 'raises an ActiveRecord::RecordNotFound error' do
+      context "when the message does not exist" do
+        it "raises an ActiveRecord::RecordNotFound error" do
           expect { Message.find_by_id(id: -1) }.to raise_error(ActiveRecord::RecordNotFound)
         end
       end

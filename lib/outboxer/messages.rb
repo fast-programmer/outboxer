@@ -9,7 +9,7 @@ module Outboxer
           messages = Models::Message
             .where(status: Models::Message::Status::QUEUED)
             .order(updated_at: :asc)
-            .lock('FOR UPDATE SKIP LOCKED')
+            .lock("FOR UPDATE SKIP LOCKED")
             .limit(limit)
             .select(:id, :messageable_type, :messageable_id, :queued_at)
 
@@ -56,8 +56,8 @@ module Outboxer
     LIST_PER_PAGE_OPTIONS = [10, 100, 200, 500, 1000]
     LIST_PER_PAGE_DEFAULT = 100
 
-    LIST_TIME_ZONE_OPTIONS = (ActiveSupport::TimeZone.all.map { |tz| tz.tzinfo.name } + ['UTC']).sort
-    LIST_TIME_ZONE_DEFAULT = 'UTC'
+    LIST_TIME_ZONE_OPTIONS = (ActiveSupport::TimeZone.all.map { |tz| tz.tzinfo.name } + ["UTC"]).sort
+    LIST_TIME_ZONE_DEFAULT = "UTC"
 
     def list(status: LIST_STATUS_DEFAULT,
              sort: LIST_SORT_DEFAULT, order: LIST_ORDER_DEFAULT,
@@ -88,7 +88,7 @@ module Outboxer
       end
 
       base_scope = Models::Message.left_joins(:publisher)
-      base_scope = status.nil? ? base_scope.all : base_scope.where('outboxer_messages.status = ?', status)
+      base_scope = status.nil? ? base_scope.all : base_scope.where("outboxer_messages.status = ?", status)
 
       total_count = base_scope.count
 
@@ -102,8 +102,8 @@ module Outboxer
       offset = (page - 1) * per_page
       paginated_messages = sorted_scope
         .select(
-          'outboxer_messages.*',
-          'CASE WHEN outboxer_publishers.id IS NOT NULL THEN 1 ELSE 0 END AS publisher_exists')
+          "outboxer_messages.*",
+          "CASE WHEN outboxer_publishers.id IS NOT NULL THEN 1 ELSE 0 END AS publisher_exists")
         .offset(offset).limit(per_page)
 
       total_pages = (total_count.to_f / per_page).ceil
@@ -140,7 +140,7 @@ module Outboxer
     def requeue_all(status:, batch_size: 100, time: ::Time,
                     publisher_id: nil, publisher_name: nil)
       if !can_requeue?(status: status)
-        status_formatted = status.nil? ? 'nil' : status
+        status_formatted = status.nil? ? "nil" : status
 
         raise ArgumentError,
           "Status #{status_formatted} must be one of #{Message::REQUEUE_STATUSES.join(', ')}"
@@ -157,7 +157,7 @@ module Outboxer
               .where(status: status)
               .order(updated_at: :asc)
               .limit(batch_size)
-              .lock('FOR UPDATE SKIP LOCKED')
+              .lock("FOR UPDATE SKIP LOCKED")
               .pluck(:id)
 
             current_utc_time = time.now.utc
@@ -189,7 +189,7 @@ module Outboxer
           locked_ids = Models::Message
             .where(id: ids)
             .order(updated_at: :asc)
-            .lock('FOR UPDATE SKIP LOCKED')
+            .lock("FOR UPDATE SKIP LOCKED")
             .pluck(:id)
 
           requeued_count = Models::Message
@@ -215,10 +215,10 @@ module Outboxer
           ActiveRecord::Base.transaction do
             query = Models::Message.all
             query = query.where(status: status) unless status.nil?
-            query = query.where('updated_at < ?', older_than) if older_than
+            query = query.where("updated_at < ?", older_than) if older_than
             messages = query.order(:updated_at)
               .limit(batch_size)
-              .lock('FOR UPDATE SKIP LOCKED')
+              .lock("FOR UPDATE SKIP LOCKED")
               .pluck(:id, :status)
               .map { |id, status| { id: id, status: status } }
 
@@ -238,7 +238,7 @@ module Outboxer
 
               if current_messages.count > 0
                 setting_name = "messages.#{status}.count.historic"
-                setting = Models::Setting.lock('FOR UPDATE').find_by!(name: setting_name)
+                setting = Models::Setting.lock("FOR UPDATE").find_by!(name: setting_name)
                 setting.update!(value: setting.value.to_i + current_messages.count).to_s
               end
             end
@@ -258,7 +258,7 @@ module Outboxer
         ActiveRecord::Base.transaction do
           messages = Models::Message
             .where(id: ids)
-            .lock('FOR UPDATE SKIP LOCKED')
+            .lock("FOR UPDATE SKIP LOCKED")
             .pluck(:id, :status)
             .map { |id, status| { id: id, status: status } }
 
@@ -278,7 +278,7 @@ module Outboxer
 
             if current_messages.count > 0
               setting_name = "messages.#{status}.count.historic"
-              setting = Models::Setting.lock('FOR UPDATE').find_by!(name: setting_name)
+              setting = Models::Setting.lock("FOR UPDATE").find_by!(name: setting_name)
               setting.update!(value: setting.value.to_i + current_messages.count).to_s
             end
           end
@@ -301,20 +301,20 @@ module Outboxer
 
       ActiveRecord::Base.connection_pool.with_connection do
         time_condition = ActiveRecord::Base.sanitize_sql_array([
-          'updated_at >= ?', current_utc_time - 1.second])
+          "updated_at >= ?", current_utc_time - 1.second])
 
         grouped_messages = Models::Message
         .group(:status)
         .select(
-          'status, COUNT(*) AS count, MIN(updated_at) AS oldest_updated_at',
+          "status, COUNT(*) AS count, MIN(updated_at) AS oldest_updated_at",
           "SUM(CASE WHEN #{time_condition} THEN 1 ELSE 0 END) AS throughput")
         .to_a
 
         metrics[:published][:count][:historic] = Models::Setting
-          .find_by!(name: 'messages.published.count.historic').value.to_i
+          .find_by!(name: "messages.published.count.historic").value.to_i
 
         metrics[:failed][:count][:historic] = Models::Setting
-          .find_by!(name: 'messages.failed.count.historic').value.to_i
+          .find_by!(name: "messages.failed.count.historic").value.to_i
       end
 
       grouped_messages.each do |grouped_message|

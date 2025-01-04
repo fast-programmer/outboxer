@@ -8,7 +8,7 @@ module Outboxer
       validates :created_at, presence: true
 
       validates :publisher_id, presence: true
-      belongs_to :publisher, class_name: 'Outboxer::Models::Publisher', foreign_key: 'publisher_id'
+      belongs_to :publisher, class_name: "Outboxer::Models::Publisher", foreign_key: "publisher_id"
     end
   end
 end

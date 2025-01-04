@@ -1,8 +1,8 @@
 #!/usr/bin/env ruby
 
-require 'bundler/setup'
-require 'outboxer'
-require 'optparse'
+require "bundler/setup"
+require "outboxer"
+require "optparse"
 
 options = {}
 OptionParser.new do |opts|
@@ -25,12 +25,12 @@ OptionParser.new do |opts|
   end
 end.parse!
 
-log_level = options[:log_level] ? options[:log_level].upcase : 'INFO'
+log_level = options[:log_level] ? options[:log_level].upcase : "INFO"
 interval = options[:interval] || 1
 retention_period = options[:retention_period] || 10
 batch_size = options[:batch_size] || 100
 
-environment = ENV['APP_ENV'] || 'development'
+environment = ENV["APP_ENV"] || "development"
 
 logger = Outboxer::Logger.new($stdout, level: log_level)
 
@@ -39,7 +39,7 @@ Outboxer::Database.connect(config: db_config, logger: logger)
 
 $running = true
 
-['INT', 'TERM'].each do |signal|
+["INT", "TERM"].each do |signal|
   Signal.trap(signal) { $running = false }
 end
 

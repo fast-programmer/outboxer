@@ -19,11 +19,11 @@ Gem::Specification.new do |spec|
 
   spec_files = Dir.chdir(__dir__) do
     [
-      'db/migrate/**/*',
-      'generators/**/*',
-      'LICENCE.txt',
-      'lib/**/*',
-      'README.md'
+      "db/migrate/**/*",
+      "generators/**/*",
+      "LICENCE.txt",
+      "lib/**/*",
+      "README.md"
     ].flat_map { |path| Dir.glob(path) }
   end
 

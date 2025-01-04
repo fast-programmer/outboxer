@@ -1,8 +1,8 @@
 #!/usr/bin/env ruby
 
-require 'bundler/setup'
-require 'outboxer'
-require 'securerandom'
+require "bundler/setup"
+require "outboxer"
+require "securerandom"
 
 max_messages_count = ARGV.empty? ? 500_000 : ARGV[0].to_i
 
@@ -12,12 +12,12 @@ if max_messages_count <= 0
   exit(1)
 end
 
-environment = ENV.fetch('RAILS_ENV', 'development')
+environment = ENV.fetch("RAILS_ENV", "development")
 db_config = Outboxer::Database.config(environment: environment, pool: 1)
 Outboxer::Database.connect(config: db_config)
 
-Signal.trap('INT') do
-  puts 'Shutting down...'
+Signal.trap("INT") do
+  puts "Shutting down..."
 
   $queueing = false
 end
@@ -29,7 +29,7 @@ queued_messages_count = 0
 while $queueing && queued_messages_count < max_messages_count
   messageable_id = SecureRandom.hex(3)
 
-  Outboxer::Message.queue(messageable_type: 'Event', messageable_id: messageable_id)
+  Outboxer::Message.queue(messageable_type: "Event", messageable_id: messageable_id)
   puts "queued message for Event::#{messageable_id}"
 
   queued_messages_count += 1

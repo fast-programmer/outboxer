@@ -1,15 +1,15 @@
 #!/usr/bin/env ruby
 
-require 'bundler/setup'
+require "bundler/setup"
 
-require 'sidekiq'
-require 'outboxer'
+require "sidekiq"
+require "outboxer"
 
-require_relative '../app/jobs/outboxer_integration/publish_message_job'
+require_relative "../app/jobs/outboxer_integration/publish_message_job"
 
 Outboxer::Publisher.publish do |message|
   OutboxerIntegration::PublishMessageJob.perform_async({
-    'message_id' => message[:id],
-    'messageable_id' => message[:messageable_id],
-    'messageable_type' => message[:messageable_type] })
+    "message_id" => message[:id],
+    "messageable_id" => message[:messageable_id],
+    "messageable_type" => message[:messageable_type] })
 end

@@ -39,9 +39,9 @@ module Outboxer
             .left_joins(:publisher)
             .includes(exceptions: :frames)
             .select(
-              'outboxer_messages.*',
-              'CASE WHEN outboxer_publishers.id IS NOT NULL THEN 1 ELSE 0 END AS publisher_exists')
-            .find_by!('outboxer_messages.id = ?', id)
+              "outboxer_messages.*",
+              "CASE WHEN outboxer_publishers.id IS NOT NULL THEN 1 ELSE 0 END AS publisher_exists")
+            .find_by!("outboxer_messages.id = ?", id)
 
           {
             id: message.id,
@@ -191,7 +191,7 @@ module Outboxer
           message.exceptions.delete_all
           message.delete
 
-          setting = Models::Setting.lock('FOR UPDATE').find_by(
+          setting = Models::Setting.lock("FOR UPDATE").find_by(
             name: "messages.#{message.status}.count.historic")
 
           setting.update!(value: setting.value.to_i + 1).to_s if !setting.nil?

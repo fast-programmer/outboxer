@@ -1,50 +1,50 @@
-require 'spec_helper'
+require "spec_helper"
 
 module Outboxer
   RSpec.describe Messages do
     let!(:message_1) do
       create(:outboxer_message, :queued,
-        messageable_type: 'Event', messageable_id: '1',
+        messageable_type: "Event", messageable_id: "1",
         updated_at: 10.seconds.ago,
         publisher_id: 41000,
-        publisher_name: 'server-01:41000')
+        publisher_name: "server-01:41000")
     end
 
     let!(:message_2) do
       create(:outboxer_message, :failed,
-        messageable_type: 'Event', messageable_id: '2',
+        messageable_type: "Event", messageable_id: "2",
         updated_at: 9.seconds.ago,
         publisher_id: 42000,
-        publisher_name: 'server-02:42000')
+        publisher_name: "server-02:42000")
     end
 
     let!(:message_3) do
       create(:outboxer_message, :buffered,
-        messageable_type: 'Event', messageable_id: '3',
+        messageable_type: "Event", messageable_id: "3",
         updated_at: 8.seconds.ago,
         publisher_id: 43000,
-        publisher_name: 'server-03:43000')
+        publisher_name: "server-03:43000")
     end
 
     let!(:message_4) do
       create(:outboxer_message, :queued,
-        messageable_type: 'Event', messageable_id: '4',
+        messageable_type: "Event", messageable_id: "4",
         updated_at: 7.seconds.ago,
         publisher_id: 44000,
-        publisher_name: 'server-04:44000')
+        publisher_name: "server-04:44000")
     end
 
     let!(:message_5) do
       create(:outboxer_message, :publishing,
-        messageable_type: 'Event', messageable_id: '5',
+        messageable_type: "Event", messageable_id: "5",
         updated_at: 6.seconds.ago,
         publisher_id: 45000,
-        publisher_name: 'server-05:45000')
+        publisher_name: "server-05:45000")
     end
 
-    describe '.list' do
-      context 'when an invalid status is specified' do
-        it 'raises an ArgumentError' do
+    describe ".list" do
+      context "when an invalid status is specified" do
+        it "raises an ArgumentError" do
           expect do
             Messages.list(status: :invalid)
           end.to raise_error(
@@ -52,8 +52,8 @@ module Outboxer
         end
       end
 
-      context 'with queued status' do
-        it 'returns queued messages' do
+      context "with queued status" do
+        it "returns queued messages" do
           expect(Messages.list(status: :queued)).to eq({
             current_page: 1, limit_value: 100, total_count: 2, total_pages: 1,
             messages: [
@@ -88,8 +88,8 @@ module Outboxer
         end
       end
 
-      context 'with buffered status' do
-        it 'returns buffered messages' do
+      context "with buffered status" do
+        it "returns buffered messages" do
           expect(Messages.list(status: :buffered)).to eq({
             current_page: 1, limit_value: 100, total_count: 1, total_pages: 1,
             messages: [
@@ -111,8 +111,8 @@ module Outboxer
         end
       end
 
-      context 'with publishing status' do
-        it 'returns publishing messages' do
+      context "with publishing status" do
+        it "returns publishing messages" do
           expect(Messages.list(status: :publishing)).to eq({
             current_page: 1, limit_value: 100, total_count: 1, total_pages: 1,
             messages: [
@@ -134,8 +134,8 @@ module Outboxer
         end
       end
 
-      context 'with failed status' do
-        it 'returns failed messages' do
+      context "with failed status" do
+        it "returns failed messages" do
           expect(Messages.list(status: :failed)).to eq({
             current_page: 1, limit_value: 100, total_count: 1, total_pages: 1,
             messages: [

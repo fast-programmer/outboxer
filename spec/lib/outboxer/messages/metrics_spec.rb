@@ -1,20 +1,20 @@
-require 'spec_helper'
+require "spec_helper"
 
 module Outboxer
   RSpec.describe Messages do
-    describe '.metrics' do
+    describe ".metrics" do
       let(:current_utc_time) { ::Time.now.utc }
-      let(:time) { double('Time', now: double('Time', utc: current_utc_time)) }
+      let(:time) { double("Time", now: double("Time", utc: current_utc_time)) }
 
-      context 'when there are messages in different statuses' do
+      context "when there are messages in different statuses" do
         before do
           Models::Setting
-            .find_by!(name: 'messages.published.count.historic')
-            .update!(value: '500')
+            .find_by!(name: "messages.published.count.historic")
+            .update!(value: "500")
 
           Models::Setting
-            .find_by!(name: 'messages.failed.count.historic')
-            .update!(value: '500')
+            .find_by!(name: "messages.failed.count.historic")
+            .update!(value: "500")
         end
 
         let!(:oldest_queued_message) do
@@ -57,7 +57,7 @@ module Outboxer
           create(:outboxer_message, :failed, updated_at: 10.minutes.ago)
         end
 
-        it 'returns correct settings' do
+        it "returns correct settings" do
           metrics = Messages.metrics(time: time)
 
           expect(metrics).to eq(
@@ -93,8 +93,8 @@ module Outboxer
         end
       end
 
-      context 'when there are no messages in a specific status' do
-        it 'returns zero count and latency for that status' do
+      context "when there are no messages in a specific status" do
+        it "returns zero count and latency for that status" do
           metrics = Messages.metrics(time: time)
 
           expect(metrics).to eq(
@@ -108,8 +108,8 @@ module Outboxer
         end
       end
 
-      context 'when no messages exist' do
-        it 'returns zero count and latency for all statuses' do
+      context "when no messages exist" do
+        it "returns zero count and latency for all statuses" do
           metrics = Messages.metrics(time: time)
 
           expect(metrics).to eq(

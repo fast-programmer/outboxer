@@ -1,117 +1,117 @@
-require 'spec_helper'
+require "spec_helper"
 
-require_relative '../../../../../app/models/application_record'
-require_relative '../../../../../app/models/event'
+require_relative "../../../../../app/models/application_record"
+require_relative "../../../../../app/models/event"
 
 require_relative "../../../../../lib/outboxer/web"
 
-RSpec.describe 'POST /messages/update', type: :request do
+RSpec.describe "POST /messages/update", type: :request do
   include Rack::Test::Methods
 
   def app
     Outboxer::Web
   end
 
-  let!(:event_1) { Event.create!(id: 1, type: 'Event') }
+  let!(:event_1) { Event.create!(id: 1, type: "Event") }
   let!(:message_1) do
-    Outboxer::Models::Message.find_by!(messageable_type: 'Event', messageable_id: event_1.id)
+    Outboxer::Models::Message.find_by!(messageable_type: "Event", messageable_id: event_1.id)
   end
 
-  let!(:event_2) { Event.create!(id: 2, type: 'Event') }
+  let!(:event_2) { Event.create!(id: 2, type: "Event") }
   let!(:message_2) do
-    Outboxer::Models::Message.find_by!(messageable_type: 'Event', messageable_id: event_2.id)
+    Outboxer::Models::Message.find_by!(messageable_type: "Event", messageable_id: event_2.id)
   end
 
-  let!(:event_3) { Event.create!(id: 3, type: 'Event') }
+  let!(:event_3) { Event.create!(id: 3, type: "Event") }
   let!(:message_3) do
-    Outboxer::Models::Message.find_by!(messageable_type: 'Event', messageable_id: event_3.id)
+    Outboxer::Models::Message.find_by!(messageable_type: "Event", messageable_id: event_3.id)
   end
 
   before do
     message_2.update!(status: Outboxer::Models::Message::Status::PUBLISHING)
     message_3.update!(status: Outboxer::Models::Message::Status::FAILED)
 
-    header 'Host', 'localhost'
+    header "Host", "localhost"
   end
 
-  context 'when action is requeue_by_ids' do
+  context "when action is requeue_by_ids" do
     let(:ids) { [message_2.id, message_3.id] }
 
     before do
-      post '/messages/update', {
+      post "/messages/update", {
         selected_ids: ids,
-        action: 'requeue_by_ids',
+        action: "requeue_by_ids",
         status: :failed,
         page: 1,
         per_page: 10,
         sort: :queued_at,
         order: :desc,
-        time_zone: 'Australia/Sydney'
+        time_zone: "Australia/Sydney"
       }
 
       follow_redirect!
     end
 
-    it 'queues selected messages' do
+    it "queues selected messages" do
       expect(Outboxer::Models::Message.queued.pluck(:id)).to eq([
         message_1.id, message_2.id, message_3.id ])
     end
 
-    it 'redirects with flash message' do
+    it "redirects with flash message" do
       expect(last_response).to be_ok
       expect(last_request.url).to include(
-        'messages?status=failed&sort=queued_at&order=desc&per_page=10&time_zone=Australia%2FSydney')
-      expect(last_request.env['x-rack.flash'][:primary]).to include('Requeued 2 messages')
+        "messages?status=failed&sort=queued_at&order=desc&per_page=10&time_zone=Australia%2FSydney")
+      expect(last_request.env["x-rack.flash"][:primary]).to include("Requeued 2 messages")
     end
   end
 
-  context 'when action is delete_by_ids' do
+  context "when action is delete_by_ids" do
     let(:ids) { [message_2.id, message_3.id] }
 
     before do
-      post '/messages/update', {
+      post "/messages/update", {
         selected_ids: ids,
-        action: 'delete_by_ids',
+        action: "delete_by_ids",
         status: :failed,
         page: 1,
         per_page: 10,
         sort: :queued_at,
         order: :desc,
-        time_zone: 'Australia/Sydney'
+        time_zone: "Australia/Sydney"
       }
 
       follow_redirect!
     end
 
-    it 'deletes selected messages' do
+    it "deletes selected messages" do
       expect(Outboxer::Models::Message.all.pluck(:id)).to eq([message_1.id])
     end
 
-    it 'redirects with flash message' do
+    it "redirects with flash message" do
       expect(last_response).to be_ok
       expect(last_request.url).to include(
-        'messages?status=failed&sort=queued_at&order=desc&per_page=10&time_zone=Australia%2FSydney')
-      expect(last_request.env['x-rack.flash'][:primary]).to include('Deleted 2 messages')
+        "messages?status=failed&sort=queued_at&order=desc&per_page=10&time_zone=Australia%2FSydney")
+      expect(last_request.env["x-rack.flash"][:primary]).to include("Deleted 2 messages")
     end
   end
 
-  context 'with invalid action' do
+  context "with invalid action" do
     let(:ids) { [message_2.id, message_3.id] }
 
     before do
-      post '/messages/update', {
+      post "/messages/update", {
         selected_ids: ids,
-        action: 'invalid',
+        action: "invalid",
         status: :failed,
         page: 1,
         per_page: 10,
         sort: :queued_at,
         order: :desc,
-        time_zone: 'Australia/Sydney'
+        time_zone: "Australia/Sydney"
       }
     end
 
-    it 'responds with 500 internal server error' do
+    it "responds with 500 internal server error" do
       expect(last_response.status).to eq(500)
     end
   end

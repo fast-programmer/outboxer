@@ -1,9 +1,9 @@
-require 'bundler/setup'
+require "bundler/setup"
 
 logger = Logger.new($stdout)
 
 begin
-  require 'sinatra'
+  require "sinatra"
 rescue LoadError
   error_message = <<~ERROR
     [Outboxer::Web] Sinatra is required to run the web interface. Add this to your Gemfile:
@@ -15,7 +15,7 @@ rescue LoadError
 end
 
 begin
-  require 'rack/flash'
+  require "rack/flash"
 rescue LoadError
   error_message = <<~ERROR
     [Outboxer::Web] Rack::Flash is required for flash messaging. Add this to your Gemfile:
@@ -26,12 +26,12 @@ rescue LoadError
   raise LoadError, error_message.strip
 end
 
-require 'outboxer'
-require 'sinatra/base'
-require 'uri'
-require 'rack/flash'
+require "outboxer"
+require "sinatra/base"
+require "uri"
+require "rack/flash"
 
-environment = ENV['RAILS_ENV'] || 'development'
+environment = ENV["RAILS_ENV"] || "development"
 
 config = Outboxer::Database.config(environment: environment, pool: 5)
 Outboxer::Database.connect(config: config)
@@ -43,8 +43,8 @@ module Outboxer
     use Rack::Flash
 
     set :logger, Logger.new($stdout)
-    set :views, File.expand_path('../web/views', __FILE__)
-    set :public_folder, File.expand_path('../web/public', __FILE__)
+    set :views, File.expand_path("../web/views", __FILE__)
+    set :public_folder, File.expand_path("../web/public", __FILE__)
     set :show_exceptions, false
 
     configure do
@@ -56,10 +56,10 @@ module Outboxer
         "#{request.script_name}#{path}"
       end
 
-      def pretty_number(number:, delimiter: ',', separator: '.')
+      def pretty_number(number:, delimiter: ",", separator: ".")
         return "-" if number.nil?
 
-        integer, decimal = number.to_s.split('.')
+        integer, decimal = number.to_s.split(".")
         formatted_integer = integer.chars.reverse.each_slice(3).map(&:join).join(delimiter).reverse
         [formatted_integer, decimal].compact.join(separator)
       end
@@ -147,7 +147,7 @@ module Outboxer
       end
 
       def human_readable_size(kilobytes:)
-        units = ['KB', 'MB', 'GB', 'TB']
+        units = ["KB", "MB", "GB", "TB"]
         size = kilobytes.to_f
         unit = units.shift
 
@@ -181,7 +181,7 @@ module Outboxer
     end
 
     error StandardError do
-      error = env['sinatra.error']
+      error = env["sinatra.error"]
       status 500
 
       puts "Error: #{error.class.name} - #{error.message}"
@@ -189,7 +189,7 @@ module Outboxer
       erb :error, locals: { error: error }, layout: false
     end
 
-    get '/' do
+    get "/" do
       denormalised_query_params = denormalise_query_params(
         status: params[:status],
         sort: params[:sort],
@@ -227,7 +227,7 @@ module Outboxer
       }
     end
 
-    post '/update_time_zone' do
+    post "/update_time_zone" do
       denormalised_query_params = denormalise_query_params(
         status: params[:status],
         sort: params[:sort],
@@ -247,7 +247,7 @@ module Outboxer
       redirect to(normalised_query_string)
     end
 
-    get '/messages' do
+    get "/messages" do
       denormalised_query_params = denormalise_query_params(
         status: params[:status],
         sort: params[:sort],
@@ -299,12 +299,12 @@ module Outboxer
     end
 
     HEADERS = {
-      id: 'Id',
-      status: 'Status',
-      messageable: 'Messageable',
-      queued_at: 'Queued',
-      updated_at: 'Updated',
-      publisher_name: 'Publisher',
+      id: "Id",
+      status: "Status",
+      messageable: "Messageable",
+      queued_at: "Queued",
+      updated_at: "Updated",
+      publisher_name: "Publisher",
     }
 
     def generate_pagination(current_page:, total_pages:, denormalised_query_params:)
@@ -314,7 +314,7 @@ module Outboxer
 
       if current_page > 1
         previous_page = {
-          text: 'Previous',
+          text: "Previous",
           href: outboxer_path("/messages" + normalise_query_string(
             status: denormalised_query_params[:status],
             sort: denormalised_query_params[:sort],
@@ -341,7 +341,7 @@ module Outboxer
 
       if current_page < total_pages
         next_page = {
-          text: 'Next',
+          text: "Next",
           href: outboxer_path("/messages" + normalise_query_string(
             status: denormalised_query_params[:status],
             sort: denormalised_query_params[:sort],
@@ -361,8 +361,8 @@ module Outboxer
           if denormalised_query_params[:order] == :asc
             {
               text: header_text,
-              icon_class: 'bi bi-arrow-up',
-              href: outboxer_path('/messages' + normalise_query_string(
+              icon_class: "bi bi-arrow-up",
+              href: outboxer_path("/messages" + normalise_query_string(
                 status: denormalised_query_params[:status],
                 order: :desc,
                 sort: header_key,
@@ -374,8 +374,8 @@ module Outboxer
           else
             {
               text: header_text,
-              icon_class: 'bi bi-arrow-down',
-              href: outboxer_path('/messages' + normalise_query_string(
+              icon_class: "bi bi-arrow-down",
+              href: outboxer_path("/messages" + normalise_query_string(
                 status: denormalised_query_params[:status],
                 order: :asc,
                 sort: header_key,
@@ -388,8 +388,8 @@ module Outboxer
         else
           {
             text: header_text,
-            icon_class: '',
-            href: outboxer_path('/messages' + normalise_query_string(
+            icon_class: "",
+            href: outboxer_path("/messages" + normalise_query_string(
               status: denormalised_query_params[:status],
               order: :asc,
               sort: header_key,
@@ -448,10 +448,10 @@ module Outboxer
         per_page: per_page,
         time_zone: time_zone)
 
-      normalised_query_params.empty? ? '' : "?#{URI.encode_www_form(normalised_query_params)}"
+      normalised_query_params.empty? ? "" : "?#{URI.encode_www_form(normalised_query_params)}"
     end
 
-    post '/messages/update' do
+    post "/messages/update" do
       denormalised_query_params = denormalise_query_params(
         status: params[:status],
         sort: params[:sort],
@@ -471,10 +471,10 @@ module Outboxer
       ids = params[:selected_ids].map(&:to_i)
 
       result = case params[:action]
-      when 'requeue_by_ids'
+      when "requeue_by_ids"
         result = Messages.requeue_by_ids(ids: ids)
 
-        message_text = result[:requeued_count] == 1 ? 'message' : 'messages'
+        message_text = result[:requeued_count] == 1 ? "message" : "messages"
 
         if result[:requeued_count] > 0
           flash[:primary] = "Requeued #{result[:requeued_count]} #{message_text}"
@@ -486,10 +486,10 @@ module Outboxer
         end
 
         result
-      when 'delete_by_ids'
+      when "delete_by_ids"
         result = Messages.delete_by_ids(ids: ids)
 
-        message_text = result[:deleted_count] == 1 ? 'message' : 'messages'
+        message_text = result[:deleted_count] == 1 ? "message" : "messages"
 
         if result[:deleted_count] > 0
           flash[:primary] = "Deleted #{result[:deleted_count]} #{message_text}"
@@ -508,7 +508,7 @@ module Outboxer
       redirect to("/messages#{normalised_query_string}")
     end
 
-    post '/messages/requeue_all' do
+    post "/messages/requeue_all" do
       denormalised_query_params = denormalise_query_params(
         status: params[:status],
         sort: params[:sort],
@@ -528,13 +528,13 @@ module Outboxer
       result = Messages.requeue_all(
         status: denormalised_query_params[:status])
 
-      message_text = result[:requeued_count] == 1 ? 'message' : 'messages'
+      message_text = result[:requeued_count] == 1 ? "message" : "messages"
       flash[:primary] = "#{result[:requeued_count]} #{message_text} have been queued"
 
       redirect to("/messages#{normalised_query_string}")
     end
 
-    post '/messages/delete_all' do
+    post "/messages/delete_all" do
       denormalised_query_params = denormalise_query_params(
         status: params[:status],
         sort: params[:sort],
@@ -554,13 +554,13 @@ module Outboxer
       result = Messages.delete_all(
         status: denormalised_query_params[:status], older_than: Time.now.utc)
 
-      message_text = result[:deleted_count] == 1 ? 'message' : 'messages'
+      message_text = result[:deleted_count] == 1 ? "message" : "messages"
       flash[:primary] = "#{result[:deleted_count]} #{message_text} have been deleted"
 
       redirect to("/messages#{normalised_query_string}")
     end
 
-    post '/messages/update_per_page' do
+    post "/messages/update_per_page" do
       denormalised_query_params = denormalise_query_params(
         status: params[:status],
         sort: params[:sort],
@@ -580,7 +580,7 @@ module Outboxer
       redirect to("/messages#{normalised_query_string}")
     end
 
-    get '/message/:id' do
+    get "/message/:id" do
       denormalised_query_params = denormalise_query_params(
         status: params[:status],
         sort: params[:sort],
@@ -622,7 +622,7 @@ module Outboxer
       }
     end
 
-    get '/message/:id/messageable' do
+    get "/message/:id/messageable" do
       denormalised_query_params = denormalise_query_params(
         status: params[:status],
         sort: params[:sort],
@@ -645,7 +645,7 @@ module Outboxer
       }
     end
 
-    post '/message/:id/requeue' do
+    post "/message/:id/requeue" do
       denormalised_query_params = denormalise_query_params(
         status: params[:status],
         sort: params[:sort],
@@ -669,7 +669,7 @@ module Outboxer
       redirect to("/messages#{normalised_query_string}")
     end
 
-    post '/message/:id/delete' do
+    post "/message/:id/delete" do
       denormalised_query_params = denormalise_query_params(
         status: params[:status],
         sort: params[:sort],
@@ -693,7 +693,7 @@ module Outboxer
       redirect to("/messages#{normalised_query_string}")
     end
 
-    get '/publisher/:id' do
+    get "/publisher/:id" do
       denormalised_query_params = denormalise_query_params(
         status: params[:status],
         sort: params[:sort],
@@ -731,7 +731,7 @@ module Outboxer
       }
     end
 
-    post '/publisher/:id/delete' do
+    post "/publisher/:id/delete" do
       denormalised_query_params = denormalise_query_params(
         status: params[:status],
         sort: params[:sort],
@@ -755,7 +755,7 @@ module Outboxer
       redirect to("#{normalised_query_string}")
     end
 
-    post '/publisher/:id/signals' do
+    post "/publisher/:id/signals" do
       denormalised_query_params = denormalise_query_params(
         status: params[:status],
         sort: params[:sort],

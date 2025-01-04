@@ -1,18 +1,18 @@
-require 'spec_helper'
+require "spec_helper"
 
 module Outboxer
   RSpec.describe Messages do
-    describe '.list' do
-      let(:publisher_1) { create(:outboxer_publisher, id: 41000, name: 'server-01:41000') }
-      let(:publisher_2) { create(:outboxer_publisher, id: 42000, name: 'server-01:42000') }
-      let(:publisher_3) { create(:outboxer_publisher, id: 43000, name: 'server-01:43000') }
-      let(:publisher_4) { create(:outboxer_publisher, id: 44000, name: 'server-01:44000') }
-      let(:publisher_5) { create(:outboxer_publisher, id: 45000, name: 'server-01:45000') }
+    describe ".list" do
+      let(:publisher_1) { create(:outboxer_publisher, id: 41000, name: "server-01:41000") }
+      let(:publisher_2) { create(:outboxer_publisher, id: 42000, name: "server-01:42000") }
+      let(:publisher_3) { create(:outboxer_publisher, id: 43000, name: "server-01:43000") }
+      let(:publisher_4) { create(:outboxer_publisher, id: 44000, name: "server-01:44000") }
+      let(:publisher_5) { create(:outboxer_publisher, id: 45000, name: "server-01:45000") }
 
       let!(:message_1) do
         create(:outboxer_message, :queued,
-          messageable_type: 'Event',
-          messageable_id: '1',
+          messageable_type: "Event",
+          messageable_id: "1",
           updated_at: 5.minutes.ago,
           publisher_id: publisher_1.id,
           publisher_name: publisher_1.name)
@@ -20,8 +20,8 @@ module Outboxer
 
       let!(:message_2) do
         create(:outboxer_message, :failed,
-          messageable_type: 'Event',
-          messageable_id: '2',
+          messageable_type: "Event",
+          messageable_id: "2",
           updated_at: 4.minutes.ago,
           publisher_id: publisher_2.id,
           publisher_name: publisher_2.name)
@@ -29,8 +29,8 @@ module Outboxer
 
       let!(:message_3) do
         create(:outboxer_message, :buffered,
-          messageable_type: 'Event',
-          messageable_id: '3',
+          messageable_type: "Event",
+          messageable_id: "3",
           updated_at: 3.minutes.ago,
           publisher_id: publisher_3.id,
           publisher_name: publisher_3.name)
@@ -38,8 +38,8 @@ module Outboxer
 
       let!(:message_4) do
         create(:outboxer_message, :queued,
-          messageable_type: 'Event',
-          messageable_id: '4',
+          messageable_type: "Event",
+          messageable_id: "4",
           updated_at: 2.minutes.ago,
           publisher_id: publisher_4.id,
           publisher_name: publisher_4.name)
@@ -47,15 +47,15 @@ module Outboxer
 
       let!(:message_5) do
         create(:outboxer_message, :publishing,
-          messageable_type: 'Event',
-          messageable_id: '5',
+          messageable_type: "Event",
+          messageable_id: "5",
           updated_at: 1.minutes.ago,
           publisher_id: publisher_5.id,
           publisher_name: publisher_5.name)
       end
 
-      context 'when no arguments specified' do
-        it 'returns all messages' do
+      context "when no arguments specified" do
+        it "returns all messages" do
           expect(Messages.list).to eq({
             current_page: 1, limit_value: 100, total_count: 5, total_pages: 1,
             messages: [

@@ -3,16 +3,16 @@ module Outboxer
     class Publisher < ::ActiveRecord::Base
       self.table_name = :outboxer_publishers
 
-      has_many :signals, class_name: 'Outboxer::Models::Signal',
-        foreign_key: 'publisher_id', dependent: :destroy
+      has_many :signals, class_name: "Outboxer::Models::Signal",
+        foreign_key: "publisher_id", dependent: :destroy
 
       validates :name, presence: true, length: { maximum: 263 }
       # 255 (hostname) + 1 (colon) + 7 (pid)
 
       module Status
-        PUBLISHING = 'publishing'
-        STOPPED = 'stopped'
-        TERMINATING = 'terminating'
+        PUBLISHING = "publishing"
+        STOPPED = "stopped"
+        TERMINATING = "terminating"
       end
 
       STATUSES = [
@@ -28,7 +28,7 @@ module Outboxer
       attribute :status, default: -> { Status::PUBLISHING }
       validates :status, inclusion: { in: STATUSES }, length: { maximum: 255 }
 
-      has_many :messages, class_name: 'Outboxer::Models::Message'
+      has_many :messages, class_name: "Outboxer::Models::Message"
     end
   end
 end
