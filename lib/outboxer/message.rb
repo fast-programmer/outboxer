@@ -28,7 +28,7 @@ module Outboxer
         queued_at: message.queued_at,
         buffered_at: message.buffered_at,
         publishing_at: nil,
-        updated_at: message.updated_at,
+        updated_at: message.updated_at
       }
     end
 

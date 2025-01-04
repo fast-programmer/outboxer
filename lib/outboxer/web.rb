@@ -304,7 +304,7 @@ module Outboxer
       messageable: "Messageable",
       queued_at: "Queued",
       updated_at: "Updated",
-      publisher_name: "Publisher",
+      publisher_name: "Publisher"
     }
 
     def generate_pagination(current_page:, total_pages:, denormalised_query_params:)
@@ -414,7 +414,7 @@ module Outboxer
         order: order&.to_sym || Messages::LIST_ORDER_DEFAULT,
         page: page&.to_i || Messages::LIST_PAGE_DEFAULT,
         per_page: per_page&.to_i || Messages::LIST_PER_PAGE_DEFAULT,
-        time_zone: time_zone&.to_s || Messages::LIST_TIME_ZONE_DEFAULT,
+        time_zone: time_zone&.to_s || Messages::LIST_TIME_ZONE_DEFAULT
       }
     end
 

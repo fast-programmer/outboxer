@@ -20,7 +20,7 @@ module Outboxer
                 {
                   id: signal.id,
                   name: signal.name,
-                  created_at: signal.created_at.utc,
+                  created_at: signal.created_at.utc
                 }
               end
             }

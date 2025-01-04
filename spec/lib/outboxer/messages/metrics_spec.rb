@@ -67,27 +67,27 @@ module Outboxer
             queued: {
               count: { current: 2 },
               latency: (current_utc_time - oldest_queued_message.updated_at.utc).to_i,
-              throughput: 0,
+              throughput: 0
             },
             buffered: {
               count: { current: 2 },
               latency: (current_utc_time - oldest_buffered_message.updated_at.utc).to_i,
-              throughput: 0,
+              throughput: 0
             },
             publishing: {
               count: { current: 2 },
               latency: (current_utc_time - oldest_publishing_message.updated_at.utc).to_i,
-              throughput: 0,
+              throughput: 0
             },
             published: {
               count: { historic: 500, current: 2, total: 502 },
               latency: (current_utc_time - oldest_published_message.updated_at.utc).to_i,
-              throughput: 0,
+              throughput: 0
             },
             failed: {
               count: { historic: 500, current: 2, total: 502 },
               latency: (current_utc_time - oldest_failed_message.updated_at.utc).to_i,
-              throughput: 0,
+              throughput: 0
             }
           )
         end
