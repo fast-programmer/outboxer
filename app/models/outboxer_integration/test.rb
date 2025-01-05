@@ -12,7 +12,9 @@ module OutboxerIntegration
           eventable: test,
           body: {
             "test" => {
-              "id" => test.id } })
+              "id" => test.id
+            }
+          })
 
         { id: test.id, events: [{ id: event.id, type: event.type }] }
       end
@@ -30,7 +32,9 @@ module OutboxerIntegration
           eventable: test,
           body: {
             "test" => {
-              "id" => test.id } })
+              "id" => test.id
+            }
+          })
 
         { id: test.id, events: [{ id: event.id, type: event.type }] }
       end

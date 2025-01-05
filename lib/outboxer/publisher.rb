@@ -51,13 +51,15 @@ module Outboxer
               "concurrency" => concurrency,
               "tick" => tick,
               "poll" => poll,
-              "heartbeat" => heartbeat },
+              "heartbeat" => heartbeat
+            },
             metrics: {
               "throughput" => 0,
               "latency" => 0,
               "cpu" => 0,
               "rss " => 0,
-              "rtt" => 0 },
+              "rtt" => 0
+            },
             created_at: current_utc_time,
             updated_at: current_utc_time)
 
@@ -289,7 +291,8 @@ module Outboxer
                       (Time.now.utc - last_updated_message.updated_at).to_i,
                     cpu: cpu,
                     rss: rss,
-                    rtt: rtt } )
+                    rtt: rtt
+                  })
               end
             end
 

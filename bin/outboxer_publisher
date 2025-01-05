@@ -11,5 +11,6 @@ Outboxer::Publisher.publish do |message|
   OutboxerIntegration::PublishMessageJob.perform_async({
     "message_id" => message[:id],
     "messageable_id" => message[:messageable_id],
-    "messageable_type" => message[:messageable_type] })
+    "messageable_type" => message[:messageable_type]
+  })
 end

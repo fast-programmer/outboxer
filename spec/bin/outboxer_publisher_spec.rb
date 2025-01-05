@@ -20,7 +20,8 @@ RSpec.describe "bin/outboxer_publisher" do
 
     env = {
       "RAILS_ENV" => "test",
-      "REDIS_URL" => "redis://localhost:6379/0" }
+      "REDIS_URL" => "redis://localhost:6379/0"
+    }
 
     outboxer_publisher_cmd = File.join(Dir.pwd, "bin", "outboxer_publisher")
     outboxer_publisher_pid = spawn(env, outboxer_publisher_cmd)
