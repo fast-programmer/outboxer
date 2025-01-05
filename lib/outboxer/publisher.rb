@@ -334,7 +334,7 @@ module Outboxer
     def handle_signal(id:, name:, logger:)
       case name
       when "TTIN"
-        Thread.list.each_with_index do |thread, index|
+        Thread.list.each do |thread|
           logger.info(
             "Outboxer dumping thread #{thread.name || thread.object_id}\n" \
             "#{thread.backtrace.present? ?

@@ -5,7 +5,7 @@ module Outboxer
     def initialize(*args, **kwargs)
       super(*args, **kwargs)
 
-      self.formatter = proc do |severity, datetime, progname, msg|
+      self.formatter = proc do |severity, datetime, _progname, msg|
         current_thread = ::Thread.current
 
         pid = current_thread["outboxer_pid"] ||= ::Process.pid

@@ -104,7 +104,7 @@ module Outboxer
               tick: tick,
               logger: logger,
               database: database,
-              kernel: kernel) do |message|
+              kernel: kernel) do |_message|
               ::Process.kill("TERM", ::Process.pid)
 
               raise standard_error
@@ -147,7 +147,7 @@ module Outboxer
               tick: tick,
               logger: logger,
               database: database,
-              kernel: kernel) do |buffered_message|
+              kernel: kernel) do |_buffered_message|
               raise no_memory_error
             end
           end
