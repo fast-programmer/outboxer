@@ -20,8 +20,7 @@ module Outboxer
             Message.publishing(id: queued_message.id)
           end.to raise_error(
             ArgumentError,
-            "cannot transition outboxer message #{queued_message.id} " +
-              "from queued to publishing")
+            "cannot transition outboxer message #{queued_message.id} from queued to publishing")
         end
 
         it "does not delete queued message" do

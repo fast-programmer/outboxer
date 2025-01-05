@@ -316,26 +316,27 @@ module Outboxer
       if current_page > 1
         previous_page = {
           text: "Previous",
-          href: outboxer_path("/messages" + normalise_query_string(
-            status: denormalised_query_params[:status],
-            sort: denormalised_query_params[:sort],
-            order: denormalised_query_params[:order],
-            page: current_page - 1,
-            per_page: denormalised_query_params[:per_page],
-            time_zone: denormalised_query_params[:time_zone]))
-        }
+          href: outboxer_path(
+            "/messages#{normalise_query_string(
+              status: denormalised_query_params[:status],
+              sort: denormalised_query_params[:sort],
+              order: denormalised_query_params[:order],
+              page: current_page - 1,
+              per_page: denormalised_query_params[:per_page],
+              time_zone: denormalised_query_params[:time_zone])}"
+)        }
       end
 
       pages = (([current_page - 4, 1].max)..([current_page + 4, total_pages].min)).map do |page|
         {
           text: page,
-          href: outboxer_path("/messages" + normalise_query_string(
+          href: outboxer_path("/messages#{normalise_query_string(
             status: denormalised_query_params[:status],
             sort: denormalised_query_params[:sort],
             order: denormalised_query_params[:order],
             page: page,
             per_page: denormalised_query_params[:per_page],
-            time_zone: denormalised_query_params[:time_zone])),
+            time_zone: denormalised_query_params[:time_zone])}"),
           is_active: current_page == page
         }
       end
@@ -343,13 +344,13 @@ module Outboxer
       if current_page < total_pages
         next_page = {
           text: "Next",
-          href: outboxer_path("/messages" + normalise_query_string(
+          href: outboxer_path("/messages#{normalise_query_string(
             status: denormalised_query_params[:status],
             sort: denormalised_query_params[:sort],
             order: denormalised_query_params[:order],
             page: current_page + 1,
             per_page: denormalised_query_params[:per_page],
-            time_zone: denormalised_query_params[:time_zone]))
+            time_zone: denormalised_query_params[:time_zone])}")
         }
       end
 
@@ -363,38 +364,38 @@ module Outboxer
             {
               text: header_text,
               icon_class: "bi bi-arrow-up",
-              href: outboxer_path("/messages" + normalise_query_string(
+              href: outboxer_path("/messages#{normalise_query_string(
                 status: denormalised_query_params[:status],
                 order: :desc,
                 sort: header_key,
                 page: 1,
                 per_page: denormalised_query_params[:per_page],
-                time_zone: denormalised_query_params[:time_zone]))
+                time_zone: denormalised_query_params[:time_zone])}")
             }
           else
             {
               text: header_text,
               icon_class: "bi bi-arrow-down",
-              href: outboxer_path("/messages" + normalise_query_string(
+              href: outboxer_path("/messages#{normalise_query_string(
                 status: denormalised_query_params[:status],
                 order: :asc,
                 sort: header_key,
                 page: 1,
                 per_page: denormalised_query_params[:per_page],
-                time_zone: denormalised_query_params[:time_zone]))
+                time_zone: denormalised_query_params[:time_zone])}")
             }
           end
         else
           {
             text: header_text,
             icon_class: "",
-            href: outboxer_path("/messages" + normalise_query_string(
+            href: outboxer_path("/messages#{normalise_query_string(
               status: denormalised_query_params[:status],
               order: :asc,
               sort: header_key,
               page: 1,
               per_page: denormalised_query_params[:per_page],
-              time_zone: denormalised_query_params[:time_zone]))
+              time_zone: denormalised_query_params[:time_zone])}")
           }
         end
       end

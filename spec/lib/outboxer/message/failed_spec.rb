@@ -57,8 +57,7 @@ module Outboxer
             Message.failed(id: queued_message.id, exception: exception)
           end.to raise_error(
             ArgumentError,
-            "cannot transition outboxer message #{queued_message.id} " +
-              "from queued to failed")
+            "cannot transition outboxer message #{queued_message.id} from queued to failed")
         end
 
         it "does not delete queued message" do
