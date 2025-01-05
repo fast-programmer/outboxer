@@ -44,7 +44,8 @@ module Outboxer
 
         it "deletes failed messages" do
           expect(Models::Message.pluck(:id)).to match_array([
-            message_1.id, message_2.id, message_5.id, message_6.id, message_7.id])
+            message_1.id, message_2.id, message_5.id, message_6.id, message_7.id
+          ])
         end
 
         it "adds published messages count to settings value" do
@@ -61,7 +62,8 @@ module Outboxer
 
         it "deletes queued messages" do
           expect(Models::Message.all.pluck(:id)).to match_array([
-            message_1.id, message_3.id, message_4.id, message_5.id, message_6.id, message_7.id])
+            message_1.id, message_3.id, message_4.id, message_5.id, message_6.id, message_7.id
+          ])
         end
       end
 
@@ -72,7 +74,8 @@ module Outboxer
 
         it "deletes publishing messages" do
           expect(Models::Message.pluck(:id)).to match_array([
-            message_1.id, message_2.id, message_3.id, message_4.id, message_6.id, message_7.id])
+            message_1.id, message_2.id, message_3.id, message_4.id, message_6.id, message_7.id
+          ])
         end
       end
 
@@ -84,7 +87,8 @@ module Outboxer
 
           it "deletes published messages" do
             expect(Models::Message.pluck(:id)).to match_array([
-              message_1.id, message_2.id, message_3.id, message_4.id, message_5.id])
+              message_1.id, message_2.id, message_3.id, message_4.id, message_5.id
+            ])
           end
 
           it "adds published messages count to settings value" do
@@ -103,12 +107,14 @@ module Outboxer
 
           it "deletes the published messages older than the provided date" do
             expect(Models::Message.pluck(:id)).to match_array([
-              message_1.id, message_2.id, message_3.id, message_4.id, message_5.id, message_7.id])
+              message_1.id, message_2.id, message_3.id, message_4.id, message_5.id, message_7.id
+            ])
           end
 
           it "deletes the correct exceptions and frames" do
             expect(Models::Exception.pluck(:id)).to match_array([
-              exception_1.id, exception_2.id, exception_3.id])
+              exception_1.id, exception_2.id, exception_3.id
+            ])
 
             expect(Models::Frame.pluck(:id)).to match_array([frame_1.id, frame_2.id, frame_3.id])
           end

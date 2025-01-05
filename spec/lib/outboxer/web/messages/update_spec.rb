@@ -54,7 +54,8 @@ RSpec.describe "POST /messages/update", type: :request do
 
     it "queues selected messages" do
       expect(Outboxer::Models::Message.queued.pluck(:id)).to eq([
-        message_1.id, message_2.id, message_3.id])
+        message_1.id, message_2.id, message_3.id
+      ])
     end
 
     it "redirects with flash message" do

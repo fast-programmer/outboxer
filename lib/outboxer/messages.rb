@@ -305,7 +305,8 @@ module Outboxer
 
       ActiveRecord::Base.connection_pool.with_connection do
         time_condition = ActiveRecord::Base.sanitize_sql_array([
-          "updated_at >= ?", current_utc_time - 1.second])
+          "updated_at >= ?", current_utc_time - 1.second
+        ])
 
         grouped_messages = Models::Message
         .group(:status)
