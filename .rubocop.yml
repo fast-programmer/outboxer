@@ -26,6 +26,9 @@ Style/FrozenStringLiteralComment:
 Metrics/MethodLength:
   Max: 60
 
+Metrics/ModuleLength:
+  Enabled: false
+
 Layout/MultilineMethodCallBraceLayout:
   EnforcedStyle: same_line
 
