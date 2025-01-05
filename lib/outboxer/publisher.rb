@@ -227,14 +227,14 @@ module Outboxer
           signal_read: signal_read,
           process: process, kernel: kernel)
       end
-    rescue StandardError => e
+    rescue StandardError => error
       logger.error(
-        "#{e.class}: #{e.message}\n"\
-        "#{e.backtrace.join("\n")}")
-    rescue Exception => e
+        "#{error.class}: #{error.message}\n"\
+        "#{error.backtrace.join("\n")}")
+    rescue Exception => error
       logger.fatal(
-        "#{e.class}: #{e.message}\n"\
-        "#{e.backtrace.join("\n")}")
+        "#{error.class}: #{error.message}\n"\
+        "#{error.backtrace.join("\n")}")
 
       terminate(id: id)
     end
@@ -299,16 +299,16 @@ module Outboxer
               tick: tick,
               process: process, kernel: kernel)
 
-          rescue NotFound => e
+          rescue NotFound => error
             logger.fatal(
-              "#{e.class}: #{e.message}\n"\
-              "#{e.backtrace.join("\n")}")
+              "#{error.class}: #{error.message}\n"\
+              "#{error.backtrace.join("\n")}")
 
             terminate(id: id)
-          rescue StandardError => e
+          rescue StandardError => error
             logger.error(
-              "#{e.class}: #{e.message}\n"\
-              "#{e.backtrace.join("\n")}")
+              "#{error.class}: #{error.message}\n"\
+              "#{error.backtrace.join("\n")}")
 
             Publisher.sleep(
               heartbeat,
@@ -316,10 +316,10 @@ module Outboxer
               start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
               tick: tick,
               process: process, kernel: kernel)
-          rescue Exception => e
+          rescue Exception => error
             logger.fatal(
-              "#{e.class}: #{e.message}\n"\
-              "#{e.backtrace.join("\n")}")
+              "#{error.class}: #{error.message}\n"\
+              "#{error.backtrace.join("\n")}")
 
             terminate(id: id)
           end
@@ -340,10 +340,10 @@ module Outboxer
 
         begin
           stop(id: id)
-        rescue NotFound => e
+        rescue NotFound => error
           logger.fatal(
-            "#{e.class}: #{e.message}\n"\
-            "#{e.backtrace.join("\n")}")
+            "#{error.class}: #{error.message}\n"\
+            "#{error.backtrace.join("\n")}")
 
           terminate(id: id)
         end
@@ -352,10 +352,10 @@ module Outboxer
 
         begin
           continue(id: id)
-        rescue NotFound => e
+        rescue NotFound => error
           logger.fatal(
-            "#{e.class}: #{e.message}\n"\
-            "#{e.backtrace.join("\n")}")
+            "#{error.class}: #{error.message}\n"\
+            "#{error.backtrace.join("\n")}")
 
           terminate(id: id)
         end
@@ -454,9 +454,9 @@ module Outboxer
 
       begin
         block.call(publishing_message)
-      rescue Exception => e
+      rescue Exception => error
         failed_message = Message.failed(
-          id: publishing_message[:id], exception: e, publisher_id: id, publisher_name: name)
+          id: publishing_message[:id], exception: error, publisher_id: id, publisher_name: name)
 
         logger.debug "Outboxer failed to publish message id=#{failed_message[:id]} "\
           "messageable=#{failed_message[:messageable_type]}::#{failed_message[:messageable_id]} "\
@@ -471,14 +471,14 @@ module Outboxer
       logger.debug "Outboxer published message id=#{published_message[:id]} "\
         "messageable=#{published_message[:messageable_type]}::#{published_message[:messageable_id]} "\
         "in #{(published_message[:updated_at] - published_message[:queued_at]).round(3)}s"
-    rescue StandardError => e
+    rescue StandardError => error
       logger.error(
-        "#{e.class}: #{e.message}\n"\
-        "#{e.backtrace.join("\n")}")
-    rescue Exception => e
+        "#{error.class}: #{error.message}\n"\
+        "#{error.backtrace.join("\n")}")
+    rescue Exception => error
       logger.fatal(
-        "#{e.class}: #{e.message}\n"\
-        "#{e.backtrace.join("\n")}")
+        "#{error.class}: #{error.message}\n"\
+        "#{error.backtrace.join("\n")}")
 
       terminate(id: id)
     end

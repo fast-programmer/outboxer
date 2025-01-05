@@ -7,8 +7,8 @@ module Outboxer
         def raise_exception
           begin
             raise StandardError.new("unhandled error")
-          rescue StandardError => e
-            e
+          rescue StandardError => error
+            error
           end
         end
 

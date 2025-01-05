@@ -33,7 +33,7 @@ Naming/VariableNumber:
   Enabled: false
 
 Naming/RescuedExceptionsVariableName:
-  PreferredName: exception
+  PreferredName: error
 
 Layout/MultilineMethodCallIndentation:
   EnforcedStyle: indented
