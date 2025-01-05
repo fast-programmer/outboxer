@@ -39,7 +39,7 @@ RSpec.describe "bin/outboxer_publisher" do
 
       sleep 1
 
-      Sidekiq.logger.warn "OutboxerIntegration::TestCompletedEvent not found. "\
+      Sidekiq.logger.warn "OutboxerIntegration::TestCompletedEvent not found. " \
         "Retrying (attempt #{attempt + 1}/#{max_attempts})..."
     end
 

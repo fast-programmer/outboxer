@@ -229,11 +229,11 @@ module Outboxer
       end
     rescue StandardError => error
       logger.error(
-        "#{error.class}: #{error.message}\n"\
+        "#{error.class}: #{error.message}\n" \
         "#{error.backtrace.join("\n")}")
     rescue Exception => error
       logger.fatal(
-        "#{error.class}: #{error.message}\n"\
+        "#{error.class}: #{error.message}\n" \
         "#{error.backtrace.join("\n")}")
 
       terminate(id: id)
@@ -301,13 +301,13 @@ module Outboxer
 
           rescue NotFound => error
             logger.fatal(
-              "#{error.class}: #{error.message}\n"\
+              "#{error.class}: #{error.message}\n" \
               "#{error.backtrace.join("\n")}")
 
             terminate(id: id)
           rescue StandardError => error
             logger.error(
-              "#{error.class}: #{error.message}\n"\
+              "#{error.class}: #{error.message}\n" \
               "#{error.backtrace.join("\n")}")
 
             Publisher.sleep(
@@ -318,7 +318,7 @@ module Outboxer
               process: process, kernel: kernel)
           rescue Exception => error
             logger.fatal(
-              "#{error.class}: #{error.message}\n"\
+              "#{error.class}: #{error.message}\n" \
               "#{error.backtrace.join("\n")}")
 
             terminate(id: id)
@@ -332,7 +332,7 @@ module Outboxer
       when "TTIN"
         Thread.list.each_with_index do |thread, index|
           logger.info(
-            "Outboxer dumping thread #{thread.name || thread.object_id}\n"\
+            "Outboxer dumping thread #{thread.name || thread.object_id}\n" \
             "#{thread.backtrace.present? ? thread.backtrace.join("\n") : '<no backtrace available>'}")
         end
       when "TSTP"
@@ -342,7 +342,7 @@ module Outboxer
           stop(id: id)
         rescue NotFound => error
           logger.fatal(
-            "#{error.class}: #{error.message}\n"\
+            "#{error.class}: #{error.message}\n" \
             "#{error.backtrace.join("\n")}")
 
           terminate(id: id)
@@ -354,7 +354,7 @@ module Outboxer
           continue(id: id)
         rescue NotFound => error
           logger.fatal(
-            "#{error.class}: #{error.message}\n"\
+            "#{error.class}: #{error.message}\n" \
             "#{error.backtrace.join("\n")}")
 
           terminate(id: id)
@@ -379,7 +379,7 @@ module Outboxer
     )
       Thread.current.name = "main"
 
-      logger.info "Outboxer v#{Outboxer::VERSION} running in ruby #{RUBY_VERSION} "\
+      logger.info "Outboxer v#{Outboxer::VERSION} running in ruby #{RUBY_VERSION} " \
         "(#{RUBY_RELEASE_DATE} revision #{RUBY_REVISION[0, 10]}) [#{RUBY_PLATFORM}]"
 
       db_config = database.config(
@@ -458,8 +458,8 @@ module Outboxer
         failed_message = Message.failed(
           id: publishing_message[:id], exception: error, publisher_id: id, publisher_name: name)
 
-        logger.debug "Outboxer failed to publish message id=#{failed_message[:id]} "\
-          "messageable=#{failed_message[:messageable_type]}::#{failed_message[:messageable_id]} "\
+        logger.debug "Outboxer failed to publish message id=#{failed_message[:id]} " \
+          "messageable=#{failed_message[:messageable_type]}::#{failed_message[:messageable_id]} " \
           "in #{(failed_message[:updated_at] - failed_message[:queued_at]).round(3)}s"
 
         raise
@@ -468,16 +468,16 @@ module Outboxer
       published_message = Message.published(
         id: publishing_message[:id], publisher_id: id, publisher_name: name)
 
-      logger.debug "Outboxer published message id=#{published_message[:id]} "\
-        "messageable=#{published_message[:messageable_type]}::#{published_message[:messageable_id]} "\
+      logger.debug "Outboxer published message id=#{published_message[:id]} " \
+        "messageable=#{published_message[:messageable_type]}::#{published_message[:messageable_id]} " \
         "in #{(published_message[:updated_at] - published_message[:queued_at]).round(3)}s"
     rescue StandardError => error
       logger.error(
-        "#{error.class}: #{error.message}\n"\
+        "#{error.class}: #{error.message}\n" \
         "#{error.backtrace.join("\n")}")
     rescue Exception => error
       logger.fatal(
-        "#{error.class}: #{error.message}\n"\
+        "#{error.class}: #{error.message}\n" \
         "#{error.backtrace.join("\n")}")
 
       terminate(id: id)
