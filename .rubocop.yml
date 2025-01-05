@@ -32,6 +32,9 @@ Metrics/ModuleLength:
 Layout/FirstHashElementIndentation:
   EnforcedStyle: consistent
 
+Layout/FirstArrayElementIndentation:
+  EnforcedStyle: consistent
+
 Layout/MultilineMethodCallBraceLayout:
   EnforcedStyle: same_line
 
