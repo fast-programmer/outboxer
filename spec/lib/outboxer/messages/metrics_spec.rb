@@ -88,8 +88,7 @@ module Outboxer
               count: { historic: 500, current: 2, total: 502 },
               latency: (current_utc_time - oldest_failed_message.updated_at.utc).to_i,
               throughput: 0
-            }
-          )
+            })
         end
       end
 
@@ -103,8 +102,7 @@ module Outboxer
             buffered: { count: { current: 0 }, latency: 0, throughput: 0 },
             publishing: { count: { current: 0 }, latency: 0, throughput: 0 },
             published: { count: { historic: 0, current: 0, total: 0 }, latency: 0, throughput: 0 },
-            failed: { count: { historic: 0, current: 0, total: 0 }, latency: 0, throughput: 0 }
-          )
+            failed: { count: { historic: 0, current: 0, total: 0 }, latency: 0, throughput: 0 })
         end
       end
 
@@ -118,8 +116,7 @@ module Outboxer
             buffered: { count: { current: 0 }, latency: 0, throughput: 0 },
             publishing: { count: { current: 0 }, latency: 0, throughput: 0 },
             published: { count: { historic: 0, current: 0, total: 0 }, latency: 0, throughput: 0 },
-            failed: { count: { historic: 0, current: 0, total: 0 }, latency: 0, throughput: 0 }
-          )
+            failed: { count: { historic: 0, current: 0, total: 0 }, latency: 0, throughput: 0 })
         end
       end
     end

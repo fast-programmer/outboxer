@@ -27,8 +27,7 @@ module Outboxer
               poll: poll,
               tick: tick,
               database: database,
-              logger: logger, kernel: kernel
-            ) do |_message|
+              logger: logger, kernel: kernel) do |_message|
               ::Process.kill("TTIN", ::Process.pid)
             end
           end
@@ -56,8 +55,7 @@ module Outboxer
               tick: tick,
               logger: logger,
               database: database,
-              kernel: kernel
-            ) do |_message|
+              kernel: kernel) do |_message|
               ::Process.kill("TSTP", ::Process.pid)
             end
           end
@@ -81,8 +79,7 @@ module Outboxer
             tick: tick,
             logger: logger,
             database: database,
-            kernel: kernel
-          ) do |message|
+            kernel: kernel) do |message|
             expect(message[:id]).to eq(queued_message.id)
             expect(message[:messageable_type]).to eq(queued_message.messageable_type)
             expect(message[:messageable_id]).to eq(queued_message.messageable_id)
@@ -107,8 +104,7 @@ module Outboxer
               tick: tick,
               logger: logger,
               database: database,
-              kernel: kernel
-            ) do |message|
+              kernel: kernel) do |message|
               ::Process.kill("TERM", ::Process.pid)
 
               raise standard_error
@@ -132,13 +128,11 @@ module Outboxer
 
           it "logs errors" do
             expect(logger).to have_received(:error).with(
-              a_string_matching(/^StandardError: some error/)
-            ).once
+              a_string_matching(/^StandardError: some error/)).once
 
             expect(logger).to have_received(:debug).with(
               a_string_matching("failed to publish message id=#{queued_message.id} " \
-                "messageable=#{queued_message[:messageable_type]}::#{queued_message[:messageable_id]}")
-            ).once
+                "messageable=#{queued_message[:messageable_type]}::#{queued_message[:messageable_id]}")).once
           end
         end
 
@@ -153,8 +147,7 @@ module Outboxer
               tick: tick,
               logger: logger,
               database: database,
-              kernel: kernel
-            ) do |buffered_message|
+              kernel: kernel) do |buffered_message|
               raise no_memory_error
             end
           end
@@ -176,12 +169,10 @@ module Outboxer
           it "logs errors" do
             expect(logger).to have_received(:debug).with(
               a_string_matching("failed to publish message id=#{queued_message.id} " \
-                "messageable=#{queued_message[:messageable_type]}::#{queued_message[:messageable_id]}")
-            ).once
+                "messageable=#{queued_message[:messageable_type]}::#{queued_message[:messageable_id]}")).once
 
             expect(logger).to have_received(:fatal).with(
-              a_string_matching("#{no_memory_error.class.to_s}: #{no_memory_error.message}")
-            ).once
+              a_string_matching("#{no_memory_error.class.to_s}: #{no_memory_error.message}")).once
           end
         end
 

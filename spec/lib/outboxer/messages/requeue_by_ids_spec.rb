@@ -21,8 +21,7 @@ module Outboxer
             Models::Message
               .where(status: Models::Message::Status::QUEUED)
               .order(id: :asc)
-              .pluck(:id)
-          ).to eq(ids)
+              .pluck(:id)).to eq(ids)
         end
 
         it "returns correct result" do

@@ -21,8 +21,7 @@ module Outboxer
               "rss" => "40.95 MB",
               "rtt" => "3.35 ms" },
             created_at: DateTime.parse("2024-11-10T02:00:00"),
-            updated_at: DateTime.parse("2024-11-10T02:00:10")
-          )
+            updated_at: DateTime.parse("2024-11-10T02:00:10"))
         end
         let!(:signals) do
           [

@@ -369,8 +369,7 @@ module Outboxer
                 sort: header_key,
                 page: 1,
                 per_page: denormalised_query_params[:per_page],
-                time_zone: denormalised_query_params[:time_zone]
-              ))
+                time_zone: denormalised_query_params[:time_zone]))
             }
           else
             {
@@ -382,8 +381,7 @@ module Outboxer
                 sort: header_key,
                 page: 1,
                 per_page: denormalised_query_params[:per_page],
-                time_zone: denormalised_query_params[:time_zone]
-              ))
+                time_zone: denormalised_query_params[:time_zone]))
             }
           end
         else
@@ -396,8 +394,7 @@ module Outboxer
               sort: header_key,
               page: 1,
               per_page: denormalised_query_params[:per_page],
-              time_zone: denormalised_query_params[:time_zone]
-            ))
+              time_zone: denormalised_query_params[:time_zone]))
           }
         end
       end
