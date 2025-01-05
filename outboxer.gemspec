@@ -33,12 +33,12 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency "activerecord", ">= 7.0.8.6"
 
-  spec.add_development_dependency "rack-test", "~> 2.1"
   spec.add_development_dependency "database_cleaner", "~> 2.0"
   spec.add_development_dependency "dotenv", "~> 3.0"
   spec.add_development_dependency "factory_bot", "~> 6.0"
   spec.add_development_dependency "foreman", "~> 0.0"
   spec.add_development_dependency "pry-byebug", "~> 3.0"
+  spec.add_development_dependency "rack-test", "~> 2.1"
   spec.add_development_dependency "rake", "~> 13.0"
   spec.add_development_dependency "rerun", "~> 0.0"
   spec.add_development_dependency "rspec", "~> 3.0"
