@@ -79,9 +79,9 @@ module Outboxer
 
         # Units for sub-second durations
         sub_second_units = [
-          { name: "ns", scale: 1e-9 },    # 1 nanosecond = 10^-9 seconds
-          { name: "μs", scale: 1e-6 },   # 1 microsecond = 10^-6 seconds
-          { name: "ms", scale: 1e-3 }    # 1 millisecond = 10^-3 seconds
+          { name: "ns", scale: 1e-9 }, # 1 nanosecond = 10^-9 seconds
+          { name: "μs", scale: 1e-6 }, # 1 microsecond = 10^-6 seconds
+          { name: "ms", scale: 1e-3 }  # 1 millisecond = 10^-3 seconds
         ].freeze
 
         # Units for 1 second and above

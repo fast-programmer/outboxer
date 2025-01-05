@@ -86,7 +86,7 @@ module Outboxer
         end
 
         it "returns correct result" do
-          expect(result).to eq({ deleted_count: 1, not_deleted_ids: [non_existent_id]  })
+          expect(result).to eq({ deleted_count: 1, not_deleted_ids: [non_existent_id] })
         end
       end
     end

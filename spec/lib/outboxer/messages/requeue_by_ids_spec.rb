@@ -41,7 +41,7 @@ module Outboxer
         end
 
         it "returns correct result" do
-          expect(result).to eq({ requeued_count: 0, not_requeued_ids: [non_existent_id]  })
+          expect(result).to eq({ requeued_count: 0, not_requeued_ids: [non_existent_id] })
         end
       end
     end
