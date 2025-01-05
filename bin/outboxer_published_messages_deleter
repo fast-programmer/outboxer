@@ -8,19 +8,27 @@ options = {}
 OptionParser.new do |opts|
   opts.banner = "Usage: bin/outboxer_published_messages_deleter [options]"
 
-  opts.on("-l", "--log-level LEVEL", "Set the log level (e.g., DEBUG, INFO, WARN, ERROR)") do |level|
+  opts.on(
+    "-l", "--log-level LEVEL",
+    "Set the log level (e.g., DEBUG, INFO, WARN, ERROR)") do |level|
     options[:log_level] = level
   end
 
-  opts.on("-i", "--interval SECONDS", Integer, "Set the interval between deletions (in seconds)") do |interval|
+  opts.on(
+    "-i", "--interval SECONDS", Integer,
+    "Set the interval between deletions (in seconds)") do |interval|
     options[:interval] = interval
   end
 
-  opts.on("-r", "--retention-period SECONDS", Integer, "Set the retention period (in seconds)") do |retention|
+  opts.on(
+    "-r", "--retention-period SECONDS", Integer,
+    "Set the retention period (in seconds)") do |retention|
     options[:retention_period] = retention
   end
 
-  opts.on("-b", "--batch-size SIZE", Integer, "Set the batch size for deletions") do |batch|
+  opts.on(
+    "-b", "--batch-size SIZE", Integer,
+    "Set the batch size for deletions") do |batch|
     options[:batch_size] = batch
   end
 end.parse!
@@ -37,16 +45,18 @@ logger = Outboxer::Logger.new($stdout, level: log_level)
 db_config = Outboxer::Database.config(environment: environment, pool: 1)
 Outboxer::Database.connect(config: db_config, logger: logger)
 
-$running = true
+reader, writer = IO.pipe
 
 ["INT", "TERM"].each do |signal|
-  Signal.trap(signal) { $running = false }
+  Signal.trap(signal) { writer.puts(signal) }
 end
 
 last_run_time = Time.now
 
 begin
-  while $running
+  while (message = reader.gets)
+    break if ["INT", "TERM"].include?(message.strip!)
+
     current_time = Time.now
 
     if (current_time - last_run_time) >= interval
