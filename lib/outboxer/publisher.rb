@@ -47,17 +47,17 @@ module Outboxer
             name: name,
             status: Status::PUBLISHING,
             settings: {
-              'buffer' => buffer,
-              'concurrency' => concurrency,
-              'tick' => tick,
-              'poll' => poll,
-              'heartbeat' => heartbeat },
+              "buffer" => buffer,
+              "concurrency" => concurrency,
+              "tick" => tick,
+              "poll" => poll,
+              "heartbeat" => heartbeat },
             metrics: {
-              'throughput' => 0,
-              'latency' => 0,
-              'cpu' => 0,
-              'rss ' => 0,
-              'rtt' => 0 },
+              "throughput" => 0,
+              "latency" => 0,
+              "cpu" => 0,
+              "rss " => 0,
+              "rtt" => 0 },
             created_at: current_utc_time,
             updated_at: current_utc_time)
 
@@ -273,7 +273,7 @@ module Outboxer
                 throughput = Models::Message
                   .where(status: Models::Message::Status::PUBLISHED)
                   .where(publisher_id: id)
-                  .where('updated_at >= ?', 1.second.ago)
+                  .where("updated_at >= ?", 1.second.ago)
                   .count
 
                 last_updated_message = Models::Message
@@ -329,13 +329,13 @@ module Outboxer
 
     def handle_signal(id:, name:, logger:, process:)
       case name
-      when 'TTIN'
+      when "TTIN"
         Thread.list.each_with_index do |thread, index|
           logger.info(
             "Outboxer dumping thread #{thread.name || thread.object_id}\n"\
             "#{thread.backtrace.present? ? thread.backtrace.join("\n") : '<no backtrace available>'}")
         end
-      when 'TSTP'
+      when "TSTP"
         logger.info("Outboxer pausing threads")
 
         begin
@@ -347,7 +347,7 @@ module Outboxer
 
           terminate(id: id)
         end
-      when 'CONT'
+      when "CONT"
         logger.info("Outboxer resuming threads")
 
         begin
@@ -359,7 +359,7 @@ module Outboxer
 
           terminate(id: id)
         end
-      when 'INT', 'TERM'
+      when "INT", "TERM"
         logger.info("Outboxer terminating threads")
 
         terminate(id: id)
@@ -368,8 +368,8 @@ module Outboxer
 
     def publish(
       name: "#{::Socket.gethostname}:#{::Process.pid}",
-      environment: ::ENV.fetch('RAILS_ENV', 'development'),
-      db_config_path: ::File.expand_path('config/database.yml', ::Dir.pwd),
+      environment: ::ENV.fetch("RAILS_ENV", "development"),
+      db_config_path: ::File.expand_path("config/database.yml", ::Dir.pwd),
       buffer: 100, concurrency: 1,
       tick: 0.1, poll: 5.0, heartbeat: 5.0,
       logger: Logger.new($stdout, level: Logger::INFO),
