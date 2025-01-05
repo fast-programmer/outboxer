@@ -64,7 +64,7 @@ Layout/LineContinuationLeadingSpace: # new in 1.31
 Layout/LineContinuationSpacing: # new in 1.31
   Enabled: true
 Layout/LineEndStringConcatenationIndentation: # new in 1.18
-  Enabled: true
+  Enabled: false
 Layout/SpaceBeforeBrackets: # new in 1.7
   Enabled: true
 Layout/MultilineHashBraceLayout:
