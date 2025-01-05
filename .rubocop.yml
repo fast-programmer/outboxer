@@ -52,6 +52,8 @@ Layout/LineEndStringConcatenationIndentation: # new in 1.18
   Enabled: true
 Layout/SpaceBeforeBrackets: # new in 1.7
   Enabled: true
+Layout/MultilineHashBraceLayout:
+  EnforcedStyle: same_line
 Lint/AmbiguousAssignment: # new in 1.7
   Enabled: true
 Lint/AmbiguousOperatorPrecedence: # new in 1.21
