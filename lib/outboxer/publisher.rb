@@ -78,7 +78,7 @@ module Outboxer
       end
     end
 
-    def delete(id:, time: ::Time)
+    def delete(id:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           begin
@@ -168,7 +168,7 @@ module Outboxer
     end
     # :nocov:
 
-    def trap_signals(id:)
+    def trap_signals
       signal_read, signal_write = IO.pipe
 
       %w[TTIN TSTP CONT INT TERM].each do |signal_name|
@@ -196,7 +196,7 @@ module Outboxer
 
             publish_message(
               id: id, name: name, buffered_message: message,
-              logger: logger, kernel: kernel, &block)
+              logger: logger, &block)
           end
         end
       end
@@ -241,9 +241,9 @@ module Outboxer
       terminate(id: id)
     end
 
-    def create_heartbeat_thread(id:, name:,
+    def create_heartbeat_thread(id:,
                                 heartbeat:, tick:, signal_read:,
-                                logger:, time:, socket:, process:, kernel:)
+                                logger:, time:, process:, kernel:)
       Thread.new do
         Thread.current.name = "heartbeat"
 
@@ -331,7 +331,7 @@ module Outboxer
       end
     end
 
-    def handle_signal(id:, name:, logger:, process:)
+    def handle_signal(id:, name:, logger:)
       case name
       when "TTIN"
         Thread.list.each_with_index do |thread, index|
@@ -406,15 +406,15 @@ module Outboxer
         logger: logger, kernel: kernel,
         &block)
 
-      signal_read, _signal_write = trap_signals(id: publisher[:id])
+      signal_read, _signal_write = trap_signals
 
       heartbeat_thread = create_heartbeat_thread(
-        id: id, name: name,
+        id: id,
         heartbeat: heartbeat,
         tick: tick,
         signal_read: signal_read,
         logger: logger,
-        time: time, socket: socket, process: process, kernel: kernel)
+        time: time, process: process, kernel: kernel)
 
       loop do
         case @status
@@ -437,7 +437,7 @@ module Outboxer
         if IO.select([signal_read], nil, nil, 0)
           signal_name = signal_read.gets.strip rescue nil
 
-          handle_signal(id: id, name: signal_name, logger: logger, process: process)
+          handle_signal(id: id, name: signal_name, logger: logger)
         end
       end
 
@@ -454,7 +454,7 @@ module Outboxer
       database.disconnect(logger: logger)
     end
 
-    def publish_message(id:, name:, buffered_message:, logger:, kernel:, &block)
+    def publish_message(id:, name:, buffered_message:, logger:, &block)
       publishing_message = Message.publishing(
         id: buffered_message[:id], publisher_id: id, publisher_name: name)
 
