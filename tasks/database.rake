@@ -63,9 +63,9 @@ namespace :outboxer do
       ActiveRecord::Base.connection.disconnect!
     end
 
-    task :setup => [:create, :migrate, :seed]
+    task setup: [:create, :migrate, :seed]
 
-    task :reset => [:drop, :setup]
+    task reset: [:drop, :setup]
   end
 end
 
