@@ -6,7 +6,7 @@ module Outboxer
       create(:outboxer_message, :queued,
         messageable_type: "Event", messageable_id: "1",
         updated_at: 10.seconds.ago,
-        publisher_id: 41000,
+        publisher_id: 41_000,
         publisher_name: "server-01:41000")
     end
 
@@ -14,7 +14,7 @@ module Outboxer
       create(:outboxer_message, :failed,
         messageable_type: "Event", messageable_id: "2",
         updated_at: 9.seconds.ago,
-        publisher_id: 42000,
+        publisher_id: 42_000,
         publisher_name: "server-02:42000")
     end
 
@@ -22,7 +22,7 @@ module Outboxer
       create(:outboxer_message, :buffered,
         messageable_type: "Event", messageable_id: "3",
         updated_at: 8.seconds.ago,
-        publisher_id: 43000,
+        publisher_id: 43_000,
         publisher_name: "server-03:43000")
     end
 
@@ -30,7 +30,7 @@ module Outboxer
       create(:outboxer_message, :queued,
         messageable_type: "Event", messageable_id: "4",
         updated_at: 7.seconds.ago,
-        publisher_id: 44000,
+        publisher_id: 44_000,
         publisher_name: "server-04:44000")
     end
 
@@ -38,7 +38,7 @@ module Outboxer
       create(:outboxer_message, :publishing,
         messageable_type: "Event", messageable_id: "5",
         updated_at: 6.seconds.ago,
-        publisher_id: 45000,
+        publisher_id: 45_000,
         publisher_name: "server-05:45000")
     end
 

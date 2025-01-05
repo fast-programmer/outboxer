@@ -171,10 +171,10 @@ module Outboxer
           case seconds
           when 0..59 then "#{seconds} seconds #{prefix}"
           when 60..3599 then "#{seconds / 60} minutes #{prefix}"
-          when 3600..86399 then "#{seconds / 3600} hours #{prefix}"
-          when 86400..2591999 then "#{seconds / 86400} days #{prefix}"
-          when 2592000..31103999 then "#{seconds / 2592000} months #{prefix}"
-          else "#{seconds / 31104000} years #{prefix}"
+          when 3600..86_399 then "#{seconds / 3600} hours #{prefix}"
+          when 86_400..2_591_999 then "#{seconds / 86_400} days #{prefix}"
+          when 2_592_000..31_103_999 then "#{seconds / 2_592_000} months #{prefix}"
+          else "#{seconds / 31_104_000} years #{prefix}"
           end
         end
       end

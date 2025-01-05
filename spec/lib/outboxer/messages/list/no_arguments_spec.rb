@@ -3,11 +3,11 @@ require "spec_helper"
 module Outboxer
   RSpec.describe Messages do
     describe ".list" do
-      let(:publisher_1) { create(:outboxer_publisher, id: 41000, name: "server-01:41000") }
-      let(:publisher_2) { create(:outboxer_publisher, id: 42000, name: "server-01:42000") }
-      let(:publisher_3) { create(:outboxer_publisher, id: 43000, name: "server-01:43000") }
-      let(:publisher_4) { create(:outboxer_publisher, id: 44000, name: "server-01:44000") }
-      let(:publisher_5) { create(:outboxer_publisher, id: 45000, name: "server-01:45000") }
+      let(:publisher_1) { create(:outboxer_publisher, id: 41_000, name: "server-01:41000") }
+      let(:publisher_2) { create(:outboxer_publisher, id: 42_000, name: "server-01:42000") }
+      let(:publisher_3) { create(:outboxer_publisher, id: 43_000, name: "server-01:43000") }
+      let(:publisher_4) { create(:outboxer_publisher, id: 44_000, name: "server-01:44000") }
+      let(:publisher_5) { create(:outboxer_publisher, id: 45_000, name: "server-01:45000") }
 
       let!(:message_1) do
         create(:outboxer_message, :queued,
