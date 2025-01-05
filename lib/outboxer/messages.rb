@@ -56,7 +56,7 @@ module Outboxer
     LIST_PER_PAGE_OPTIONS = [10, 100, 200, 500, 1000]
     LIST_PER_PAGE_DEFAULT = 100
 
-    LIST_TIME_ZONE_OPTIONS = (ActiveSupport::TimeZone.all.map { |tz| tz.tzinfo.name } + ["UTC"]).sort
+    LIST_TIME_ZONE_OPTIONS = (ActiveSupport::TimeZone.all.map(&:tzinfo).map(&:name) + ["UTC"]).sort
     LIST_TIME_ZONE_DEFAULT = "UTC"
 
     def list(status: LIST_STATUS_DEFAULT,
@@ -88,7 +88,11 @@ module Outboxer
       end
 
       base_scope = Models::Message.left_joins(:publisher)
-      base_scope = status.nil? ? base_scope.all : base_scope.where("outboxer_messages.status = ?", status)
+      base_scope = if status.nil?
+                     base_scope.all
+                   else
+                     base_scope.where("outboxer_messages.status = ?", status)
+                   end
 
       total_count = base_scope.count
 

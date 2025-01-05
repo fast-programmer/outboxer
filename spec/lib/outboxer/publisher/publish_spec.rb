@@ -1,3 +1,4 @@
+# rubocop:disable Layout/LineLength
 require "spec_helper"
 
 module Outboxer
@@ -38,7 +39,10 @@ module Outboxer
 
           publish_thread.join
 
-          expect(logger).to have_received(:info).with(a_string_including("backtrace")).at_least(:once)
+          expect(logger)
+            .to have_received(:info)
+            .with(a_string_including("backtrace"))
+            .at_least(:once)
         end
       end
 
@@ -234,3 +238,4 @@ module Outboxer
     end
   end
 end
+# rubocop:enable Layout/LineLength

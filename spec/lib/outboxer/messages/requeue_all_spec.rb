@@ -49,7 +49,8 @@ module Outboxer
         it "raises ArgumentError with message" do
           expect do
             Messages.requeue_all(status: nil, batch_size: 1)
-          end.to raise_error(ArgumentError, "Status nil must be one of buffered, publishing, failed")
+          end.to raise_error(
+            ArgumentError, "Status nil must be one of buffered, publishing, failed")
         end
       end
     end

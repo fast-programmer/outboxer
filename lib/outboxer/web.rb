@@ -70,7 +70,8 @@ module Outboxer
         "#{pretty_number(number: per_second)} /s"
       end
 
-      def pretty_duration_from_period(start_time:, end_time: ::Process.clock_gettime(::Process::CLOCK_MONOTONIC))
+      def pretty_duration_from_period(start_time:,
+                                      end_time: ::Process.clock_gettime(::Process::CLOCK_MONOTONIC))
         pretty_duration(seconds: end_time - start_time)
       end
 
@@ -106,7 +107,7 @@ module Outboxer
         # Handle durations of 1 second and above
         result = []
         larger_units.reverse.each do |unit|
-          next if seconds < unit[:scale] && result.empty? # Skip smaller units until the first significant one
+          next if seconds < unit[:scale] && result.empty?
 
           value, seconds = seconds.divmod(unit[:scale])
           result << "#{pretty_number(number: value.to_i)}#{unit[:name]}" if value > 0
@@ -133,7 +134,7 @@ module Outboxer
 
         # Handle larger units first
         larger_units.reverse.each do |unit|
-          next if seconds < unit[:scale] && result.empty? # Skip smaller units until the first significant one
+          next if seconds < unit[:scale] && result.empty?
 
           value, seconds = seconds.divmod(unit[:scale])
           result << "#{value.to_i}#{unit[:name]}" if value > 0

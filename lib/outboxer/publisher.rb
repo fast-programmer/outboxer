@@ -285,7 +285,8 @@ module Outboxer
                   updated_at: time.now.utc,
                   metrics: {
                     throughput: throughput,
-                    latency: last_updated_message.nil? ? 0 : (time.now - last_updated_message.updated_at).to_i,
+                    latency: last_updated_message.nil? ? 0 :
+                      (Time.now.utc - last_updated_message.updated_at).to_i,
                     cpu: cpu,
                     rss: rss,
                     rtt: rtt } )
@@ -333,7 +334,9 @@ module Outboxer
         Thread.list.each_with_index do |thread, index|
           logger.info(
             "Outboxer dumping thread #{thread.name || thread.object_id}\n" \
-            "#{thread.backtrace.present? ? thread.backtrace.join("\n") : '<no backtrace available>'}")
+            "#{thread.backtrace.present? ?
+                thread.backtrace.join("\n") :
+                '<no backtrace available>'}")
         end
       when "TSTP"
         logger.info("Outboxer pausing threads")
@@ -469,8 +472,9 @@ module Outboxer
         id: publishing_message[:id], publisher_id: id, publisher_name: name)
 
       logger.debug "Outboxer published message id=#{published_message[:id]} " \
-        "messageable=#{published_message[:messageable_type]}::#{published_message[:messageable_id]} " \
-        "in #{(published_message[:updated_at] - published_message[:queued_at]).round(3)}s"
+        "messageable=#{published_message[:messageable_type]}::" \
+        "#{published_message[:messageable_id]} in " \
+        "#{(published_message[:updated_at] - published_message[:queued_at]).round(3)}s"
     rescue StandardError => error
       logger.error(
         "#{error.class}: #{error.message}\n" \
