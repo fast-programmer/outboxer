@@ -164,7 +164,7 @@ module Outboxer
         seconds = (::Time.now - time).to_i
 
         if seconds < 60
-          "#{seconds} #{seconds == 1 ? 'second' : 'seconds'}"
+          "#{seconds} #{seconds == 1 ? "second" : "seconds"}"
         else
           prefix = seconds.negative? ? "from now" : "ago"
           seconds = seconds.abs
@@ -480,7 +480,7 @@ module Outboxer
 
         unless result[:not_requeued_ids].empty?
           flash[:warning] = "Could not requeue #{message_text} with ids " +
-            "#{result[:not_requeued_ids].join(', ')}"
+            "#{result[:not_requeued_ids].join(", ")}"
         end
 
         result
@@ -495,7 +495,7 @@ module Outboxer
 
         unless result[:not_deleted_ids].empty?
           flash[:warning] = "Could not delete #{message_text} with ids " +
-            "#{result[:not_deleted_ids].join(', ')}"
+            "#{result[:not_deleted_ids].join(", ")}"
         end
 
         result

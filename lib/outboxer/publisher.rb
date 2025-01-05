@@ -336,7 +336,7 @@ module Outboxer
             "Outboxer dumping thread #{thread.name || thread.object_id}\n" \
             "#{thread.backtrace.present? ?
                 thread.backtrace.join("\n") :
-                '<no backtrace available>'}")
+                "<no backtrace available>"}")
         end
       when "TSTP"
         logger.info("Outboxer pausing threads")

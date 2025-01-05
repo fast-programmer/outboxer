@@ -48,7 +48,7 @@ module Outboxer
           expect do
             Messages.list(status: :invalid)
           end.to raise_error(
-            ArgumentError, "status must be #{Messages::LIST_STATUS_OPTIONS.join(' ')}")
+            ArgumentError, "status must be #{Messages::LIST_STATUS_OPTIONS.join(" ")}")
         end
       end
 
