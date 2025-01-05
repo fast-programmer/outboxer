@@ -37,8 +37,8 @@ RSpec.configure do |config|
         end
       end
     rescue ActiveRecord::DatabaseConnectionError,
-        ActiveRecord::ConnectionNotEstablished,
-        ActiveRecord::StatementInvalid
+           ActiveRecord::ConnectionNotEstablished,
+           ActiveRecord::StatementInvalid
       # ignore
     end
 
