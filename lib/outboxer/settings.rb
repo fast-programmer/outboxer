@@ -1,6 +1,6 @@
 module Outboxer
   module Settings
-    extend self
+    module_function
 
     def create
       ActiveRecord::Base.connection_pool.with_connection do

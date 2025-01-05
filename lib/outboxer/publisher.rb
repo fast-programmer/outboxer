@@ -1,6 +1,6 @@
 module Outboxer
   module Publisher
-    extend self
+    module_function
 
     class Error < StandardError; end
 

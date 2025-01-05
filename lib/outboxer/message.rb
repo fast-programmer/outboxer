@@ -1,6 +1,6 @@
 module Outboxer
   module Message
-    extend self
+    module_function
 
     Status = Models::Message::Status
 

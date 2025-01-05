@@ -3,7 +3,7 @@ require "yaml"
 
 module Outboxer
   module Database
-    extend self
+    module_function
 
     def config(environment:, pool:, path: ::File.expand_path("config/database.yml", ::Dir.pwd))
       db_config_content = File.read(path)

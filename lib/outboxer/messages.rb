@@ -1,6 +1,6 @@
 module Outboxer
   module Messages
-    extend self
+    module_function
 
     def buffer(limit: 1, publisher_id: nil, publisher_name: nil,
                time: ::Time)

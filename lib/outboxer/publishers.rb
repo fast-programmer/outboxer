@@ -1,6 +1,6 @@
 module Outboxer
   module Publishers
-    extend self
+    module_function
 
     def all
       ActiveRecord::Base.connection_pool.with_connection do
