@@ -416,7 +416,7 @@ module Outboxer
           buffer_messages(
             id: id, name: name,
             queue: queue, buffer: buffer,
-            poll: poll, tick:,
+            poll: poll, tick: tick,
             signal_read: signal_read, logger: logger, process: process, kernel: kernel)
         when Status::STOPPED
           Publisher.sleep(
