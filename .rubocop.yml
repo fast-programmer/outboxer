@@ -20,6 +20,9 @@ Layout/ArgumentAlignment:
 Style/Documentation:
   Enabled: false
 
+Style/NumericPredicate:
+  Enabled: false
+
 Metrics/BlockLength:
   Enabled: false
 
