@@ -18,7 +18,7 @@ module Outboxer
       STATUSES = [
         Status::PUBLISHING,
         Status::STOPPED,
-        Status::TERMINATING,
+        Status::TERMINATING
       ]
 
       scope :publishing, -> { where(status: Status::PUBLISHING) }
