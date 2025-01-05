@@ -64,15 +64,15 @@ module Outboxer
              page: LIST_PAGE_DEFAULT, per_page: LIST_PER_PAGE_DEFAULT,
              time_zone: LIST_TIME_ZONE_DEFAULT)
       if !status.nil? && !LIST_STATUS_OPTIONS.include?(status.to_sym)
-        raise ArgumentError, "status must be #{LIST_STATUS_OPTIONS.join(' ')}"
+        raise ArgumentError, "status must be #{LIST_STATUS_OPTIONS.join(" ")}"
       end
 
       if !LIST_SORT_OPTIONS.include?(sort.to_sym)
-        raise ArgumentError, "sort must be #{LIST_SORT_OPTIONS.join(' ')}"
+        raise ArgumentError, "sort must be #{LIST_SORT_OPTIONS.join(" ")}"
       end
 
       if !LIST_ORDER_OPTIONS.include?(order.to_sym)
-        raise ArgumentError, "order must be #{LIST_ORDER_OPTIONS.join(' ')}"
+        raise ArgumentError, "order must be #{LIST_ORDER_OPTIONS.join(" ")}"
       end
 
       if !page.is_a?(Integer) || page <= 0
@@ -80,7 +80,7 @@ module Outboxer
       end
 
       if !LIST_PER_PAGE_OPTIONS.include?(per_page.to_i)
-        raise ArgumentError, "per_page must be #{LIST_PER_PAGE_OPTIONS.join(' ')}"
+        raise ArgumentError, "per_page must be #{LIST_PER_PAGE_OPTIONS.join(" ")}"
       end
 
       if !LIST_TIME_ZONE_OPTIONS.include?(time_zone)
@@ -147,7 +147,7 @@ module Outboxer
         status_formatted = status.nil? ? "nil" : status
 
         raise ArgumentError,
-          "Status #{status_formatted} must be one of #{Message::REQUEUE_STATUSES.join(', ')}"
+          "Status #{status_formatted} must be one of #{Message::REQUEUE_STATUSES.join(", ")}"
       end
 
       requeued_count = 0
