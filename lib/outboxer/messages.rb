@@ -307,8 +307,8 @@ module Outboxer
         grouped_messages = Models::Message
           .group(:status)
           .select(
-          "status, COUNT(*) AS count, MIN(updated_at) AS oldest_updated_at",
-          "SUM(CASE WHEN #{time_condition} THEN 1 ELSE 0 END) AS throughput")
+            "status, COUNT(*) AS count, MIN(updated_at) AS oldest_updated_at",
+            "SUM(CASE WHEN #{time_condition} THEN 1 ELSE 0 END) AS throughput")
           .to_a
 
         metrics[:published][:count][:historic] = Models::Setting
