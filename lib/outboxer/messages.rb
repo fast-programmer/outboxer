@@ -97,7 +97,7 @@ module Outboxer
                       base_scope.order(messageable_type: order, messageable_id: order)
                     else
                       base_scope.order(sort => order)
-                    end
+                     end
 
       offset = (page - 1) * per_page
       paginated_messages = sorted_scope
