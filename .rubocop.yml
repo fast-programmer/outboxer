@@ -29,6 +29,9 @@ Style/NumericPredicate:
 Metrics/BlockLength:
   Enabled: false
 
+Metrics/ParameterLists:
+  Enabled: false
+
 Style/FrozenStringLiteralComment:
   Enabled: false
 
