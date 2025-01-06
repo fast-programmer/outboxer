@@ -35,9 +35,9 @@ module OutboxerIntegration
         end
 
         it "does not enqueue any job" do
-          expect {
+          expect do
             PublishMessageJob.new.perform(args)
-          }.not_to change { Sidekiq::Worker.jobs.size }
+          end.not_to change { Sidekiq::Worker.jobs.size }
         end
       end
 
@@ -50,9 +50,9 @@ module OutboxerIntegration
         end
 
         it "does not enqueue any job and handles the error silently" do
-          expect {
+          expect do
             PublishMessageJob.new.perform(args)
-          }.not_to change { Sidekiq::Worker.jobs.size }
+          end.not_to change { Sidekiq::Worker.jobs.size }
         end
       end
     end
