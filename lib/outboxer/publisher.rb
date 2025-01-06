@@ -81,13 +81,11 @@ module Outboxer
     def delete(id:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          begin
-            publisher = Models::Publisher.lock.find_by!(id: id)
-            publisher.signals.destroy_all
-            publisher.destroy!
-          rescue ActiveRecord::RecordNotFound
-            # no op
-          end
+          publisher = Models::Publisher.lock.find_by!(id: id)
+          publisher.signals.destroy_all
+          publisher.destroy!
+        rescue ActiveRecord::RecordNotFound
+          # no op
         end
       end
     end
@@ -129,14 +127,12 @@ module Outboxer
     def terminate(id:, time: ::Time)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          begin
-            publisher = Models::Publisher.lock.find(id)
-            publisher.update!(status: Status::TERMINATING, updated_at: time.now.utc)
+          publisher = Models::Publisher.lock.find(id)
+          publisher.update!(status: Status::TERMINATING, updated_at: time.now.utc)
 
-            @status = Status::TERMINATING
-          rescue ActiveRecord::RecordNotFound
-            @status = Status::TERMINATING
-          end
+          @status = Status::TERMINATING
+        rescue ActiveRecord::RecordNotFound
+          @status = Status::TERMINATING
         end
       end
     end

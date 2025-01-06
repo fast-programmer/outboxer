@@ -5,11 +5,9 @@ module Outboxer
     describe ".failed" do
       let(:exception) do
         def raise_exception
-          begin
-            raise StandardError.new("unhandled error")
-          rescue StandardError => error
-            error
-          end
+          raise StandardError.new("unhandled error")
+        rescue StandardError => error
+          error
         end
 
         raise_exception
@@ -45,7 +43,7 @@ module Outboxer
 
           expect(publishing_message.exceptions[0].frames[0].index).to eq(0)
           expect(publishing_message.exceptions[0].frames[0].text)
-            .to include("outboxer/spec/lib/outboxer/message/failed_spec.rb:9:in `raise_exception")
+            .to include("outboxer/spec/lib/outboxer/message/failed_spec.rb:8:in `raise_exception")
         end
       end
 
