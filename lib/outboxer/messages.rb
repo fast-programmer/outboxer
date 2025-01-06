@@ -75,17 +75,13 @@ module Outboxer
         raise ArgumentError, "order must be #{LIST_ORDER_OPTIONS.join(" ")}"
       end
 
-      if !page.is_a?(Integer) || page <= 0
-        raise ArgumentError, "page must be >= 1"
-      end
+      raise ArgumentError, "page must be >= 1" if !page.is_a?(Integer) || page <= 0
 
       if !LIST_PER_PAGE_OPTIONS.include?(per_page.to_i)
         raise ArgumentError, "per_page must be #{LIST_PER_PAGE_OPTIONS.join(" ")}"
       end
 
-      if !LIST_TIME_ZONE_OPTIONS.include?(time_zone)
-        raise ArgumentError, "time_zone must be valid"
-      end
+      raise ArgumentError, "time_zone must be valid" if !LIST_TIME_ZONE_OPTIONS.include?(time_zone)
 
       base_scope = Models::Message.left_joins(:publisher)
       base_scope = if status.nil?

@@ -173,9 +173,7 @@ module Outboxer
 
       %w[TTIN TSTP CONT INT TERM].each do |signal_name|
         old_handler = Signal.trap(signal_name) do
-          if old_handler.respond_to?(:call)
-            old_handler.call
-          end
+          old_handler.call if old_handler.respond_to?(:call)
 
           signal_write.puts(signal_name)
         end
