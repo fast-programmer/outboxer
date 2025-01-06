@@ -470,7 +470,7 @@ module Outboxer
       ids = params[:selected_ids].map(&:to_i)
 
       result = case params[:action]
-      when "requeue_by_ids"
+               when "requeue_by_ids"
         result = Messages.requeue_by_ids(ids: ids)
 
         message_text = result[:requeued_count] == 1 ? "message" : "messages"
@@ -485,7 +485,7 @@ module Outboxer
         end
 
         result
-      when "delete_by_ids"
+               when "delete_by_ids"
         result = Messages.delete_by_ids(ids: ids)
 
         message_text = result[:deleted_count] == 1 ? "message" : "messages"

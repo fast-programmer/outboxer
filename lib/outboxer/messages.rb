@@ -97,7 +97,7 @@ module Outboxer
       total_count = base_scope.count
 
       sorted_scope = case sort.to_sym
-                    when :messageable
+                     when :messageable
                       base_scope.order(messageable_type: order, messageable_id: order)
                     else
                       base_scope.order(sort => order)
