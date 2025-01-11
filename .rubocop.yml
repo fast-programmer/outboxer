@@ -38,7 +38,12 @@ Metrics/ParameterLists:
 Style/FrozenStringLiteralComment:
   Enabled: false
 Metrics/MethodLength:
-  Max: 60
+  Max: 80
+Metrics/ClassLength:
+  Enabled: true
+  Max: 100
+  Exclude:
+    - 'lib/outboxer/web.rb'
 Metrics/ModuleLength:
   Enabled: false
 Layout/FirstHashElementIndentation:
