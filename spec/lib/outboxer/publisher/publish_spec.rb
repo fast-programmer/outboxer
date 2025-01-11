@@ -172,7 +172,7 @@ module Outboxer
                 "messageable=#{queued_message[:messageable_type]}::#{queued_message[:messageable_id]}")).once
 
             expect(logger).to have_received(:fatal).with(
-              a_string_matching("#{no_memory_error.class.to_s}: #{no_memory_error.message}")).once
+              a_string_matching("#{no_memory_error.class}: #{no_memory_error.message}")).once
           end
         end
 
