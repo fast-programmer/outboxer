@@ -334,7 +334,7 @@ module Outboxer
         Thread.list.each do |thread|
           logger.info(
             "Outboxer dumping thread #{thread.name || thread.object_id}\n" \
-            "#{thread.backtrace.present? ? thread.backtrace.join("\n") :"<no backtrace available>"}")
+            "#{thread.backtrace.present? ? thread.backtrace.join("\n") : "<no backtrace available>"}")
         end
       when "TSTP"
         logger.info("Outboxer pausing threads")
