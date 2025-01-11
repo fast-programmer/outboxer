@@ -3,7 +3,7 @@ require "logger"
 module Outboxer
   class Logger < ::Logger
     def initialize(*args, **kwargs)
-      super(*args, **kwargs)
+      super
 
       self.formatter = proc do |severity, datetime, _progname, msg|
         current_thread = ::Thread.current
