@@ -310,7 +310,7 @@ module Outboxer
 
     def generate_pagination(current_page:, total_pages:, denormalised_query_params:)
       previous_page = nil
-      pages = []
+      []
       next_page = nil
 
       if current_page > 1
@@ -469,8 +469,7 @@ module Outboxer
 
       ids = params[:selected_ids].map(&:to_i)
 
-      result =
-        case params[:action]
+      case params[:action]
         when "requeue_by_ids"
           result = Messages.requeue_by_ids(ids: ids)
 

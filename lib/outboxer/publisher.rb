@@ -397,8 +397,7 @@ module Outboxer
 
       publisher_threads = create_publisher_threads(
         id: id, name: name, queue: queue, concurrency: concurrency,
-        logger: logger, kernel: kernel,
-        &block)
+        logger: logger, &block)
 
       signal_read, _signal_write = trap_signals
 
