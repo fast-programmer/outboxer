@@ -277,12 +277,17 @@ module Outboxer
                   .order(updated_at: :desc)
                   .first
 
+                latency = if last_updated_message.nil?
+                            0
+                          else
+                            (Time.now.utc - last_updated_message.updated_at).to_i
+                          end
+
                 publisher.update!(
                   updated_at: time.now.utc,
                   metrics: {
                     throughput: throughput,
-                    latency: last_updated_message.nil? ? 0 :
-                      (Time.now.utc - last_updated_message.updated_at).to_i,
+                    latency: latency,
                     cpu: cpu,
                     rss: rss,
                     rtt: rtt
@@ -331,9 +336,7 @@ module Outboxer
         Thread.list.each do |thread|
           logger.info(
             "Outboxer dumping thread #{thread.name || thread.object_id}\n" \
-            "#{thread.backtrace.present? ?
-                thread.backtrace.join("\n") :
-                "<no backtrace available>"}")
+            "#{thread.backtrace.present? ? thread.backtrace.join("\n") :"<no backtrace available>"}")
         end
       when "TSTP"
         logger.info("Outboxer pausing threads")
