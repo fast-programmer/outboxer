@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
                  "for event driven Ruby on Rails applications that use SQL"
   spec.homepage = "https://github.com/fast-programmer/outboxer"
   spec.license = "LGPL-3.0"
-  spec.required_ruby_version = ">= 3.1.5"
+  spec.required_ruby_version = ">= 3.1.6"
 
   spec.metadata["homepage_uri"] = spec.homepage
   spec.metadata["source_code_uri"] = "https://github.com/fast-programmer/outboxer"
