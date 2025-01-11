@@ -158,7 +158,7 @@ module Outboxer
       while (
         (@status != Status::TERMINATING) &&
           ((process.clock_gettime(process::CLOCK_MONOTONIC) - start_time) < duration) &&
-          !IO.select([signal_read], nil, nil, 0))
+          !signal_read.wait_readable(0))
         kernel.sleep(tick)
       end
     end
@@ -428,7 +428,7 @@ module Outboxer
           break
         end
 
-        if IO.select([signal_read], nil, nil, 0)
+        if signal_read.wait_readable(0)
           signal_name = signal_read.gets.strip rescue nil
 
           handle_signal(id: id, name: signal_name, logger: logger)
