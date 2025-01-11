@@ -11,7 +11,8 @@ require "outboxer/web"
 require_relative "app/models/application_record"
 require_relative "app/models/event"
 
-use Rack::Session::Cookie, secret: ENV.fetch("SESSION_SECRET", nil), same_site: true, max_age: 86_400
+use Rack::Session::Cookie,
+  secret: ENV.fetch("SESSION_SECRET", nil), same_site: true, max_age: 86_400
 
 map "/outboxer" do
   run Outboxer::Web

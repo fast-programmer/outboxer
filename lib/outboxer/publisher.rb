@@ -332,9 +332,11 @@ module Outboxer
       case name
       when "TTIN"
         Thread.list.each do |thread|
+          thread_name = thread.name || thread.object_id
+          backtrace = thread.backtrace || ["<no backtrace available>"]
           logger.info(
-            "Outboxer dumping thread #{thread.name || thread.object_id}\n" \
-            "#{thread.backtrace.present? ? thread.backtrace.join("\n") : "<no backtrace available>"}")
+            "Outboxer dumping thread #{thread_name}\n" +
+              backtrace.join("\n"))
         end
       when "TSTP"
         logger.info("Outboxer pausing threads")
