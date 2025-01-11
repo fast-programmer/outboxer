@@ -310,7 +310,6 @@ module Outboxer
 
     def generate_pagination(current_page:, total_pages:, denormalised_query_params:)
       previous_page = nil
-      []
       next_page = nil
 
       if current_page > 1
