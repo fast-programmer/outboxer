@@ -300,7 +300,6 @@ module Outboxer
               start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
               tick: tick,
               process: process, kernel: kernel)
-
           rescue NotFound => error
             logger.fatal(
               "#{error.class}: #{error.message}\n" \
