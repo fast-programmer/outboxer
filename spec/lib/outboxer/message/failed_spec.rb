@@ -5,7 +5,7 @@ module Outboxer
     describe ".failed" do
       let(:exception) do
         def raise_exception
-          raise StandardError.new("unhandled error")
+          raise StandardError, "unhandled error"
         rescue StandardError => error
           error
         end
