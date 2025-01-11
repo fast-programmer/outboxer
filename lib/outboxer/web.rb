@@ -494,7 +494,7 @@ module Outboxer
         end
 
         unless result[:not_deleted_ids].empty?
-          flash[:warning] = "Could not delete #{message_text} with ids "\
+          flash[:warning] = "Could not delete #{message_text} with ids " \
             "#{result[:not_deleted_ids].join(", ")}"
         end
 
