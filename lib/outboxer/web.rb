@@ -322,8 +322,7 @@ module Outboxer
               order: denormalised_query_params[:order],
               page: current_page - 1,
               per_page: denormalised_query_params[:per_page],
-              time_zone: denormalised_query_params[:time_zone])}"
-          ) }
+              time_zone: denormalised_query_params[:time_zone])}") }
       end
 
       pages = (([current_page - 4, 1].max)..([current_page + 4, total_pages].min)).map do |page|
