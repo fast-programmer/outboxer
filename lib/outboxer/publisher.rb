@@ -432,7 +432,7 @@ module Outboxer
           signal_name =
             begin
               signal_read.gets.strip
-            rescue
+            rescue StandardError
               nil
             end
 
