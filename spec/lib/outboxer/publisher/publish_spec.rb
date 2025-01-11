@@ -158,7 +158,7 @@ module Outboxer
             expect(queued_message.status).to eq(Models::Message::Status::FAILED)
             expect(queued_message.exceptions.count).to eq(1)
             expect(queued_message.exceptions[0].class_name).to eq(no_memory_error.class.name)
-            expect(queued_message.exceptions[0].message_text). to eq(no_memory_error.message)
+            expect(queued_message.exceptions[0].message_text).to eq(no_memory_error.message)
             expect(queued_message.exceptions[0].created_at).not_to be_nil
 
             expect(queued_message.exceptions[0].frames[0].index).to eq(0)
