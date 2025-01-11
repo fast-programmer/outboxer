@@ -220,7 +220,7 @@ module Outboxer
               .limit(batch_size)
               .lock("FOR UPDATE SKIP LOCKED")
               .pluck(:id, :status)
-              .map { |id, status| { id: id, status: status } }
+              .map { |message_id, message_status| { id: message_id, status: message_status } }
 
             message_ids = messages.map { |message| message[:id] }
 
@@ -233,11 +233,11 @@ module Outboxer
 
             deleted_count_batch = Models::Message.where(id: message_ids).delete_all
 
-            [Message::Status::PUBLISHED, Message::Status::FAILED].each do |status|
-              current_messages = messages.select { |message| message[:status] == status }
+            [Message::Status::PUBLISHED, Message::Status::FAILED].each do |message_status|
+              current_messages = messages.select { |message| message[:status] == message_status }
 
               if current_messages.count > 0
-                setting_name = "messages.#{status}.count.historic"
+                setting_name = "messages.#{message_status}.count.historic"
                 setting = Models::Setting.lock("FOR UPDATE").find_by!(name: setting_name)
                 setting.update!(value: setting.value.to_i + current_messages.count).to_s
               end
