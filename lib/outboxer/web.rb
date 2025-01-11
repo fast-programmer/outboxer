@@ -486,7 +486,7 @@ module Outboxer
           end
 
           result
-                when "delete_by_ids"
+        when "delete_by_ids"
           result = Messages.delete_by_ids(ids: ids)
 
           message_text = result[:deleted_count] == 1 ? "message" : "messages"

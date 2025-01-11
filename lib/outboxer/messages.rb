@@ -94,9 +94,9 @@ module Outboxer
 
       sorted_scope = case sort.to_sym
                      when :messageable
-                      base_scope.order(messageable_type: order, messageable_id: order)
-                    else
-                      base_scope.order(sort => order)
+                       base_scope.order(messageable_type: order, messageable_id: order)
+                     else
+                       base_scope.order(sort => order)
                      end
 
       offset = (page - 1) * per_page
