@@ -15,7 +15,7 @@ jobs:
     - name: set up ruby
       uses: ruby/setup-ruby@v1
       with:
-        ruby-version: '3.3.6'
+        ruby-version: '3.1.5'
         bundler-cache: true
     - name: install brakeman
       run: gem install brakeman
@@ -30,7 +30,7 @@ jobs:
     - name: set up ruby
       uses: ruby/setup-ruby@v1
       with:
-        ruby-version: '3.3.6'
+        ruby-version: '3.1.5'
         bundler-cache: true
     - name: install rubocop
       run: gem install rubocop
@@ -43,7 +43,7 @@ jobs:
     strategy:
       matrix:
         ruby:
-          - '3.3.6'
+          - '3.1.5'
     services:
       postgres:
         image: postgres:latest
@@ -83,7 +83,7 @@ jobs:
     strategy:
       matrix:
         ruby:
-          - '3.3.6'
+          - '3.1.5'
     services:
       mysql:
         image: mysql:latest
