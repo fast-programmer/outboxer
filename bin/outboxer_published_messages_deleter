@@ -72,7 +72,7 @@ begin
       sleep 1
     end
   end
-rescue => error
+rescue StandardError => error
   logger.error "An error occurred: #{error.message}"
   logger.error "Backtrace: #{error.backtrace.join("\n")}"
   raise
