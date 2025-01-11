@@ -11,7 +11,7 @@ environment = ENV["RAILS_ENV"] || "development"
 
 db_config_content = File.read("config/database.yml")
 db_config_erb_result = ERB.new(db_config_content).result
-db_config = YAML.load(db_config_erb_result)[environment]
+db_config = YAML.safe_load(db_config_erb_result)[environment]
 
 ActiveRecord::Base.establish_connection(db_config.merge("pool" => 5))
 
