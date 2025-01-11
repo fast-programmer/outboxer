@@ -430,7 +430,11 @@ module Outboxer
         end
 
         if signal_read.wait_readable(0)
-          signal_name = signal_read.gets.strip rescue nil
+          signal_name = begin
+                          signal_read.gets.strip
+                        rescue
+                          nil
+                        end
 
           handle_signal(id: id, name: signal_name, logger: logger)
         end
