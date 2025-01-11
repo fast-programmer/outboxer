@@ -76,7 +76,7 @@ bin/sidekiq
 bin/rails c
 ```
 
-### 10. start a test
+### 10. start test
 
 ```ruby
 OutboxerIntegration::Test.start
@@ -91,12 +91,29 @@ TRANSACTION (0.7ms)  COMMIT
 => {:id=>1, :events=>[{:id=>1, :type=>"OutboxerIntegration::TestStartedEvent"}]}
 ```
 
-### 11. Observe published message
-
-Confirm the message has been published out of band e.g.
+### 11. Ensure test completed
 
 ```
-2025-01-11T19:24:45.552Z pid=67397 tid=publisher-1 DEBUG: Outboxer published message id=1 messageable=Event::be590b in 1.746s
+OutboxerIntegration::Test.find(1).events
+=>
+[#<OutboxerIntegration::TestStartedEvent:0x0000000105749158
+  id: 1,
+  user_id: nil,
+  tenant_id: nil,
+  eventable_type: "OutboxerIntegration::Test",
+  eventable_id: 1,
+  type: "OutboxerIntegration::TestStartedEvent",
+  body: {"test"=>{"id"=>1}},
+  created_at: 2025-01-11 23:37:36.009745 UTC>,
+ #<OutboxerIntegration::TestCompletedEvent:0x0000000105748be0
+  id: 2,
+  user_id: nil,
+  tenant_id: nil,
+  eventable_type: "OutboxerIntegration::Test",
+  eventable_id: 1,
+  type: "OutboxerIntegration::TestCompletedEvent",
+  body: {"test"=>{"id"=>1}},
+  created_at: 2025-01-11 23:48:38.750419 UTC>]
 ```
 
 ## Management
