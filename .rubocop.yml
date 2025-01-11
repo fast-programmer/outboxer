@@ -2,6 +2,9 @@ AllCops:
   NewCops: enable
   TargetRubyVersion: 2.6
   SuggestExtensions: false
+Style/RegexpLiteral:
+  EnforcedStyle: slashes
+  AllowInnerSlashes: true
 Style/StringLiterals:
   Enabled: true
   EnforcedStyle: double_quotes
