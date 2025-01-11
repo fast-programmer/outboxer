@@ -481,8 +481,8 @@ module Outboxer
           end
 
           unless result[:not_requeued_ids].empty?
-            flash[:warning] = "Could not requeue #{message_text} with ids " +
-              "#{result[:not_requeued_ids].join(", ")}"
+            flash[:warning] = "Could not requeue #{message_text} with ids " \
+              "#{result[:not_requeued_ids].join(', ')}"
           end
 
           result
@@ -496,7 +496,7 @@ module Outboxer
           end
 
           unless result[:not_deleted_ids].empty?
-            flash[:warning] = "Could not delete #{message_text} with ids " +
+            flash[:warning] = "Could not delete #{message_text} with ids "\
               "#{result[:not_deleted_ids].join(", ")}"
           end
 
@@ -752,7 +752,7 @@ module Outboxer
 
       flash[:primary] = "Publisher #{params[:id]} was deleted"
 
-      redirect to("#{normalised_query_string}")
+      redirect to(normalised_query_string.to_s)
     end
 
     post "/publisher/:id/signals" do
