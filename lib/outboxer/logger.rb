@@ -11,7 +11,7 @@ module Outboxer
         pid = current_thread["outboxer_pid"] ||= ::Process.pid
 
         tid = current_thread["outboxer_tid"] ||=
-          (current_thread.name || (current_thread.object_id ^ pid).to_s(36))
+          current_thread.name || (current_thread.object_id ^ pid).to_s(36)
 
         "#{datetime.utc.iso8601(3)} pid=#{pid} tid=#{tid} #{severity}: #{msg}\n"
       end
