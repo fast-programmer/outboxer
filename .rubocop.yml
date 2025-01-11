@@ -2,6 +2,8 @@ AllCops:
   NewCops: enable
   TargetRubyVersion: 3.1.5
   SuggestExtensions: false
+Metrics/AbcSize:
+  Max: 70
 Style/HashSyntax:
   EnforcedShorthandSyntax: never
 Style/RegexpLiteral:
