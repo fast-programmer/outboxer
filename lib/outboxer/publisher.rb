@@ -180,7 +180,7 @@ module Outboxer
 
     def create_publisher_threads(id:, name:,
                                  queue:, concurrency:,
-                                 logger:, kernel:, &block)
+                                 logger:, &block)
       concurrency.times.each_with_index.map do |_, index|
         Thread.new do
           Thread.current.name = "publisher-#{index + 1}"
@@ -374,7 +374,7 @@ module Outboxer
       tick: 0.1, poll: 5.0, heartbeat: 5.0,
       logger: Logger.new($stdout, level: Logger::INFO),
       database: Database,
-      time: ::Time, socket: ::Socket, process: ::Process, kernel: ::Kernel,
+      time: ::Time, process: ::Process, kernel: ::Kernel,
       &block
     )
       Thread.current.name = "main"
