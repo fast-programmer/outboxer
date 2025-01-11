@@ -481,7 +481,7 @@ module Outboxer
 
         unless result[:not_requeued_ids].empty?
           flash[:warning] = "Could not requeue #{message_text} with ids " \
-            "#{result[:not_requeued_ids].join(', ')}"
+            "#{result[:not_requeued_ids].join(", ")}"
         end
 
         result
