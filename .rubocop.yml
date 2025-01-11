@@ -10,6 +10,8 @@ Metrics/CyclomaticComplexity:
 Metrics/PerceivedComplexity:
   Enabled: true
   Max: 20
+Style/SafeNavigationChainLength:
+  Enabled: false
 Style/HashSyntax:
   EnforcedShorthandSyntax: never
 Style/RegexpLiteral:

@@ -20,7 +20,7 @@ group :development, :test do
   gem "rake", "~> 13.0"
   gem "rerun", "~> 0.0"
   gem "rspec", "~> 3.0"
-  gem "rubocop", "~> 1.0"
+  gem "rubocop", "~> 1.70"
   gem "simplecov", "~> 0.0"
   gem "yard", ">= 0.9.36", "< 1.0"
 end
