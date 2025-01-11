@@ -36,7 +36,7 @@ bin/rake db:migrate
 ### 5. Publish message to redis via sidekiq job
 
 ```ruby
-Outboxer::Publisher.publish do |message|
+Outboxer::Publisher.publish(logger: logger) do |message|
   OutboxerIntegration::PublishMessageJob.perform_async({
     'message_id' => message[:id],
     'messageable_id' => message[:messageable_id],
@@ -76,34 +76,27 @@ bin/sidekiq
 bin/rails c
 ```
 
-### 10. create test started event
+### 10. start a test
 
 ```ruby
-OutboxerIntegration::TestStartedEvent.create!
+OutboxerIntegration::Test.start
 ```
 
 ```
-TRANSACTION (0.2ms)  BEGIN
-OutboxerIntegration::TestStartedEvent Create (1.2ms)  INSERT INTO "events" ....
-Outboxer::Models::Message Create (1.8ms)  INSERT INTO "outboxer_messages" ...
-TRANSACTION (0.4ms)  COMMIT
-=>
-#<OutboxerIntegration::TestStartedEvent:0x000000010a329eb0
- id: 1,
- user_id: nil,
- tenant_id: nil,
- type: "OutboxerIntegration::TestStartedEvent",
- body: nil,
- created_at: Sat, 21 Dec 2024 09:11:56.459083000 UTC +00:00>
+TRANSACTION (0.5ms)  BEGIN
+OutboxerIntegration::Test Create             (1.9ms)  INSERT INTO "outboxer_integration_tests" ...
+OutboxerIntegration::TestStartedEvent Create (1.8ms)  INSERT INTO "events" ...
+Outboxer::Models::Message Create             (3.2ms)  INSERT INTO "outboxer_messages" ...
+TRANSACTION (0.7ms)  COMMIT
+=> {:id=>1, :events=>[{:id=>1, :type=>"OutboxerIntegration::TestStartedEvent"}]}
 ```
 
 ### 11. Observe published message
 
-
 Confirm the message has been published out of band e.g.
 
 ```
-2024-12-21T09:12:01.303Z pid=13171 tid=publisher-1 INFO: Outboxer published message 1 to sidekiq for OutboxerIntegration::TestStartedEvent::1
+2025-01-11T19:24:45.552Z pid=67397 tid=publisher-1 DEBUG: Outboxer published message id=1 messageable=Event::be590b in 1.746s
 ```
 
 ## Management
