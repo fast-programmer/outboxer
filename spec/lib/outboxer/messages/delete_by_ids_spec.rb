@@ -40,7 +40,6 @@ module Outboxer
       let!(:exception_6) { create(:outboxer_exception, message: message_6) }
       let!(:frame_6) { create(:outboxer_frame, exception: exception_6) }
 
-
       describe "when ids exist" do
         let!(:ids) { [message_1.id, message_2.id, message_3.id, message_4.id, message_5.id] }
 
