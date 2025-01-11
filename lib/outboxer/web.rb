@@ -43,8 +43,8 @@ module Outboxer
     use Rack::Flash
 
     set :logger, Logger.new($stdout)
-    set :views, File.expand_path("../web/views", __FILE__)
-    set :public_folder, File.expand_path("../web/public", __FILE__)
+    set :views, File.expand_path('web/views', __dir__)
+    set :public_folder, File.expand_path('web/public', __dir__)
     set :show_exceptions, false
 
     configure do
