@@ -155,8 +155,7 @@ module Outboxer
 
     # :nocov:
     def sleep(duration, start_time:, tick:, signal_read:, process:, kernel:)
-      while
-        (@status != Status::TERMINATING) &&
+      while (@status != Status::TERMINATING) &&
         ((process.clock_gettime(process::CLOCK_MONOTONIC) - start_time) < duration) &&
         !signal_read.wait_readable(0)
         kernel.sleep(tick)
