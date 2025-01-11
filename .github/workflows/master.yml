@@ -15,12 +15,27 @@ jobs:
     - name: set up ruby
       uses: ruby/setup-ruby@v1
       with:
-        ruby-version: '3.3.6'
+        ruby-version: '3.1.6'
         bundler-cache: true
     - name: install brakeman
       run: gem install brakeman
     - name: run brakeman
       run: brakeman --exit-on-warn
+
+  rubocop:
+    runs-on: ubuntu-latest
+    name: run rubocop
+    steps:
+    - uses: actions/checkout@v3
+    - name: set up ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.1.6'
+        bundler-cache: true
+    - name: install rubocop
+      run: gem install rubocop
+    - name: run rubocop
+      run: rubocop
 
   postgres:
     runs-on: ubuntu-latest
@@ -28,7 +43,7 @@ jobs:
     strategy:
       matrix:
         ruby:
-          - '3.3.6'
+          - '3.1.6'
     services:
       postgres:
         image: postgres:latest
@@ -68,7 +83,7 @@ jobs:
     strategy:
       matrix:
         ruby:
-          - '3.3.6'
+          - '3.1.6'
     services:
       mysql:
         image: mysql:latest

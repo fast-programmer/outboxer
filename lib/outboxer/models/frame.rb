@@ -3,7 +3,7 @@ module Outboxer
     class Frame < ::ActiveRecord::Base
       self.table_name = :outboxer_frames
 
-      belongs_to :exception, class_name: 'Outboxer::Models::Exception', foreign_key: 'exception_id'
+      belongs_to :exception, class_name: "Outboxer::Models::Exception", foreign_key: "exception_id"
       validates :exception_id, presence: true
 
       validates :index,

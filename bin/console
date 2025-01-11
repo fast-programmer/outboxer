@@ -1,21 +1,21 @@
 #!/usr/bin/env ruby
 
-require 'bundler/setup'
+require "bundler/setup"
 
-require 'outboxer'
-require 'sidekiq'
-require 'irb'
+require "outboxer"
+require "sidekiq"
+require "irb"
 
-Dir.glob(File.join(__dir__, '../app/models/**/*.rb')).each do |file|
-  require_relative file
+Dir.glob(File.join(__dir__, "../app/models/**/*.rb")).each do |file|
+  require file
 end
 
-environment = ENV['RAILS_ENV'] || 'development'
-config = Outboxer::Database.config(environment: environment, pool: 1)
-Outboxer::Database.connect(config: config)
+environment = ENV["RAILS_ENV"] || "development"
+db_config = Outboxer::Database.config(environment: environment, pool: 1)
+Outboxer::Database.connect(config: db_config)
 
 Sidekiq.configure_client do |config|
-  redis_url = ENV['REDIS_URL'] || 'redis://localhost:6379/0'
+  redis_url = ENV["REDIS_URL"] || "redis://localhost:6379/0"
   config.redis = { url: redis_url, size: 1 }
 end
 

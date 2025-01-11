@@ -1,5 +1,5 @@
 class Event < ApplicationRecord
-  self.table_name = 'events'
+  self.table_name = "events"
 
   # associations
 

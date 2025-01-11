@@ -1,40 +1,65 @@
 AllCops:
   NewCops: enable
-  TargetRubyVersion: 2.6
+  TargetRubyVersion: 3.1.5
   SuggestExtensions: false
-
+Metrics/AbcSize:
+  Max: 70
+Metrics/CyclomaticComplexity:
+  Enabled: true
+  Max: 20
+Metrics/PerceivedComplexity:
+  Enabled: true
+  Max: 20
+Style/SafeNavigationChainLength:
+  Enabled: false
+Style/HashSyntax:
+  EnforcedShorthandSyntax: never
+Style/RegexpLiteral:
+  EnforcedStyle: slashes
+  AllowInnerSlashes: true
 Style/StringLiterals:
   Enabled: true
   EnforcedStyle: double_quotes
-
 Style/StringLiteralsInInterpolation:
   Enabled: true
   EnforcedStyle: double_quotes
-
 Layout/LineLength:
   Max: 100
-
+Layout/ArgumentAlignment:
+  EnforcedStyle: with_fixed_indentation
 Style/Documentation:
   Enabled: false
-
+Style/Next:
+  Enabled: false
+Style/NumericPredicate:
+  Enabled: false
 Metrics/BlockLength:
   Enabled: false
-
+Metrics/ParameterLists:
+  Enabled: false
 Style/FrozenStringLiteralComment:
   Enabled: false
-
 Metrics/MethodLength:
-  Max: 60
-
+  Max: 80
+Metrics/ClassLength:
+  Enabled: true
+  Max: 100
+  Exclude:
+    - 'lib/outboxer/web.rb'
+Metrics/ModuleLength:
+  Enabled: false
+Layout/FirstHashElementIndentation:
+  EnforcedStyle: consistent
+Layout/FirstArrayElementIndentation:
+  EnforcedStyle: consistent
 Layout/MultilineMethodCallBraceLayout:
   EnforcedStyle: same_line
-
+Naming/VariableNumber:
+  Enabled: false
 Naming/RescuedExceptionsVariableName:
-  PreferredName: exception
-
+  PreferredName: error
 Layout/MultilineMethodCallIndentation:
   EnforcedStyle: indented
-
 Gemspec/DeprecatedAttributeAssignment: # new in 1.30
   Enabled: true
 Gemspec/DevelopmentDependencies: # new in 1.44
@@ -46,9 +71,11 @@ Layout/LineContinuationLeadingSpace: # new in 1.31
 Layout/LineContinuationSpacing: # new in 1.31
   Enabled: true
 Layout/LineEndStringConcatenationIndentation: # new in 1.18
-  Enabled: true
+  Enabled: false
 Layout/SpaceBeforeBrackets: # new in 1.7
   Enabled: true
+Layout/MultilineHashBraceLayout:
+  EnforcedStyle: symmetrical
 Lint/AmbiguousAssignment: # new in 1.7
   Enabled: true
 Lint/AmbiguousOperatorPrecedence: # new in 1.21
@@ -61,6 +88,8 @@ Lint/DeprecatedConstants: # new in 1.8
   Enabled: true
 Lint/DuplicateBranch: # new in 1.3
   Enabled: true
+  Exclude:
+    - 'lib/outboxer/publisher.rb'
 Lint/DuplicateMagicComment: # new in 1.37
   Enabled: true
 Lint/DuplicateMatchPattern: # new in 1.50
@@ -81,6 +110,8 @@ Lint/MixedCaseRange: # new in 1.53
   Enabled: true
 Lint/NoReturnInBeginEndBlocks: # new in 1.2
   Enabled: true
+Lint/RescueException:
+  Enabled: false
 Lint/NonAtomicFileOperation: # new in 1.31
   Enabled: true
 Lint/NumberedParameterAssignment: # new in 1.9
@@ -161,6 +192,8 @@ Style/InPatternThen: # new in 1.16
   Enabled: true
 Style/MagicCommentFormat: # new in 1.35
   Enabled: true
+Style/WordArray:
+  Enabled: false
 Style/MapCompactWithConditionalBlock: # new in 1.30
   Enabled: true
 Style/MapToHash: # new in 1.24
@@ -169,10 +202,14 @@ Style/MapToSet: # new in 1.42
   Enabled: true
 Style/MinMaxComparison: # new in 1.42
   Enabled: true
+Style/MutableConstant:
+  Enabled: false
 Style/MultilineInPatternThen: # new in 1.16
   Enabled: true
 Style/NegatedIfElseCondition: # new in 1.2
   Enabled: true
+Style/NegatedIf:
+  Enabled: false
 Style/NestedFileDirname: # new in 1.26
   Enabled: true
 Style/NilLambda: # new in 1.3
@@ -225,5 +262,7 @@ Style/StringChars: # new in 1.12
   Enabled: true
 Style/SwapValues: # new in 1.1
   Enabled: true
+Style/SymbolArray:
+  Enabled: false
 Style/YAMLFileRead: # new in 1.53
   Enabled: true

@@ -1,30 +1,30 @@
-require 'bundler/setup'
-require 'outboxer'
+require "bundler/setup"
+require "outboxer"
 
-require 'pry-byebug'
+require "pry-byebug"
 
 namespace :outboxer do
   namespace :db do
     task :drop do
-      environment = ENV['RAILS_ENV'] || 'development'
+      environment = ENV["RAILS_ENV"] || "development"
       db_config = Outboxer::Database.config(environment: environment, pool: 1)
 
-      ActiveRecord::Base.establish_connection(db_config.merge('database' => 'postgres'))
-      ActiveRecord::Base.connection.drop_database(db_config['database'])
+      ActiveRecord::Base.establish_connection(db_config.merge("database" => "postgres"))
+      ActiveRecord::Base.connection.drop_database(db_config["database"])
       ActiveRecord::Base.connection.disconnect!
     end
 
     task :create do
-      environment = ENV['RAILS_ENV'] || 'development'
+      environment = ENV["RAILS_ENV"] || "development"
       db_config = Outboxer::Database.config(environment: environment, pool: 1)
 
-      ActiveRecord::Base.establish_connection(db_config.merge('database' => 'postgres'))
-      ActiveRecord::Base.connection.create_database(db_config['database'])
+      ActiveRecord::Base.establish_connection(db_config.merge("database" => "postgres"))
+      ActiveRecord::Base.connection.create_database(db_config["database"])
       ActiveRecord::Base.connection.disconnect!
     end
 
     task :migrate do
-      environment = ENV['RAILS_ENV'] || 'development'
+      environment = ENV["RAILS_ENV"] || "development"
       db_config = Outboxer::Database.config(environment: environment, pool: 1)
       ActiveRecord::Base.establish_connection(db_config)
 
@@ -56,16 +56,16 @@ namespace :outboxer do
     end
 
     task :seed do
-      environment = ENV['RAILS_ENV'] || 'development'
+      environment = ENV["RAILS_ENV"] || "development"
       db_config = Outboxer::Database.config(environment: environment, pool: 1)
       ActiveRecord::Base.establish_connection(db_config)
 
       ActiveRecord::Base.connection.disconnect!
     end
 
-    task :setup => [:create, :migrate, :seed]
+    task setup: [:create, :migrate, :seed]
 
-    task :reset => [:drop, :setup]
+    task reset: [:drop, :setup]
   end
 end
 

@@ -1,16 +1,16 @@
-require 'spec_helper'
+require "spec_helper"
 
-require 'stringio'
+require "stringio"
 
 module Outboxer
   RSpec.describe Logger do
     let(:output) { StringIO.new }
-    let(:level) { 'info' }
+    let(:level) { "info" }
     let(:logger) { Logger.new(output, level: Logger.const_get(level.upcase)) }
 
-    describe 'logging' do
-      it 'logs messages with correct format' do
-        message = 'test message'
+    describe "logging" do
+      it "logs messages with correct format" do
+        message = "test message"
         logger.info { message }
 
         log_output = output.string

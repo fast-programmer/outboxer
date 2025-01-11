@@ -1,9 +1,10 @@
-require 'spec_helper'
+# rubocop:disable Layout/LineLength
+require "spec_helper"
 
 module Outboxer
   RSpec.describe Publisher do
-    describe '.publish' do
-      let(:environment) { 'test' }
+    describe ".publish" do
+      let(:environment) { "test" }
       let(:buffer) { 1 }
       let(:poll) { 1 }
       let(:tick) { 0.1 }
@@ -17,8 +18,8 @@ module Outboxer
 
       let!(:queued_message) { create(:outboxer_message, :queued) }
 
-      context 'when TTIN signal sent' do
-        it 'dumps stack trace' do
+      context "when TTIN signal sent" do
+        it "dumps stack trace" do
           publish_thread = Thread.new do
             Outboxer::Publisher.publish(
               environment: environment,
@@ -26,24 +27,26 @@ module Outboxer
               poll: poll,
               tick: tick,
               database: database,
-              logger: logger, kernel: kernel
-            ) do |_message|
-              ::Process.kill('TTIN', ::Process.pid)
+              logger: logger, kernel: kernel) do |_message|
+              ::Process.kill("TTIN", ::Process.pid)
             end
           end
 
           sleep 1
 
-          ::Process.kill('TERM', ::Process.pid)
+          ::Process.kill("TERM", ::Process.pid)
 
           publish_thread.join
 
-          expect(logger).to have_received(:info).with(a_string_including('backtrace')).at_least(:once)
+          expect(logger)
+            .to have_received(:info)
+            .with(a_string_including("backtrace"))
+            .at_least(:once)
         end
       end
 
-      context 'when stopped and resumed during message publishing' do
-        it 'stops and resumes the publishing process correctly' do
+      context "when stopped and resumed during message publishing" do
+        it "stops and resumes the publishing process correctly" do
           publish_thread = Thread.new do
             Outboxer::Publisher.publish(
               environment: environment,
@@ -52,24 +55,23 @@ module Outboxer
               tick: tick,
               logger: logger,
               database: database,
-              kernel: kernel
-            ) do |_message|
-              ::Process.kill('TSTP', ::Process.pid)
+              kernel: kernel) do |_message|
+              ::Process.kill("TSTP", ::Process.pid)
             end
           end
           sleep 2
 
-          ::Process.kill('CONT', ::Process.pid)
+          ::Process.kill("CONT", ::Process.pid)
           sleep 1
 
-          ::Process.kill('TERM', ::Process.pid)
+          ::Process.kill("TERM", ::Process.pid)
 
           publish_thread.join
         end
       end
 
-      context 'when message published successfully' do
-        it 'sets the message to published' do
+      context "when message published successfully" do
+        it "sets the message to published" do
           Publisher.publish(
             environment: environment,
             buffer: buffer,
@@ -77,23 +79,22 @@ module Outboxer
             tick: tick,
             logger: logger,
             database: database,
-            kernel: kernel
-          ) do |message|
+            kernel: kernel) do |message|
             expect(message[:id]).to eq(queued_message.id)
             expect(message[:messageable_type]).to eq(queued_message.messageable_type)
             expect(message[:messageable_id]).to eq(queued_message.messageable_id)
             expect(message[:status]).to eq(Models::Message::Status::PUBLISHING)
 
-            ::Process.kill('TERM', ::Process.pid)
+            ::Process.kill("TERM", ::Process.pid)
           end
 
           expect(Models::Message.published.count).to eq(1)
         end
       end
 
-      context 'when an error is raised in the block' do
-        context 'when a standard error is raised' do
-          let(:standard_error) { StandardError.new('some error') }
+      context "when an error is raised in the block" do
+        context "when a standard error is raised" do
+          let(:standard_error) { StandardError.new("some error") }
 
           before do
             Publisher.publish(
@@ -103,15 +104,14 @@ module Outboxer
               tick: tick,
               logger: logger,
               database: database,
-              kernel: kernel
-            ) do |message|
-              ::Process.kill('TERM', ::Process.pid)
+              kernel: kernel) do |_message|
+              ::Process.kill("TERM", ::Process.pid)
 
               raise standard_error
             end
           end
 
-          it 'sets message to failed' do
+          it "sets message to failed" do
             queued_message.reload
 
             expect(queued_message.status).to eq(Models::Message::Status::FAILED)
@@ -126,19 +126,17 @@ module Outboxer
               /outboxer\/publisher\/publish_spec.rb:\d+:in `block \(6 levels\) in <module:Outboxer>'/)
           end
 
-          it 'logs errors' do
+          it "logs errors" do
             expect(logger).to have_received(:error).with(
-              a_string_matching(/^StandardError: some error/)
-            ).once
+              a_string_matching(/^StandardError: some error/)).once
 
             expect(logger).to have_received(:debug).with(
               a_string_matching("failed to publish message id=#{queued_message.id} " \
-                "messageable=#{queued_message[:messageable_type]}::#{queued_message[:messageable_id]}")
-            ).once
+                "messageable=#{queued_message[:messageable_type]}::#{queued_message[:messageable_id]}")).once
           end
         end
 
-        context 'when a critical error is raised' do
+        context "when a critical error is raised" do
           let(:no_memory_error) { NoMemoryError.new }
 
           before do
@@ -149,19 +147,18 @@ module Outboxer
               tick: tick,
               logger: logger,
               database: database,
-              kernel: kernel
-            ) do |buffered_message|
+              kernel: kernel) do |_buffered_message|
               raise no_memory_error
             end
           end
 
-          it 'sets message to failed' do
+          it "sets message to failed" do
             queued_message.reload
 
             expect(queued_message.status).to eq(Models::Message::Status::FAILED)
             expect(queued_message.exceptions.count).to eq(1)
             expect(queued_message.exceptions[0].class_name).to eq(no_memory_error.class.name)
-            expect(queued_message.exceptions[0].message_text). to eq(no_memory_error.message)
+            expect(queued_message.exceptions[0].message_text).to eq(no_memory_error.message)
             expect(queued_message.exceptions[0].created_at).not_to be_nil
 
             expect(queued_message.exceptions[0].frames[0].index).to eq(0)
@@ -169,20 +166,18 @@ module Outboxer
               /outboxer\/publisher\/publish_spec.rb:\d+:in `block \(6 levels\) in <module:Outboxer>'/)
           end
 
-          it 'logs errors' do
+          it "logs errors" do
             expect(logger).to have_received(:debug).with(
               a_string_matching("failed to publish message id=#{queued_message.id} " \
-                "messageable=#{queued_message[:messageable_type]}::#{queued_message[:messageable_id]}")
-            ).once
+                "messageable=#{queued_message[:messageable_type]}::#{queued_message[:messageable_id]}")).once
 
             expect(logger).to have_received(:fatal).with(
-              a_string_matching("#{no_memory_error.class.to_s}: #{no_memory_error.message}")
-            ).once
+              a_string_matching("#{no_memory_error.class}: #{no_memory_error.message}")).once
           end
         end
 
-        context 'when Messages.buffer raises a StandardError' do
-          it 'logs the error and continues processing' do
+        context "when Messages.buffer raises a StandardError" do
+          it "logs the error and continues processing" do
             call_count = 0
 
             allow(Messages).to receive(:buffer) do
@@ -190,15 +185,15 @@ module Outboxer
 
               case call_count
               when 1
-                raise StandardError, 'queue error'
+                raise StandardError, "queue error"
               else
-                ::Process.kill('TERM', ::Process.pid)
+                ::Process.kill("TERM", ::Process.pid)
 
                 []
               end
             end
 
-            expect(logger).to receive(:error).with(include('StandardError: queue error')).once
+            expect(logger).to receive(:error).with(include("StandardError: queue error")).once
 
             Publisher.publish(
               environment: environment,
@@ -211,13 +206,13 @@ module Outboxer
           end
         end
 
-        context 'when Messages.buffer raises an Exception' do
-          it 'logs the exception and shuts down' do
+        context "when Messages.buffer raises an Exception" do
+          it "logs the exception and shuts down" do
             allow(Messages).to receive(:buffer)
-              .and_raise(NoMemoryError, 'failed to allocate memory')
+              .and_raise(NoMemoryError, "failed to allocate memory")
 
             expect(logger).to receive(:fatal)
-              .with(include('NoMemoryError: failed to allocate memory'))
+              .with(include("NoMemoryError: failed to allocate memory"))
               .once
 
             Publisher.publish(
@@ -234,3 +229,4 @@ module Outboxer
     end
   end
 end
+# rubocop:enable Layout/LineLength

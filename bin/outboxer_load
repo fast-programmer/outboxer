@@ -1,40 +1,33 @@
 #!/usr/bin/env ruby
 
-require 'bundler/setup'
-require 'outboxer'
-require 'securerandom'
+require "bundler/setup"
+require "outboxer"
+require "securerandom"
 
 max_messages_count = ARGV.empty? ? 500_000 : ARGV[0].to_i
 
 if max_messages_count <= 0
   puts "Please provide a positive integer for max messages count"
-
   exit(1)
 end
 
-environment = ENV.fetch('RAILS_ENV', 'development')
+environment = ENV.fetch("RAILS_ENV", "development")
 db_config = Outboxer::Database.config(environment: environment, pool: 1)
 Outboxer::Database.connect(config: db_config)
 
-Signal.trap('INT') do
-  puts 'Shutting down...'
+reader, writer = IO.pipe
 
-  $queueing = false
-end
-
-$queueing = true
+Signal.trap("INT") { writer.puts("INT") }
 
 queued_messages_count = 0
 
-while $queueing && queued_messages_count < max_messages_count
+while queued_messages_count < max_messages_count
+  break if reader.wait_readable(0) && reader.gets.strip == "INT"
+
   messageable_id = SecureRandom.hex(3)
-
-  Outboxer::Message.queue(messageable_type: 'Event', messageable_id: messageable_id)
+  Outboxer::Message.queue(messageable_type: "Event", messageable_id: messageable_id)
   puts "queued message for Event::#{messageable_id}"
-
   queued_messages_count += 1
 end
 
 puts "Finished queuing #{queued_messages_count} messages."
-
-# bin/outboxer_load 100000

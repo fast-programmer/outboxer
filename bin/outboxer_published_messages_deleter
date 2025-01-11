@@ -1,52 +1,62 @@
 #!/usr/bin/env ruby
 
-require 'bundler/setup'
-require 'outboxer'
-require 'optparse'
+require "bundler/setup"
+require "outboxer"
+require "optparse"
 
 options = {}
 OptionParser.new do |opts|
   opts.banner = "Usage: bin/outboxer_published_messages_deleter [options]"
 
-  opts.on("-l", "--log-level LEVEL", "Set the log level (e.g., DEBUG, INFO, WARN, ERROR)") do |level|
+  opts.on(
+    "-l", "--log-level LEVEL",
+    "Set the log level (e.g., DEBUG, INFO, WARN, ERROR)") do |level|
     options[:log_level] = level
   end
 
-  opts.on("-i", "--interval SECONDS", Integer, "Set the interval between deletions (in seconds)") do |interval|
+  opts.on(
+    "-i", "--interval SECONDS", Integer,
+    "Set the interval between deletions (in seconds)") do |interval|
     options[:interval] = interval
   end
 
-  opts.on("-r", "--retention-period SECONDS", Integer, "Set the retention period (in seconds)") do |retention|
+  opts.on(
+    "-r", "--retention-period SECONDS", Integer,
+    "Set the retention period (in seconds)") do |retention|
     options[:retention_period] = retention
   end
 
-  opts.on("-b", "--batch-size SIZE", Integer, "Set the batch size for deletions") do |batch|
+  opts.on(
+    "-b", "--batch-size SIZE", Integer,
+    "Set the batch size for deletions") do |batch|
     options[:batch_size] = batch
   end
 end.parse!
 
-log_level = options[:log_level] ? options[:log_level].upcase : 'INFO'
+log_level = options[:log_level] ? options[:log_level].upcase : "INFO"
 interval = options[:interval] || 1
 retention_period = options[:retention_period] || 10
 batch_size = options[:batch_size] || 100
 
-environment = ENV['APP_ENV'] || 'development'
+environment = ENV["APP_ENV"] || "development"
 
 logger = Outboxer::Logger.new($stdout, level: log_level)
 
 db_config = Outboxer::Database.config(environment: environment, pool: 1)
 Outboxer::Database.connect(config: db_config, logger: logger)
 
-$running = true
+reader, writer = IO.pipe
 
-['INT', 'TERM'].each do |signal|
-  Signal.trap(signal) { $running = false }
+["INT", "TERM"].each do |signal|
+  Signal.trap(signal) { writer.puts(signal) }
 end
 
 last_run_time = Time.now
 
 begin
-  while $running
+  while (message = reader.gets)
+    break if ["INT", "TERM"].include?(message.strip!)
+
     current_time = Time.now
 
     if (current_time - last_run_time) >= interval
@@ -62,9 +72,9 @@ begin
       sleep 1
     end
   end
-rescue => e
-  logger.error "An error occurred: #{e.message}"
-  logger.error "Backtrace: #{e.backtrace.join("\n")}"
+rescue StandardError => error
+  logger.error "An error occurred: #{error.message}"
+  logger.error "Backtrace: #{error.backtrace.join("\n")}"
   raise
 ensure
   logger.info "Outboxer published messages deleter shutting down"

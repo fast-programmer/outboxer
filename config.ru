@@ -1,22 +1,23 @@
-require 'bundler/setup'
+require "bundler/setup"
 
-require 'dotenv/load'
+require "dotenv/load"
 
-require 'securerandom'
-require 'sinatra'
-require 'sidekiq'
-require 'sidekiq/web'
-require 'outboxer/web'
+require "securerandom"
+require "sinatra"
+require "sidekiq"
+require "sidekiq/web"
+require "outboxer/web"
 
-require_relative 'app/models/application_record'
-require_relative 'app/models/event'
+require_relative "app/models/application_record"
+require_relative "app/models/event"
 
-use Rack::Session::Cookie, secret: ENV['SESSION_SECRET'], same_site: true, max_age: 86400
+use Rack::Session::Cookie,
+  secret: ENV.fetch("SESSION_SECRET", nil), same_site: true, max_age: 86_400
 
-map '/outboxer' do
+map "/outboxer" do
   run Outboxer::Web
 end
 
-map '/sidekiq' do
+map "/sidekiq" do
   run Sidekiq::Web
 end

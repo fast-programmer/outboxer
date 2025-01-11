@@ -6,11 +6,11 @@ module Outboxer
       belongs_to :publisher, class_name: "Outboxer::Models::Publisher"
 
       module Status
-        QUEUED = 'queued'
-        BUFFERED = 'buffered'
-        PUBLISHING = 'publishing'
-        PUBLISHED = 'published'
-        FAILED = 'failed'
+        QUEUED = "queued"
+        BUFFERED = "buffered"
+        PUBLISHING = "publishing"
+        PUBLISHED = "published"
+        FAILED = "failed"
       end
 
       STATUSES = [
@@ -34,7 +34,7 @@ module Outboxer
 
       has_many :exceptions,
         -> { order(created_at: :asc) },
-        foreign_key: 'message_id',
+        foreign_key: "message_id",
         class_name: "Outboxer::Models::Exception",
         dependent: :destroy
     end

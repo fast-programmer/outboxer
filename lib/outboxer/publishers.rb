@@ -1,6 +1,6 @@
 module Outboxer
   module Publishers
-    extend self
+    module_function
 
     def all
       ActiveRecord::Base.connection_pool.with_connection do
@@ -20,7 +20,7 @@ module Outboxer
                 {
                   id: signal.id,
                   name: signal.name,
-                  created_at: signal.created_at.utc,
+                  created_at: signal.created_at.utc
                 }
               end
             }

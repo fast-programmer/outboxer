@@ -2,12 +2,25 @@ source "https://rubygems.org"
 
 gemspec
 
+gem "mysql2", "~> 0.5.6"
 gem "pg", "~> 1.5"
-gem 'mysql2', '~> 0.5.6'
-gem "sidekiq", "~> 7.2"
-
 gem "puma", "~> 6.5"
-
-gem "rackup", "~> 2.0"
 gem "rack-flash3", "~> 1.0"
+gem "rackup", "~> 2.0"
+gem "sidekiq", "~> 7.2"
 gem "sinatra", "~> 4.0"
+
+group :development, :test do
+  gem "database_cleaner", "~> 2.0"
+  gem "dotenv", "~> 3.0"
+  gem "factory_bot", "~> 6.0"
+  gem "foreman", "~> 0.0"
+  gem "pry-byebug", "~> 3.0"
+  gem "rack-test", "~> 2.1"
+  gem "rake", "~> 13.0"
+  gem "rerun", "~> 0.0"
+  gem "rspec", "~> 3.0"
+  gem "rubocop", "~> 1.70"
+  gem "simplecov", "~> 0.0"
+  gem "yard", ">= 0.9.36", "< 1.0"
+end

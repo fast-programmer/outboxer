@@ -1,25 +1,25 @@
 FactoryBot.define do
-  factory :outboxer_publisher, class: 'Outboxer::Models::Publisher' do
-    name { 'server-01:57000' }
+  factory :outboxer_publisher, class: "Outboxer::Models::Publisher" do
+    name { "server-01:57000" }
     status { Outboxer::Models::Publisher::Status::PUBLISHING }
-    settings {
+    settings do
       {
-        'buffer' => 1000,
-        'concurrency' => 3,
-        'tick' => 0.1,
-        'poll' => 5.0,
-        'heartbeat' => 5
+        "buffer" => 1000,
+        "concurrency" => 3,
+        "tick" => 0.1,
+        "poll" => 5.0,
+        "heartbeat" => 5
       }
-    }
-    metrics {
+    end
+    metrics do
       {
-        'throughput' => 1000,
-        'latency' => 0,
-        'cpu' => 10.5,
-        'rss' => 40.95,
-        'rtt' => 3.35
+        "throughput" => 1000,
+        "latency" => 0,
+        "cpu" => 10.5,
+        "rss" => 40.95,
+        "rtt" => 3.35
       }
-    }
+    end
     created_at { DateTime.parse("2024-11-10T00:00:00") }
     updated_at { DateTime.parse("2024-11-10T00:00:00") }
 

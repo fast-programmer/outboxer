@@ -1,6 +1,6 @@
 module OutboxerIntegration
   class Test < ApplicationRecord
-    self.table_name = 'outboxer_integration_tests'
+    self.table_name = "outboxer_integration_tests"
 
     def self.start(user_id: nil, tenant_id: nil)
       transaction do
@@ -11,8 +11,10 @@ module OutboxerIntegration
           tenant_id: tenant_id,
           eventable: test,
           body: {
-            'test' => {
-              'id' => test.id } })
+            "test" => {
+              "id" => test.id
+            }
+          })
 
         { id: test.id, events: [{ id: event.id, type: event.type }] }
       end
@@ -29,8 +31,10 @@ module OutboxerIntegration
           tenant_id: started_event.tenant_id,
           eventable: test,
           body: {
-            'test' => {
-              'id' => test.id } })
+            "test" => {
+              "id" => test.id
+            }
+          })
 
         { id: test.id, events: [{ id: event.id, type: event.type }] }
       end

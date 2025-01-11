@@ -1,6 +1,6 @@
 FactoryBot.define do
-  factory :outboxer_message, class: 'Outboxer::Models::Message' do
-    messageable_type { 'Event' }
+  factory :outboxer_message, class: "Outboxer::Models::Message" do
+    messageable_type { "Event" }
     messageable_id { 1 }
 
     status { Outboxer::Models::Message::Status::PUBLISHED }
@@ -10,7 +10,7 @@ FactoryBot.define do
     updated_at { 7.seconds.ago }
 
     publisher_id { 5 }
-    publisher_name { 'server-01:47000' }
+    publisher_name { "server-01:47000" }
 
     trait :queued do
       status { Outboxer::Models::Message::Status::QUEUED }

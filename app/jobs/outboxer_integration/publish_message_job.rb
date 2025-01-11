@@ -3,8 +3,8 @@ module OutboxerIntegration
     include Sidekiq::Job
 
     def perform(args)
-      job_class_name = to_job_class_name(messageable_type: args['messageable_type'])
-      job_class_name&.safe_constantize&.perform_async('event_id' => args['messageable_id'])
+      job_class_name = to_job_class_name(messageable_type: args["messageable_type"])
+      job_class_name&.safe_constantize&.perform_async("event_id" => args["messageable_id"])
     end
 
     def to_job_class_name(messageable_type:)
