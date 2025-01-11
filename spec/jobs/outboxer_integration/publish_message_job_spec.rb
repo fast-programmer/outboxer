@@ -37,7 +37,7 @@ module OutboxerIntegration
         it "does not enqueue any job" do
           expect do
             PublishMessageJob.new.perform(args)
-          end.not_to change { Sidekiq::Worker.jobs.size }
+          end.not_to(change { Sidekiq::Worker.jobs.size })
         end
       end
 
@@ -52,7 +52,7 @@ module OutboxerIntegration
         it "does not enqueue any job and handles the error silently" do
           expect do
             PublishMessageJob.new.perform(args)
-          end.not_to change { Sidekiq::Worker.jobs.size }
+          end.not_to(change { Sidekiq::Worker.jobs.size })
         end
       end
     end
