@@ -471,38 +471,38 @@ module Outboxer
 
       case params[:action]
       when "requeue_by_ids"
-          result = Messages.requeue_by_ids(ids: ids)
+        result = Messages.requeue_by_ids(ids: ids)
 
-          message_text = result[:requeued_count] == 1 ? "message" : "messages"
+        message_text = result[:requeued_count] == 1 ? "message" : "messages"
 
-          if result[:requeued_count] > 0
-            flash[:primary] = "Requeued #{result[:requeued_count]} #{message_text}"
-          end
-
-          unless result[:not_requeued_ids].empty?
-            flash[:warning] = "Could not requeue #{message_text} with ids " \
-              "#{result[:not_requeued_ids].join(', ')}"
-          end
-
-          result
-      when "delete_by_ids"
-          result = Messages.delete_by_ids(ids: ids)
-
-          message_text = result[:deleted_count] == 1 ? "message" : "messages"
-
-          if result[:deleted_count] > 0
-            flash[:primary] = "Deleted #{result[:deleted_count]} #{message_text}"
-          end
-
-          unless result[:not_deleted_ids].empty?
-            flash[:warning] = "Could not delete #{message_text} with ids "\
-              "#{result[:not_deleted_ids].join(", ")}"
-          end
-
-          result
-        else
-          raise "Unknown action: #{params[:action]}"
+        if result[:requeued_count] > 0
+          flash[:primary] = "Requeued #{result[:requeued_count]} #{message_text}"
         end
+
+        unless result[:not_requeued_ids].empty?
+          flash[:warning] = "Could not requeue #{message_text} with ids " \
+            "#{result[:not_requeued_ids].join(', ')}"
+        end
+
+        result
+      when "delete_by_ids"
+        result = Messages.delete_by_ids(ids: ids)
+
+        message_text = result[:deleted_count] == 1 ? "message" : "messages"
+
+        if result[:deleted_count] > 0
+          flash[:primary] = "Deleted #{result[:deleted_count]} #{message_text}"
+        end
+
+        unless result[:not_deleted_ids].empty?
+          flash[:warning] = "Could not delete #{message_text} with ids "\
+            "#{result[:not_deleted_ids].join(", ")}"
+        end
+
+        result
+      else
+        raise "Unknown action: #{params[:action]}"
+      end
 
       redirect to("/messages#{normalised_query_string}")
     end
