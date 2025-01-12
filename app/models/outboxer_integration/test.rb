@@ -2,13 +2,11 @@ module OutboxerIntegration
   class Test < ApplicationRecord
     self.table_name = "outboxer_integration_tests"
 
-    def self.start(user_id: nil, tenant_id: nil)
+    def self.start
       transaction do
-        test = create!(tenant_id: tenant_id)
+        test = create!
 
         event = TestStartedEvent.create!(
-          user_id: user_id,
-          tenant_id: tenant_id,
           eventable: test,
           body: {
             "test" => {
@@ -27,8 +25,6 @@ module OutboxerIntegration
         test.touch
 
         event = TestCompletedEvent.create!(
-          user_id: started_event.user_id,
-          tenant_id: started_event.tenant_id,
           eventable: test,
           body: {
             "test" => {

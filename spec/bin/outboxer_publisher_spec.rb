@@ -13,10 +13,7 @@ RSpec.describe "bin/outboxer_publisher" do
   it "performs event job handler async" do
     Sidekiq::Testing.disable!
 
-    user_id = rand(1..1000)
-    tenant_id = rand(1..1000)
-
-    test, _events = OutboxerIntegration::Test.start(user_id: user_id, tenant_id: tenant_id)
+    test, _events = OutboxerIntegration::Test.start
 
     env = {
       "RAILS_ENV" => "test",
