@@ -6,6 +6,7 @@ require "outboxer"
 
 Dir[File.expand_path("../app/models/**/*.rb", __dir__)].each { |file| require file }
 Dir[File.expand_path("../app/jobs/**/*.rb", __dir__)].each { |file| require file }
+Dir[File.expand_path("../app/services/**/*.rb", __dir__)].each { |file| require file }
 
 environment = ENV["RAILS_ENV"] || "development"
 
