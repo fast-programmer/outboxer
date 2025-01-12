@@ -58,6 +58,10 @@ module Outboxer
       copy_file(
         "app/models/outboxer_integration/test/completed_event.rb",
         "app/models/outboxer_integration/test/completed_event.rb")
+
+      copy_file(
+        "app/services/outboxer_integration/test_service.rb",
+        "app/services/outboxer_integration/test_service.rb")
     end
 
     def copy_bin_file
@@ -71,8 +75,12 @@ module Outboxer
         "app/jobs/outboxer_integration/message/publish_job.rb")
 
       copy_file(
-        "app/jobs/outboxer_integration/test/started_job.rb",
-        "app/jobs/outboxer_integration/test/started_job.rb")
+        "app/jobs/outboxer_integration/test_started_job.rb",
+        "app/jobs/outboxer_integration/test_started_job.rb")
+
+      copy_file(
+        "app/jobs/outboxer_integration/complete_test_job.rb",
+        "app/jobs/outboxer_integration/complete_test_job.rb")
     end
 
     def copy_specs
