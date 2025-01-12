@@ -33,50 +33,25 @@ bin/rails g outboxer:install
 bin/rake db:migrate
 ```
 
-### 5. Publish message to redis via sidekiq job
-
-```ruby
-Outboxer::Publisher.publish(logger: logger) do |message|
-  OutboxerIntegration::PublishMessageJob.perform_async({
-    'message_id' => message[:id],
-    'messageable_id' => message[:messageable_id],
-    'messageable_type' => message[:messageable_type] })
-end
-```
-
-### 6. route message to handler via sidekiq job
-
-```ruby
-module OutboxerIntegration
-  class PublishMessageJob
-    include Sidekiq::Job
-
-    def perform(args)
-      # route message to job handler
-    end
-  end
-end
-```
-
-### 7. run publisher
+### 5. run publisher
 
 ```bash
 bin/outboxer_publisher
 ```
 
-### 8. run sidekiq
+### 6. run sidekiq
 
 ```bash
 bin/sidekiq
 ```
 
-### 9. open rails console
+### 7. open rails console
 
 ```bash
 bin/rails c
 ```
 
-### 10. start test
+### 8. start test
 
 ```ruby
 OutboxerIntegration::Test.start
@@ -91,7 +66,7 @@ TRANSACTION (0.7ms)  COMMIT
 => {:id=>1, :events=>[{:id=>1, :type=>"OutboxerIntegration::TestStartedEvent"}]}
 ```
 
-### 11. Ensure test completed
+### 9. ensure test completed
 
 ```
 OutboxerIntegration::Test.find(1).events
