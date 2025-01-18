@@ -40,6 +40,10 @@ module Outboxer
       migration_template(
         "db/migrate/create_events.rb",
         "db/migrate/create_events.rb")
+
+      migration_template(
+        "db/migrate/create_outboxer_integration_tests.rb",
+        "db/migrate/create_outboxer_integration_tests.rb")
     end
 
     def copy_models
