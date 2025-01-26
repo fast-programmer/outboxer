@@ -1,10 +1,8 @@
 #!/usr/bin/env ruby
 
 require "bundler/setup"
-
 require "sidekiq"
 require "outboxer"
-
 require_relative "../app/jobs/outboxer_integration/publish_message_job"
 
 Outboxer::Publisher.publish do |message|
