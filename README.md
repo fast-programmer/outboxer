@@ -54,7 +54,7 @@ bin/rails c
 ### 8. start test
 
 ```ruby
-OutboxerIntegration::Test.start
+OutboxerIntegration::TestService.start
 ```
 
 ```
@@ -66,7 +66,7 @@ TRANSACTION (0.7ms)  COMMIT
 => {:id=>1, :events=>[{:id=>1, :type=>"OutboxerIntegration::TestStartedEvent"}]}
 ```
 
-### 9. ensure test completed
+### 9. ensure test completes
 
 ```
 OutboxerIntegration::Test.find(1).events

@@ -1,7 +1,4 @@
-require "spec_helper"
-
-require "sidekiq"
-require "sidekiq/testing"
+require "rails_helper"
 
 require_relative "../../app/models/application_record"
 require_relative "../../app/models/event"
@@ -25,7 +22,7 @@ RSpec.describe "bin/outboxer_publisher" do
     outboxer_publisher_cmd = File.join(Dir.pwd, "bin", "outboxer_publisher")
     outboxer_publisher_pid = spawn(env, outboxer_publisher_cmd)
 
-    sidekiq_cmd = "bundle exec sidekiq -c 1 -q default -r ./config/sidekiq.rb"
+    sidekiq_cmd = "bundle exec sidekiq -r ./config/sidekiq.rb"
     sidekiq_pid = spawn(env, sidekiq_cmd)
 
     max_attempts = 10

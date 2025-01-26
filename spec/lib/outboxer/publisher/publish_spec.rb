@@ -1,5 +1,5 @@
 # rubocop:disable Layout/LineLength
-require "spec_helper"
+require "rails_helper"
 
 module Outboxer
   RSpec.describe Publisher do

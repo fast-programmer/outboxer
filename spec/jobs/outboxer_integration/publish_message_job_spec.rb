@@ -1,4 +1,4 @@
-require "spec_helper"
+require "rails_helper"
 require "sidekiq"
 
 require_relative "../../../app/jobs/outboxer_integration/publish_message_job"
