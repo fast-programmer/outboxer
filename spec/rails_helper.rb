@@ -1,12 +1,12 @@
-require 'spec_helper'
+require "spec_helper"
 require "simplecov"
 require "pry-byebug"
 require "rack/test"
-require 'database_cleaner'
-require 'factory_bot'
+require "database_cleaner"
+require "factory_bot"
 require "sidekiq"
 require "sidekiq/testing"
-require_relative '../lib/outboxer'
+require_relative "../lib/outboxer"
 Dir[File.join(__dir__, "factories/**/*.rb")].each { |f| require f }
 
 SimpleCov.start
