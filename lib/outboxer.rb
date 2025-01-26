@@ -1,4 +1,3 @@
-require "logger"
 require "active_record"
 
 require_relative "outboxer/version"
