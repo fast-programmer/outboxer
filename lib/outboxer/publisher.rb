@@ -261,7 +261,7 @@ module Outboxer
                 signal = publisher.signals.order(created_at: :asc).first
 
                 if !signal.nil?
-                  handle_signal(id: id, name: signal.name, logger: logger, process: process)
+                  handle_signal(id: id, name: signal.name, logger: logger)
                   signal.destroy
                 end
 
