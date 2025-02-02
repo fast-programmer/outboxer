@@ -1,16 +1,70 @@
 {
   "ignored_warnings": [
     {
-      "fingerprint": "1c5ef0e65c33f7623a6ee8ad25776d3ff04ad14854fd09191147088740c4afb1",
       "warning_type": "Command Injection",
+      "warning_code": 14,
+      "fingerprint": "1c5ef0e65c33f7623a6ee8ad25776d3ff04ad14854fd09191147088740c4afb1",
+      "check_name": "Execute",
+      "message": "Possible command injection",
       "file": "lib/outboxer/publisher.rb",
-      "line": 187
+      "line": 245,
+      "link": "https://brakemanscanner.org/docs/warning_types/command_injection/",
+      "code": "`ps -p #{process.pid} -o %cpu`",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "Outboxer::Publisher",
+        "method": "create_heartbeat_thread"
+      },
+      "user_input": "process.pid",
+      "confidence": "Medium",
+      "cwe_id": [
+        77
+      ],
+      "note": ""
     },
     {
-      "fingerprint": "df8ee41d7c5028a1429c07753f227d3a6d50128f04364d957988e9a60863b375",
+      "warning_type": "Unmaintained Dependency",
+      "warning_code": 123,
+      "fingerprint": "715ee6d743a8af33c7b930d728708ce19c765fb40e2ad9d2b974db04d92dc7d1",
+      "check_name": "EOLRuby",
+      "message": "Support for Ruby 3.1.6 ends on 2025-03-31",
+      "file": ".ruby-version",
+      "line": 1,
+      "link": "https://brakemanscanner.org/docs/warning_types/unmaintained_dependency/",
+      "code": null,
+      "render_path": null,
+      "location": null,
+      "user_input": null,
+      "confidence": "Weak",
+      "cwe_id": [
+        1104
+      ],
+      "note": ""
+    },
+    {
       "warning_type": "Command Injection",
+      "warning_code": 14,
+      "fingerprint": "df8ee41d7c5028a1429c07753f227d3a6d50128f04364d957988e9a60863b375",
+      "check_name": "Execute",
+      "message": "Possible command injection",
       "file": "lib/outboxer/publisher.rb",
-      "line": 188
+      "line": 246,
+      "link": "https://brakemanscanner.org/docs/warning_types/command_injection/",
+      "code": "`ps -p #{process.pid} -o rss`",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "Outboxer::Publisher",
+        "method": "create_heartbeat_thread"
+      },
+      "user_input": "process.pid",
+      "confidence": "Medium",
+      "cwe_id": [
+        77
+      ],
+      "note": ""
     }
-  ]
+  ],
+  "brakeman_version": "7.0.0"
 }
