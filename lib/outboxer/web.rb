@@ -38,8 +38,6 @@ Outboxer::Database.connect(config: config)
 
 module Outboxer
   class Web < Sinatra::Base
-    enable :sessions
-
     use Rack::Flash
 
     set :logger, Logger.new($stdout)
@@ -608,7 +606,7 @@ module Outboxer
       message = Message.find_by_id(id: params[:id])
 
       messageable_class = Object.const_get(message[:messageable_type])
-      messageable = messageable_class.find(message[:messageable_id])
+      messageable = messageable_class.find_by_id(id: message[:messageable_id])
 
       erb :message, locals: {
         denormalised_query_params: denormalised_query_params,
