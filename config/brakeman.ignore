@@ -3,17 +3,40 @@
     {
       "warning_type": "Command Injection",
       "warning_code": 14,
-      "fingerprint": "1c5ef0e65c33f7623a6ee8ad25776d3ff04ad14854fd09191147088740c4afb1",
+      "fingerprint": "15eb632fbca4d05e6dcec2ba9eff1892752aa5fe12552cc1c5eba917eb3dd933",
       "check_name": "Execute",
       "message": "Possible command injection",
-      "file": "lib/outboxer/publisher.rb",
+      "file": "lib/outboxer/services/publisher_service.rb",
+      "line": 246,
+      "link": "https://brakemanscanner.org/docs/warning_types/command_injection/",
+      "code": "`ps -p #{process.pid} -o rss`",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "Outboxer::PublisherService",
+        "method": "create_heartbeat_thread"
+      },
+      "user_input": "process.pid",
+      "confidence": "Medium",
+      "cwe_id": [
+        77
+      ],
+      "note": ""
+    },
+    {
+      "warning_type": "Command Injection",
+      "warning_code": 14,
+      "fingerprint": "656449dcf075212756259d96785b3df3d5ab4db63a48255379010c28dce0e512",
+      "check_name": "Execute",
+      "message": "Possible command injection",
+      "file": "lib/outboxer/services/publisher_service.rb",
       "line": 245,
       "link": "https://brakemanscanner.org/docs/warning_types/command_injection/",
       "code": "`ps -p #{process.pid} -o %cpu`",
       "render_path": null,
       "location": {
         "type": "method",
-        "class": "Outboxer::Publisher",
+        "class": "Outboxer::PublisherService",
         "method": "create_heartbeat_thread"
       },
       "user_input": "process.pid",
@@ -39,29 +62,6 @@
       "confidence": "Weak",
       "cwe_id": [
         1104
-      ],
-      "note": ""
-    },
-    {
-      "warning_type": "Command Injection",
-      "warning_code": 14,
-      "fingerprint": "df8ee41d7c5028a1429c07753f227d3a6d50128f04364d957988e9a60863b375",
-      "check_name": "Execute",
-      "message": "Possible command injection",
-      "file": "lib/outboxer/publisher.rb",
-      "line": 246,
-      "link": "https://brakemanscanner.org/docs/warning_types/command_injection/",
-      "code": "`ps -p #{process.pid} -o rss`",
-      "render_path": null,
-      "location": {
-        "type": "method",
-        "class": "Outboxer::Publisher",
-        "method": "create_heartbeat_thread"
-      },
-      "user_input": "process.pid",
-      "confidence": "Medium",
-      "cwe_id": [
-        77
       ],
       "note": ""
     }

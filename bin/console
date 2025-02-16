@@ -11,8 +11,8 @@ Dir.glob(File.join(__dir__, "../app/models/**/*.rb")).each do |file|
 end
 
 environment = ENV["RAILS_ENV"] || "development"
-db_config = Outboxer::Database.config(environment: environment, pool: 1)
-Outboxer::Database.connect(config: db_config)
+db_config = Outboxer::DatabaseService.config(environment: environment, pool: 1)
+Outboxer::DatabaseService.connect(config: db_config)
 
 Sidekiq.configure_client do |config|
   redis_url = ENV["REDIS_URL"] || "redis://localhost:6379/0"

@@ -14,17 +14,17 @@ RSpec.describe "POST /messages/delete_all", type: :request do
 
   let!(:event_1) { Event.create!(id: 1, type: "Event") }
   let!(:message_1) do
-    Outboxer::Models::Message.find_by!(messageable_type: "Event", messageable_id: event_1.id)
+    Outboxer::Message.find_by!(messageable_type: "Event", messageable_id: event_1.id)
   end
 
   let!(:event_2) { Event.create!(id: 2, type: "Event") }
   let!(:message_2) do
-    Outboxer::Models::Message.find_by!(messageable_type: "Event", messageable_id: event_2.id)
+    Outboxer::Message.find_by!(messageable_type: "Event", messageable_id: event_2.id)
   end
 
   let!(:event_3) { Event.create!(id: 3, type: "Event") }
   let!(:message_3) do
-    Outboxer::Models::Message.find_by!(messageable_type: "Event", messageable_id: event_3.id)
+    Outboxer::Message.find_by!(messageable_type: "Event", messageable_id: event_3.id)
   end
 
   context "when no status provided" do
@@ -43,7 +43,7 @@ RSpec.describe "POST /messages/delete_all", type: :request do
     end
 
     it "deletes all messages" do
-      expect(Outboxer::Models::Message.count).to eq(0)
+      expect(Outboxer::Message.count).to eq(0)
     end
 
     it "does not delete events" do
@@ -63,8 +63,8 @@ RSpec.describe "POST /messages/delete_all", type: :request do
 
   context "when failed status provided" do
     before do
-      message_2.update!(status: Outboxer::Models::Message::Status::PUBLISHING)
-      message_3.update!(status: Outboxer::Models::Message::Status::FAILED)
+      message_2.update!(status: Outboxer::Message::Status::PUBLISHING)
+      message_3.update!(status: Outboxer::Message::Status::FAILED)
 
       header "Host", "localhost"
 
@@ -81,12 +81,12 @@ RSpec.describe "POST /messages/delete_all", type: :request do
     end
 
     it "deletes failed messages" do
-      expect(Outboxer::Models::Message.failed.count).to eq(0)
+      expect(Outboxer::Message.failed.count).to eq(0)
     end
 
     it "does not delete other messages" do
-      expect(Outboxer::Models::Message.queued.count).to eq(1)
-      expect(Outboxer::Models::Message.publishing.count).to eq(1)
+      expect(Outboxer::Message.queued.count).to eq(1)
+      expect(Outboxer::Message.publishing.count).to eq(1)
     end
 
     it "redirects to /messages" do

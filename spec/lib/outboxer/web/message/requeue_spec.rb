@@ -14,7 +14,7 @@ RSpec.describe "POST /message/:id/requeue", type: :request do
 
   let!(:event) { Event.create!(id: 1, type: "Event") }
   let!(:message) do
-    Outboxer::Models::Message.find_by!(messageable_type: "Event", messageable_id: event.id)
+    Outboxer::Message.find_by!(messageable_type: "Event", messageable_id: event.id)
   end
 
   before do

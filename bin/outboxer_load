@@ -12,8 +12,8 @@ if max_messages_count <= 0
 end
 
 environment = ENV.fetch("RAILS_ENV", "development")
-db_config = Outboxer::Database.config(environment: environment, pool: 1)
-Outboxer::Database.connect(config: db_config)
+db_config = Outboxer::DatabaseService.config(environment: environment, pool: 1)
+Outboxer::DatabaseService.connect(config: db_config)
 
 reader, writer = IO.pipe
 
@@ -25,7 +25,7 @@ while queued_messages_count < max_messages_count
   break if reader.wait_readable(0) && reader.gets.strip == "INT"
 
   messageable_id = SecureRandom.hex(3)
-  Outboxer::Message.queue(messageable_type: "Event", messageable_id: messageable_id)
+  Outboxer::MessageService.queue(messageable_type: "Event", messageable_id: messageable_id)
   puts "queued message for Event::#{messageable_id}"
   queued_messages_count += 1
 end
