@@ -33,8 +33,8 @@ require "rack/flash"
 
 environment = ENV["RAILS_ENV"] || "development"
 
-config = Outboxer::Database.config(environment: environment, pool: 5)
-Outboxer::Database.connect(config: config)
+config = Outboxer::DatabaseService.config(environment: environment, pool: 5)
+Outboxer::DatabaseService.connect(config: config)
 
 module Outboxer
   class Web < Sinatra::Base
@@ -48,7 +48,7 @@ module Outboxer
     set :show_exceptions, false
 
     configure do
-      Settings.create
+      SettingsService.create
     end
 
     helpers do
@@ -215,9 +215,9 @@ module Outboxer
         per_page: denormalised_query_params[:per_page],
         time_zone: denormalised_query_params[:time_zone])
 
-      messages_metrics = Messages.metrics
+      messages_metrics = MessagesService.metrics
 
-      publishers = Publishers.all
+      publishers = PublishersService.all
 
       erb :home, locals: {
         messages_metrics: messages_metrics,
@@ -273,9 +273,9 @@ module Outboxer
         per_page: denormalised_query_params[:per_page],
         time_zone: denormalised_query_params[:time_zone])
 
-      messages_metrics = Messages.metrics
+      messages_metrics = MessagesService.metrics
 
-      paginated_messages = Messages.list(
+      paginated_messages = MessagesService.list(
         status: denormalised_query_params[:status],
         sort: denormalised_query_params[:sort],
         order: denormalised_query_params[:order],
@@ -400,44 +400,44 @@ module Outboxer
       end
     end
 
-    def denormalise_query_params(status: Messages::LIST_STATUS_DEFAULT,
-                                 sort: Messages::LIST_SORT_DEFAULT,
-                                 order: Messages::LIST_ORDER_DEFAULT,
-                                 page: Messages::LIST_PAGE_DEFAULT,
-                                 per_page: Messages::LIST_PER_PAGE_DEFAULT,
-                                 time_zone: Messages::LIST_TIME_ZONE_DEFAULT)
+    def denormalise_query_params(status: MessagesService::LIST_STATUS_DEFAULT,
+                                 sort: MessagesService::LIST_SORT_DEFAULT,
+                                 order: MessagesService::LIST_ORDER_DEFAULT,
+                                 page: MessagesService::LIST_PAGE_DEFAULT,
+                                 per_page: MessagesService::LIST_PER_PAGE_DEFAULT,
+                                 time_zone: MessagesService::LIST_TIME_ZONE_DEFAULT)
       {
-        status: status&.to_sym || Messages::LIST_STATUS_DEFAULT,
-        sort: sort&.to_sym || Messages::LIST_SORT_DEFAULT,
-        order: order&.to_sym || Messages::LIST_ORDER_DEFAULT,
-        page: page&.to_i || Messages::LIST_PAGE_DEFAULT,
-        per_page: per_page&.to_i || Messages::LIST_PER_PAGE_DEFAULT,
-        time_zone: time_zone&.to_s || Messages::LIST_TIME_ZONE_DEFAULT
+        status: status&.to_sym || MessagesService::LIST_STATUS_DEFAULT,
+        sort: sort&.to_sym || MessagesService::LIST_SORT_DEFAULT,
+        order: order&.to_sym || MessagesService::LIST_ORDER_DEFAULT,
+        page: page&.to_i || MessagesService::LIST_PAGE_DEFAULT,
+        per_page: per_page&.to_i || MessagesService::LIST_PER_PAGE_DEFAULT,
+        time_zone: time_zone&.to_s || MessagesService::LIST_TIME_ZONE_DEFAULT
       }
     end
 
-    def normalise_query_params(status: Messages::LIST_STATUS_DEFAULT,
-                               sort: Messages::LIST_SORT_DEFAULT,
-                               order: Messages::LIST_ORDER_DEFAULT,
-                               page: Messages::LIST_PAGE_DEFAULT,
-                               per_page: Messages::LIST_PER_PAGE_DEFAULT,
-                               time_zone: Messages::LIST_TIME_ZONE_DEFAULT)
+    def normalise_query_params(status: MessagesService::LIST_STATUS_DEFAULT,
+                               sort: MessagesService::LIST_SORT_DEFAULT,
+                               order: MessagesService::LIST_ORDER_DEFAULT,
+                               page: MessagesService::LIST_PAGE_DEFAULT,
+                               per_page: MessagesService::LIST_PER_PAGE_DEFAULT,
+                               time_zone: MessagesService::LIST_TIME_ZONE_DEFAULT)
       {
-        status: status == Messages::LIST_STATUS_DEFAULT ? nil : status,
-        sort: sort == Messages::LIST_SORT_DEFAULT ? nil : sort,
-        order: order == Messages::LIST_ORDER_DEFAULT ? nil : order,
-        page: page.to_i == Messages::LIST_PAGE_DEFAULT ? nil : page,
-        per_page: per_page.to_i == Messages::LIST_PER_PAGE_DEFAULT ? nil : per_page,
-        time_zone: time_zone.to_s == Messages::LIST_TIME_ZONE_DEFAULT ? nil : time_zone
+        status: status == MessagesService::LIST_STATUS_DEFAULT ? nil : status,
+        sort: sort == MessagesService::LIST_SORT_DEFAULT ? nil : sort,
+        order: order == MessagesService::LIST_ORDER_DEFAULT ? nil : order,
+        page: page.to_i == MessagesService::LIST_PAGE_DEFAULT ? nil : page,
+        per_page: per_page.to_i == MessagesService::LIST_PER_PAGE_DEFAULT ? nil : per_page,
+        time_zone: time_zone.to_s == MessagesService::LIST_TIME_ZONE_DEFAULT ? nil : time_zone
       }.compact
     end
 
-    def normalise_query_string(status: Messages::LIST_STATUS_DEFAULT,
-                               sort: Messages::LIST_SORT_DEFAULT,
-                               order: Messages::LIST_ORDER_DEFAULT,
-                               page: Messages::LIST_PAGE_DEFAULT,
-                               per_page: Messages::LIST_PER_PAGE_DEFAULT,
-                               time_zone: Messages::LIST_TIME_ZONE_DEFAULT)
+    def normalise_query_string(status: MessagesService::LIST_STATUS_DEFAULT,
+                               sort: MessagesService::LIST_SORT_DEFAULT,
+                               order: MessagesService::LIST_ORDER_DEFAULT,
+                               page: MessagesService::LIST_PAGE_DEFAULT,
+                               per_page: MessagesService::LIST_PER_PAGE_DEFAULT,
+                               time_zone: MessagesService::LIST_TIME_ZONE_DEFAULT)
       normalised_query_params = normalise_query_params(
         status: status,
         sort: sort,
@@ -470,7 +470,7 @@ module Outboxer
 
       case params[:action]
       when "requeue_by_ids"
-        result = Messages.requeue_by_ids(ids: ids)
+        result = MessagesService.requeue_by_ids(ids: ids)
 
         message_text = result[:requeued_count] == 1 ? "message" : "messages"
 
@@ -485,7 +485,7 @@ module Outboxer
 
         result
       when "delete_by_ids"
-        result = Messages.delete_by_ids(ids: ids)
+        result = MessagesService.delete_by_ids(ids: ids)
 
         message_text = result[:deleted_count] == 1 ? "message" : "messages"
 
@@ -523,7 +523,7 @@ module Outboxer
         per_page: denormalised_query_params[:per_page],
         time_zone: denormalised_query_params[:time_zone])
 
-      result = Messages.requeue_all(
+      result = MessagesService.requeue_all(
         status: denormalised_query_params[:status])
 
       message_text = result[:requeued_count] == 1 ? "message" : "messages"
@@ -549,7 +549,7 @@ module Outboxer
         per_page: denormalised_query_params[:per_page],
         time_zone: denormalised_query_params[:time_zone])
 
-      result = Messages.delete_all(
+      result = MessagesService.delete_all(
         status: denormalised_query_params[:status], older_than: Time.now.utc)
 
       message_text = result[:deleted_count] == 1 ? "message" : "messages"
@@ -603,9 +603,9 @@ module Outboxer
         per_page: denormalised_query_params[:per_page],
         time_zone: denormalised_query_params[:time_zone])
 
-      messages_metrics = Messages.metrics
+      messages_metrics = MessagesService.metrics
 
-      message = Message.find_by_id(id: params[:id])
+      message = MessageService.find_by_id(id: params[:id])
 
       messageable_class = Object.const_get(message[:messageable_type])
       messageable = messageable_class.find(message[:messageable_id])
@@ -629,8 +629,8 @@ module Outboxer
         per_page: params[:per_page],
         time_zone: params[:time_zone])
 
-      message = Message.find_by_id(id: params[:id])
-      messages_metrics = Messages.metrics
+      message = MessageService.find_by_id(id: params[:id])
+      messages_metrics = MessagesService.metrics
 
       messageable_class = Object.const_get(message[:messageable_type])
       messageable = messageable_class.find(message[:messageable_id])
@@ -660,7 +660,7 @@ module Outboxer
         per_page: denormalised_query_params[:per_page],
         time_zone: denormalised_query_params[:time_zone])
 
-      Message.requeue(id: params[:id])
+      MessageService.requeue(id: params[:id])
 
       flash[:primary] = "Message #{params[:id]} was queued"
 
@@ -684,7 +684,7 @@ module Outboxer
         per_page: denormalised_query_params[:per_page],
         time_zone: denormalised_query_params[:time_zone])
 
-      Message.delete(id: params[:id])
+      MessageService.delete(id: params[:id])
 
       flash[:primary] = "Message #{params[:id]} was deleted"
 
@@ -716,9 +716,9 @@ module Outboxer
         per_page: denormalised_query_params[:per_page],
         time_zone: denormalised_query_params[:time_zone])
 
-      publisher = Publisher.find_by_id(id: params[:id])
+      publisher = PublisherService.find_by_id(id: params[:id])
 
-      messages_metrics = Messages.metrics
+      messages_metrics = MessagesService.metrics
 
       erb :publisher, locals: {
         messages_metrics: messages_metrics,
@@ -746,7 +746,7 @@ module Outboxer
         per_page: denormalised_query_params[:per_page],
         time_zone: denormalised_query_params[:time_zone])
 
-      Publisher.delete(id: params[:id])
+      PublisherService.delete(id: params[:id])
 
       flash[:primary] = "Publisher #{params[:id]} was deleted"
 
@@ -770,7 +770,7 @@ module Outboxer
         per_page: denormalised_query_params[:per_page],
         time_zone: denormalised_query_params[:time_zone])
 
-      Publisher.signal(id: params[:id], name: params[:name])
+      PublisherService.signal(id: params[:id], name: params[:name])
 
       flash[:primary] = "Publisher #{params[:id]} signalled #{params[:name]}"
 

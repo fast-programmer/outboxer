@@ -95,7 +95,7 @@
 
                     <!-- Timezone Select Box -->
                     <select id="timeZoneSelect" name="time_zone" class="form-select form-select-sm w-auto">
-                        <% Outboxer::Messages::LIST_TIME_ZONE_OPTIONS.each do |time_zone| %>
+                        <% Outboxer::MessagesService::LIST_TIME_ZONE_OPTIONS.each do |time_zone| %>
                             <option value="<%= time_zone %>" <%= 'selected' if denormalised_query_params[:time_zone] == time_zone %>>
                                 <%= time_zone %>
                             </option>
