@@ -233,7 +233,10 @@ module Outboxer
 
             deleted_count_batch = Models::Message.where(id: message_ids).delete_all
 
-            [MessageService::Status::PUBLISHED, MessageService::Status::FAILED].each do |message_status|
+            [
+              MessageService::Status::PUBLISHED,
+              MessageService::Status::FAILED
+            ].each do |message_status|
               current_messages = messages.select { |message| message[:status] == message_status }
 
               if current_messages.count > 0

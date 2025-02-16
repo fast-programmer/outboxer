@@ -23,13 +23,17 @@ module Outboxer
 
       context "when status is publishing" do
         it "returns true" do
-          expect(MessagesService.can_requeue?(status: MessageService::Status::PUBLISHING)).to eq true
+          expect(
+            MessagesService.can_requeue?(status: MessageService::Status::PUBLISHING)
+          ).to eq true
         end
       end
 
       context "when status is failed" do
         it "returns true" do
-          expect(MessagesService.can_requeue?(status: MessageService::Status::FAILED)).to eq true
+          expect(
+            MessagesService.can_requeue?(status: MessageService::Status::FAILED)
+          ).to eq true
         end
       end
 

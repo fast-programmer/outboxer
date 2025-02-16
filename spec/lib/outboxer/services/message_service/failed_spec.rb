@@ -45,7 +45,8 @@ module Outboxer
 
           expect(publishing_message.exceptions[0].frames[0].index).to eq(0)
           expect(publishing_message.exceptions[0].frames[0].text)
-            .to include("outboxer/spec/lib/outboxer/services/message_service/failed_spec.rb:8:in `raise_exception")
+            .to include("outboxer/spec/lib/outboxer/services/message_service/" \
+              "failed_spec.rb:8:in `raise_exception")
         end
       end
 
