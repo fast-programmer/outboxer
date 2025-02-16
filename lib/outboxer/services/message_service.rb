@@ -1,5 +1,5 @@
 module Outboxer
-  module Message
+  module MessageService
     module_function
 
     Status = Models::Message::Status

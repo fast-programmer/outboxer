@@ -2,14 +2,14 @@
 require "rails_helper"
 
 module Outboxer
-  RSpec.describe Publisher do
+  RSpec.describe PublisherService do
     describe ".publish" do
       let(:environment) { "test" }
       let(:buffer) { 1 }
       let(:poll) { 1 }
       let(:tick) { 0.1 }
       let(:logger) { instance_double(Logger, debug: true, error: true, fatal: true, info: true) }
-      let(:database) { class_double(Database, config: nil, connect: nil, disconnect: nil) }
+      let(:database) { class_double(DatabaseService, config: nil, connect: nil, disconnect: nil) }
       let(:kernel) { class_double(Kernel, sleep: nil) }
 
       before do
@@ -21,7 +21,7 @@ module Outboxer
       context "when TTIN signal sent" do
         it "dumps stack trace" do
           publish_thread = Thread.new do
-            Outboxer::Publisher.publish(
+            Outboxer::PublisherService.publish(
               environment: environment,
               buffer: buffer,
               poll: poll,
@@ -48,7 +48,7 @@ module Outboxer
       context "when stopped and resumed during message publishing" do
         it "stops and resumes the publishing process correctly" do
           publish_thread = Thread.new do
-            Outboxer::Publisher.publish(
+            Outboxer::PublisherService.publish(
               environment: environment,
               buffer: buffer,
               poll: poll,
@@ -72,7 +72,7 @@ module Outboxer
 
       context "when message published successfully" do
         it "sets the message to published" do
-          Publisher.publish(
+          PublisherService.publish(
             environment: environment,
             buffer: buffer,
             poll: poll,
@@ -97,7 +97,7 @@ module Outboxer
           let(:standard_error) { StandardError.new("some error") }
 
           before do
-            Publisher.publish(
+            PublisherService.publish(
               environment: environment,
               buffer: buffer,
               poll: poll,
@@ -140,7 +140,7 @@ module Outboxer
           let(:no_memory_error) { NoMemoryError.new }
 
           before do
-            Publisher.publish(
+            PublisherService.publish(
               environment: environment,
               buffer: buffer,
               poll: poll,
@@ -176,11 +176,11 @@ module Outboxer
           end
         end
 
-        context "when Messages.buffer raises a StandardError" do
+        context "when MessagesService.buffer raises a StandardError" do
           it "logs the error and continues processing" do
             call_count = 0
 
-            allow(Messages).to receive(:buffer) do
+            allow(MessagesService).to receive(:buffer) do
               call_count += 1
 
               case call_count
@@ -195,7 +195,7 @@ module Outboxer
 
             expect(logger).to receive(:error).with(include("StandardError: queue error")).once
 
-            Publisher.publish(
+            PublisherService.publish(
               environment: environment,
               buffer: buffer,
               poll: poll,
@@ -206,16 +206,16 @@ module Outboxer
           end
         end
 
-        context "when Messages.buffer raises an Exception" do
+        context "when MessagesService.buffer raises an Exception" do
           it "logs the exception and shuts down" do
-            allow(Messages).to receive(:buffer)
+            allow(MessagesService).to receive(:buffer)
               .and_raise(NoMemoryError, "failed to allocate memory")
 
             expect(logger).to receive(:fatal)
               .with(include("NoMemoryError: failed to allocate memory"))
               .once
 
-            Publisher.publish(
+            PublisherService.publish(
               environment: environment,
               buffer: buffer,
               poll: poll,

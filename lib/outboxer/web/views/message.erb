@@ -108,7 +108,7 @@
                             <td><%= buffer_percent %>%</td>
                         </tr>
 
-                        <% if message[:status] == Outboxer::Message::Status::PUBLISHED %>
+                        <% if message[:status] == Outboxer::MessageService::Status::PUBLISHED %>
                             <!-- Publish Latency for Published -->
                             <tr>
                                 <td>Publishing to Published</td>

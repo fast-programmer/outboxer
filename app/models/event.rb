@@ -12,6 +12,6 @@ class Event < ApplicationRecord
   # callbacks
 
   after_create do |event|
-    Outboxer::Message.queue(messageable: event)
+    Outboxer::MessageService.queue(messageable: event)
   end
 end

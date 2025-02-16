@@ -1,7 +1,7 @@
 require "rails_helper"
 
 module Outboxer
-  RSpec.describe Messages do
+  RSpec.describe MessagesService do
     let!(:message_1) do
       create(:outboxer_message, :queued,
         messageable_type: "Event", messageable_id: "1",
@@ -46,15 +46,15 @@ module Outboxer
       context "when an invalid status is specified" do
         it "raises an ArgumentError" do
           expect do
-            Messages.list(status: :invalid)
+            MessagesService.list(status: :invalid)
           end.to raise_error(
-            ArgumentError, "status must be #{Messages::LIST_STATUS_OPTIONS.join(" ")}")
+            ArgumentError, "status must be #{MessagesService::LIST_STATUS_OPTIONS.join(" ")}")
         end
       end
 
       context "with queued status" do
         it "returns queued messages" do
-          expect(Messages.list(status: :queued)).to eq({
+          expect(MessagesService.list(status: :queued)).to eq({
             current_page: 1, limit_value: 100, total_count: 2, total_pages: 1,
             messages: [
               {
@@ -90,7 +90,7 @@ module Outboxer
 
       context "with buffered status" do
         it "returns buffered messages" do
-          expect(Messages.list(status: :buffered)).to eq({
+          expect(MessagesService.list(status: :buffered)).to eq({
             current_page: 1, limit_value: 100, total_count: 1, total_pages: 1,
             messages: [
               {
@@ -113,7 +113,7 @@ module Outboxer
 
       context "with publishing status" do
         it "returns publishing messages" do
-          expect(Messages.list(status: :publishing)).to eq({
+          expect(MessagesService.list(status: :publishing)).to eq({
             current_page: 1, limit_value: 100, total_count: 1, total_pages: 1,
             messages: [
               {
@@ -136,7 +136,7 @@ module Outboxer
 
       context "with failed status" do
         it "returns failed messages" do
-          expect(Messages.list(status: :failed)).to eq({
+          expect(MessagesService.list(status: :failed)).to eq({
             current_page: 1, limit_value: 100, total_count: 1, total_pages: 1,
             messages: [
               {

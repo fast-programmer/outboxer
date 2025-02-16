@@ -1,12 +1,12 @@
 require "rails_helper"
 
 module Outboxer
-  RSpec.describe Message do
+  RSpec.describe MessageService do
     describe ".requeue" do
       context "when failed message" do
         let!(:failed_message) { create(:outboxer_message, :failed) }
 
-        let!(:queued_message) { Message.requeue(id: failed_message.id) }
+        let!(:queued_message) { MessageService.requeue(id: failed_message.id) }
 
         it "returns queued message" do
           expect(queued_message[:id]).to eq(failed_message.id)
@@ -24,7 +24,7 @@ module Outboxer
         let!(:updated_at) { queued_message.updated_at }
 
         it "modifies updated_at" do
-          Message.requeue(id: queued_message.id)
+          MessageService.requeue(id: queued_message.id)
 
           queued_message.reload
 
@@ -34,7 +34,7 @@ module Outboxer
 
         it "does not delete queued message" do
           begin
-            Message.published(id: queued_message.id)
+            MessageService.published(id: queued_message.id)
           rescue ArgumentError
             # ignore
           end

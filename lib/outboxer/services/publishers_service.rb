@@ -1,5 +1,5 @@
 module Outboxer
-  module Publishers
+  module PublishersService
     module_function
 
     def all

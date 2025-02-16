@@ -1,7 +1,7 @@
 require "rails_helper"
 
 module Outboxer
-  RSpec.describe Messages do
+  RSpec.describe MessagesService do
     describe ".delete_by_ids" do
       let!(:published_count_historic_setting) do
         Models::Setting.find_by!(name: "messages.published.count.historic")
@@ -43,7 +43,7 @@ module Outboxer
       describe "when ids exist" do
         let!(:ids) { [message_1.id, message_2.id, message_3.id, message_4.id, message_5.id] }
 
-        let!(:result) { Messages.delete_by_ids(ids: ids) }
+        let!(:result) { MessagesService.delete_by_ids(ids: ids) }
 
         it "deletes selected messages" do
           expect(Models::Message.order(id: :asc).pluck(:id)).to eq([message_6.id])
@@ -70,7 +70,7 @@ module Outboxer
 
       describe "when an id does not exist" do
         let!(:non_existent_id) { 7 }
-        let!(:result) { Messages.delete_by_ids(ids: [message_1.id, non_existent_id]) }
+        let!(:result) { MessagesService.delete_by_ids(ids: [message_1.id, non_existent_id]) }
 
         it "does not delete selected messages" do
           expect(Models::Frame.count).to eq(5)

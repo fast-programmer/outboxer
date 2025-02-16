@@ -1,7 +1,7 @@
 require "rails_helper"
 
 module Outboxer
-  RSpec.describe Message do
+  RSpec.describe MessageService do
     describe ".delete!" do
       context "when the message status is failed" do
         let!(:failed_count_historic_setting) do
@@ -14,7 +14,7 @@ module Outboxer
         let!(:exception) { create(:outboxer_exception, message: message) }
         let!(:frame) { create(:outboxer_frame, exception: exception) }
 
-        let!(:result) { Message.delete(id: message.id) }
+        let!(:result) { MessageService.delete(id: message.id) }
 
         it "increments the failed.count.historic metric" do
           failed_count_historic_setting.reload
@@ -42,7 +42,7 @@ module Outboxer
         let!(:exception) { create(:outboxer_exception, message: message) }
         let!(:frame) { create(:outboxer_frame, exception: exception) }
 
-        let!(:result) { Message.delete(id: message.id) }
+        let!(:result) { MessageService.delete(id: message.id) }
 
         it "increments the published.count.historic metric" do
           published_count_historic_setting.reload

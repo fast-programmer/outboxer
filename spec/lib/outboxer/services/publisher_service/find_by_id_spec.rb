@@ -1,7 +1,7 @@
 require "rails_helper"
 
 module Outboxer
-  RSpec.describe Publisher do
+  RSpec.describe PublisherService do
     describe ".find_by_id" do
       context "when the publisher exists" do
         let!(:publisher) do
@@ -39,7 +39,7 @@ module Outboxer
         end
 
         it "returns the publisher and signals" do
-          result = Publisher.find_by_id(id: publisher.id)
+          result = PublisherService.find_by_id(id: publisher.id)
 
           expect(result[:id]).to eq(publisher.id)
           expect(result[:name]).to eq(publisher.name)
@@ -74,7 +74,7 @@ module Outboxer
 
       context "when the publisher does not exist" do
         it "raises a NotFound error" do
-          expect { Publisher.find_by_id(id: -1) }.to raise_error(Publisher::NotFound)
+          expect { PublisherService.find_by_id(id: -1) }.to raise_error(PublisherService::NotFound)
         end
       end
     end

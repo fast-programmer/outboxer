@@ -1,12 +1,12 @@
 require "rails_helper"
 
 module Outboxer
-  RSpec.describe Message do
+  RSpec.describe MessageService do
     describe ".published" do
       context "when publishing message" do
         let!(:publishing_message) { create(:outboxer_message, :publishing) }
 
-        let!(:published_message) { Message.published(id: publishing_message.id) }
+        let!(:published_message) { MessageService.published(id: publishing_message.id) }
 
         it "returns published message" do
           expect(publishing_message[:id]).to eq(Models::Message.published.last.id)
@@ -22,7 +22,7 @@ module Outboxer
 
         it "raises invalid transition error" do
           expect do
-            Message.published(id: queued_message.id)
+            MessageService.published(id: queued_message.id)
           end.to raise_error(
             ArgumentError,
             "cannot transition outboxer message #{queued_message.id} from queued to published")
@@ -30,7 +30,7 @@ module Outboxer
 
         it "does not delete queued message" do
           begin
-            Message.published(id: queued_message.id)
+            MessageService.published(id: queued_message.id)
           rescue ArgumentError
             # ignore
           end

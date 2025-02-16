@@ -1,5 +1,5 @@
 module Outboxer
-  module Publisher
+  module PublisherService
     module_function
 
     class Error < StandardError; end
@@ -201,13 +201,13 @@ module Outboxer
       buffer_limit = buffer - queue.size
 
       if buffer_limit > 0
-        buffered_messages = Messages.buffer(
+        buffered_messages = MessagesService.buffer(
           limit: buffer_limit, publisher_id: id, publisher_name: name)
 
         if buffered_messages.count > 0
           buffered_messages.each { |message| queue.push(message) }
         else
-          Publisher.sleep(
+          PublisherService.sleep(
             poll,
             start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
             tick: tick,
@@ -215,7 +215,7 @@ module Outboxer
             process: process, kernel: kernel)
         end
       else
-        Publisher.sleep(
+        PublisherService.sleep(
           tick,
           start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
           tick: tick,
@@ -294,7 +294,7 @@ module Outboxer
               end
             end
 
-            Publisher.sleep(
+            PublisherService.sleep(
               heartbeat,
               signal_read: signal_read,
               start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
@@ -311,7 +311,7 @@ module Outboxer
               "#{error.class}: #{error.message}\n" \
               "#{error.backtrace.join("\n")}")
 
-            Publisher.sleep(
+            PublisherService.sleep(
               heartbeat,
               signal_read: signal_read,
               start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
@@ -389,7 +389,7 @@ module Outboxer
         environment: environment, pool: concurrency + 2, path: db_config_path)
       database.connect(config: db_config, logger: logger)
 
-      Settings.create
+      SettingsService.create
 
       queue = Queue.new
 
@@ -421,7 +421,7 @@ module Outboxer
             poll: poll, tick: tick,
             signal_read: signal_read, logger: logger, process: process, kernel: kernel)
         when Status::STOPPED
-          Publisher.sleep(
+          PublisherService.sleep(
             tick,
             start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
             tick: tick,
@@ -456,13 +456,13 @@ module Outboxer
     end
 
     def publish_message(id:, name:, buffered_message:, logger:, &block)
-      publishing_message = Message.publishing(
+      publishing_message = MessageService.publishing(
         id: buffered_message[:id], publisher_id: id, publisher_name: name)
 
       begin
         block.call(publishing_message)
       rescue Exception => error
-        failed_message = Message.failed(
+        failed_message = MessageService.failed(
           id: publishing_message[:id], exception: error, publisher_id: id, publisher_name: name)
 
         logger.debug "Outboxer failed to publish message id=#{failed_message[:id]} " \
@@ -472,7 +472,7 @@ module Outboxer
         raise
       end
 
-      published_message = Message.published(
+      published_message = MessageService.published(
         id: publishing_message[:id], publisher_id: id, publisher_name: name)
 
       logger.debug "Outboxer published message id=#{published_message[:id]} " \

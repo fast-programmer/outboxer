@@ -1,7 +1,7 @@
 require "rails_helper"
 
 module Outboxer
-  RSpec.describe Messages do
+  RSpec.describe MessagesService do
     describe ".list" do
       let(:publisher_1) { create(:outboxer_publisher, id: 41_000, name: "server-01:41000") }
       let(:publisher_2) { create(:outboxer_publisher, id: 42_000, name: "server-01:42000") }
@@ -56,7 +56,7 @@ module Outboxer
 
       context "when no arguments specified" do
         it "returns all messages" do
-          expect(Messages.list).to eq({
+          expect(MessagesService.list).to eq({
             current_page: 1, limit_value: 100, total_count: 5, total_pages: 1,
             messages: [
               {

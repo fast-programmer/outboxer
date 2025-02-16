@@ -1,12 +1,12 @@
 require "rails_helper"
 
 module Outboxer
-  RSpec.describe Message do
+  RSpec.describe MessageService do
     describe ".queue" do
       context "when messageable argument provided" do
         let(:event) { double("Event", id: "1", class: double(name: "Event")) }
 
-        let!(:queued_message) { Message.queue(messageable: event) }
+        let!(:queued_message) { MessageService.queue(messageable: event) }
 
         it "creates model with queued status" do
           expect(queued_message[:id]).to eq(
@@ -16,7 +16,7 @@ module Outboxer
 
       context "when messageable_type and messageable_id arguments provided" do
         let!(:queued_message) do
-          Message.queue(messageable_type: "Event", messageable_id: "1")
+          MessageService.queue(messageable_type: "Event", messageable_id: "1")
         end
 
         it "creates model with queued status" do

@@ -1,5 +1,5 @@
 module Outboxer
-  module Messages
+  module MessagesService
     module_function
 
     def buffer(limit: 1, publisher_id: nil, publisher_name: nil,
@@ -143,7 +143,7 @@ module Outboxer
         status_formatted = status.nil? ? "nil" : status
 
         raise ArgumentError,
-          "Status #{status_formatted} must be one of #{Message::REQUEUE_STATUSES.join(", ")}"
+          "Status #{status_formatted} must be one of #{REQUEUE_STATUSES.join(", ")}"
       end
 
       requeued_count = 0
@@ -233,7 +233,7 @@ module Outboxer
 
             deleted_count_batch = Models::Message.where(id: message_ids).delete_all
 
-            [Message::Status::PUBLISHED, Message::Status::FAILED].each do |message_status|
+            [MessageService::Status::PUBLISHED, MessageService::Status::FAILED].each do |message_status|
               current_messages = messages.select { |message| message[:status] == message_status }
 
               if current_messages.count > 0
@@ -273,7 +273,7 @@ module Outboxer
 
           deleted_count = Models::Message.where(id: message_ids).delete_all
 
-          [Message::Status::PUBLISHED, Message::Status::FAILED].each do |status|
+          [MessageService::Status::PUBLISHED, MessageService::Status::FAILED].each do |status|
             current_messages = messages.select { |message| message[:status] == status }
 
             if current_messages.count > 0

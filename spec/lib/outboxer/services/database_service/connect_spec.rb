@@ -1,28 +1,28 @@
 require "rails_helper"
 
 module Outboxer
-  RSpec.describe Database do
+  RSpec.describe DatabaseService do
     describe ".connect" do
-      before(:each) { Database.disconnect(logger: nil) }
+      before(:each) { DatabaseService.disconnect(logger: nil) }
 
       after(:all) do
-        config = Database.config(environment: "test", pool: 20)
-        Database.connect(config: config, logger: nil)
+        config = DatabaseService.config(environment: "test", pool: 20)
+        DatabaseService.connect(config: config, logger: nil)
       end
 
       context "when db config valid" do
-        let(:config) { Database.config(environment: "test", pool: 20) }
+        let(:config) { DatabaseService.config(environment: "test", pool: 20) }
 
         it "establishes a connection without errors" do
           expect do
-            Database.connect(config: config, logger: nil)
+            DatabaseService.connect(config: config, logger: nil)
           end.not_to raise_error
         end
 
         it "actually connects to the database" do
-          Database.connect(config: config, logger: nil)
+          DatabaseService.connect(config: config, logger: nil)
 
-          expect(Database.connected?).to be true
+          expect(DatabaseService.connected?).to be true
         end
       end
     end

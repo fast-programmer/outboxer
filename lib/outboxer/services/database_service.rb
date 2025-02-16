@@ -2,7 +2,7 @@ require "erb"
 require "yaml"
 
 module Outboxer
-  module Database
+  module DatabaseService
     module_function
 
     def config(environment:, pool:, path: ::File.expand_path("config/database.yml", ::Dir.pwd))

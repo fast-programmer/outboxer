@@ -1,7 +1,7 @@
 require "rails_helper"
 
 module Outboxer
-  RSpec.describe Messages do
+  RSpec.describe MessagesService do
     describe ".delete_all" do
       let!(:published_count_historic_setting) do
         Models::Setting.find_by!(name: "messages.published.count.historic")
@@ -39,7 +39,7 @@ module Outboxer
 
       context "when status is failed" do
         before do
-          Messages.delete_all(status: Message::Status::FAILED, batch_size: 1)
+          MessagesService.delete_all(status: MessageService::Status::FAILED, batch_size: 1)
         end
 
         it "deletes failed messages" do
@@ -57,7 +57,7 @@ module Outboxer
 
       context "when status is buffered" do
         before do
-          Messages.delete_all(status: Message::Status::BUFFERED, batch_size: 1)
+          MessagesService.delete_all(status: MessageService::Status::BUFFERED, batch_size: 1)
         end
 
         it "deletes queued messages" do
@@ -69,7 +69,7 @@ module Outboxer
 
       context "when status is publishing" do
         before do
-          Messages.delete_all(status: Message::Status::PUBLISHING, batch_size: 1)
+          MessagesService.delete_all(status: MessageService::Status::PUBLISHING, batch_size: 1)
         end
 
         it "deletes publishing messages" do
@@ -82,7 +82,7 @@ module Outboxer
       context "when status is published" do
         context "when older than nil" do
           before do
-            Messages.delete_all(status: Message::Status::PUBLISHED, batch_size: 1)
+            MessagesService.delete_all(status: MessageService::Status::PUBLISHED, batch_size: 1)
           end
 
           it "deletes published messages" do
@@ -99,8 +99,8 @@ module Outboxer
 
         context "when older than provided" do
           before do
-            Messages.delete_all(
-              status: Message::Status::PUBLISHED,
+            MessagesService.delete_all(
+              status: MessageService::Status::PUBLISHED,
               batch_size: 1,
               older_than: 2.hours.ago)
           end
@@ -123,7 +123,7 @@ module Outboxer
 
       context "when status not passed" do
         before do
-          Messages.delete_all(batch_size: 1)
+          MessagesService.delete_all(batch_size: 1)
         end
 
         it "deletes all messages" do
@@ -147,7 +147,7 @@ module Outboxer
 
       context "when status is nil" do
         before do
-          Messages.delete_all(status: nil, batch_size: 1)
+          MessagesService.delete_all(status: nil, batch_size: 1)
         end
 
         it "deletes all messages" do

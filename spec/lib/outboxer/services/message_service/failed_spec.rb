@@ -1,7 +1,7 @@
 require "rails_helper"
 
 module Outboxer
-  RSpec.describe Message do
+  RSpec.describe MessageService do
     describe ".failed" do
       let(:exception) do
         def raise_exception
@@ -16,7 +16,7 @@ module Outboxer
       context "when published message" do
         let!(:publishing_message) { create(:outboxer_message, :publishing) }
 
-        let!(:failed_message) { Message.failed(id: publishing_message.id, exception: exception) }
+        let!(:failed_message) { MessageService.failed(id: publishing_message.id, exception: exception) }
 
         it "returns updated message" do
           expect(failed_message[:id]).to eq(publishing_message.id)
@@ -52,7 +52,7 @@ module Outboxer
 
         it "raises invalid transition error" do
           expect do
-            Message.failed(id: queued_message.id, exception: exception)
+            MessageService.failed(id: queued_message.id, exception: exception)
           end.to raise_error(
             ArgumentError,
             "cannot transition outboxer message #{queued_message.id} from queued to failed")
@@ -60,7 +60,7 @@ module Outboxer
 
         it "does not delete queued message" do
           begin
-            Message.failed(id: queued_message.id, exception: exception)
+            MessageService.failed(id: queued_message.id, exception: exception)
           rescue ArgumentError
             # ignore
           end
