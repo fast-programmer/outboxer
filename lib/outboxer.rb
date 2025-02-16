@@ -13,12 +13,13 @@ require_relative "outboxer/models/publisher"
 require_relative "outboxer/models/signal"
 
 require_relative "outboxer/logger"
-require_relative "outboxer/database"
-require_relative "outboxer/settings"
-require_relative "outboxer/message"
-require_relative "outboxer/messages"
-require_relative "outboxer/publisher"
-require_relative "outboxer/publishers"
+
+require_relative "outboxer/services/database"
+require_relative "outboxer/services/settings"
+require_relative "outboxer/services/message"
+require_relative "outboxer/services/messages"
+require_relative "outboxer/services/publisher"
+require_relative "outboxer/services/publishers"
 
 module Outboxer
 end
