@@ -16,7 +16,9 @@ module Outboxer
       context "when published message" do
         let!(:publishing_message) { create(:outboxer_message, :publishing) }
 
-        let!(:failed_message) { MessageService.failed(id: publishing_message.id, exception: exception) }
+        let!(:failed_message) do
+          MessageService.failed(id: publishing_message.id, exception: exception)
+        end
 
         it "returns updated message" do
           expect(failed_message[:id]).to eq(publishing_message.id)
