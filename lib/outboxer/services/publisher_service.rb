@@ -226,7 +226,7 @@ module Outboxer
       logger.error(
         "#{error.class}: #{error.message}\n" \
         "#{error.backtrace.join("\n")}")
-    rescue Exception => error
+    rescue ::Exception => error
       logger.fatal(
         "#{error.class}: #{error.message}\n" \
         "#{error.backtrace.join("\n")}")
@@ -317,7 +317,7 @@ module Outboxer
               start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
               tick: tick,
               process: process, kernel: kernel)
-          rescue Exception => error
+          rescue ::Exception => error
             logger.fatal(
               "#{error.class}: #{error.message}\n" \
               "#{error.backtrace.join("\n")}")
@@ -461,7 +461,7 @@ module Outboxer
 
       begin
         block.call(publishing_message)
-      rescue Exception => error
+      rescue ::Exception => error
         failed_message = MessageService.failed(
           id: publishing_message[:id], exception: error, publisher_id: id, publisher_name: name)
 
@@ -483,7 +483,7 @@ module Outboxer
       logger.error(
         "#{error.class}: #{error.message}\n" \
         "#{error.backtrace.join("\n")}")
-    rescue Exception => error
+    rescue ::Exception => error
       logger.fatal(
         "#{error.class}: #{error.message}\n" \
         "#{error.backtrace.join("\n")}")
