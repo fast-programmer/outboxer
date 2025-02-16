@@ -1,7 +1,7 @@
 FactoryBot.define do
-  factory :outboxer_publisher, class: "Outboxer::Models::Publisher" do
+  factory :outboxer_publisher, class: "Outboxer::Publisher" do
     name { "server-01:57000" }
-    status { Outboxer::Models::Publisher::Status::PUBLISHING }
+    status { Outboxer::Publisher::Status::PUBLISHING }
     settings do
       {
         "buffer" => 1000,
@@ -24,15 +24,15 @@ FactoryBot.define do
     updated_at { DateTime.parse("2024-11-10T00:00:00") }
 
     trait :publishing do
-      status { Outboxer::Models::Publisher::Status::PUBLISHING }
+      status { Outboxer::Publisher::Status::PUBLISHING }
     end
 
     trait :stopped do
-      status { Outboxer::Models::Publisher::Status::STOPPED }
+      status { Outboxer::Publisher::Status::STOPPED }
     end
 
     trait :terminating do
-      status { Outboxer::Models::Publisher::Status::TERMINATING }
+      status { Outboxer::Publisher::Status::TERMINATING }
     end
   end
 end

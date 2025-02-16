@@ -22,7 +22,7 @@ module Outboxer
           end
 
           it "keeps last queued message" do
-            remaining_messages = Models::Message.where(status: Models::Message::Status::QUEUED)
+            remaining_messages = Message.where(status: Message::Status::QUEUED)
 
             expect(remaining_messages.count).to eq(1)
 

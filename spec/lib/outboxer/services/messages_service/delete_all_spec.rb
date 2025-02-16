@@ -4,11 +4,11 @@ module Outboxer
   RSpec.describe MessagesService do
     describe ".delete_all" do
       let!(:published_count_historic_setting) do
-        Models::Setting.find_by!(name: "messages.published.count.historic")
+        Setting.find_by!(name: "messages.published.count.historic")
       end
 
       let!(:failed_count_historic_setting) do
-        Models::Setting.find_by!(name: "messages.failed.count.historic")
+        Setting.find_by!(name: "messages.failed.count.historic")
       end
 
       before do
@@ -43,7 +43,7 @@ module Outboxer
         end
 
         it "deletes failed messages" do
-          expect(Models::Message.pluck(:id)).to match_array([
+          expect(Message.pluck(:id)).to match_array([
             message_1.id, message_2.id, message_5.id, message_6.id, message_7.id
           ])
         end
@@ -61,7 +61,7 @@ module Outboxer
         end
 
         it "deletes queued messages" do
-          expect(Models::Message.all.pluck(:id)).to match_array([
+          expect(Message.all.pluck(:id)).to match_array([
             message_1.id, message_3.id, message_4.id, message_5.id, message_6.id, message_7.id
           ])
         end
@@ -73,7 +73,7 @@ module Outboxer
         end
 
         it "deletes publishing messages" do
-          expect(Models::Message.pluck(:id)).to match_array([
+          expect(Message.pluck(:id)).to match_array([
             message_1.id, message_2.id, message_3.id, message_4.id, message_6.id, message_7.id
           ])
         end
@@ -86,7 +86,7 @@ module Outboxer
           end
 
           it "deletes published messages" do
-            expect(Models::Message.pluck(:id)).to match_array([
+            expect(Message.pluck(:id)).to match_array([
               message_1.id, message_2.id, message_3.id, message_4.id, message_5.id
             ])
           end
@@ -106,17 +106,17 @@ module Outboxer
           end
 
           it "deletes the published messages older than the provided date" do
-            expect(Models::Message.pluck(:id)).to match_array([
+            expect(Message.pluck(:id)).to match_array([
               message_1.id, message_2.id, message_3.id, message_4.id, message_5.id, message_7.id
             ])
           end
 
           it "deletes the correct exceptions and frames" do
-            expect(Models::Exception.pluck(:id)).to match_array([
+            expect(Exception.pluck(:id)).to match_array([
               exception_1.id, exception_2.id, exception_3.id
             ])
 
-            expect(Models::Frame.pluck(:id)).to match_array([frame_1.id, frame_2.id, frame_3.id])
+            expect(Frame.pluck(:id)).to match_array([frame_1.id, frame_2.id, frame_3.id])
           end
         end
       end
@@ -127,15 +127,15 @@ module Outboxer
         end
 
         it "deletes all messages" do
-          expect(Models::Message.pluck(:id)).to be_empty
+          expect(Message.pluck(:id)).to be_empty
         end
 
         it "deletes all exceptions" do
-          expect(Models::Exception.all).to be_empty
+          expect(Exception.all).to be_empty
         end
 
         it "deletes all frames" do
-          expect(Models::Frame.all).to be_empty
+          expect(Frame.all).to be_empty
         end
 
         it "adds published messages count to settings value" do
@@ -151,15 +151,15 @@ module Outboxer
         end
 
         it "deletes all messages" do
-          expect(Models::Message.pluck(:id)).to be_empty
+          expect(Message.pluck(:id)).to be_empty
         end
 
         it "deletes all exceptions" do
-          expect(Models::Exception.all).to be_empty
+          expect(Exception.all).to be_empty
         end
 
         it "deletes all frames" do
-          expect(Models::Frame.all).to be_empty
+          expect(Frame.all).to be_empty
         end
 
         it "adds published messages count to settings value" do

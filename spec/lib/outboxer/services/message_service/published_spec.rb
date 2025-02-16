@@ -9,11 +9,11 @@ module Outboxer
         let!(:published_message) { MessageService.published(id: publishing_message.id) }
 
         it "returns published message" do
-          expect(publishing_message[:id]).to eq(Models::Message.published.last.id)
+          expect(publishing_message[:id]).to eq(Message.published.last.id)
         end
 
         it "does not delete published message" do
-          expect(Models::Message.count).to eq(1)
+          expect(Message.count).to eq(1)
         end
       end
 
@@ -35,8 +35,8 @@ module Outboxer
             # ignore
           end
 
-          expect(Models::Message.count).to eq(1)
-          expect(Models::Message.first).to eq(queued_message)
+          expect(Message.count).to eq(1)
+          expect(Message.first).to eq(queued_message)
         end
       end
     end

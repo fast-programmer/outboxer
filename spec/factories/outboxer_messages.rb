@@ -1,9 +1,9 @@
 FactoryBot.define do
-  factory :outboxer_message, class: "Outboxer::Models::Message" do
+  factory :outboxer_message, class: "Outboxer::Message" do
     messageable_type { "Event" }
     messageable_id { 1 }
 
-    status { Outboxer::Models::Message::Status::PUBLISHED }
+    status { Outboxer::Message::Status::PUBLISHED }
     queued_at { 10.seconds.ago }
     buffered_at { 9.seconds.ago }
     publishing_at { 8.seconds.ago }
@@ -13,14 +13,14 @@ FactoryBot.define do
     publisher_name { "server-01:47000" }
 
     trait :queued do
-      status { Outboxer::Models::Message::Status::QUEUED }
+      status { Outboxer::Message::Status::QUEUED }
 
       queued_at { 10.seconds.ago }
       updated_at { 10.seconds.ago }
     end
 
     trait :buffered do
-      status { Outboxer::Models::Message::Status::BUFFERED }
+      status { Outboxer::Message::Status::BUFFERED }
 
       queued_at { 10.seconds.ago }
       buffered_at { 9.second.ago }
@@ -29,7 +29,7 @@ FactoryBot.define do
     end
 
     trait :publishing do
-      status { Outboxer::Models::Message::Status::PUBLISHING }
+      status { Outboxer::Message::Status::PUBLISHING }
 
       queued_at { 10.seconds.ago }
       buffered_at { 9.seconds.ago }
@@ -38,7 +38,7 @@ FactoryBot.define do
     end
 
     trait :published do
-      status { Outboxer::Models::Message::Status::PUBLISHED }
+      status { Outboxer::Message::Status::PUBLISHED }
 
       queued_at { 10.seconds.ago }
       buffered_at { 9.seconds.ago }
@@ -47,7 +47,7 @@ FactoryBot.define do
     end
 
     trait :failed do
-      status { Outboxer::Models::Message::Status::FAILED }
+      status { Outboxer::Message::Status::FAILED }
 
       queued_at { 10.seconds.ago }
       buffered_at { 9.seconds.ago }

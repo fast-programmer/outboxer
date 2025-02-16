@@ -83,12 +83,12 @@ module Outboxer
             expect(message[:id]).to eq(queued_message.id)
             expect(message[:messageable_type]).to eq(queued_message.messageable_type)
             expect(message[:messageable_id]).to eq(queued_message.messageable_id)
-            expect(message[:status]).to eq(Models::Message::Status::PUBLISHING)
+            expect(message[:status]).to eq(Message::Status::PUBLISHING)
 
             ::Process.kill("TERM", ::Process.pid)
           end
 
-          expect(Models::Message.published.count).to eq(1)
+          expect(Message.published.count).to eq(1)
         end
       end
 
@@ -114,7 +114,7 @@ module Outboxer
           it "sets message to failed" do
             queued_message.reload
 
-            expect(queued_message.status).to eq(Models::Message::Status::FAILED)
+            expect(queued_message.status).to eq(Message::Status::FAILED)
             expect(queued_message.exceptions.count).to eq(1)
             expect(queued_message.exceptions[0].class_name).to eq(standard_error.class.name)
             expect(queued_message.exceptions[0].message_text).to eq(standard_error.message)
@@ -155,7 +155,7 @@ module Outboxer
           it "sets message to failed" do
             queued_message.reload
 
-            expect(queued_message.status).to eq(Models::Message::Status::FAILED)
+            expect(queued_message.status).to eq(Message::Status::FAILED)
             expect(queued_message.exceptions.count).to eq(1)
             expect(queued_message.exceptions[0].class_name).to eq(no_memory_error.class.name)
             expect(queued_message.exceptions[0].message_text).to eq(no_memory_error.message)

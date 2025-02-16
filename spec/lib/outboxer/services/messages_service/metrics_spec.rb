@@ -8,11 +8,11 @@ module Outboxer
 
       context "when there are messages in different statuses" do
         before do
-          Models::Setting
+          Setting
             .find_by!(name: "messages.published.count.historic")
             .update!(value: "500")
 
-          Models::Setting
+          Setting
             .find_by!(name: "messages.failed.count.historic")
             .update!(value: "500")
         end

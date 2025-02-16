@@ -6,14 +6,14 @@ module Outboxer
 
     class NotFound < Error
       def initialize(id:)
-        super("Couldn't find Outboxer::Models::Publisher with 'id'=#{id}")
+        super("Couldn't find Outboxer::Publisher with 'id'=#{id}")
       end
     end
 
     def find_by_id(id:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          publisher = Models::Publisher.includes(:signals).find_by!(id: id)
+          publisher = Publisher.includes(:signals).find_by!(id: id)
 
           {
             id: publisher.id,
@@ -43,7 +43,7 @@ module Outboxer
         ActiveRecord::Base.transaction do
           current_utc_time = time.now.utc
 
-          publisher = Models::Publisher.create!(
+          publisher = Publisher.create!(
             name: name,
             status: Status::PUBLISHING,
             settings: {
@@ -81,7 +81,7 @@ module Outboxer
     def delete(id:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          publisher = Models::Publisher.lock.find_by!(id: id)
+          publisher = Publisher.lock.find_by!(id: id)
           publisher.signals.destroy_all
           publisher.destroy!
         rescue ActiveRecord::RecordNotFound
@@ -90,13 +90,13 @@ module Outboxer
       end
     end
 
-    Status = Models::Publisher::Status
+    Status = Publisher::Status
 
     def stop(id:, time: ::Time)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           begin
-            publisher = Models::Publisher.lock.find(id)
+            publisher = Publisher.lock.find(id)
           rescue ActiveRecord::RecordNotFound => error
             raise NotFound.new(id: id), cause: error
           end
@@ -112,7 +112,7 @@ module Outboxer
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           begin
-            publisher = Models::Publisher.lock.find(id)
+            publisher = Publisher.lock.find(id)
           rescue ActiveRecord::RecordNotFound => error
             raise NotFound.new(id: id), cause: error
           end
@@ -127,7 +127,7 @@ module Outboxer
     def terminate(id:, time: ::Time)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          publisher = Models::Publisher.lock.find(id)
+          publisher = Publisher.lock.find(id)
           publisher.update!(status: Status::TERMINATING, updated_at: time.now.utc)
 
           @status = Status::TERMINATING
@@ -141,7 +141,7 @@ module Outboxer
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           begin
-            publisher = Models::Publisher.lock.find(id)
+            publisher = Publisher.lock.find(id)
           rescue ActiveRecord::RecordNotFound => error
             raise NotFound.new(id: id), cause: error
           end
@@ -167,7 +167,7 @@ module Outboxer
       signal_read, signal_write = IO.pipe
 
       %w[TTIN TSTP CONT INT TERM].each do |signal_name|
-        old_handler = Signal.trap(signal_name) do
+        old_handler = ::Signal.trap(signal_name) do
           old_handler.call if old_handler.respond_to?(:call)
 
           signal_write.puts(signal_name)
@@ -226,7 +226,7 @@ module Outboxer
       logger.error(
         "#{error.class}: #{error.message}\n" \
         "#{error.backtrace.join("\n")}")
-    rescue Exception => error
+    rescue ::Exception => error
       logger.fatal(
         "#{error.class}: #{error.message}\n" \
         "#{error.backtrace.join("\n")}")
@@ -250,7 +250,7 @@ module Outboxer
                 start_rtt = process.clock_gettime(process::CLOCK_MONOTONIC)
 
                 begin
-                  publisher = Models::Publisher.lock.find(id)
+                  publisher = Publisher.lock.find(id)
                 rescue ActiveRecord::RecordNotFound => error
                   raise NotFound.new(id: id), cause: error
                 end
@@ -265,13 +265,13 @@ module Outboxer
                   signal.destroy
                 end
 
-                throughput = Models::Message
-                  .where(status: Models::Message::Status::PUBLISHED)
+                throughput = Message
+                  .where(status: Message::Status::PUBLISHED)
                   .where(publisher_id: id)
                   .where("updated_at >= ?", 1.second.ago)
                   .count
 
-                last_updated_message = Models::Message
+                last_updated_message = Message
                   .where(publisher_id: id)
                   .order(updated_at: :desc)
                   .first
@@ -317,7 +317,7 @@ module Outboxer
               start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
               tick: tick,
               process: process, kernel: kernel)
-          rescue Exception => error
+          rescue ::Exception => error
             logger.fatal(
               "#{error.class}: #{error.message}\n" \
               "#{error.backtrace.join("\n")}")
@@ -461,7 +461,7 @@ module Outboxer
 
       begin
         block.call(publishing_message)
-      rescue Exception => error
+      rescue ::Exception => error
         failed_message = MessageService.failed(
           id: publishing_message[:id], exception: error, publisher_id: id, publisher_name: name)
 
@@ -483,7 +483,7 @@ module Outboxer
       logger.error(
         "#{error.class}: #{error.message}\n" \
         "#{error.backtrace.join("\n")}")
-    rescue Exception => error
+    rescue ::Exception => error
       logger.fatal(
         "#{error.class}: #{error.message}\n" \
         "#{error.backtrace.join("\n")}")

@@ -2,17 +2,17 @@ module Outboxer
   module MessageService
     module_function
 
-    Status = Models::Message::Status
+    Status = Message::Status
 
     def queue(messageable: nil,
               messageable_type: nil, messageable_id: nil,
               time: ::Time)
       current_utc_time = time.now.utc
 
-      message = Models::Message.create!(
+      message = Message.create!(
         messageable_id: messageable&.id || messageable_id,
         messageable_type: messageable&.class&.name || messageable_type,
-        status: Models::Message::Status::QUEUED,
+        status: Message::Status::QUEUED,
         queued_at: current_utc_time,
         buffered_at: nil,
         publishing_at: nil,
@@ -35,7 +35,7 @@ module Outboxer
     def find_by_id(id:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          message = Models::Message
+          message = Message
             .left_joins(:publisher)
             .includes(exceptions: :frames)
             .select(
@@ -79,18 +79,18 @@ module Outboxer
                    time: ::Time)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          message = Models::Message.lock.find_by!(id: id)
+          message = Message.lock.find_by!(id: id)
 
-          if message.status != Models::Message::Status::BUFFERED
+          if message.status != Message::Status::BUFFERED
             raise ArgumentError,
               "cannot transition outboxer message #{message.id} " \
-              "from #{message.status} to #{Models::Message::Status::PUBLISHING}"
+              "from #{message.status} to #{Message::Status::PUBLISHING}"
           end
 
           current_utc_time = time.now.utc
 
           message.update!(
-            status: Models::Message::Status::PUBLISHING,
+            status: Message::Status::PUBLISHING,
             publishing_at: current_utc_time,
             updated_at: current_utc_time,
             publisher_id: publisher_id,
@@ -114,16 +114,16 @@ module Outboxer
                   time: ::Time)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          message = Models::Message.lock.find_by!(id: id)
+          message = Message.lock.find_by!(id: id)
 
-          if message.status != Models::Message::Status::PUBLISHING
+          if message.status != Message::Status::PUBLISHING
             raise ArgumentError,
               "cannot transition outboxer message #{message.id} " \
               "from #{message.status} to published"
           end
 
           message.update!(
-            status: Models::Message::Status::PUBLISHED,
+            status: Message::Status::PUBLISHED,
             updated_at: time.now.utc,
             publisher_id: publisher_id,
             publisher_name: publisher_name)
@@ -147,16 +147,16 @@ module Outboxer
                time: ::Time)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          message = Models::Message.order(queued_at: :asc).lock.find_by!(id: id)
+          message = Message.order(queued_at: :asc).lock.find_by!(id: id)
 
-          if message.status != Models::Message::Status::PUBLISHING
+          if message.status != Message::Status::PUBLISHING
             raise ArgumentError,
               "cannot transition outboxer message #{id} " \
-              "from #{message.status} to #{Models::Message::Status::FAILED}"
+              "from #{message.status} to #{Message::Status::FAILED}"
           end
 
           message.update!(
-            status: Models::Message::Status::FAILED,
+            status: Message::Status::FAILED,
             updated_at: time.now.utc,
             publisher_id: publisher_id,
             publisher_name: publisher_name)
@@ -185,13 +185,13 @@ module Outboxer
     def delete(id:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          message = Models::Message.includes(exceptions: :frames).lock.find_by!(id: id)
+          message = Message.includes(exceptions: :frames).lock.find_by!(id: id)
 
           message.exceptions.each { |exception| exception.frames.each(&:delete) }
           message.exceptions.delete_all
           message.delete
 
-          setting = Models::Setting.lock("FOR UPDATE").find_by(
+          setting = Setting.lock("FOR UPDATE").find_by(
             name: "messages.#{message.status}.count.historic")
 
           setting.update!(value: setting.value.to_i + 1).to_s if !setting.nil?
@@ -211,12 +211,12 @@ module Outboxer
                 time: ::Time)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          message = Models::Message.lock.find_by!(id: id)
+          message = Message.lock.find_by!(id: id)
 
           current_utc_time = time.now.utc
 
           message.update!(
-            status: Models::Message::Status::QUEUED,
+            status: Message::Status::QUEUED,
             queued_at: current_utc_time,
             buffered_at: nil,
             publishing_at: nil,

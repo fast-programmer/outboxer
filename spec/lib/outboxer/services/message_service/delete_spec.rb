@@ -5,7 +5,7 @@ module Outboxer
     describe ".delete!" do
       context "when the message status is failed" do
         let!(:failed_count_historic_setting) do
-          Models::Setting.find_by!(name: "messages.failed.count.historic")
+          Setting.find_by!(name: "messages.failed.count.historic")
         end
 
         before { failed_count_historic_setting.update!(value: "20") }
@@ -23,7 +23,7 @@ module Outboxer
         end
 
         it "deletes the message" do
-          expect(Models::Message).not_to exist(message.id)
+          expect(Message).not_to exist(message.id)
         end
 
         it "returns the message id" do
@@ -33,7 +33,7 @@ module Outboxer
 
       context "when the message status is published" do
         let!(:published_count_historic_setting) do
-          Models::Setting.find_by!(name: "messages.published.count.historic")
+          Setting.find_by!(name: "messages.published.count.historic")
         end
 
         before { published_count_historic_setting.update!(value: "10") }
@@ -51,7 +51,7 @@ module Outboxer
         end
 
         it "deletes the message" do
-          expect(Models::Message).not_to exist(message.id)
+          expect(Message).not_to exist(message.id)
         end
 
         it "returns the message id" do

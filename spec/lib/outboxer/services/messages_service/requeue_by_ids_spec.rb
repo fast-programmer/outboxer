@@ -18,8 +18,8 @@ module Outboxer
 
         it "sets message status to queued" do
           expect(
-            Models::Message
-              .where(status: Models::Message::Status::QUEUED)
+            Message
+              .where(status: Message::Status::QUEUED)
               .order(id: :asc)
               .pluck(:id)).to eq(ids)
         end
@@ -34,9 +34,9 @@ module Outboxer
         let(:result) { MessagesService.requeue_by_ids(ids: [non_existent_id]) }
 
         it "does not delete selected messages" do
-          expect(Models::Frame.count).to eq(2)
-          expect(Models::Exception.count).to eq(2)
-          expect(Models::Message.count).to eq(2)
+          expect(Frame.count).to eq(2)
+          expect(Exception.count).to eq(2)
+          expect(Message.count).to eq(2)
         end
 
         it "returns correct result" do
