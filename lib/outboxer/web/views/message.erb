@@ -9,7 +9,7 @@
                         <input type="hidden" name="<%= key %>" value="<%= param %>">
                     <% end %>
                     <button type="submit" class="btn btn-sm btn-outline-secondary me-2" aria-label="Requeue"
-                        <%= 'disabled' unless Outboxer::Message.can_requeue?(status: message[:status]) %>>
+                        <%= 'disabled' unless Outboxer::MessageService.can_requeue?(status: message[:status]) %>>
                         <i class="bi bi-arrow-clockwise"></i> Requeue
                     </button>
                 </form>
@@ -115,7 +115,7 @@
                                 <td><%= pretty_duration_from_seconds_to_milliseconds(seconds: publish_latency) %></td>
                                 <td><%= publish_percent %></td>
                             </tr>
-                        <% elsif message[:status] == Outboxer::Message::Status::FAILED %>
+                        <% elsif message[:status] == Outboxer::MessageService::Status::FAILED %>
                             <!-- Publish Latency for Failed -->
                             <tr>
                                 <td>Publishing to Failed</td>

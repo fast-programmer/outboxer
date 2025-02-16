@@ -215,9 +215,9 @@ module Outboxer
         per_page: denormalised_query_params[:per_page],
         time_zone: denormalised_query_params[:time_zone])
 
-      messages_metrics = Messages.metrics
+      messages_metrics = MessagesService.metrics
 
-      publishers = Publishers.all
+      publishers = PublishersService.all
 
       erb :home, locals: {
         messages_metrics: messages_metrics,
@@ -273,9 +273,9 @@ module Outboxer
         per_page: denormalised_query_params[:per_page],
         time_zone: denormalised_query_params[:time_zone])
 
-      messages_metrics = Messages.metrics
+      messages_metrics = MessagesService.metrics
 
-      paginated_messages = Messages.list(
+      paginated_messages = MessagesService.list(
         status: denormalised_query_params[:status],
         sort: denormalised_query_params[:sort],
         order: denormalised_query_params[:order],
@@ -470,7 +470,7 @@ module Outboxer
 
       case params[:action]
       when "requeue_by_ids"
-        result = Messages.requeue_by_ids(ids: ids)
+        result = MessagesService.requeue_by_ids(ids: ids)
 
         message_text = result[:requeued_count] == 1 ? "message" : "messages"
 
@@ -485,7 +485,7 @@ module Outboxer
 
         result
       when "delete_by_ids"
-        result = Messages.delete_by_ids(ids: ids)
+        result = MessagesService.delete_by_ids(ids: ids)
 
         message_text = result[:deleted_count] == 1 ? "message" : "messages"
 
@@ -523,7 +523,7 @@ module Outboxer
         per_page: denormalised_query_params[:per_page],
         time_zone: denormalised_query_params[:time_zone])
 
-      result = Messages.requeue_all(
+      result = MessagesService.requeue_all(
         status: denormalised_query_params[:status])
 
       message_text = result[:requeued_count] == 1 ? "message" : "messages"
@@ -549,7 +549,7 @@ module Outboxer
         per_page: denormalised_query_params[:per_page],
         time_zone: denormalised_query_params[:time_zone])
 
-      result = Messages.delete_all(
+      result = MessagesService.delete_all(
         status: denormalised_query_params[:status], older_than: Time.now.utc)
 
       message_text = result[:deleted_count] == 1 ? "message" : "messages"
@@ -603,9 +603,9 @@ module Outboxer
         per_page: denormalised_query_params[:per_page],
         time_zone: denormalised_query_params[:time_zone])
 
-      messages_metrics = Messages.metrics
+      messages_metrics = MessagesService.metrics
 
-      message = Message.find_by_id(id: params[:id])
+      message = MessageService.find_by_id(id: params[:id])
 
       messageable_class = Object.const_get(message[:messageable_type])
       messageable = messageable_class.find(message[:messageable_id])
@@ -629,8 +629,8 @@ module Outboxer
         per_page: params[:per_page],
         time_zone: params[:time_zone])
 
-      message = Message.find_by_id(id: params[:id])
-      messages_metrics = Messages.metrics
+      message = MessageService.find_by_id(id: params[:id])
+      messages_metrics = MessagesService.metrics
 
       messageable_class = Object.const_get(message[:messageable_type])
       messageable = messageable_class.find(message[:messageable_id])
@@ -660,7 +660,7 @@ module Outboxer
         per_page: denormalised_query_params[:per_page],
         time_zone: denormalised_query_params[:time_zone])
 
-      Message.requeue(id: params[:id])
+      MessageService.requeue(id: params[:id])
 
       flash[:primary] = "Message #{params[:id]} was queued"
 
@@ -684,7 +684,7 @@ module Outboxer
         per_page: denormalised_query_params[:per_page],
         time_zone: denormalised_query_params[:time_zone])
 
-      Message.delete(id: params[:id])
+      MessageService.delete(id: params[:id])
 
       flash[:primary] = "Message #{params[:id]} was deleted"
 
@@ -716,9 +716,9 @@ module Outboxer
         per_page: denormalised_query_params[:per_page],
         time_zone: denormalised_query_params[:time_zone])
 
-      publisher = Publisher.find_by_id(id: params[:id])
+      publisher = PublisherService.find_by_id(id: params[:id])
 
-      messages_metrics = Messages.metrics
+      messages_metrics = MessagesService.metrics
 
       erb :publisher, locals: {
         messages_metrics: messages_metrics,
@@ -746,7 +746,7 @@ module Outboxer
         per_page: denormalised_query_params[:per_page],
         time_zone: denormalised_query_params[:time_zone])
 
-      Publisher.delete(id: params[:id])
+      PublisherService.delete(id: params[:id])
 
       flash[:primary] = "Publisher #{params[:id]} was deleted"
 
@@ -770,7 +770,7 @@ module Outboxer
         per_page: denormalised_query_params[:per_page],
         time_zone: denormalised_query_params[:time_zone])
 
-      Publisher.signal(id: params[:id], name: params[:name])
+      PublisherService.signal(id: params[:id], name: params[:name])
 
       flash[:primary] = "Publisher #{params[:id]} signalled #{params[:name]}"
 
