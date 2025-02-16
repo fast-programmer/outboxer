@@ -123,7 +123,7 @@ module Outboxer
             expect(queued_message.exceptions[0].frames[0].index).to eq(0)
 
             expect(queued_message.exceptions[0].frames[0].text).to match(
-              /outboxer\/publisher\/publish_spec.rb:\d+:in `block \(6 levels\) in <module:Outboxer>'/)
+              /outboxer\/services\/publisher\/publish_spec.rb:\d+:in `block \(6 levels\) in <module:Outboxer>'/)
           end
 
           it "logs errors" do
@@ -163,7 +163,7 @@ module Outboxer
 
             expect(queued_message.exceptions[0].frames[0].index).to eq(0)
             expect(queued_message.exceptions[0].frames[0].text).to match(
-              /outboxer\/publisher\/publish_spec.rb:\d+:in `block \(6 levels\) in <module:Outboxer>'/)
+              /outboxer\/services\/publisher\/publish_spec.rb:\d+:in `block \(6 levels\) in <module:Outboxer>'/)
           end
 
           it "logs errors" do
