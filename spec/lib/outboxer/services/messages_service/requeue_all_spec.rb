@@ -16,7 +16,7 @@ module Outboxer
 
         it "sets failed messages to queued" do
           expect(
-            Models::Message.where(status: MessageService::Status::QUEUED).pluck(:id))
+            Message.where(status: MessageService::Status::QUEUED).pluck(:id))
             .to match_array([message_1.id, message_3.id, message_4.id])
         end
       end
@@ -28,7 +28,7 @@ module Outboxer
 
         it "sets queued messages to queued" do
           expect(
-            Models::Message.where(status: MessageService::Status::QUEUED).pluck(:id))
+            Message.where(status: MessageService::Status::QUEUED).pluck(:id))
             .to match_array([message_1.id, message_2.id])
         end
       end
@@ -40,7 +40,7 @@ module Outboxer
 
         it "sets publishing messages to queued" do
           expect(
-            Models::Message.where(status: MessageService::Status::QUEUED).pluck(:id))
+            Message.where(status: MessageService::Status::QUEUED).pluck(:id))
             .to match_array([message_1.id, message_5.id])
         end
       end

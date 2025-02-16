@@ -6,8 +6,8 @@ module Outboxer
                time: ::Time)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          messages = Models::Message
-            .where(status: Models::Message::Status::QUEUED)
+          messages = Message
+            .where(status: Message::Status::QUEUED)
             .order(updated_at: :asc)
             .lock("FOR UPDATE SKIP LOCKED")
             .limit(limit)
@@ -16,10 +16,10 @@ module Outboxer
           current_utc_time = time.now.utc
 
           if messages.present?
-            Models::Message
+            Message
               .where(id: messages.map { |message| message[:id] })
               .update_all(
-                status: Models::Message::Status::BUFFERED,
+                status: Message::Status::BUFFERED,
                 buffered_at: current_utc_time,
                 updated_at: current_utc_time,
                 publisher_id: publisher_id,
@@ -29,7 +29,7 @@ module Outboxer
           messages.map do |message|
             {
               id: message.id,
-              status: Models::Message::Status::BUFFERED,
+              status: Message::Status::BUFFERED,
               messageable_type: message.messageable_type,
               messageable_id: message.messageable_id,
               queued_at: message.queued_at,
@@ -83,7 +83,7 @@ module Outboxer
 
       raise ArgumentError, "time_zone must be valid" if !LIST_TIME_ZONE_OPTIONS.include?(time_zone)
 
-      base_scope = Models::Message.left_joins(:publisher)
+      base_scope = Message.left_joins(:publisher)
       base_scope = if status.nil?
                      base_scope.all
                    else
@@ -153,7 +153,7 @@ module Outboxer
 
         ActiveRecord::Base.connection_pool.with_connection do
           ActiveRecord::Base.transaction do
-            locked_ids = Models::Message
+            locked_ids = Message
               .where(status: status)
               .order(updated_at: :asc)
               .limit(batch_size)
@@ -162,10 +162,10 @@ module Outboxer
 
             current_utc_time = time.now.utc
 
-            requeued_count_batch = Models::Message
+            requeued_count_batch = Message
               .where(id: locked_ids)
               .update_all(
-                status: Models::Message::Status::QUEUED,
+                status: Message::Status::QUEUED,
                 queued_at: current_utc_time,
                 buffered_at: nil,
                 publishing_at: nil,
@@ -186,16 +186,16 @@ module Outboxer
     def requeue_by_ids(ids:, publisher_id: nil, publisher_name: nil, time: Time)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          locked_ids = Models::Message
+          locked_ids = Message
             .where(id: ids)
             .order(updated_at: :asc)
             .lock("FOR UPDATE SKIP LOCKED")
             .pluck(:id)
 
-          requeued_count = Models::Message
+          requeued_count = Message
             .where(id: locked_ids)
             .update_all(
-              status: Models::Message::Status::QUEUED,
+              status: Message::Status::QUEUED,
               updated_at: time.now.utc,
               publisher_id: publisher_id,
               publisher_name: publisher_name)
@@ -213,7 +213,7 @@ module Outboxer
 
         ActiveRecord::Base.connection_pool.with_connection do
           ActiveRecord::Base.transaction do
-            query = Models::Message.all
+            query = Message.all
             query = query.where(status: status) unless status.nil?
             query = query.where("updated_at < ?", older_than) if older_than
             messages = query.order(:updated_at)
@@ -224,14 +224,14 @@ module Outboxer
 
             message_ids = messages.map { |message| message[:id] }
 
-            Models::Frame
+            Frame
               .joins(:exception)
               .where(exception: { message_id: message_ids })
               .delete_all
 
-            Models::Exception.where(message_id: message_ids).delete_all
+            Exception.where(message_id: message_ids).delete_all
 
-            deleted_count_batch = Models::Message.where(id: message_ids).delete_all
+            deleted_count_batch = Message.where(id: message_ids).delete_all
 
             [
               MessageService::Status::PUBLISHED,
@@ -241,7 +241,7 @@ module Outboxer
 
               if current_messages.count > 0
                 setting_name = "messages.#{message_status}.count.historic"
-                setting = Models::Setting.lock("FOR UPDATE").find_by!(name: setting_name)
+                setting = Setting.lock("FOR UPDATE").find_by!(name: setting_name)
                 setting.update!(value: setting.value.to_i + current_messages.count).to_s
               end
             end
@@ -259,7 +259,7 @@ module Outboxer
     def delete_by_ids(ids:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          messages = Models::Message
+          messages = Message
             .where(id: ids)
             .lock("FOR UPDATE SKIP LOCKED")
             .pluck(:id, :status)
@@ -267,21 +267,21 @@ module Outboxer
 
           message_ids = messages.map { |message| message[:id] }
 
-          Models::Frame
+          Frame
             .joins(:exception)
             .where(exception: { message_id: message_ids })
             .delete_all
 
-          Models::Exception.where(message_id: message_ids).delete_all
+          Exception.where(message_id: message_ids).delete_all
 
-          deleted_count = Models::Message.where(id: message_ids).delete_all
+          deleted_count = Message.where(id: message_ids).delete_all
 
           [MessageService::Status::PUBLISHED, MessageService::Status::FAILED].each do |status|
             current_messages = messages.select { |message| message[:status] == status }
 
             if current_messages.count > 0
               setting_name = "messages.#{status}.count.historic"
-              setting = Models::Setting.lock("FOR UPDATE").find_by!(name: setting_name)
+              setting = Setting.lock("FOR UPDATE").find_by!(name: setting_name)
               setting.update!(value: setting.value.to_i + current_messages.count).to_s
             end
           end
@@ -294,7 +294,7 @@ module Outboxer
     def metrics(time: ::Time)
       metrics = { all: { count: { current: 0 } } }
 
-      Models::Message::STATUSES.each do |status|
+      Message::STATUSES.each do |status|
         metrics[status.to_sym] = { count: { current: 0 }, latency: 0, throughput: 0 }
       end
 
@@ -307,17 +307,17 @@ module Outboxer
           "updated_at >= ?", current_utc_time - 1.second
         ])
 
-        grouped_messages = Models::Message
+        grouped_messages = Message
           .group(:status)
           .select(
             "status, COUNT(*) AS count, MIN(updated_at) AS oldest_updated_at",
             "SUM(CASE WHEN #{time_condition} THEN 1 ELSE 0 END) AS throughput")
           .to_a
 
-        metrics[:published][:count][:historic] = Models::Setting
+        metrics[:published][:count][:historic] = Setting
           .find_by!(name: "messages.published.count.historic").value.to_i
 
-        metrics[:failed][:count][:historic] = Models::Setting
+        metrics[:failed][:count][:historic] = Setting
           .find_by!(name: "messages.failed.count.historic").value.to_i
       end
 

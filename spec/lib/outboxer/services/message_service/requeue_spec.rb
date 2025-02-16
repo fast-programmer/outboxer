@@ -15,7 +15,7 @@ module Outboxer
         it "updates failed message status to queued" do
           failed_message.reload
 
-          expect(failed_message.status).to eq(Models::Message::Status::QUEUED)
+          expect(failed_message.status).to eq(Message::Status::QUEUED)
         end
       end
 
@@ -28,7 +28,7 @@ module Outboxer
 
           queued_message.reload
 
-          expect(queued_message.status).to eq(Models::Message::Status::QUEUED)
+          expect(queued_message.status).to eq(Message::Status::QUEUED)
           expect(queued_message.updated_at).to be > updated_at
         end
 
@@ -39,8 +39,8 @@ module Outboxer
             # ignore
           end
 
-          expect(Models::Message.count).to eq(1)
-          expect(Models::Message.first).to eq(queued_message)
+          expect(Message.count).to eq(1)
+          expect(Message.first).to eq(queued_message)
         end
       end
     end

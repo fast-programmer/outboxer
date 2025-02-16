@@ -10,7 +10,7 @@ module Outboxer
 
         it "creates model with queued status" do
           expect(queued_message[:id]).to eq(
-            Models::Message.where(status: Models::Message::Status::QUEUED).first.id)
+            Message.where(status: Message::Status::QUEUED).first.id)
         end
       end
 
@@ -21,7 +21,7 @@ module Outboxer
 
         it "creates model with queued status" do
           expect(queued_message[:id]).to eq(
-            Models::Message.where(status: Models::Message::Status::QUEUED).first.id)
+            Message.where(status: Message::Status::QUEUED).first.id)
         end
       end
     end

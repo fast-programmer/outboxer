@@ -7,7 +7,7 @@ module Outboxer
         let!(:publisher) do
           create(:outboxer_publisher,
             name: "server-09:67000",
-            status: Models::Publisher::Status::PUBLISHING,
+            status: Publisher::Status::PUBLISHING,
             settings: {
               "buffer" => 1000,
               "concurrency" => 2,

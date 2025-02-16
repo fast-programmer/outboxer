@@ -27,7 +27,7 @@ module Outboxer
         it "updates message status to failed" do
           publishing_message.reload
 
-          expect(publishing_message.status).to eq(Models::Message::Status::FAILED)
+          expect(publishing_message.status).to eq(Message::Status::FAILED)
         end
 
         it "creates exception" do
@@ -68,8 +68,8 @@ module Outboxer
             # ignore
           end
 
-          expect(Models::Message.count).to eq(1)
-          expect(Models::Message.first).to eq(queued_message)
+          expect(Message.count).to eq(1)
+          expect(Message.first).to eq(queued_message)
         end
       end
     end

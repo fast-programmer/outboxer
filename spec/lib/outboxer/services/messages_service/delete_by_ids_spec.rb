@@ -4,11 +4,11 @@ module Outboxer
   RSpec.describe MessagesService do
     describe ".delete_by_ids" do
       let!(:published_count_historic_setting) do
-        Models::Setting.find_by!(name: "messages.published.count.historic")
+        Setting.find_by!(name: "messages.published.count.historic")
       end
 
       let!(:failed_count_historic_setting) do
-        Models::Setting.find_by!(name: "messages.failed.count.historic")
+        Setting.find_by!(name: "messages.failed.count.historic")
       end
 
       before do
@@ -46,9 +46,9 @@ module Outboxer
         let!(:result) { MessagesService.delete_by_ids(ids: ids) }
 
         it "deletes selected messages" do
-          expect(Models::Message.order(id: :asc).pluck(:id)).to eq([message_6.id])
-          expect(Models::Exception.order(id: :asc).pluck(:id)).to eq([exception_6.id])
-          expect(Models::Frame.order(id: :asc).pluck(:id)).to eq([frame_6.id])
+          expect(Message.order(id: :asc).pluck(:id)).to eq([message_6.id])
+          expect(Exception.order(id: :asc).pluck(:id)).to eq([exception_6.id])
+          expect(Frame.order(id: :asc).pluck(:id)).to eq([frame_6.id])
         end
 
         it "adds published messages count to settings value" do
@@ -73,9 +73,9 @@ module Outboxer
         let!(:result) { MessagesService.delete_by_ids(ids: [message_1.id, non_existent_id]) }
 
         it "does not delete selected messages" do
-          expect(Models::Frame.count).to eq(5)
-          expect(Models::Exception.count).to eq(5)
-          expect(Models::Message.count).to eq(5)
+          expect(Frame.count).to eq(5)
+          expect(Exception.count).to eq(5)
+          expect(Message.count).to eq(5)
         end
 
         it "does not add published messages count to settings value" do

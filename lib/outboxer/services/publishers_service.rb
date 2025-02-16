@@ -5,7 +5,7 @@ module Outboxer
     def all
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          publishers = Models::Publisher.includes(:signals).all
+          publishers = Publisher.includes(:signals).all
 
           publishers.map do |publisher|
             {
