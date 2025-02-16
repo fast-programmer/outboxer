@@ -41,7 +41,7 @@ module Outboxer
         it "creates frames" do
           publishing_message.reload
 
-          expect(publishing_message.exceptions[0].frames.length).to eq(80)
+          expect(publishing_message.exceptions[0].frames.length).to eq(65)
 
           expect(publishing_message.exceptions[0].frames[0].index).to eq(0)
           expect(publishing_message.exceptions[0].frames[0].text)
