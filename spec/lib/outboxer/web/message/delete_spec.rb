@@ -31,6 +31,6 @@ RSpec.describe "POST /message/:id/delete", type: :request do
 
   it "redirects with flash" do
     expect(last_response).to be_ok
-    expect(last_request.env["x-rack.flash"][:primary]).to include("was deleted")
+    expect(last_request.url).to include("messages?flash=primary%3AMessage+1+was+deleted")
   end
 end

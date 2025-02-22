@@ -14,22 +14,9 @@ rescue LoadError
   raise LoadError, error_message.strip
 end
 
-begin
-  require "rack/flash"
-rescue LoadError
-  error_message = <<~ERROR
-    [Outboxer::Web] Rack::Flash is required for flash messaging. Add this to your Gemfile:
-      gem 'rack-flash3'
-    Then run `bundle install` to install the required gem.
-  ERROR
-  logger.error(error_message.strip)
-  raise LoadError, error_message.strip
-end
-
 require "outboxer"
 require "sinatra/base"
 require "uri"
-require "rack/flash"
 
 environment = ENV["RAILS_ENV"] || "development"
 
@@ -38,8 +25,6 @@ Outboxer::DatabaseService.connect(config: config)
 
 module Outboxer
   class Web < Sinatra::Base
-    use Rack::Flash
-
     set :logger, Logger.new($stdout)
     set :views, File.expand_path("web/views", __dir__)
     set :public_folder, File.expand_path("web/public", __dir__)
@@ -52,6 +37,19 @@ module Outboxer
     helpers do
       def outboxer_path(path)
         "#{request.script_name}#{path}"
+      end
+
+      def encode_flash(flash)
+        URI.encode_www_form_component(
+          flash.map { |type, message| "#{type}:#{message}" }.join("&"))
+      end
+
+      def pluralise(count, singular, plural = nil)
+        if count == 1
+          "#{count} #{singular}"
+        else
+          (plural.nil? ? "#{count} #{singular}s" : "#{count} #{plural}")
+        end
       end
 
       def pretty_number(number:, delimiter: ",", separator: ".")
@@ -419,14 +417,16 @@ module Outboxer
                                order: MessagesService::LIST_ORDER_DEFAULT,
                                page: MessagesService::LIST_PAGE_DEFAULT,
                                per_page: MessagesService::LIST_PER_PAGE_DEFAULT,
-                               time_zone: MessagesService::LIST_TIME_ZONE_DEFAULT)
+                               time_zone: MessagesService::LIST_TIME_ZONE_DEFAULT,
+                               flash: {})
       {
         status: status == MessagesService::LIST_STATUS_DEFAULT ? nil : status,
         sort: sort == MessagesService::LIST_SORT_DEFAULT ? nil : sort,
         order: order == MessagesService::LIST_ORDER_DEFAULT ? nil : order,
         page: page.to_i == MessagesService::LIST_PAGE_DEFAULT ? nil : page,
         per_page: per_page.to_i == MessagesService::LIST_PER_PAGE_DEFAULT ? nil : per_page,
-        time_zone: time_zone.to_s == MessagesService::LIST_TIME_ZONE_DEFAULT ? nil : time_zone
+        time_zone: time_zone.to_s == MessagesService::LIST_TIME_ZONE_DEFAULT ? nil : time_zone,
+        flash: flash.empty? ? nil : encode_flash(flash)
       }.compact
     end
 
@@ -435,19 +435,51 @@ module Outboxer
                                order: MessagesService::LIST_ORDER_DEFAULT,
                                page: MessagesService::LIST_PAGE_DEFAULT,
                                per_page: MessagesService::LIST_PER_PAGE_DEFAULT,
-                               time_zone: MessagesService::LIST_TIME_ZONE_DEFAULT)
+                               time_zone: MessagesService::LIST_TIME_ZONE_DEFAULT,
+                               flash: {})
       normalised_query_params = normalise_query_params(
         status: status,
         sort: sort,
         order: order,
         page: page,
         per_page: per_page,
-        time_zone: time_zone)
+        time_zone: time_zone,
+        flash: flash)
 
       normalised_query_params.empty? ? "" : "?#{URI.encode_www_form(normalised_query_params)}"
     end
 
     post "/messages/update" do
+      ids = params[:selected_ids].map(&:to_i)
+      flash = {}
+
+      case params[:action]
+      when "requeue_by_ids"
+        result = MessagesService.requeue_by_ids(ids: ids)
+
+        if result[:requeued_count] > 0
+          flash[:primary] = "Requeued #{pluralise(result[:requeued_count], "message")}"
+        end
+
+        if !result[:not_requeued_ids].empty?
+          flash[:warning] =
+            "Requeue failed for #{pluralise(result[:not_requeued_ids].count, "message")}"
+        end
+      when "delete_by_ids"
+        result = MessagesService.delete_by_ids(ids: ids)
+
+        if result[:deleted_count] > 0
+          flash[:primary] = "Deleted #{pluralise(result[:deleted_count], "message")}"
+        end
+
+        if !result[:not_deleted_ids].empty?
+          flash[:warning] =
+            "Delete failed for #{pluralise(result[:not_deleted_ids].count, "message")}"
+        end
+      else
+        raise "Unknown action: #{params[:action]}"
+      end
+
       denormalised_query_params = denormalise_query_params(
         status: params[:status],
         sort: params[:sort],
@@ -462,44 +494,8 @@ module Outboxer
         order: denormalised_query_params[:order],
         page: denormalised_query_params[:page],
         per_page: denormalised_query_params[:per_page],
-        time_zone: denormalised_query_params[:time_zone])
-
-      ids = params[:selected_ids].map(&:to_i)
-
-      case params[:action]
-      when "requeue_by_ids"
-        result = MessagesService.requeue_by_ids(ids: ids)
-
-        message_text = result[:requeued_count] == 1 ? "message" : "messages"
-
-        if result[:requeued_count] > 0
-          flash[:primary] = "Requeued #{result[:requeued_count]} #{message_text}"
-        end
-
-        unless result[:not_requeued_ids].empty?
-          flash[:warning] = "Could not requeue #{message_text} with ids " \
-            "#{result[:not_requeued_ids].join(", ")}"
-        end
-
-        result
-      when "delete_by_ids"
-        result = MessagesService.delete_by_ids(ids: ids)
-
-        message_text = result[:deleted_count] == 1 ? "message" : "messages"
-
-        if result[:deleted_count] > 0
-          flash[:primary] = "Deleted #{result[:deleted_count]} #{message_text}"
-        end
-
-        unless result[:not_deleted_ids].empty?
-          flash[:warning] = "Could not delete #{message_text} with ids " \
-            "#{result[:not_deleted_ids].join(", ")}"
-        end
-
-        result
-      else
-        raise "Unknown action: #{params[:action]}"
-      end
+        time_zone: denormalised_query_params[:time_zone],
+        flash: flash)
 
       redirect to("/messages#{normalised_query_string}")
     end
@@ -513,19 +509,17 @@ module Outboxer
         per_page: params[:per_page],
         time_zone: params[:time_zone])
 
+      result = MessagesService.requeue_all(
+        status: denormalised_query_params[:status])
+
       normalised_query_string = normalise_query_string(
         status: denormalised_query_params[:status],
         sort: denormalised_query_params[:sort],
         order: denormalised_query_params[:order],
         page: denormalised_query_params[:page],
         per_page: denormalised_query_params[:per_page],
-        time_zone: denormalised_query_params[:time_zone])
-
-      result = MessagesService.requeue_all(
-        status: denormalised_query_params[:status])
-
-      message_text = result[:requeued_count] == 1 ? "message" : "messages"
-      flash[:primary] = "#{result[:requeued_count]} #{message_text} have been queued"
+        time_zone: denormalised_query_params[:time_zone],
+        flash: { primary: "Requeued #{pluralise(result[:requeued_count], "message")}" })
 
       redirect to("/messages#{normalised_query_string}")
     end
@@ -539,19 +533,17 @@ module Outboxer
         per_page: params[:per_page],
         time_zone: params[:time_zone])
 
+      result = MessagesService.delete_all(
+        status: denormalised_query_params[:status], older_than: Time.now.utc)
+
       normalised_query_string = normalise_query_string(
         status: denormalised_query_params[:status],
         sort: denormalised_query_params[:sort],
         order: denormalised_query_params[:order],
         page: denormalised_query_params[:page],
         per_page: denormalised_query_params[:per_page],
-        time_zone: denormalised_query_params[:time_zone])
-
-      result = MessagesService.delete_all(
-        status: denormalised_query_params[:status], older_than: Time.now.utc)
-
-      message_text = result[:deleted_count] == 1 ? "message" : "messages"
-      flash[:primary] = "#{result[:deleted_count]} #{message_text} have been deleted"
+        time_zone: denormalised_query_params[:time_zone],
+        flash: { primary: "Deleted #{pluralise(result[:deleted_count], "message")}" })
 
       redirect to("/messages#{normalised_query_string}")
     end
@@ -642,6 +634,8 @@ module Outboxer
     end
 
     post "/message/:id/requeue" do
+      MessageService.requeue(id: params[:id])
+
       denormalised_query_params = denormalise_query_params(
         status: params[:status],
         sort: params[:sort],
@@ -656,16 +650,15 @@ module Outboxer
         order: denormalised_query_params[:order],
         page: denormalised_query_params[:page],
         per_page: denormalised_query_params[:per_page],
-        time_zone: denormalised_query_params[:time_zone])
-
-      MessageService.requeue(id: params[:id])
-
-      flash[:primary] = "Message #{params[:id]} was queued"
+        time_zone: denormalised_query_params[:time_zone],
+        flash: { primary: "Requeued message #{params[:id]}" })
 
       redirect to("/messages#{normalised_query_string}")
     end
 
     post "/message/:id/delete" do
+      MessageService.delete(id: params[:id])
+
       denormalised_query_params = denormalise_query_params(
         status: params[:status],
         sort: params[:sort],
@@ -680,11 +673,8 @@ module Outboxer
         order: denormalised_query_params[:order],
         page: denormalised_query_params[:page],
         per_page: denormalised_query_params[:per_page],
-        time_zone: denormalised_query_params[:time_zone])
-
-      MessageService.delete(id: params[:id])
-
-      flash[:primary] = "Message #{params[:id]} was deleted"
+        time_zone: denormalised_query_params[:time_zone],
+        flash: { primary: "Deleted message #{params[:id]}" })
 
       redirect to("/messages#{normalised_query_string}")
     end
@@ -728,6 +718,8 @@ module Outboxer
     end
 
     post "/publisher/:id/delete" do
+      PublisherService.delete(id: params[:id])
+
       denormalised_query_params = denormalise_query_params(
         status: params[:status],
         sort: params[:sort],
@@ -742,16 +734,15 @@ module Outboxer
         order: denormalised_query_params[:order],
         page: denormalised_query_params[:page],
         per_page: denormalised_query_params[:per_page],
-        time_zone: denormalised_query_params[:time_zone])
-
-      PublisherService.delete(id: params[:id])
-
-      flash[:primary] = "Publisher #{params[:id]} was deleted"
+        time_zone: denormalised_query_params[:time_zone],
+        flash: { primary: "Deleted publisher #{params[:id]}" })
 
       redirect to(normalised_query_string.to_s)
     end
 
     post "/publisher/:id/signals" do
+      PublisherService.signal(id: params[:id], name: params[:name])
+
       denormalised_query_params = denormalise_query_params(
         status: params[:status],
         sort: params[:sort],
@@ -766,11 +757,8 @@ module Outboxer
         order: denormalised_query_params[:order],
         page: denormalised_query_params[:page],
         per_page: denormalised_query_params[:per_page],
-        time_zone: denormalised_query_params[:time_zone])
-
-      PublisherService.signal(id: params[:id], name: params[:name])
-
-      flash[:primary] = "Publisher #{params[:id]} signalled #{params[:name]}"
+        time_zone: denormalised_query_params[:time_zone],
+        flash: { primary: "Signalled #{params[:name]} to publisher #{params[:id]}" })
 
       redirect to(normalised_query_string)
     end
