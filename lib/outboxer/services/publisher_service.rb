@@ -2,8 +2,6 @@ module Outboxer
   module PublisherService
     module_function
 
-    class Error < StandardError; end
-
     def find_by_id(id:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
@@ -179,7 +177,7 @@ module Outboxer
       buffer_limit = buffer - queue.size
 
       if buffer_limit > 0
-        buffered_messages = MessagesService.buffer(
+        buffered_messages = MessageService.buffer(
           limit: buffer_limit, publisher_id: id, publisher_name: name)
 
         if buffered_messages.count > 0
@@ -363,7 +361,7 @@ module Outboxer
         environment: environment, pool: concurrency + 2, path: db_config_path)
       database.connect(config: db_config, logger: logger)
 
-      SettingsService.create
+      SettingService.create_all
 
       queue = Queue.new
 
@@ -463,6 +461,33 @@ module Outboxer
         "#{error.backtrace.join("\n")}")
 
       terminate(id: id)
+    end
+
+    def all
+      ActiveRecord::Base.connection_pool.with_connection do
+        ActiveRecord::Base.transaction do
+          publishers = Publisher.includes(:signals).all
+
+          publishers.map do |publisher|
+            {
+              id: publisher.id,
+              name: publisher.name,
+              status: publisher.status,
+              settings: publisher.settings,
+              metrics: publisher.metrics,
+              created_at: publisher.created_at.utc,
+              updated_at: publisher.updated_at.utc,
+              signals: publisher.signals.map do |signal|
+                {
+                  id: signal.id,
+                  name: signal.name,
+                  created_at: signal.created_at.utc
+                }
+              end
+            }
+          end
+        end
+      end
     end
   end
 end
