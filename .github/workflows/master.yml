@@ -9,7 +9,7 @@ on:
 jobs:
   gitleaks:
     runs-on: ubuntu-latest
-    name: detect secrets
+    name: run gitleaks
     steps:
     - uses: actions/checkout@v3
       with:
