@@ -358,15 +358,13 @@ module Outboxer
       }
     end
 
-    REQUEUE_STATUSES = [:buffered, :publishing, :failed]
-
-    def can_requeue?(status:)
+    def can_requeue_all?(status:)
       REQUEUE_STATUSES.include?(status&.to_sym)
     end
 
     def requeue_all(status:, batch_size: 100, time: ::Time,
                     publisher_id: nil, publisher_name: nil)
-      if !can_requeue?(status: status)
+      if !can_requeue_all?(status: status)
         status_formatted = status.nil? ? "nil" : status
 
         raise ArgumentError,

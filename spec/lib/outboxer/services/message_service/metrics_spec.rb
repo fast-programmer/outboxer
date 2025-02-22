@@ -1,7 +1,7 @@
 require "rails_helper"
 
 module Outboxer
-  RSpec.describe MessagesService do
+  RSpec.describe MessageService do
     describe ".metrics" do
       let(:current_utc_time) { ::Time.now.utc }
       let(:time) { double("Time", now: double("Time", utc: current_utc_time)) }
@@ -58,7 +58,7 @@ module Outboxer
         end
 
         it "returns correct settings" do
-          metrics = MessagesService.metrics(time: time)
+          metrics = MessageService.metrics(time: time)
 
           expect(metrics).to eq(
             all: {
@@ -94,7 +94,7 @@ module Outboxer
 
       context "when there are no messages in a specific status" do
         it "returns zero count and latency for that status" do
-          metrics = MessagesService.metrics(time: time)
+          metrics = MessageService.metrics(time: time)
 
           expect(metrics).to eq(
             all: { count: { current: 0 } },
@@ -108,7 +108,7 @@ module Outboxer
 
       context "when no messages exist" do
         it "returns zero count and latency for all statuses" do
-          metrics = MessagesService.metrics(time: time)
+          metrics = MessageService.metrics(time: time)
 
           expect(metrics).to eq(
             all: { count: { current: 0 } },

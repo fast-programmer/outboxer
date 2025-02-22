@@ -176,11 +176,11 @@ module Outboxer
           end
         end
 
-        context "when MessagesService.buffer raises a StandardError" do
+        context "when MessageService.buffer raises a StandardError" do
           it "logs the error and continues processing" do
             call_count = 0
 
-            allow(MessagesService).to receive(:buffer) do
+            allow(MessageService).to receive(:buffer) do
               call_count += 1
 
               case call_count
@@ -206,9 +206,9 @@ module Outboxer
           end
         end
 
-        context "when MessagesService.buffer raises an Exception" do
+        context "when MessageService.buffer raises an Exception" do
           it "logs the exception and shuts down" do
-            allow(MessagesService).to receive(:buffer)
+            allow(MessageService).to receive(:buffer)
               .and_raise(NoMemoryError, "failed to allocate memory")
 
             expect(logger).to receive(:fatal)

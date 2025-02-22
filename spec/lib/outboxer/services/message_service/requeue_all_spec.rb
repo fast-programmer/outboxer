@@ -1,7 +1,7 @@
 require "rails_helper"
 
 module Outboxer
-  RSpec.describe MessagesService do
+  RSpec.describe MessageService do
     describe ".requeue_all" do
       let!(:message_1) { create(:outboxer_message, :queued) }
       let!(:message_2) { create(:outboxer_message, :buffered) }
@@ -11,7 +11,7 @@ module Outboxer
 
       context "when status is failed" do
         before do
-          MessagesService.requeue_all(status: MessageService::Status::FAILED, batch_size: 1)
+          MessageService.requeue_all(status: MessageService::Status::FAILED, batch_size: 1)
         end
 
         it "sets failed messages to queued" do
@@ -23,7 +23,7 @@ module Outboxer
 
       context "when status is buffered" do
         before do
-          MessagesService.requeue_all(status: MessageService::Status::BUFFERED, batch_size: 1)
+          MessageService.requeue_all(status: MessageService::Status::BUFFERED, batch_size: 1)
         end
 
         it "sets queued messages to queued" do
@@ -35,7 +35,7 @@ module Outboxer
 
       context "when status is publishing" do
         before do
-          MessagesService.requeue_all(status: MessageService::Status::PUBLISHING, batch_size: 1)
+          MessageService.requeue_all(status: MessageService::Status::PUBLISHING, batch_size: 1)
         end
 
         it "sets publishing messages to queued" do
@@ -48,7 +48,7 @@ module Outboxer
       context "when status is nil" do
         it "raises ArgumentError with message" do
           expect do
-            MessagesService.requeue_all(status: nil, batch_size: 1)
+            MessageService.requeue_all(status: nil, batch_size: 1)
           end.to raise_error(
             ArgumentError, "Status nil must be one of buffered, publishing, failed")
         end

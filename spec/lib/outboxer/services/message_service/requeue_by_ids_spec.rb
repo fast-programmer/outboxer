@@ -1,7 +1,7 @@
 require "rails_helper"
 
 module Outboxer
-  RSpec.describe MessagesService do
+  RSpec.describe MessageService do
     describe ".requeue_by_ids" do
       let!(:message_1) { create(:outboxer_message, :failed) }
       let!(:exception_1) { create(:outboxer_exception, message: message_1) }
@@ -14,7 +14,7 @@ module Outboxer
       let!(:ids) { [message_1.id, message_2.id] }
 
       describe "when ids exist" do
-        let!(:result) { MessagesService.requeue_by_ids(ids: ids) }
+        let!(:result) { MessageService.requeue_by_ids(ids: ids) }
 
         it "sets message status to queued" do
           expect(
@@ -31,7 +31,7 @@ module Outboxer
 
       describe "when an id does not exist" do
         let(:non_existent_id) { 5 }
-        let(:result) { MessagesService.requeue_by_ids(ids: [non_existent_id]) }
+        let(:result) { MessageService.requeue_by_ids(ids: [non_existent_id]) }
 
         it "does not delete selected messages" do
           expect(Frame.count).to eq(2)

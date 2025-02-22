@@ -60,7 +60,7 @@ begin
     current_time = Time.now
 
     if (current_time - last_run_time) >= interval
-      deleted_count = Outboxer::MessagesService.delete_all(
+      deleted_count = Outboxer::MessageService.delete_all(
         status: :published,
         batch_size: batch_size,
         older_than: Time.now - retention_period)[:deleted_count]
