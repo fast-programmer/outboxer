@@ -2,7 +2,7 @@ module Outboxer
   module SettingService
     module_function
 
-    def create
+    def create_all
       ActiveRecord::Base.connection_pool.with_connection do
         begin
           Outboxer::Setting.create!(name: "messages.published.count.historic", value: "0")

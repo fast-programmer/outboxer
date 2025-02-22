@@ -361,7 +361,7 @@ module Outboxer
         environment: environment, pool: concurrency + 2, path: db_config_path)
       database.connect(config: db_config, logger: logger)
 
-      SettingService.create
+      SettingService.create_all
 
       queue = Queue.new
 
