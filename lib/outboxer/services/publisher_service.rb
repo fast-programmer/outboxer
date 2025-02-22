@@ -4,12 +4,6 @@ module Outboxer
 
     class Error < StandardError; end
 
-    class NotFound < Error
-      def initialize(id:)
-        super("Couldn't find Outboxer::Publisher with 'id'=#{id}")
-      end
-    end
-
     def find_by_id(id:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
@@ -33,8 +27,6 @@ module Outboxer
           }
         end
       end
-    rescue ActiveRecord::RecordNotFound => error
-      raise NotFound.new(id: id), cause: error
     end
 
     def create(name:, buffer:, concurrency:,
@@ -95,12 +87,7 @@ module Outboxer
     def stop(id:, time: ::Time)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          begin
-            publisher = Publisher.lock.find(id)
-          rescue ActiveRecord::RecordNotFound => error
-            raise NotFound.new(id: id), cause: error
-          end
-
+          publisher = Publisher.lock.find(id)
           publisher.update!(status: Status::STOPPED, updated_at: time.now.utc)
 
           @status = Status::STOPPED
@@ -111,11 +98,7 @@ module Outboxer
     def continue(id:, time: ::Time)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          begin
-            publisher = Publisher.lock.find(id)
-          rescue ActiveRecord::RecordNotFound => error
-            raise NotFound.new(id: id), cause: error
-          end
+          publisher = Publisher.lock.find(id)
 
           publisher.update!(status: Status::PUBLISHING, updated_at: time.now.utc)
 
@@ -140,12 +123,7 @@ module Outboxer
     def signal(id:, name:, time: ::Time)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          begin
-            publisher = Publisher.lock.find(id)
-          rescue ActiveRecord::RecordNotFound => error
-            raise NotFound.new(id: id), cause: error
-          end
-
+          publisher = Publisher.lock.find(id)
           publisher.signals.create!(name: name, created_at: time.now.utc)
 
           nil
@@ -249,11 +227,7 @@ module Outboxer
               ActiveRecord::Base.transaction do
                 start_rtt = process.clock_gettime(process::CLOCK_MONOTONIC)
 
-                begin
-                  publisher = Publisher.lock.find(id)
-                rescue ActiveRecord::RecordNotFound => error
-                  raise NotFound.new(id: id), cause: error
-                end
+                publisher = Publisher.lock.find(id)
 
                 end_rtt = process.clock_gettime(process::CLOCK_MONOTONIC)
                 rtt = end_rtt - start_rtt
@@ -300,7 +274,7 @@ module Outboxer
               start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
               tick: tick,
               process: process, kernel: kernel)
-          rescue NotFound => error
+          rescue ActiveRecord::RecordNotFound => error
             logger.fatal(
               "#{error.class}: #{error.message}\n" \
               "#{error.backtrace.join("\n")}")
@@ -343,7 +317,7 @@ module Outboxer
 
         begin
           stop(id: id)
-        rescue NotFound => error
+        rescue ActiveRecord::RecordNotFound => error
           logger.fatal(
             "#{error.class}: #{error.message}\n" \
             "#{error.backtrace.join("\n")}")
@@ -355,7 +329,7 @@ module Outboxer
 
         begin
           continue(id: id)
-        rescue NotFound => error
+        rescue ActiveRecord::RecordNotFound => error
           logger.fatal(
             "#{error.class}: #{error.message}\n" \
             "#{error.backtrace.join("\n")}")

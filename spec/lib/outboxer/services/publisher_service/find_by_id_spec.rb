@@ -73,8 +73,9 @@ module Outboxer
       end
 
       context "when the publisher does not exist" do
-        it "raises a NotFound error" do
-          expect { PublisherService.find_by_id(id: -1) }.to raise_error(PublisherService::NotFound)
+        it "raises a ActiveRecord::RecordNotFound error" do
+          expect { PublisherService.find_by_id(id: -1) }
+            .to raise_error(ActiveRecord::RecordNotFound)
         end
       end
     end
