@@ -1,7 +1,7 @@
 require "rails_helper"
 
 module Outboxer
-  RSpec.describe PublishersService do
+  RSpec.describe PublisherService do
     describe ".all" do
       context "when a publisher exists" do
         let!(:publisher) do
@@ -39,7 +39,7 @@ module Outboxer
         end
 
         it "returns the publisher and signals" do
-          publishers = PublishersService.all
+          publishers = PublisherService.all
           expect(publishers.size).to eq(1)
 
           expect(publishers[0][:id]).to eq(publisher.id)
@@ -75,7 +75,7 @@ module Outboxer
 
       context "when a publisher does not exist" do
         it "returns an empty array" do
-          expect(PublishersService.all).to be_empty
+          expect(PublisherService.all).to be_empty
         end
       end
     end

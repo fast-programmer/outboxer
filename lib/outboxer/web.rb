@@ -31,7 +31,7 @@ module Outboxer
     set :show_exceptions, false
 
     configure do
-      SettingsService.create
+      SettingService.create
     end
 
     helpers do

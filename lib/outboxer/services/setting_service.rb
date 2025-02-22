@@ -1,5 +1,5 @@
 module Outboxer
-  module SettingsService
+  module SettingService
     module_function
 
     def create

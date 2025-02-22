@@ -35,6 +35,6 @@ RSpec.configure do |config|
       # Optionally log these errors or handle them as needed
     end
 
-    Outboxer::SettingsService.create
+    Outboxer::SettingService.create
   end
 end
