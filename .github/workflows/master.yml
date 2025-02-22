@@ -9,12 +9,15 @@ on:
 jobs:
   gitleaks:
     runs-on: ubuntu-latest
-    name: gitleaks
+    name: detect secrets
     steps:
     - uses: actions/checkout@v3
       with:
         fetch-depth: 0
     - uses: gitleaks/gitleaks-action@v2
+      # env:
+      #   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
 
   brakeman:
     runs-on: ubuntu-latest
