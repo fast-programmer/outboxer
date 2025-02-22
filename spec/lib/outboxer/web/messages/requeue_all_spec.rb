@@ -88,7 +88,8 @@ RSpec.describe "POST /messages/requeue_all", type: :request do
     end
 
     it "flashes requeued messages count" do
-      expect(last_request.env["x-rack.flash"][:primary]).to include("1 message have been queued")
+      expected_flash = URI.encode_www_form_component("success:Requeued 1 message")
+      expect(last_request.url).to include("flash=#{expected_flash}")
     end
   end
 end

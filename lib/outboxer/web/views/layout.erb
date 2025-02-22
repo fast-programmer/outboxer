@@ -108,15 +108,20 @@
             </div>
         </div>
     </nav>
-    <!-- Flash Message -->
-    <% [:primary, :warning, :success, :danger, :info, :light, :dark, :secondary].each do |alert_type| %>
-        <% if flash[alert_type] %>
-            <div class="alert alert-dismissible fade show text-center alert-<%= alert_type.to_s %>" role="alert">
-                <%= flash[alert_type] %>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
+    <!-- Multiple Flash Messages -->
+    <% if params[:flash] %>
+        <% URI.decode_www_form_component(params[:flash]).split('&').each do |flash_msg| %>
+            <% flash_type, message = flash_msg.split(':', 2) %>
+            <% if message %>
+                <% decoded_message = URI.decode_www_form_component(message) %>
+                <div class="alert alert-dismissible fade show text-center alert-<%= flash_type %>" role="alert">
+                    <%= decoded_message %>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <% end %>
         <% end %>
     <% end %>
+
     <!-- Content -->
     <%= yield %>
     <!-- Bootstrap Bundle with Popper -->

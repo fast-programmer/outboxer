@@ -38,14 +38,6 @@
                 </div>
             </div>
         </nav>
-        <% [:primary, :warning, :success, :danger, :info, :light, :dark, :secondary].each do |alert_type| %>
-            <% if flash[alert_type] %>
-                <div class="alert alert-dismissible fade show text-center alert-<%= alert_type.to_s %>" role="alert">
-                    <%= flash[alert_type] %>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            <% end %>
-        <% end %>
         <div class="container mt-4">
             <div class="card">
                 <div class="card-header">
