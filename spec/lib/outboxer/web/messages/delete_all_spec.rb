@@ -57,7 +57,8 @@ RSpec.describe "POST /messages/delete_all", type: :request do
     end
 
     it "flashes deleted messages count" do
-      expect(last_request.url).to include("flash=primary%3A3+messages+have+been+deleted")
+      expected_flash = URI.encode_www_form_component("success:Deleted 3 message")
+      expect(last_request.url).to include("flash=#{expected_flash}")
     end
   end
 
@@ -96,7 +97,8 @@ RSpec.describe "POST /messages/delete_all", type: :request do
     end
 
     it "flashes deleted messages count" do
-      expect(last_request.env["x-rack.flash"][:primary]).to include("1 message have been deleted")
+      expected_flash = URI.encode_www_form_component("success:Deleted 1 message")
+      expect(last_request.url).to include("flash=#{expected_flash}")
     end
   end
 end

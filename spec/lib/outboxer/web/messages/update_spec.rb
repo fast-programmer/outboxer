@@ -62,7 +62,9 @@ RSpec.describe "POST /messages/update", type: :request do
       expect(last_response).to be_ok
       expect(last_request.url).to include(
         "messages?status=failed&sort=queued_at&order=desc&per_page=10&time_zone=Australia%2FSydney")
-      expect(last_request.env["x-rack.flash"][:primary]).to include("Requeued 2 messages")
+
+      expected_flash = URI.encode_www_form_component("success:Requeued 2 messages")
+      expect(last_request.url).to include("flash=#{expected_flash}")
     end
   end
 
@@ -92,7 +94,8 @@ RSpec.describe "POST /messages/update", type: :request do
       expect(last_response).to be_ok
       expect(last_request.url).to include(
         "messages?status=failed&sort=queued_at&order=desc&per_page=10&time_zone=Australia%2FSydney")
-      expect(last_request.env["x-rack.flash"][:primary]).to include("Deleted 2 messages")
+      expected_flash = URI.encode_www_form_component("success:Deleted 2 messages")
+      expect(last_request.url).to include("flash=#{expected_flash}")
     end
   end
 

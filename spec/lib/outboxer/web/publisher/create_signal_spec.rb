@@ -32,6 +32,7 @@ RSpec.describe "POST /publisher/:id/signals", type: :request do
 
   it "displays flash" do
     expect(last_response).to be_ok
-    expect(last_request.env["x-rack.flash"][:primary]).to include("signalled")
+    expected_flash = URI.encode_www_form_component("success:Signalled")
+    expect(last_request.url).to include("flash=#{expected_flash}")
   end
 end

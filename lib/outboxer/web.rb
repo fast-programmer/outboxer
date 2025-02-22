@@ -39,9 +39,8 @@ module Outboxer
         "#{request.script_name}#{path}"
       end
 
-      def encode_flash(flash)
-        URI.encode_www_form_component(
-          flash.map { |type, message| "#{type}:#{message}" }.join("&"))
+      def stringify_flash(flash)
+        flash.map { |type, message| "#{type}:#{message}" }.join("&")
       end
 
       def pluralise(count, singular, plural = nil)
@@ -426,7 +425,7 @@ module Outboxer
         page: page.to_i == MessagesService::LIST_PAGE_DEFAULT ? nil : page,
         per_page: per_page.to_i == MessagesService::LIST_PER_PAGE_DEFAULT ? nil : per_page,
         time_zone: time_zone.to_s == MessagesService::LIST_TIME_ZONE_DEFAULT ? nil : time_zone,
-        flash: flash.empty? ? nil : encode_flash(flash)
+        flash: flash.empty? ? nil : stringify_flash(flash)
       }.compact
     end
 
@@ -458,22 +457,22 @@ module Outboxer
         result = MessagesService.requeue_by_ids(ids: ids)
 
         if result[:requeued_count] > 0
-          flash[:primary] = "Requeued #{pluralise(result[:requeued_count], "message")}"
+          flash[:success] = "Requeued #{pluralise(result[:requeued_count], "message")}"
         end
 
         if !result[:not_requeued_ids].empty?
-          flash[:warning] =
+          flash[:danger] =
             "Requeue failed for #{pluralise(result[:not_requeued_ids].count, "message")}"
         end
       when "delete_by_ids"
         result = MessagesService.delete_by_ids(ids: ids)
 
         if result[:deleted_count] > 0
-          flash[:primary] = "Deleted #{pluralise(result[:deleted_count], "message")}"
+          flash[:success] = "Deleted #{pluralise(result[:deleted_count], "message")}"
         end
 
         if !result[:not_deleted_ids].empty?
-          flash[:warning] =
+          flash[:danger] =
             "Delete failed for #{pluralise(result[:not_deleted_ids].count, "message")}"
         end
       else
@@ -519,7 +518,7 @@ module Outboxer
         page: denormalised_query_params[:page],
         per_page: denormalised_query_params[:per_page],
         time_zone: denormalised_query_params[:time_zone],
-        flash: { primary: "Requeued #{pluralise(result[:requeued_count], "message")}" })
+        flash: { success: "Requeued #{pluralise(result[:requeued_count], "message")}" })
 
       redirect to("/messages#{normalised_query_string}")
     end
@@ -543,7 +542,7 @@ module Outboxer
         page: denormalised_query_params[:page],
         per_page: denormalised_query_params[:per_page],
         time_zone: denormalised_query_params[:time_zone],
-        flash: { primary: "Deleted #{pluralise(result[:deleted_count], "message")}" })
+        flash: { success: "Deleted #{pluralise(result[:deleted_count], "message")}" })
 
       redirect to("/messages#{normalised_query_string}")
     end
@@ -651,7 +650,7 @@ module Outboxer
         page: denormalised_query_params[:page],
         per_page: denormalised_query_params[:per_page],
         time_zone: denormalised_query_params[:time_zone],
-        flash: { primary: "Requeued message #{params[:id]}" })
+        flash: { success: "Requeued message #{params[:id]}" })
 
       redirect to("/messages#{normalised_query_string}")
     end
@@ -674,7 +673,7 @@ module Outboxer
         page: denormalised_query_params[:page],
         per_page: denormalised_query_params[:per_page],
         time_zone: denormalised_query_params[:time_zone],
-        flash: { primary: "Deleted message #{params[:id]}" })
+        flash: { success: "Deleted message #{params[:id]}" })
 
       redirect to("/messages#{normalised_query_string}")
     end
@@ -735,7 +734,7 @@ module Outboxer
         page: denormalised_query_params[:page],
         per_page: denormalised_query_params[:per_page],
         time_zone: denormalised_query_params[:time_zone],
-        flash: { primary: "Deleted publisher #{params[:id]}" })
+        flash: { success: "Deleted publisher #{params[:id]}" })
 
       redirect to(normalised_query_string.to_s)
     end
@@ -758,7 +757,7 @@ module Outboxer
         page: denormalised_query_params[:page],
         per_page: denormalised_query_params[:per_page],
         time_zone: denormalised_query_params[:time_zone],
-        flash: { primary: "Signalled #{params[:name]} to publisher #{params[:id]}" })
+        flash: { success: "Signalled #{params[:name]} to publisher #{params[:id]}" })
 
       redirect to(normalised_query_string)
     end
