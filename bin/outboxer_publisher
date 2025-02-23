@@ -9,7 +9,7 @@ cli_options = Outboxer::OptionParser.parse(ARGV)
 environment = cli_options[:environment] || ENV["RAILS_ENV"]
 
 config = Outboxer::Config.load(path: options[:config], environment: environment)
-config.merge!(options.compact, Outboxer::Config::DEFAULTS)
+Outboxer::Config::DEFAULTS.merge(config).merge(cli_options)
 
 # puts "Starting Outboxer with configuration: #{config.inspect}" if config[:verbose]
 
