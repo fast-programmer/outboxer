@@ -2,6 +2,60 @@ module Outboxer
   module PublisherService
     module_function
 
+    def config(environment:, path: nil)
+      path ||= ::File.expand_path(DEFAULT_OPTIONS[:config_path], ::Dir.pwd)
+      db_config_content = File.read(path)
+      db_config_erb_result = ERB.new(db_config_content).result
+      db_config = YAML.safe_load(db_config_erb_result, aliases: true)[environment]
+      db_config.transform_keys(&:to_sym)
+    end
+
+    def self.parse_options(args)
+      options = {}
+
+      parser = ::OptionParser.new do |opts|
+        opts.banner = "Usage: outboxer_publisher [options]"
+
+        opts.on("-c", "--concurrency INT", Integer, "Set concurrency level") do |v|
+          options[:concurrency] = v
+        end
+
+        opts.on("-e", "--environment ENV", "Application environment") do |v|
+          options[:environment] = v
+        end
+
+        opts.on("-b", "--buffer SIZE", Integer, "Set buffer size") do |v|
+          options[:buffer] = v
+        end
+
+        opts.on("-p", "--poll NUM", Integer, "Poll interval in seconds") do |v|
+          options[:poll] = v
+        end
+
+        opts.on("-C", "--config PATH", "Path to YAML config file") do |v|
+          options[:config] = v
+        end
+
+        opts.on("-l", "--log-level LEVEL", "Set the logging level (debug, info, warn, error)") do |v|
+          options[:log_level] = v
+        end
+
+        opts.on("-V", "--version", "Print version and exit") do
+          puts "Outboxer version #{Outboxer::VERSION}"
+          exit
+        end
+
+        opts.on("-h", "--help", "Show this help message") do
+          puts opts
+          exit
+        end
+      end
+
+      parser.parse!(args)
+
+      options
+    end
+
     def find_by_id(id:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
@@ -341,14 +395,24 @@ module Outboxer
       end
     end
 
+    DEFAULT_OPTIONS = {
+      config_path: 'config/outboxer.yml',
+      buffer: 100,
+      concurrency: 1,
+      tick: 0.1,
+      poll: 5.0,
+      heartbeat: 5.0,
+      log_level: 'info'
+    }
+
     def publish_message(
       name: "#{::Socket.gethostname}:#{::Process.pid}",
-      environment: ::ENV.fetch("RAILS_ENV", "development"),
-      db_config_path: ::File.expand_path("config/database.yml", ::Dir.pwd),
-      buffer: 100, concurrency: 1,
-      tick: 0.1, poll: 5.0, heartbeat: 5.0,
+      buffer: DEFAULT_OPTIONS[:buffer],
+      concurrency: DEFAULT_OPTIONS[:concurrency],
+      tick: DEFAULT_OPTIONS[:tick],
+      poll: DEFAULT_OPTIONS[:poll],
+      heartbeat: DEFAULT_OPTIONS[:heartbeat],
       logger: Logger.new($stdout, level: Logger::INFO),
-      database: DatabaseService,
       time: ::Time, process: ::Process, kernel: ::Kernel,
       &block
     )
@@ -356,10 +420,6 @@ module Outboxer
 
       logger.info "Outboxer v#{Outboxer::VERSION} running in ruby #{RUBY_VERSION} " \
         "(#{RUBY_RELEASE_DATE} revision #{RUBY_REVISION[0, 10]}) [#{RUBY_PLATFORM}]"
-
-      db_config = database.config(
-        environment: environment, pool: concurrency + 2, path: db_config_path)
-      database.connect(config: db_config, logger: logger)
 
       SettingService.create_all
 
@@ -423,8 +483,6 @@ module Outboxer
       delete(id: id)
 
       logger.info "Outboxer terminated"
-    ensure
-      database.disconnect(logger: logger)
     end
 
     def publish_message(id:, name:, buffered_message:, logger:, &block)

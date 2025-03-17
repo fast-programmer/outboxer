@@ -4,6 +4,7 @@ default: &default
   tick: 0.1
   poll: 5.0
   heartbeat: 5.0
+  log_level: 'info'
 
 development:
   <<: *default

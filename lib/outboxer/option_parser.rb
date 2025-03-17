@@ -2,34 +2,34 @@ require "optparse"
 
 module Outboxer
   class OptionParser
-    DEFAULTS = {
-      db_config_file: 'config/database.yml',
-      config_file: 'config/outboxer.yml',
-      environment: 'development',
-      buffer: 100,
-      tick: 0.5,
-      concurrency: 1,
-      verbose: false
-    }
-
     def self.parse(args)
-      parser = ::OptionParser.new do |opts|
-        opts.banner = "Usage: outboxer [options]"
+      options = {}
 
-        opts.on("-c", "--config CONFIG", "Path to YAML config file") do |v|
-          options[:config_file] = v
-        end
+      parser = OptionParser.new do |opts|
+        opts.banner = "Usage: outboxer_publisher [options]"
 
-        opts.on("--buffer SIZE", Integer, "Set buffer size") do |v|
-          options[:buffer] = v
-        end
-
-        opts.on("--concurrency INT", Integer, "Set concurrency level") do |v|
+        opts.on("-c", "--concurrency INT", Integer, "Set concurrency level") do |v|
           options[:concurrency] = v
         end
 
-        opts.on("-v", "--verbose", "Print more verbose output") do
-          options[:verbose] = true
+        opts.on("-e", "--environment ENV", "Application environment") do |v|
+          options[:environment] = v
+        end
+
+        opts.on("-b", "--buffer SIZE", Integer, "Set buffer size") do |v|
+          options[:buffer] = v
+        end
+
+        opts.on("-p", "--poll NUM", Integer, "Poll interval in seconds") do |v|
+          options[:poll] = v
+        end
+
+        opts.on("-C", "--config PATH", "Path to YAML config file") do |v|
+          options[:config] = v
+        end
+
+        opts.on("-l", "--log-level LEVEL", "Set the logging level (debug, info, warn, error)") do |v|
+          options[:log_level] = v
         end
 
         opts.on("-V", "--version", "Print version and exit") do
