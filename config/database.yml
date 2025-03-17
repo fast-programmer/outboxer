@@ -1,19 +1,19 @@
 development:
-  adapter: <%= ENV.fetch('DATABASE_ADAPTER') { 'postgresql' } %>
+  adapter: <%= ENV.fetch('DB_ADAPTER') { 'postgresql' } %>
   encoding: utf8
-  host: <%= ENV.fetch('DATABASE_HOST') { 'localhost' } %>
-  port: <%= ENV.fetch('DATABASE_PORT') { 5432 } %>
+  host: <%= ENV.fetch('DB_HOST') { 'localhost' } %>
+  port: <%= ENV.fetch('DB_PORT') { 5432 } %>
   username: outboxer_developer
   password: outboxer_password
   database: outboxer_development
-  pool: <%= ENV.fetch('DATABASE_POOL') { 3 } %>
+  pool: <%= ENV["DB_POOL"] || ENV['RAILS_MAX_THREADS'] || 5 %>
 
 test:
-  adapter: <%= ENV.fetch('DATABASE_ADAPTER') { 'postgresql' } %>
+  adapter: <%= ENV.fetch('DB_ADAPTER') { 'postgresql' } %>
   encoding: utf8
-  host: <%= ENV.fetch('DATABASE_HOST') { 'localhost' } %>
-  port: <%= ENV.fetch('DATABASE_PORT') { 5432 } %>
+  host: <%= ENV.fetch('DB_HOST') { 'localhost' } %>
+  port: <%= ENV.fetch('DB_PORT') { 5432 } %>
   username: outboxer_developer
   password: outboxer_password
   database: outboxer_test
-  pool: <%= ENV.fetch('DATABASE_POOL') { 3 } %>
+  pool: <%= ENV["DB_POOL"] || ENV['RAILS_MAX_THREADS'] || 5 %>

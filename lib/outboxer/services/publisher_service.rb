@@ -341,7 +341,7 @@ module Outboxer
       end
     end
 
-    def publish(
+    def publish_message(
       name: "#{::Socket.gethostname}:#{::Process.pid}",
       environment: ::ENV.fetch("RAILS_ENV", "development"),
       db_config_path: ::File.expand_path("config/database.yml", ::Dir.pwd),

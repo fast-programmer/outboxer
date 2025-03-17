@@ -5,14 +5,20 @@ require "sidekiq"
 require "outboxer"
 require_relative "../app/jobs/outboxer_integration/publish_message_job"
 
-cli_options = Outboxer::OptionParser.parse(ARGV)
-environment = cli_options[:environment] || ENV["RAILS_ENV"]
+options = Outboxer::OptionParser::DEFAULTS.merge(Outboxer::OptionParser.parse(ARGV))
+logger = Outboxer::Logger.new($stdout, level: Logger.const_get(options[:level].upcase))
 
-config = Outboxer::Config.load(path: options[:config], environment: environment)
-Outboxer::Config::DEFAULTS.merge(config).merge(cli_options)
+Sidekiq.configure_client do |config|
+  config.redis = { url: ENV["REDIS_URL"], pool: options[:concurrency] }
+end
 
-# puts "Starting Outboxer with configuration: #{config.inspect}" if config[:verbose]
+database_config = Outboxer::DatabaseService.config(pool: options[:concurrency])
+Outboxer::DatabaseService.connect(config: database_config, logger: logger)
 
-Outboxer::PublisherService.publish(config: config) do |message|
-  OutboxerIntegration::PublishMessageJob.perform_async(message.id)
+begin
+  Outboxer::PublisherService.publish_message(**options) do |message|
+    OutboxerIntegration::PublishMessageJob.perform_async(message.id)
+  end
+ensure
+  Outboxer::DatabaseService.disconnect(logger: logger)
 end
