@@ -16,7 +16,7 @@ module Outboxer
       parser = ::OptionParser.new do |opts|
         opts.banner = "Usage: outboxer_publisher [options]"
 
-        opts.on("-c", "--concurrency INT", Integer, "Set concurrency level") do |v|
+        opts.on("-c", "--concurrency INT", Integer, "Concurrency") do |v|
           options[:concurrency] = v
         end
 
@@ -24,7 +24,7 @@ module Outboxer
           options[:environment] = v
         end
 
-        opts.on("-b", "--buffer SIZE", Integer, "Set buffer size") do |v|
+        opts.on("-b", "--buffer LIMIT", Integer, "Buffer limit") do |v|
           options[:buffer] = v
         end
 
@@ -36,7 +36,7 @@ module Outboxer
           options[:config] = v
         end
 
-        opts.on("-l", "--log-level LEVEL", "Set the logging level (debug, info, warn, error)") do |v|
+        opts.on("-l", "--log-level LEVEL", "Log level (debug, info, warn, error)") do |v|
           options[:log_level] = v
         end
 
@@ -405,7 +405,7 @@ module Outboxer
       log_level: 'info'
     }
 
-    def publish_message(
+    def publish(
       name: "#{::Socket.gethostname}:#{::Process.pid}",
       buffer: DEFAULT_OPTIONS[:buffer],
       concurrency: DEFAULT_OPTIONS[:concurrency],

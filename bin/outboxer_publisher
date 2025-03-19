@@ -16,11 +16,11 @@ Sidekiq.configure_client do |config|
   config.redis = { url: ENV["REDIS_URL"], pool: options[:concurrency] }
 end
 
-database_config = Outboxer::DatabaseService.config(pool: options[:concurrency])
+database_config = Outboxer::DatabaseService.config(environment: environment, pool: options[:concurrency])
 Outboxer::DatabaseService.connect(config: database_config, logger: logger)
 
 begin
-  Outboxer::PublisherService.publish_message(
+  Outboxer::PublisherService.publish(
     buffer: options[:buffer],
     concurrency: options[:concurrency],
     tick: options[:tick],
