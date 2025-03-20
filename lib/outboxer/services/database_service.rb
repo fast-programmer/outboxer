@@ -14,6 +14,8 @@ module Outboxer
     end
 
     def connect(config:, logger: nil)
+      ActiveRecord::Base.logger = logger
+
       logger&.info "Outboxer connecting to database"
       ActiveRecord::Base.establish_connection(config)
       ActiveRecord::Base.connection_pool.with_connection do |connection|

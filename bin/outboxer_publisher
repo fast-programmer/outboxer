@@ -14,6 +14,7 @@ logger = Outboxer::Logger.new($stdout, level: Logger.const_get(options[:log_leve
 
 Sidekiq.configure_client do |config|
   config.redis = { url: ENV["REDIS_URL"], pool: options[:concurrency] }
+  config.logger = logger
 end
 
 database_config = Outboxer::DatabaseService.config(environment: environment, pool: options[:concurrency])
