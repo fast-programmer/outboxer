@@ -5,11 +5,11 @@ require "sidekiq"
 require "outboxer"
 require_relative "../app/jobs/outboxer_integration/publish_message_job"
 
-args = Outboxer::PublisherService.parse_options(ARGV)
+cli_options = Outboxer::PublisherService.parse_cli_options(ARGV)
 config_path = args.delete(:config) || Outboxer::PublisherService::CONFIG_DEFAULTS[:path]
 environment = args.delete(:environment) || ENV["APP_ENV"] || ENV["RAILS_ENV"] || "development"
 config = Outboxer::PublisherService.config(path: config_path, environment: environment)
-options = Outboxer::PublisherService::PUBLISH_DEFAULTS.merge(config.merge(args))
+options = Outboxer::PublisherService::PUBLISH_DEFAULTS.merge(config.merge(cli_options))
 logger = Outboxer::Logger.new($stdout, level: options[:log_level])
 
 Sidekiq.configure_client do |client_config|

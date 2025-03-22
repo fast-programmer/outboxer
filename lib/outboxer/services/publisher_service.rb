@@ -2,7 +2,7 @@ module Outboxer
   module PublisherService
     module_function
 
-    def self.parse_options(args)
+    def self.parse_cli_options(args)
       options = {}
 
       parser = ::OptionParser.new do |opts|
@@ -28,8 +28,8 @@ module Outboxer
           options[:config] = v
         end
 
-        opts.on("-l", "--log-level LEVEL", "Log level") do |v|
-          options[:log_level] = v.to_i
+        opts.on("-l", "--log-level LEVEL", Integer, "Log level") do |v|
+          options[:log_level] = v
         end
 
         opts.on("-V", "--version", "Print version and exit") do
