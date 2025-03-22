@@ -14,11 +14,9 @@ require_relative "outboxer/models/publisher"
 require_relative "outboxer/models/signal"
 
 require_relative "outboxer/services/database_service"
-require_relative "outboxer/services/settings_service"
+require_relative "outboxer/services/setting_service"
 require_relative "outboxer/services/message_service"
-require_relative "outboxer/services/messages_service"
 require_relative "outboxer/services/publisher_service"
-require_relative "outboxer/services/publishers_service"
 
 module Outboxer
 end

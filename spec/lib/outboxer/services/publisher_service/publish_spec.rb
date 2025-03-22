@@ -4,12 +4,10 @@ require "rails_helper"
 module Outboxer
   RSpec.describe PublisherService do
     describe ".publish" do
-      let(:environment) { "test" }
       let(:buffer) { 1 }
       let(:poll) { 1 }
       let(:tick) { 0.1 }
-      let(:logger) { instance_double(Logger, debug: true, error: true, fatal: true, info: true) }
-      let(:database) { class_double(DatabaseService, config: nil, connect: nil, disconnect: nil) }
+      let(:logger) { instance_double(Logger, debug: true, error: true, fatal: true, info: true, level: 1) }
       let(:kernel) { class_double(Kernel, sleep: nil) }
 
       before do
@@ -22,11 +20,9 @@ module Outboxer
         it "dumps stack trace" do
           publish_thread = Thread.new do
             Outboxer::PublisherService.publish(
-              environment: environment,
               buffer: buffer,
               poll: poll,
               tick: tick,
-              database: database,
               logger: logger, kernel: kernel) do |_message|
               ::Process.kill("TTIN", ::Process.pid)
             end
@@ -49,12 +45,10 @@ module Outboxer
         it "stops and resumes the publishing process correctly" do
           publish_thread = Thread.new do
             Outboxer::PublisherService.publish(
-              environment: environment,
               buffer: buffer,
               poll: poll,
               tick: tick,
               logger: logger,
-              database: database,
               kernel: kernel) do |_message|
               ::Process.kill("TSTP", ::Process.pid)
             end
@@ -73,12 +67,10 @@ module Outboxer
       context "when message published successfully" do
         it "sets the message to published" do
           PublisherService.publish(
-            environment: environment,
             buffer: buffer,
             poll: poll,
             tick: tick,
             logger: logger,
-            database: database,
             kernel: kernel) do |message|
             expect(message[:id]).to eq(queued_message.id)
             expect(message[:messageable_type]).to eq(queued_message.messageable_type)
@@ -98,12 +90,10 @@ module Outboxer
 
           before do
             PublisherService.publish(
-              environment: environment,
               buffer: buffer,
               poll: poll,
               tick: tick,
               logger: logger,
-              database: database,
               kernel: kernel) do |_message|
               ::Process.kill("TERM", ::Process.pid)
 
@@ -141,12 +131,10 @@ module Outboxer
 
           before do
             PublisherService.publish(
-              environment: environment,
               buffer: buffer,
               poll: poll,
               tick: tick,
               logger: logger,
-              database: database,
               kernel: kernel) do |_buffered_message|
               raise no_memory_error
             end
@@ -176,11 +164,11 @@ module Outboxer
           end
         end
 
-        context "when MessagesService.buffer raises a StandardError" do
+        context "when MessageService.buffer raises a StandardError" do
           it "logs the error and continues processing" do
             call_count = 0
 
-            allow(MessagesService).to receive(:buffer) do
+            allow(MessageService).to receive(:buffer) do
               call_count += 1
 
               case call_count
@@ -196,19 +184,17 @@ module Outboxer
             expect(logger).to receive(:error).with(include("StandardError: queue error")).once
 
             PublisherService.publish(
-              environment: environment,
               buffer: buffer,
               poll: poll,
               tick: tick,
               logger: logger,
-              database: database,
               kernel: kernel)
           end
         end
 
-        context "when MessagesService.buffer raises an Exception" do
+        context "when MessageService.buffer raises an Exception" do
           it "logs the exception and shuts down" do
-            allow(MessagesService).to receive(:buffer)
+            allow(MessageService).to receive(:buffer)
               .and_raise(NoMemoryError, "failed to allocate memory")
 
             expect(logger).to receive(:fatal)
@@ -216,12 +202,10 @@ module Outboxer
               .once
 
             PublisherService.publish(
-              environment: environment,
               buffer: buffer,
               poll: poll,
               tick: tick,
               logger: logger,
-              database: database,
               kernel: kernel)
           end
         end

@@ -1,13 +1,88 @@
+require "optparse"
+
 module Outboxer
   module PublisherService
     module_function
 
-    class Error < StandardError; end
+    def self.parse_cli_options(args)
+      options = {}
 
-    class NotFound < Error
-      def initialize(id:)
-        super("Couldn't find Outboxer::Publisher with 'id'=#{id}")
+      parser = ::OptionParser.new do |opts|
+        opts.banner = "Usage: outboxer_publisher [options]"
+
+        opts.on("-C", "--config PATH", "Path to YAML config file") do |v|
+          options[:config] = v
+        end
+
+        opts.on("-e", "--environment ENV", "Application environment") do |v|
+          options[:environment] = v
+        end
+
+        opts.on("-b", "--buffer SIZE", Integer, "Buffer") do |v|
+          options[:buffer] = v
+        end
+
+        opts.on("-c", "--concurrency SIZE", Integer, "Concurrency") do |v|
+          options[:concurrency] = v
+        end
+
+        opts.on("-t", "--tick SECS", Float, "Tick interval in seconds") do |v|
+          options[:tick] = v
+        end
+
+        opts.on("-p", "--poll SECS", Float, "Poll interval in seconds") do |v|
+          options[:poll] = v
+        end
+
+        opts.on("-a", "--heartbeat SECS", Float, "Heartbeat interval in seconds") do |v|
+          options[:heartbeat] = v
+        end
+
+        opts.on("-l", "--log-level LEVEL", Integer, "Log level") do |v|
+          options[:log_level] = v
+        end
+
+        opts.on("-V", "--version", "Print version and exit") do
+          puts "Outboxer version #{Outboxer::VERSION}"
+          exit
+        end
+
+        opts.on("-h", "--help", "Show this help message") do
+          puts opts
+          exit
+        end
       end
+
+      parser.parse!(args)
+
+      options
+    end
+
+    CONFIG_DEFAULTS = {
+      path: "config/outboxer.yml",
+      enviroment: "development"
+    }
+
+    def config(
+      environment: CONFIG_DEFAULTS[:environment],
+      path: CONFIG_DEFAULTS[:path]
+    )
+      path_expanded = ::File.expand_path(path)
+      text = File.read(path_expanded)
+      erb = ERB.new(text, trim_mode: "-")
+      erb.filename = path_expanded
+      erb_result = erb.result
+
+      yaml = YAML.safe_load(erb_result, permitted_classes: [Symbol], aliases: true)
+      yaml.deep_symbolize_keys!
+      yaml_override = yaml.fetch(environment&.to_sym, {}).slice(*PUBLISH_DEFAULTS.keys)
+      yaml.slice(*PUBLISH_DEFAULTS.keys).merge(yaml_override)
+    rescue Errno::ENOENT
+      {}
+    end
+
+    def total_thread_count(concurrency:)
+      concurrency + 2 # workers + main + heartbeat
     end
 
     def find_by_id(id:)
@@ -33,8 +108,6 @@ module Outboxer
           }
         end
       end
-    rescue ActiveRecord::RecordNotFound => error
-      raise NotFound.new(id: id), cause: error
     end
 
     def create(name:, buffer:, concurrency:,
@@ -95,12 +168,7 @@ module Outboxer
     def stop(id:, time: ::Time)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          begin
-            publisher = Publisher.lock.find(id)
-          rescue ActiveRecord::RecordNotFound => error
-            raise NotFound.new(id: id), cause: error
-          end
-
+          publisher = Publisher.lock.find(id)
           publisher.update!(status: Status::STOPPED, updated_at: time.now.utc)
 
           @status = Status::STOPPED
@@ -111,11 +179,7 @@ module Outboxer
     def continue(id:, time: ::Time)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          begin
-            publisher = Publisher.lock.find(id)
-          rescue ActiveRecord::RecordNotFound => error
-            raise NotFound.new(id: id), cause: error
-          end
+          publisher = Publisher.lock.find(id)
 
           publisher.update!(status: Status::PUBLISHING, updated_at: time.now.utc)
 
@@ -140,12 +204,7 @@ module Outboxer
     def signal(id:, name:, time: ::Time)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          begin
-            publisher = Publisher.lock.find(id)
-          rescue ActiveRecord::RecordNotFound => error
-            raise NotFound.new(id: id), cause: error
-          end
-
+          publisher = Publisher.lock.find(id)
           publisher.signals.create!(name: name, created_at: time.now.utc)
 
           nil
@@ -201,7 +260,7 @@ module Outboxer
       buffer_limit = buffer - queue.size
 
       if buffer_limit > 0
-        buffered_messages = MessagesService.buffer(
+        buffered_messages = MessageService.buffer(
           limit: buffer_limit, publisher_id: id, publisher_name: name)
 
         if buffered_messages.count > 0
@@ -249,11 +308,7 @@ module Outboxer
               ActiveRecord::Base.transaction do
                 start_rtt = process.clock_gettime(process::CLOCK_MONOTONIC)
 
-                begin
-                  publisher = Publisher.lock.find(id)
-                rescue ActiveRecord::RecordNotFound => error
-                  raise NotFound.new(id: id), cause: error
-                end
+                publisher = Publisher.lock.find(id)
 
                 end_rtt = process.clock_gettime(process::CLOCK_MONOTONIC)
                 rtt = end_rtt - start_rtt
@@ -300,7 +355,7 @@ module Outboxer
               start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
               tick: tick,
               process: process, kernel: kernel)
-          rescue NotFound => error
+          rescue ActiveRecord::RecordNotFound => error
             logger.fatal(
               "#{error.class}: #{error.message}\n" \
               "#{error.backtrace.join("\n")}")
@@ -343,7 +398,7 @@ module Outboxer
 
         begin
           stop(id: id)
-        rescue NotFound => error
+        rescue ActiveRecord::RecordNotFound => error
           logger.fatal(
             "#{error.class}: #{error.message}\n" \
             "#{error.backtrace.join("\n")}")
@@ -355,7 +410,7 @@ module Outboxer
 
         begin
           continue(id: id)
-        rescue NotFound => error
+        rescue ActiveRecord::RecordNotFound => error
           logger.fatal(
             "#{error.class}: #{error.message}\n" \
             "#{error.backtrace.join("\n")}")
@@ -369,14 +424,23 @@ module Outboxer
       end
     end
 
+    PUBLISH_DEFAULTS = {
+      buffer: 100,
+      concurrency: 1,
+      tick: 0.1,
+      poll: 5.0,
+      heartbeat: 5.0,
+      log_level: 1
+    }
+
     def publish(
       name: "#{::Socket.gethostname}:#{::Process.pid}",
-      environment: ::ENV.fetch("RAILS_ENV", "development"),
-      db_config_path: ::File.expand_path("config/database.yml", ::Dir.pwd),
-      buffer: 100, concurrency: 1,
-      tick: 0.1, poll: 5.0, heartbeat: 5.0,
-      logger: Logger.new($stdout, level: Logger::INFO),
-      database: DatabaseService,
+      buffer: PUBLISH_DEFAULTS[:buffer],
+      concurrency: PUBLISH_DEFAULTS[:concurrency],
+      tick: PUBLISH_DEFAULTS[:tick],
+      poll: PUBLISH_DEFAULTS[:poll],
+      heartbeat: PUBLISH_DEFAULTS[:heartbeat],
+      logger: Logger.new($stdout, level: PUBLISH_DEFAULTS[:log_level]),
       time: ::Time, process: ::Process, kernel: ::Kernel,
       &block
     )
@@ -385,11 +449,10 @@ module Outboxer
       logger.info "Outboxer v#{Outboxer::VERSION} running in ruby #{RUBY_VERSION} " \
         "(#{RUBY_RELEASE_DATE} revision #{RUBY_REVISION[0, 10]}) [#{RUBY_PLATFORM}]"
 
-      db_config = database.config(
-        environment: environment, pool: concurrency + 2, path: db_config_path)
-      database.connect(config: db_config, logger: logger)
+      logger.info "Outboxer config buffer=#{buffer}, concurrency=#{concurrency}, tick=#{tick}, " \
+        "poll=#{poll}, heartbeat=#{heartbeat}, log_level=#{logger.level}"
 
-      SettingsService.create
+      SettingService.create_all
 
       queue = Queue.new
 
@@ -451,8 +514,6 @@ module Outboxer
       delete(id: id)
 
       logger.info "Outboxer terminated"
-    ensure
-      database.disconnect(logger: logger)
     end
 
     def publish_message(id:, name:, buffered_message:, logger:, &block)
@@ -489,6 +550,33 @@ module Outboxer
         "#{error.backtrace.join("\n")}")
 
       terminate(id: id)
+    end
+
+    def all
+      ActiveRecord::Base.connection_pool.with_connection do
+        ActiveRecord::Base.transaction do
+          publishers = Publisher.includes(:signals).all
+
+          publishers.map do |publisher|
+            {
+              id: publisher.id,
+              name: publisher.name,
+              status: publisher.status,
+              settings: publisher.settings,
+              metrics: publisher.metrics,
+              created_at: publisher.created_at.utc,
+              updated_at: publisher.updated_at.utc,
+              signals: publisher.signals.map do |signal|
+                {
+                  id: signal.id,
+                  name: signal.name,
+                  created_at: signal.created_at.utc
+                }
+              end
+            }
+          end
+        end
+      end
     end
   end
 end

@@ -5,15 +5,32 @@ module Outboxer
   module DatabaseService
     module_function
 
-    def config(environment:, pool:, path: ::File.expand_path("config/database.yml", ::Dir.pwd))
-      db_config_content = File.read(path)
-      db_config_erb_result = ERB.new(db_config_content).result
-      db_config = YAML.safe_load(db_config_erb_result, aliases: true)[environment]
-      db_config["pool"] = pool
-      db_config
+    CONFIG_DEFAULTS = {
+      environment: "development",
+      pool: 3,
+      path: "config/database.yml"
+    }
+
+    def config(environment: CONFIG_DEFAULTS[:environment],
+               pool: CONFIG_DEFAULTS[:pool],
+               path: CONFIG_DEFAULTS[:path])
+      path_expanded = ::File.expand_path(path)
+      text = File.read(path_expanded)
+      erb = ERB.new(text, trim_mode: "-")
+      erb.filename = path_expanded
+      erb_result = erb.result
+      yaml = YAML.safe_load(erb_result, permitted_classes: [Symbol], aliases: true)
+      yaml.deep_symbolize_keys!
+      yaml = yaml[environment.to_sym] || {}
+      yaml[:pool] = pool
+      yaml
+    rescue Errno::ENOENT
+      {}
     end
 
     def connect(config:, logger: nil)
+      ActiveRecord::Base.logger = logger
+
       logger&.info "Outboxer connecting to database"
       ActiveRecord::Base.establish_connection(config)
       ActiveRecord::Base.connection_pool.with_connection do |connection|

@@ -1,7 +1,7 @@
 require "rails_helper"
 
 module Outboxer
-  RSpec.describe MessagesService do
+  RSpec.describe MessageService do
     let!(:message_1) do
       create(:outboxer_message, :queued,
         messageable_type: "Event", messageable_id: "1",
@@ -46,15 +46,15 @@ module Outboxer
       context "when an invalid status is specified" do
         it "raises an ArgumentError" do
           expect do
-            MessagesService.list(status: :invalid)
+            MessageService.list(status: :invalid)
           end.to raise_error(
-            ArgumentError, "status must be #{MessagesService::LIST_STATUS_OPTIONS.join(" ")}")
+            ArgumentError, "status must be #{MessageService::LIST_STATUS_OPTIONS.join(" ")}")
         end
       end
 
       context "with queued status" do
         it "returns queued messages" do
-          expect(MessagesService.list(status: :queued)).to eq({
+          expect(MessageService.list(status: :queued)).to eq({
             current_page: 1, limit_value: 100, total_count: 2, total_pages: 1,
             messages: [
               {
@@ -90,7 +90,7 @@ module Outboxer
 
       context "with buffered status" do
         it "returns buffered messages" do
-          expect(MessagesService.list(status: :buffered)).to eq({
+          expect(MessageService.list(status: :buffered)).to eq({
             current_page: 1, limit_value: 100, total_count: 1, total_pages: 1,
             messages: [
               {
@@ -113,7 +113,7 @@ module Outboxer
 
       context "with publishing status" do
         it "returns publishing messages" do
-          expect(MessagesService.list(status: :publishing)).to eq({
+          expect(MessageService.list(status: :publishing)).to eq({
             current_page: 1, limit_value: 100, total_count: 1, total_pages: 1,
             messages: [
               {
@@ -136,7 +136,7 @@ module Outboxer
 
       context "with failed status" do
         it "returns failed messages" do
-          expect(MessagesService.list(status: :failed)).to eq({
+          expect(MessageService.list(status: :failed)).to eq({
             current_page: 1, limit_value: 100, total_count: 1, total_pages: 1,
             messages: [
               {

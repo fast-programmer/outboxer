@@ -1,0 +1,11 @@
+---
+:buffer: 100
+:concurrency: 1
+:tick: 0.1
+:poll: 5.0
+:heartbeat: 5.0
+:log_level: 1
+development:
+  :concurrency: 2
+test:
+  :concurrency: <%= ENV['RAILS_MAX_THREADS'] %>
