@@ -7,7 +7,7 @@ require_relative "../app/jobs/outboxer_integration/publish_message_job"
 
 cli_options = Outboxer::PublisherService.parse_cli_options(ARGV)
 config_path = cli_options.delete(:config) || Outboxer::PublisherService::CONFIG_DEFAULTS[:path]
-environment = cli_options.delete(:environment) || ENV["APP_ENV"] || ENV["RAILS_ENV"] || "development"
+environment = cli_options.delete(:environment) || ENV["APP_ENV"] || ENV["RAILS_ENV"]
 config = Outboxer::PublisherService.config(path: config_path, environment: environment)
 options = Outboxer::PublisherService::PUBLISH_DEFAULTS.merge(config.merge(cli_options))
 logger = Outboxer::Logger.new($stdout, level: options[:log_level])
@@ -32,8 +32,7 @@ begin
     tick: options[:tick],
     poll: options[:poll],
     heartbeat: options[:heartbeat],
-    logger: logger
-  ) do |message|
+    logger: logger) do |message|
       OutboxerIntegration::PublishMessageJob.perform_async({
         "message_id" => message[:id],
         "messageable_id" => message[:messageable_id],

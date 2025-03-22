@@ -30,16 +30,15 @@ module Outboxer
       end
 
       it "returns environment overrides" do
-        expect(
-          PublisherService.config(environment: "development", path: path)
-        ).to eq({
-          buffer: 100,
-          concurrency: 2,
-          tick: 0.1,
-          poll: 5.0,
-          heartbeat: 5.0,
-          log_level: 1
-        })
+        expect(PublisherService.config(environment: "development", path: path))
+          .to eq({
+            buffer: 100,
+            concurrency: 2,
+            tick: 0.1,
+            poll: 5.0,
+            heartbeat: 5.0,
+            log_level: 1
+          })
       end
 
       it "returns an empty hash when file is missing" do
