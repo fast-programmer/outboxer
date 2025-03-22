@@ -25,6 +25,8 @@ Style/StringLiteralsInInterpolation:
   EnforcedStyle: double_quotes
 Layout/LineLength:
   Max: 100
+  Exclude:
+    - 'bin/outboxer_publisher'
 Layout/ArgumentAlignment:
   EnforcedStyle: with_fixed_indentation
 Style/Documentation:
@@ -175,7 +177,7 @@ Style/EnvHome: # new in 1.29
 Style/ExactRegexpMatch: # new in 1.51
   Enabled: true
 Style/FetchEnvVar: # new in 1.28
-  Enabled: true
+  Enabled: false
 Style/FileEmpty: # new in 1.48
   Enabled: true
 Style/FileRead: # new in 1.24
