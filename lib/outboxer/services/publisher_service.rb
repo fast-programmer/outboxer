@@ -52,7 +52,7 @@ module Outboxer
 
     CONFIG_DEFAULTS = {
       path: "config/outboxer.yml",
-      enviroment: nil
+      enviroment: "development"
     }
 
     def config(
