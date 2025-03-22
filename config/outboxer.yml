@@ -1,13 +1,11 @@
-default: &default
-  buffer: 100
-  concurrency: 1
-  tick: 0.1
-  poll: 5.0
-  heartbeat: 5.0
-  log_level: 'info'
-
+---
+:buffer: 100
+:concurrency: 1
+:tick: 0.1
+:poll: 5.0
+:heartbeat: 5.0
+:log_level: 'info'
 development:
-  <<: *default
-
-test:
-  <<: *default
+  :concurrency: 2
+staging:
+  :concurrency: 10

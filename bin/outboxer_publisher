@@ -5,19 +5,25 @@ require "sidekiq"
 require "outboxer"
 require_relative "../app/jobs/outboxer_integration/publish_message_job"
 
-argv_options = Outboxer::PublisherService.parse_options(ARGV)
-environment = argv_options[:environment] || ENV["APP_ENV"] || ENV["RAILS_ENV"] || "development"
-config = Outboxer::PublisherService.config(path: argv_options[:config], environment: environment)
-options = Outboxer::PublisherService::DEFAULT_OPTIONS.merge(config.merge(argv_options))
-
+args = Outboxer::PublisherService.parse_options(ARGV)
+config_path = args.delete(:config) || Outboxer::PublisherService::CONFIG_DEFAULTS[:path]
+environment = args.delete(:environment) || ENV["APP_ENV"] || ENV["RAILS_ENV"] || "development"
+config = Outboxer::PublisherService.config(path: config_path, environment: environment)
+options = Outboxer::PublisherService::PUBLISH_DEFAULTS.merge(config.merge(args))
 logger = Outboxer::Logger.new($stdout, level: Logger.const_get(options[:log_level].upcase))
 
-Sidekiq.configure_client do |config|
-  config.redis = { url: ENV["REDIS_URL"], pool: options[:concurrency] }
-  config.logger = logger
+Sidekiq.configure_client do |client_config|
+  client_config.redis = {
+    url: ENV.fetch("REDIS_URL", "redis://localhost:6379"),
+    pool: options[:concurrency]
+  }
+  client_config.logger = logger
 end
 
-database_config = Outboxer::DatabaseService.config(environment: environment, pool: options[:concurrency])
+database_config = Outboxer::DatabaseService.config(
+  environment: environment,
+  pool: Outboxer::PublisherService.total_thread_count(concurrency: options[:concurrency]))
+
 Outboxer::DatabaseService.connect(config: database_config, logger: logger)
 
 begin
@@ -29,10 +35,11 @@ begin
     heartbeat: options[:heartbeat],
     logger: logger
   ) do |message|
-    OutboxerIntegration::PublishMessageJob.perform_async(message.id)
-  end
+      OutboxerIntegration::PublishMessageJob.perform_async(message.id)
+    end
 ensure
   Outboxer::DatabaseService.disconnect(logger: logger)
 end
 
-# bin/outboxer_publisher --config config/outboxer.yml --environment development --log_level info
+# bin/outboxer_publisher
+# bin/outboxer_publisher --config config/outboxer.yml --environment development --log_level 1

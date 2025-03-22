@@ -2,14 +2,6 @@ module Outboxer
   module PublisherService
     module_function
 
-    def config(environment:, path: nil)
-      path ||= ::File.expand_path(DEFAULT_OPTIONS[:config_path], ::Dir.pwd)
-      db_config_content = File.read(path)
-      db_config_erb_result = ERB.new(db_config_content).result
-      db_config = YAML.safe_load(db_config_erb_result, aliases: true)[environment]
-      db_config.transform_keys(&:to_sym)
-    end
-
     def self.parse_options(args)
       options = {}
 
@@ -54,6 +46,33 @@ module Outboxer
       parser.parse!(args)
 
       options
+    end
+
+    CONFIG_DEFAULTS = {
+      path: "config/outboxer.yml",
+      enviroment: nil
+    }
+
+    def config(
+      environment: CONFIG_DEFAULTS[:environment],
+      path: CONFIG_DEFAULTS[:path]
+    )
+      path_expanded = ::File.expand_path(path)
+      text = File.read(path_expanded)
+      erb = ERB.new(text, trim_mode: "-")
+      erb.filename = path_expanded
+      erb_result = erb.result
+
+      yaml = YAML.safe_load(erb_result, permitted_classes: [Symbol], aliases: true)
+      yaml.deep_symbolize_keys!
+      yaml_override = yaml.fetch(environment&.to_sym, {}).slice(*PUBLISH_DEFAULTS.keys)
+      yaml.slice(*PUBLISH_DEFAULTS.keys).merge(yaml_override)
+    rescue Errno::ENOENT
+      {}
+    end
+
+    def total_thread_count(concurrency:)
+      concurrency + 2 # workers + main + heartbeat
     end
 
     def find_by_id(id:)
@@ -395,24 +414,23 @@ module Outboxer
       end
     end
 
-    DEFAULT_OPTIONS = {
-      config_path: 'config/outboxer.yml',
+    PUBLISH_DEFAULTS = {
       buffer: 100,
       concurrency: 1,
       tick: 0.1,
       poll: 5.0,
       heartbeat: 5.0,
-      log_level: 'info'
+      log_level: "info"
     }
 
     def publish(
       name: "#{::Socket.gethostname}:#{::Process.pid}",
-      buffer: DEFAULT_OPTIONS[:buffer],
-      concurrency: DEFAULT_OPTIONS[:concurrency],
-      tick: DEFAULT_OPTIONS[:tick],
-      poll: DEFAULT_OPTIONS[:poll],
-      heartbeat: DEFAULT_OPTIONS[:heartbeat],
-      logger: Logger.new($stdout, level: Logger::INFO),
+      buffer: PUBLISH_DEFAULTS[:buffer],
+      concurrency: PUBLISH_DEFAULTS[:concurrency],
+      tick: PUBLISH_DEFAULTS[:tick],
+      poll: PUBLISH_DEFAULTS[:poll],
+      heartbeat: PUBLISH_DEFAULTS[:heartbeat],
+      logger: Logger.new($stdout, level: Logger.const_get(PUBLISH_DEFAULTS[:log_level].upcase)),
       time: ::Time, process: ::Process, kernel: ::Kernel,
       &block
     )
@@ -420,6 +438,9 @@ module Outboxer
 
       logger.info "Outboxer v#{Outboxer::VERSION} running in ruby #{RUBY_VERSION} " \
         "(#{RUBY_RELEASE_DATE} revision #{RUBY_REVISION[0, 10]}) [#{RUBY_PLATFORM}]"
+
+      logger.info "Outboxer config buffer=#{buffer}, concurrency=#{concurrency}, tick=#{tick}, " \
+        "poll=#{poll}, heartbeat=#{heartbeat}, log_level=#{logger.level}"
 
       SettingService.create_all
 
