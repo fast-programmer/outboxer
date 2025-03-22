@@ -1,3 +1,5 @@
+require "optparse"
+
 module Outboxer
   module PublisherService
     module_function

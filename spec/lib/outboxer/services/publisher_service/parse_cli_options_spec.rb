@@ -3,7 +3,7 @@ require "rails_helper"
 module Outboxer
   RSpec.describe PublisherService do
     describe ".parse_cli_options" do
-      context "when no cli_options are passed" do
+      context "when no options are passed" do
         let(:argv) { [] }
 
         it "parses correctly" do
