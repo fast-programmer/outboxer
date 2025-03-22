@@ -74,7 +74,8 @@ module Outboxer
         it "prints help and exits" do
           expect do
             PublisherService.parse_cli_options(argv)
-          end.to output(/Usage: outboxer_publisher \[options\]/).to_stdout.and raise_error(SystemExit)
+          end.to output(
+            /Usage: outboxer_publisher \[options\]/).to_stdout.and raise_error(SystemExit)
         end
       end
     end
