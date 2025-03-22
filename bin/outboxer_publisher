@@ -10,12 +10,11 @@ config_path = args.delete(:config) || Outboxer::PublisherService::CONFIG_DEFAULT
 environment = args.delete(:environment) || ENV["APP_ENV"] || ENV["RAILS_ENV"] || "development"
 config = Outboxer::PublisherService.config(path: config_path, environment: environment)
 options = Outboxer::PublisherService::PUBLISH_DEFAULTS.merge(config.merge(args))
-logger = Outboxer::Logger.new($stdout, level: Logger.const_get(options[:log_level].upcase))
+logger = Outboxer::Logger.new($stdout, level: options[:log_level])
 
 Sidekiq.configure_client do |client_config|
   client_config.redis = {
-    url: ENV.fetch("REDIS_URL", "redis://localhost:6379"),
-    pool: options[:concurrency]
+    url: ENV.fetch("REDIS_URL", "redis://localhost:6379"), size: options[:concurrency]
   }
   client_config.logger = logger
 end
@@ -35,7 +34,11 @@ begin
     heartbeat: options[:heartbeat],
     logger: logger
   ) do |message|
-      OutboxerIntegration::PublishMessageJob.perform_async(message.id)
+      OutboxerIntegration::PublishMessageJob.perform_async({
+        "message_id" => message[:id],
+        "messageable_id" => message[:messageable_id],
+        "messageable_type" => message[:messageable_type]
+      })
     end
 ensure
   Outboxer::DatabaseService.disconnect(logger: logger)

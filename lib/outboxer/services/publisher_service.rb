@@ -28,8 +28,8 @@ module Outboxer
           options[:config] = v
         end
 
-        opts.on("-l", "--log-level LEVEL", "Log level (debug, info, warn, error)") do |v|
-          options[:log_level] = v
+        opts.on("-l", "--log-level LEVEL", "Log level") do |v|
+          options[:log_level] = v.to_i
         end
 
         opts.on("-V", "--version", "Print version and exit") do
@@ -420,7 +420,7 @@ module Outboxer
       tick: 0.1,
       poll: 5.0,
       heartbeat: 5.0,
-      log_level: "info"
+      log_level: 1
     }
 
     def publish(
@@ -430,7 +430,7 @@ module Outboxer
       tick: PUBLISH_DEFAULTS[:tick],
       poll: PUBLISH_DEFAULTS[:poll],
       heartbeat: PUBLISH_DEFAULTS[:heartbeat],
-      logger: Logger.new($stdout, level: Logger.const_get(PUBLISH_DEFAULTS[:log_level].upcase)),
+      logger: Logger.new($stdout, level: PUBLISH_DEFAULTS[:log_level]),
       time: ::Time, process: ::Process, kernel: ::Kernel,
       &block
     )
