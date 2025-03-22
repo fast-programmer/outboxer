@@ -10,24 +10,32 @@ module Outboxer
       parser = ::OptionParser.new do |opts|
         opts.banner = "Usage: outboxer_publisher [options]"
 
-        opts.on("-c", "--concurrency INT", Integer, "Concurrency") do |v|
-          options[:concurrency] = v
+        opts.on("-C", "--config PATH", "Path to YAML config file") do |v|
+          options[:config] = v
         end
 
         opts.on("-e", "--environment ENV", "Application environment") do |v|
           options[:environment] = v
         end
 
-        opts.on("-b", "--buffer LIMIT", Integer, "Buffer limit") do |v|
+        opts.on("-b", "--buffer SIZE", Integer, "Buffer") do |v|
           options[:buffer] = v
         end
 
-        opts.on("-p", "--poll NUM", Integer, "Poll interval in seconds") do |v|
+        opts.on("-c", "--concurrency SIZE", Integer, "Concurrency") do |v|
+          options[:concurrency] = v
+        end
+
+        opts.on("-t", "--tick SECS", Float, "Tick interval in seconds") do |v|
+          options[:tick] = v
+        end
+
+        opts.on("-p", "--poll SECS", Float, "Poll interval in seconds") do |v|
           options[:poll] = v
         end
 
-        opts.on("-C", "--config PATH", "Path to YAML config file") do |v|
-          options[:config] = v
+        opts.on("-a", "--heartbeat SECS", Float, "Heartbeat interval in seconds") do |v|
+          options[:heartbeat] = v
         end
 
         opts.on("-l", "--log-level LEVEL", Integer, "Log level") do |v|
