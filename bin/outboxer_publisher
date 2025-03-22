@@ -7,16 +7,13 @@ require_relative "../app/jobs/outboxer_integration/publish_message_job"
 
 cli_options = Outboxer::PublisherService.parse_cli_options(ARGV)
 config_path = cli_options.delete(:config) || Outboxer::PublisherService::CONFIG_DEFAULTS[:path]
-environment = cli_options.delete(:environment) || ENV["APP_ENV"] || ENV["RAILS_ENV"]
+environment = cli_options.delete(:environment) || ENV["APP_ENV"] || ENV["RAILS_ENV"] || "development"
 config = Outboxer::PublisherService.config(path: config_path, environment: environment)
 options = Outboxer::PublisherService::PUBLISH_DEFAULTS.merge(config.merge(cli_options))
 logger = Outboxer::Logger.new($stdout, level: options[:log_level])
 
 Sidekiq.configure_client do |client_config|
-  client_config.redis = {
-    url: ENV["REDIS_URL"] || "redis://localhost:6379",
-    size: options[:concurrency]
-  }
+  client_config.redis = { url: ENV["REDIS_URL"] || "redis://localhost:6379", size: options[:concurrency] }
   client_config.logger = logger
 end
 
