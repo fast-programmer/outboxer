@@ -5,7 +5,9 @@
 
 ## Background
 
-Outboxer is a Rails 7 implementation of the transactional outbox pattern.
+Outboxer is an ActiveRecord implementation of the [transactional outbox pattern](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html).
+
+It addresses the dual write problem that occurs in event driven systems, when a single atomic operation must change data in an SQL table and publish those changes to a message broker.
 
 ## Setup
 
