@@ -2,6 +2,7 @@ source "https://rubygems.org"
 
 gemspec
 
+gem "coveralls_reborn", require: false
 gem "mysql2", "~> 0.5.6"
 gem "pg", "~> 1.5"
 gem "puma", "~> 6.5"

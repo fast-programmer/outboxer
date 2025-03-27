@@ -88,6 +88,8 @@ jobs:
       run: RAILS_ENV=test bin/rake outboxer:db:migrate
     - name: run rspec
       run: RAILS_ENV=test bin/rspec spec
+    - name: report to coveralls
+      uses: coverallsapp/github-action@v2
 
   mysql:
     runs-on: ubuntu-latest
