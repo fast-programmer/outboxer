@@ -2,6 +2,7 @@
 
 [![Gem Version](https://badge.fury.io/rb/outboxer.svg)](https://badge.fury.io/rb/outboxer)
 ![Ruby](https://github.com/fast-programmer/outboxer/actions/workflows/master.yml/badge.svg)
+[![Join our Discord](https://img.shields.io/badge/Discord-Join%20Now-blue?style=flat&logo=discord&logoColor=white)](https://discord.gg/x6EUehX6vU)
 
 ## Background
 
