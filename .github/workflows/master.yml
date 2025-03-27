@@ -144,3 +144,5 @@ jobs:
         DATABASE_PORT: 3306
         DATABASE_HOST: 127.0.0.1
       run: bin/rspec spec
+    - name: report to coveralls
+      uses: coverallsapp/github-action@v2
