@@ -1,5 +1,5 @@
 FactoryBot.define do
-  factory :outboxer_message, class: "Outboxer::Message" do
+  factory :outboxer_message, class: "Outboxer::Models::Message" do
     messageable_type { "Event" }
     messageable_id { 1 }
 

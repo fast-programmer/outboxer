@@ -1,5 +1,5 @@
 FactoryBot.define do
-  factory :outboxer_publisher, class: "Outboxer::Publisher" do
+  factory :outboxer_publisher, class: "Outboxer::Models::Publisher" do
     name { "server-01:57000" }
     status { Outboxer::Publisher::Status::PUBLISHING }
     settings do

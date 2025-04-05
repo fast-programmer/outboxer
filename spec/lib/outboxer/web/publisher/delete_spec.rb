@@ -14,7 +14,7 @@ RSpec.describe "POST /publisher/:id/delete", type: :request do
 
   let(:event) { Event.create!(type: "Event") }
   let!(:message) do
-    Outboxer::Message.find_by!(messageable_type: "Event", messageable_id: event.id)
+    Outboxer::Models::Message.find_by!(messageable_type: "Event", messageable_id: event.id)
   end
   let(:publisher) { create(:outboxer_publisher, :publishing, name: "Test Publisher") }
 
@@ -26,7 +26,7 @@ RSpec.describe "POST /publisher/:id/delete", type: :request do
   end
 
   it "deletes publisher" do
-    expect(Outboxer::Publisher.exists?(publisher.id)).to be false
+    expect(Outboxer::Models::Publisher.exists?(publisher.id)).to be false
   end
 
   it "displays flash" do
