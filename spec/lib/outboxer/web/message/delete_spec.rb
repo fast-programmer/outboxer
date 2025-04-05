@@ -14,7 +14,7 @@ RSpec.describe "POST /message/:id/delete", type: :request do
 
   let!(:event) { Event.create!(id: 1, type: "Event") }
   let!(:message) do
-    Outboxer::Message.find_by!(messageable_type: "Event", messageable_id: event.id)
+    Outboxer::Models::Message.find_by!(messageable_type: "Event", messageable_id: event.id)
   end
 
   before do
@@ -26,7 +26,7 @@ RSpec.describe "POST /message/:id/delete", type: :request do
   end
 
   it "deletes message" do
-    expect(Outboxer::Message.exists?(message.id)).to be false
+    expect(Outboxer::Models::Message.exists?(message.id)).to be false
   end
 
   it "redirects with flash" do

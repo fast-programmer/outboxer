@@ -42,8 +42,8 @@ environment = ENV["APP_ENV"] || "development"
 
 logger = Outboxer::Logger.new($stdout, level: log_level)
 
-db_config = Outboxer::DatabaseService.config(environment: environment, pool: 1)
-Outboxer::DatabaseService.connect(config: db_config, logger: logger)
+db_config = Outboxer::Database.config(environment: environment, pool: 1)
+Outboxer::Database.connect(config: db_config, logger: logger)
 
 reader, writer = IO.pipe
 
@@ -60,7 +60,7 @@ begin
     current_time = Time.now
 
     if (current_time - last_run_time) >= interval
-      deleted_count = Outboxer::MessageService.delete_all(
+      deleted_count = Outboxer::Message.delete_all(
         status: :published,
         batch_size: batch_size,
         older_than: Time.now - retention_period)[:deleted_count]
@@ -78,6 +78,6 @@ rescue StandardError => error
   raise
 ensure
   logger.info "Outboxer published messages deleter shutting down"
-  Outboxer::DatabaseService.disconnect(logger: logger)
+  Outboxer::Database.disconnect(logger: logger)
   logger.info "Outboxer published messages deleter shut down"
 end

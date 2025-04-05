@@ -18,8 +18,8 @@ RSpec.configure do |config|
   config.include FactoryBot::Syntax::Methods
 
   config.before(:all) do
-    db_config = Outboxer::DatabaseService.config(environment: "test", pool: 2)
-    Outboxer::DatabaseService.connect(config: db_config, logger: nil)
+    db_config = Outboxer::Database.config(environment: "test", pool: 2)
+    Outboxer::Database.connect(config: db_config, logger: nil)
     DatabaseCleaner.strategy = :truncation
   end
 
@@ -38,6 +38,6 @@ RSpec.configure do |config|
       # Optionally log these errors or handle them as needed
     end
 
-    Outboxer::SettingService.create_all
+    Outboxer::Setting.create_all
   end
 end

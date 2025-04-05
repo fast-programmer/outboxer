@@ -14,17 +14,17 @@ RSpec.describe "POST /messages/requeue_all", type: :request do
 
   let!(:event_1) { Event.create!(id: 1, type: "Event") }
   let!(:message_1) do
-    Outboxer::Message.find_by!(messageable_type: "Event", messageable_id: event_1)
+    Outboxer::Models::Message.find_by!(messageable_type: "Event", messageable_id: event_1)
   end
 
   let!(:event_2) { Event.create!(id: 2, type: "Event") }
   let!(:message_2) do
-    Outboxer::Message.find_by!(messageable_type: "Event", messageable_id: event_2)
+    Outboxer::Models::Message.find_by!(messageable_type: "Event", messageable_id: event_2)
   end
 
   let!(:event_3) { Event.create!(id: 3, type: "Event") }
   let!(:message_3) do
-    Outboxer::Message.find_by!(messageable_type: "Event", messageable_id: event_3)
+    Outboxer::Models::Message.find_by!(messageable_type: "Event", messageable_id: event_3)
   end
 
   context "when no status provided" do
@@ -48,9 +48,9 @@ RSpec.describe "POST /messages/requeue_all", type: :request do
     end
 
     it "does not requeue messages" do
-      expect(Outboxer::Message.queued.count).to eq(1)
-      expect(Outboxer::Message.publishing.count).to eq(1)
-      expect(Outboxer::Message.failed.count).to eq(1)
+      expect(Outboxer::Models::Message.queued.count).to eq(1)
+      expect(Outboxer::Models::Message.publishing.count).to eq(1)
+      expect(Outboxer::Models::Message.failed.count).to eq(1)
     end
   end
 
@@ -74,11 +74,11 @@ RSpec.describe "POST /messages/requeue_all", type: :request do
     end
 
     it "requeues messages" do
-      expect(Outboxer::Message.queued.count).to eq(2)
+      expect(Outboxer::Models::Message.queued.count).to eq(2)
     end
 
     it "does not requeue publishing messages" do
-      expect(Outboxer::Message.publishing.count).to eq(1)
+      expect(Outboxer::Models::Message.publishing.count).to eq(1)
     end
 
     it "redirects to /messages" do

@@ -14,7 +14,7 @@ RSpec.describe "POST /publisher/:id/signals", type: :request do
 
   let(:event) { Event.create!(type: "Event") }
   let!(:message) do
-    Outboxer::Message.find_by!(messageable_type: "Event", messageable_id: event.id)
+    Outboxer::Models::Message.find_by!(messageable_type: "Event", messageable_id: event.id)
   end
   let(:message) { create(:outboxer_message, :queued, messageable: event) }
   let(:publisher) { create(:outboxer_publisher, :publishing, name: "Test Publisher") }

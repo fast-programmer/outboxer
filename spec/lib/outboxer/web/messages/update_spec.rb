@@ -14,17 +14,17 @@ RSpec.describe "POST /messages/update", type: :request do
 
   let!(:event_1) { Event.create!(id: 1, type: "Event") }
   let!(:message_1) do
-    Outboxer::Message.find_by!(messageable_type: "Event", messageable_id: event_1.id)
+    Outboxer::Models::Message.find_by!(messageable_type: "Event", messageable_id: event_1.id)
   end
 
   let!(:event_2) { Event.create!(id: 2, type: "Event") }
   let!(:message_2) do
-    Outboxer::Message.find_by!(messageable_type: "Event", messageable_id: event_2.id)
+    Outboxer::Models::Message.find_by!(messageable_type: "Event", messageable_id: event_2.id)
   end
 
   let!(:event_3) { Event.create!(id: 3, type: "Event") }
   let!(:message_3) do
-    Outboxer::Message.find_by!(messageable_type: "Event", messageable_id: event_3.id)
+    Outboxer::Models::Message.find_by!(messageable_type: "Event", messageable_id: event_3.id)
   end
 
   before do
@@ -53,7 +53,7 @@ RSpec.describe "POST /messages/update", type: :request do
     end
 
     it "queues selected messages" do
-      expect(Outboxer::Message.queued.pluck(:id)).to eq([
+      expect(Outboxer::Models::Message.queued.pluck(:id)).to eq([
         message_1.id, message_2.id, message_3.id
       ])
     end
@@ -87,7 +87,7 @@ RSpec.describe "POST /messages/update", type: :request do
     end
 
     it "deletes selected messages" do
-      expect(Outboxer::Message.all.pluck(:id)).to eq([message_1.id])
+      expect(Outboxer::Models::Message.all.pluck(:id)).to eq([message_1.id])
     end
 
     it "redirects with flash message" do
