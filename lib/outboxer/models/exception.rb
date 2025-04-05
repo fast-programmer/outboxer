@@ -3,11 +3,9 @@ module Outboxer
     class Exception < ::ActiveRecord::Base
       self.table_name = :outboxer_exceptions
 
-      belongs_to :message, class_name: "Outboxer::Models::Message"
+      belongs_to :message
 
-      has_many :frames, -> { order(index: :asc) },
-        class_name: "Outboxer::Models::Frame",
-        foreign_key: "exception_id"
+      has_many :frames, -> { order(index: :asc) }, foreign_key: "exception_id"
 
       validates :message_id, presence: true
     end
