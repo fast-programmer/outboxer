@@ -7,12 +7,12 @@ module Outboxer
 
     CONFIG_DEFAULTS = {
       environment: "development",
-      pool: 3,
+      concurrency: 1,
       path: "config/database.yml"
     }
 
     def config(environment: CONFIG_DEFAULTS[:environment],
-               pool: CONFIG_DEFAULTS[:pool],
+               concurrency: CONFIG_DEFAULTS[:pool],
                path: CONFIG_DEFAULTS[:path])
       path_expanded = ::File.expand_path(path)
       text = File.read(path_expanded)
@@ -22,7 +22,8 @@ module Outboxer
       yaml = YAML.safe_load(erb_result, permitted_classes: [Symbol], aliases: true)
       yaml.deep_symbolize_keys!
       yaml = yaml[environment.to_sym] || {}
-      yaml[:pool] = pool
+      yaml[:pool] = concurrency + 2 # concurency + main + heartbeat
+
       yaml
     rescue Errno::ENOENT
       {}
