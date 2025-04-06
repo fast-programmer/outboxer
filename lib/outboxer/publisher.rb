@@ -81,10 +81,6 @@ module Outboxer
       {}
     end
 
-    def total_thread_count(concurrency:)
-      concurrency + 2 # workers + main + heartbeat
-    end
-
     def find_by_id(id:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do

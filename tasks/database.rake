@@ -57,7 +57,7 @@ namespace :outboxer do
 
     task :seed do
       environment = ENV["RAILS_ENV"] || "development"
-      db_config = Outboxer::Database.config(environment: environment, pool: 1)
+      db_config = Outboxer::Database.config(environment: environment, concurrency: 1)
       ActiveRecord::Base.establish_connection(db_config)
 
       ActiveRecord::Base.connection.disconnect!

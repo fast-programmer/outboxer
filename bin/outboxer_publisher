@@ -18,8 +18,7 @@ Sidekiq.configure_client do |client_config|
 end
 
 database_config = Outboxer::Database.config(
-  environment: environment,
-  pool: Outboxer::Publisher.total_thread_count(concurrency: options[:concurrency]))
+  environment: environment, concurrency: options[:concurrency])
 
 Outboxer::Database.connect(config: database_config, logger: logger)
 
