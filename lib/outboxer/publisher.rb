@@ -445,7 +445,8 @@ module Outboxer
       end
     end
 
-    # Handles received signals and takes appropriate actions such as pausing, resuming, or terminating the publisher.
+    # Handles received signals and takes appropriate actions
+    # such as pausing, resuming, or terminating the publisher.
     # @param id [Integer] The ID of the publisher affected by the signal.
     # @param name [String] The name of the signal received.
     # @param logger [Logger] The logger to record actions taken in response to the signal.

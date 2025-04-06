@@ -27,11 +27,10 @@ module Outboxer
       validates :status, inclusion: { in: STATUSES }, length: { maximum: 255 }
 
       # @!attribute [rw] settings
-      #   @return [Hash] The settings for this publisher stored in JSON format.
+      #   @return [Hash] The settings for this publisher.
 
       # @!attribute [rw] metrics
-      #   @return [Hash] The performance and operational metrics for this publisher stored in JSON format.
-      attribute :metrics, :json, default: {}
+      #   @return [Hash] The performance and operational metrics for this publisher.
 
       # @!attribute [rw] created_at
       #   @return [DateTime] The date and time when the publisher was created.
