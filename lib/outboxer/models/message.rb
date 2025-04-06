@@ -1,7 +1,5 @@
 module Outboxer
   module Models
-    # A message to be published by the outboxer publisher
-    # Typically points to a domain event stored against an aggregate
     class Message < ::ActiveRecord::Base
       self.table_name = :outboxer_messages
 
@@ -22,26 +20,32 @@ module Outboxer
       ]
 
       # @!attribute [rw] status
-      #   @return [String] Current status of the message, defaults to `queued`
+      #   @return [String] Current status of the message, defaults to `queued`.
       attribute :status, default: -> { Status::QUEUED }
 
+      # @!attribute [rw] messageable_id
+      #   @return [String] the polymorphic model id.
+
+      # @!attribute [rw] messageable_type
+      #   @return [String] the polymorphic model type.
+
       # @!attribute [rw] queued_at
-      #   @return [DateTime] The date and time when the message was queued
+      #   @return [DateTime] The date and time when the message was queued.
 
       # @!attribute [rw] buffered_at
-      #   @return [DateTime] The date and time when the message was buffered
+      #   @return [DateTime] The date and time when the message was buffered.
 
       # @!attribute [rw] publishing_at
-      #   @return [DateTime] The date and time when the message began publishing
+      #   @return [DateTime] The date and time when the message began publishing.
 
       # @!attribute [rw] updated_at
-      #   @return [DateTime] The date and time when the message was last updated
+      #   @return [DateTime] The date and time when the message was last updated.
 
       # @!attribute [rw] publisher_id
-      #   @return [Integer] The id of the publisher that last updated this message
+      #   @return [Integer] The id of the publisher that last updated this message.
 
       # @!attribute [rw] publisher_name
-      #   @return [String] The name of the publisher that last updated this message
+      #   @return [String] The name of the publisher that last updated this message.
 
       validates :status, inclusion: { in: STATUSES }, length: { maximum: 255 }
 
@@ -52,17 +56,17 @@ module Outboxer
       scope :failed, -> { where(status: Status::FAILED) }
 
       # @!method messageable
-      #   @return [Object] Polymorphic association to the underlying object
+      #   @return [ActiveRecord::Base] Polymorphic association to an event like model.
       belongs_to :messageable, polymorphic: true
 
       # @!method exceptions
       #   @return [ActiveRecord::Associations::CollectionProxy<Outboxer::Models::Exception>]
-      #     Ordered list of exceptions raised during the processing of this message
+      #     Ordered list of exceptions raised during the processing of this message.
       has_many :exceptions, -> { order(created_at: :asc) },
         foreign_key: "message_id", dependent: :destroy
 
       # @!method publisher
-      #   @return [Outboxer::Models::Publisher] The publisher that last updated this message
+      #   @return [Outboxer::Models::Publisher] The publisher that last updated this message.
       belongs_to :publisher
     end
   end
