@@ -24,6 +24,12 @@ config = Outboxer::Database.config(environment: environment, concurrency: 5)
 Outboxer::Database.connect(config: config)
 
 module Outboxer
+  # The Web interface for Outboxer, providing a web-based view into the system's operations,
+  # including message management and publisher monitoring. This class extends Sinatra::Base,
+  # configuring routes and helpers to serve HTTP requests for the Outboxer system.
+  #
+  # @note This class requires Sinatra to be available and is meant to be mounted or run
+  #       as a standalone web application.
   class Web < Sinatra::Base
     set :logger, Logger.new($stdout)
     set :views, File.expand_path("web/views", __dir__)
@@ -293,6 +299,8 @@ module Outboxer
         pagination: pagination
       }
     end
+
+    private
 
     HEADERS = {
       id: "Id",

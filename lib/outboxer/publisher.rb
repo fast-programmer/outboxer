@@ -4,6 +4,10 @@ module Outboxer
   module Publisher
     module_function
 
+    # Parses command line arguments to configure the publisher.
+    # @param args [Array<String>] The arguments passed via the command line.
+    # @return [Hash] The parsed options including configuration path, environment,
+    # buffer size, concurrency, and intervals.
     def self.parse_cli_options(args)
       options = {}
 
@@ -63,6 +67,10 @@ module Outboxer
       enviroment: "development"
     }
 
+    # Loads and processes the YAML configuration for the publisher.
+    # @param environment [String] The application environment.
+    # @param path [String] The path to the configuration file.
+    # @return [Hash] The processed configuration data with environment-specific overrides.
     def config(
       environment: CONFIG_DEFAULTS[:environment],
       path: CONFIG_DEFAULTS[:path]
@@ -81,6 +89,9 @@ module Outboxer
       {}
     end
 
+    # Retrieves publisher data by ID including associated signals.
+    # @param id [Integer] The ID of the publisher to find.
+    # @return [Hash] Detailed information about the publisher including its signals.
     def find_by_id(id:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
@@ -106,6 +117,15 @@ module Outboxer
       end
     end
 
+    # Creates a new publisher with specified settings and metrics.
+    # @param name [String] The name of the publisher.
+    # @param buffer [Integer] The buffer size.
+    # @param concurrency [Integer] The number of concurrent operations.
+    # @param tick [Float] The tick interval in seconds.
+    # @param poll [Float] The poll interval in seconds.
+    # @param heartbeat [Float] The heartbeat interval in seconds.
+    # @param time [Time] The current time context for timestamping.
+    # @return [Hash] Details of the created publisher.
     def create(name:, buffer:, concurrency:,
                tick:, poll:, heartbeat:, time: ::Time)
       ActiveRecord::Base.connection_pool.with_connection do
@@ -147,6 +167,8 @@ module Outboxer
       end
     end
 
+    # Deletes a publisher by ID, including all associated signals.
+    # @param id [Integer] The ID of the publisher to delete.
     def delete(id:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
@@ -161,6 +183,9 @@ module Outboxer
 
     Status = Models::Publisher::Status
 
+    # Stops the publishing operations for a specified publisher.
+    # @param id [Integer] The ID of the publisher to stop.
+    # @param time [Time] The current time context for timestamping.
     def stop(id:, time: ::Time)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
@@ -172,6 +197,9 @@ module Outboxer
       end
     end
 
+    # Resumes the publishing operations for a specified publisher.
+    # @param id [Integer] The ID of the publisher to resume.
+    # @param time [Time] The current time context for timestamping.
     def continue(id:, time: ::Time)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
@@ -184,6 +212,9 @@ module Outboxer
       end
     end
 
+    # Terminates the publishing operations for a specified publisher.
+    # @param id [Integer] The ID of the publisher to terminate.
+    # @param time [Time] The current time context for timestamping.
     def terminate(id:, time: ::Time)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
@@ -208,7 +239,13 @@ module Outboxer
       end
     end
 
-    # :nocov:
+    # Sleeps for the specified duration or until a signal is received, whichever comes first.
+    # @param duration [Float] The maximum duration to sleep in seconds.
+    # @param start_time [Time] The start time from which the duration is calculated.
+    # @param tick [Float] The interval in seconds to check for signals.
+    # @param signal_read [IO] An IO object to check for readable data.
+    # @param process [Process] The process module used for timing.
+    # @param kernel [Kernel] The kernel module used for sleeping.
     def sleep(duration, start_time:, tick:, signal_read:, process:, kernel:)
       while (@status != Status::TERMINATING) &&
             ((process.clock_gettime(process::CLOCK_MONOTONIC) - start_time) < duration) &&
@@ -216,7 +253,6 @@ module Outboxer
         kernel.sleep(tick)
       end
     end
-    # :nocov:
 
     def trap_signals
       signal_read, signal_write = IO.pipe
@@ -232,6 +268,14 @@ module Outboxer
       [signal_read, signal_write]
     end
 
+    # Creates and manages threads dedicated to publishing operations.
+    # @param id [Integer] The ID of the publisher.
+    # @param name [String] The name of the publisher.
+    # @param queue [Queue] The queue to manage publishing messages.
+    # @param concurrency [Integer] The number of concurrent threads.
+    # @param logger [Logger] The logger to use for logging operations.
+    # @return [Array<Thread>] An array of threads managing publishing.
+    # @yieldparam message [Hash] A message being processed.
     def create_publisher_threads(id:, name:,
                                  queue:, concurrency:,
                                  logger:, &block)
@@ -250,6 +294,17 @@ module Outboxer
       end
     end
 
+    # Handles the buffering of messages based on the publisher's buffer capacity.
+    # @param id [Integer] The ID of the publisher.
+    # @param name [String] The name of the publisher.
+    # @param queue [Queue] The queue of messages to be published.
+    # @param buffer [Integer] The buffer capacity.
+    # @param poll [Float] The poll interval in seconds.
+    # @param tick [Float] The tick interval in seconds.
+    # @param signal_read [IO] The IO object to read signals.
+    # @param logger [Logger] The logger to use for logging operations.
+    # @param process [Process] The process object to use for timing.
+    # @param kernel [Kernel] The kernel module to use for sleep operations.
     def buffer_messages(id:, name:,
                         queue:, buffer:, poll:, tick:,
                         signal_read:, logger:, process:, kernel:)
@@ -289,6 +344,17 @@ module Outboxer
       terminate(id: id)
     end
 
+    # Creates a new thread that manages heartbeat checks, providing system metrics and
+    # handling the first signal in the queue.
+    # @param id [Integer] The ID of the publisher.
+    # @param heartbeat [Float] The interval in seconds between heartbeats.
+    # @param tick [Float] The base interval in seconds for sleeping during the loop.
+    # @param signal_read [IO] An IO object for reading signals.
+    # @param logger [Logger] A logger for logging heartbeat and system status.
+    # @param time [Time] Current time context.
+    # @param process [Process] The process module for accessing system metrics.
+    # @param kernel [Kernel] The kernel module for sleeping operations.
+    # @return [Thread] The heartbeat thread.
     def create_heartbeat_thread(id:,
                                 heartbeat:, tick:, signal_read:,
                                 logger:, time:, process:, kernel:)
@@ -379,6 +445,10 @@ module Outboxer
       end
     end
 
+    # Handles received signals and takes appropriate actions such as pausing, resuming, or terminating the publisher.
+    # @param id [Integer] The ID of the publisher affected by the signal.
+    # @param name [String] The name of the signal received.
+    # @param logger [Logger] The logger to record actions taken in response to the signal.
     def handle_signal(id:, name:, logger:)
       case name
       when "TTIN"
@@ -429,6 +499,18 @@ module Outboxer
       log_level: 1
     }
 
+    # Publishes messages by managing multiple threads.
+    # @param name [String] The name of the publisher.
+    # @param buffer [Integer] The buffer size.
+    # @param concurrency [Integer] The number of threads for concurrent publishing.
+    # @param tick [Float] The tick interval in seconds.
+    # @param poll [Float] The poll interval in seconds.
+    # @param heartbeat [Float] The heartbeat interval in seconds.
+    # @param logger [Logger] Logger for recording publishing activities.
+    # @param time [Time] The current time context.
+    # @param process [Process] The process module for system metrics.
+    # @param kernel [Kernel] The kernel module for sleeping operations.
+    # @yield [Hash] A block to handle the publishing of each message.
     def publish(
       name: "#{::Socket.gethostname}:#{::Process.pid}",
       buffer: PUBLISH_DEFAULTS[:buffer],
@@ -512,6 +594,12 @@ module Outboxer
       logger.info "Outboxer terminated"
     end
 
+    # Handles the publication process for a single message.
+    # @param id [Integer] The ID of the publisher.
+    # @param name [String] The name of the publisher.
+    # @param buffered_message [Hash] The message data retrieved from the buffer.
+    # @param logger [Logger] Logger for recording the outcome of the publishing attempt.
+    # @yield [Hash] A block to process the publishing of the message.
     def publish_message(id:, name:, buffered_message:, logger:, &block)
       publishing_message = Message.publishing(
         id: buffered_message[:id], publisher_id: id, publisher_name: name)
@@ -548,6 +636,8 @@ module Outboxer
       terminate(id: id)
     end
 
+    # Retrieves all publishers including signals.
+    # @return [Array<Hash>] A list of all publishers and their details.
     def all
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do

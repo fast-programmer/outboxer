@@ -1,7 +1,12 @@
 require "logger"
 
 module Outboxer
+  # Extends Ruby's standard Logger class to customize the log formatting.
+  # This logger includes timestamps, process ID, and thread ID in each log message.
   class Logger < ::Logger
+    # Initializes a new Logger instance with a custom format.
+    # @param args [Array] Arguments that are passed to the standard Logger initializer.
+    # @param kwargs [Hash] Keyword arguments that are passed to the standard Logger initializer.
     def initialize(*args, **kwargs)
       super
 
