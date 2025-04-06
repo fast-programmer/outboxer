@@ -300,8 +300,6 @@ module Outboxer
       }
     end
 
-    private
-
     HEADERS = {
       id: "Id",
       status: "Status",
@@ -310,6 +308,8 @@ module Outboxer
       updated_at: "Updated",
       publisher_name: "Publisher"
     }
+
+    private
 
     def generate_pagination(current_page:, total_pages:, denormalised_query_params:)
       previous_page = nil
