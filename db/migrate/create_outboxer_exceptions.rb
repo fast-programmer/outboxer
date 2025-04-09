@@ -5,12 +5,10 @@ class CreateOutboxerExceptions < ActiveRecord::Migration[6.1]
         t.string :class_name, limit: 255, null: false
         t.text :message_text, null: false
 
-        t.timestamps
+        t.datetime :created_at, null: false
 
         t.references :message, foreign_key: { to_table: :outboxer_messages }, null: false
       end
-
-      remove_column :outboxer_exceptions, :updated_at
     end
   end
 

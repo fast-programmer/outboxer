@@ -24,7 +24,7 @@ module Outboxer
       # @!method frames
       #   @return [Outboxer::Models::Frame::ActiveRecord_Associations_CollectionProxy]
       #   Stack frames for this exception.
-      has_many :frames, -> { order(index: :asc) }, foreign_key: "exception_id"
+      has_many :frames, -> { order(index: :asc) }, foreign_key: "exception_id", dependent: :destroy
     end
   end
 end
