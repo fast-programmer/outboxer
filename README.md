@@ -132,7 +132,9 @@ end
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/fast-programmer/outboxer.
+If you'd like to help out, take a look at the project's [open issues](https://github.com/fast-programmer/outboxer/issues).
+
+Also [join our discord](https://discord.gg/x6EUehX6vU) and ping `bedrock-adam` if you'd like to contribute to [upcoming features](https://github.com/orgs/fast-programmer/projects/4).
 
 ## License
 
