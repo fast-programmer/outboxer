@@ -1,8 +1,15 @@
 require "logger"
 
 module Outboxer
-  # Extends Ruby's standard Logger class to customize the log formatting.
-  # This logger includes timestamps, process ID, and thread ID in each log message.
+  # Advanced log lines including timestamp, process ID and thread ID.
+  #
+  # @example Usage
+  #   logger = Outboxer::Logger.new(STDOUT)
+  #   logger.info("Hello World")
+  #
+  # @example Output
+  #   2025-04-10T12:34:56.789Z pid=12345 tid=8cd9f pid=12345 tid=8cd9f INFO: Hello World
+  #
   class Logger < ::Logger
     # Initializes a new Logger instance with a custom format.
     # @param args [Array] Arguments that are passed to the standard Logger initializer.

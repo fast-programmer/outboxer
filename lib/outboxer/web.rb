@@ -25,8 +25,7 @@ Outboxer::Database.connect(config: config)
 
 module Outboxer
   # The Web interface for Outboxer, providing a web-based view into the system's operations,
-  # including message management and publisher monitoring. This class extends Sinatra::Base,
-  # configuring routes and helpers to serve HTTP requests for the Outboxer system.
+  # including message management and publisher monitoring.
   #
   # @note This class requires Sinatra to be available and is meant to be mounted or run
   #       as a standalone web application.

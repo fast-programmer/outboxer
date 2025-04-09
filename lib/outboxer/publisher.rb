@@ -1,6 +1,7 @@
 require "optparse"
 
 module Outboxer
+  # Manages the publishing of messages.
   module Publisher
     module_function
 

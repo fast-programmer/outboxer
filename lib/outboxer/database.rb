@@ -2,6 +2,8 @@ require "erb"
 require "yaml"
 
 module Outboxer
+  # Database management including loading of configuration, establishing connections,
+  # checking connectivity, and disconnecting.
   module Database
     module_function
 
@@ -11,13 +13,14 @@ module Outboxer
       path: "config/database.yml"
     }
 
-    # Loads the database configuration from a YAML file, processes ERB, and merges default settings.
+    # Loads the database configuration from a YAML file, processes ERB,
+    # and merges with CONFIG_DEFAULTS.
     # @param environment [String, Symbol] the environment name to load configuration for.
     # @param concurrency [Integer] the number of connections in the pool.
     # @param path [String] the path to the database configuration file.
     # @return [Hash] the database configuration with symbolized keys.
     # @note Extra connections are added to the pool to cover for internal threads like main
-    # and the heartbeat thread.
+    #   and the heartbeat thread.
     def config(environment: CONFIG_DEFAULTS[:environment],
                concurrency: CONFIG_DEFAULTS[:concurrency],
                path: CONFIG_DEFAULTS[:path])

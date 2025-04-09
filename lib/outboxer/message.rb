@@ -1,4 +1,5 @@
 module Outboxer
+  # Message lifecycle management including queuing, buffering, and publishing of messages.
   module Message
     module_function
 

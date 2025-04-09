@@ -1,4 +1,5 @@
 module Outboxer
+  # Persisted settings referenced by the publisher and web application.
   module Setting
     module_function
 
