@@ -6,9 +6,9 @@
 
 ## Background
 
-Outboxer is an ActiveRecord implementation of the [transactional outbox pattern](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html).
+Outboxer is designed to be **Ruby's fastest and most reliable SQL message publisher**.
 
-It addresses the dual write problem that occurs in event driven systems, when a single atomic operation must change data in an SQL table and publish those changes to a message broker.
+It is a robust implementation of the [transactional outbox pattern](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html) and allows for reliable event streaming in distributed systems by ensuring that messages are eventually published to a message broker without holding up database transactions.
 
 ## Setup
 
