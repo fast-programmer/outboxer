@@ -5,7 +5,7 @@ module Outboxer
 
       belongs_to :message
 
-      has_many :frames, -> { order(index: :asc) }, foreign_key: "exception_id"
+      has_many :frames, -> { order(index: :asc) }, foreign_key: "exception_id", dependent: :destroy
 
       validates :message_id, presence: true
     end
