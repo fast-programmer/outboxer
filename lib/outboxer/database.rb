@@ -2,6 +2,8 @@ require "erb"
 require "yaml"
 
 module Outboxer
+  # Database management including loading of configuration, establishing connections,
+  # checking connectivity, and disconnecting.
   module Database
     module_function
 
@@ -11,8 +13,16 @@ module Outboxer
       path: "config/database.yml"
     }
 
+    # Loads the database configuration from a YAML file, processes ERB,
+    # and merges with CONFIG_DEFAULTS.
+    # @param environment [String, Symbol] the environment name to load configuration for.
+    # @param concurrency [Integer] the number of connections in the pool.
+    # @param path [String] the path to the database configuration file.
+    # @return [Hash] the database configuration with symbolized keys.
+    # @note Extra connections are added to the pool to cover for internal threads like main
+    #   and the heartbeat thread.
     def config(environment: CONFIG_DEFAULTS[:environment],
-               concurrency: CONFIG_DEFAULTS[:pool],
+               concurrency: CONFIG_DEFAULTS[:concurrency],
                path: CONFIG_DEFAULTS[:path])
       path_expanded = ::File.expand_path(path)
       text = File.read(path_expanded)
@@ -29,6 +39,9 @@ module Outboxer
       {}
     end
 
+    # Establishes a connection to the database using the specified configuration.
+    # @param config [Hash] the configuration hash for the database.
+    # @param logger [Logger, nil] the logger to log connection activity.
     def connect(config:, logger: nil)
       ActiveRecord::Base.logger = logger
 
@@ -40,10 +53,14 @@ module Outboxer
       logger&.info "Outboxer connected to database"
     end
 
+    # Checks if there is an active database connection.
+    # @return [Boolean] true if connected, false otherwise.
     def connected?
       ActiveRecord::Base.connected?
     end
 
+    # Disconnects all active database connections.
+    # @param logger [Logger, nil] the logger to log disconnection activity.
     def disconnect(logger: nil)
       logger&.info "Outboxer disconnecting from database"
       ActiveRecord::Base.connection_handler.clear_active_connections!

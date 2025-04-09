@@ -7,11 +7,8 @@ class CreateOutboxerMessages < ActiveRecord::Migration[6.1]
       t.string :messageable_type, limit: 255, null: false
 
       t.datetime :queued_at, precision: 6, null: false
-
       t.datetime :buffered_at, precision: 6
-
       t.datetime :publishing_at, precision: 6
-
       t.datetime :updated_at, precision: 6, null: false
 
       t.bigint :publisher_id

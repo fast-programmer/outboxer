@@ -1,9 +1,16 @@
 module Outboxer
+  # Message lifecycle management including queuing, buffering, and publishing of messages.
   module Message
     module_function
 
     Status = Models::Message::Status
 
+    # Queues a new message.
+    # @param messageable [Object, nil] the object associated with the message.
+    # @param messageable_type [String, nil] type of the polymorphic messageable model
+    # @param messageable_id [Integer, nil] ID of the polymorphic messageable model
+    # @param time [Time] time context for setting timestamps.
+    # @return [Hash] a hash with message details including IDs and timestamps.
     def queue(messageable: nil,
               messageable_type: nil, messageable_id: nil,
               time: ::Time)
@@ -32,6 +39,9 @@ module Outboxer
       }
     end
 
+    # Finds a message by ID, including details about related publishers and exceptions.
+    # @param id [Integer] the ID of the message to find.
+    # @return [Hash] detailed information about the message.
     def find_by_id(id:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
@@ -75,6 +85,12 @@ module Outboxer
       end
     end
 
+    # Marks a message as publishing with the given publisher details.
+    # @param id [Integer] the ID of the message to update.
+    # @param publisher_id [Integer, nil] the ID of the publisher.
+    # @param publisher_name [String, nil] the name of the publisher.
+    # @param time [Time] current time context used to update timestamps.
+    # @return [Hash] updated message details.
     def publishing(id:, publisher_id: nil, publisher_name: nil,
                    time: ::Time)
       ActiveRecord::Base.connection_pool.with_connection do
@@ -110,6 +126,12 @@ module Outboxer
       end
     end
 
+    # Marks a message as published.
+    # @param id [Integer] the ID of the message to update.
+    # @param publisher_id [Integer, nil] the ID of the publisher.
+    # @param publisher_name [String, nil] the name of the publisher.
+    # @param time [Time] current time context used to update timestamps.
+    # @return [Hash] updated message details.
     def published(id:, publisher_id: nil, publisher_name: nil,
                   time: ::Time)
       ActiveRecord::Base.connection_pool.with_connection do
@@ -142,6 +164,13 @@ module Outboxer
       end
     end
 
+    # Marks a message as failed and records the exception details.
+    # @param id [Integer] the ID of the message to update.
+    # @param exception [Exception] the exception to record.
+    # @param publisher_id [Integer, nil] the ID of the publisher.
+    # @param publisher_name [String, nil] the name of the publisher.
+    # @param time [Time] current time context used to update timestamps.
+    # @return [Hash] updated message details.
     def failed(id:, exception:,
                publisher_id: nil, publisher_name: nil,
                time: ::Time)
@@ -182,6 +211,9 @@ module Outboxer
       end
     end
 
+    # Deletes a message by ID.
+    # @param id [Integer] the ID of the message to delete.
+    # @return [Hash] details of the deleted message.
     def delete(id:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
@@ -203,10 +235,19 @@ module Outboxer
 
     REQUEUE_STATUSES = [:buffered, :publishing, :failed]
 
+    # Determines if a message in a certain status can be requeued.
+    # @param status [Symbol] the status to check.
+    # @return [Boolean] true if the message can be requeued, false otherwise.
     def can_requeue?(status:)
       REQUEUE_STATUSES.include?(status&.to_sym)
     end
 
+    # Requeues a message by updating its status to queued.
+    # @param id [Integer] the ID of the message to requeue.
+    # @param publisher_id [Integer, nil] the ID of the publisher.
+    # @param publisher_name [String, nil] the name of the publisher.
+    # @param time [Time] current time context used to update timestamps.
+    # @return [Hash] updated message details.
     def requeue(id:, publisher_id: nil, publisher_name: nil,
                 time: ::Time)
       ActiveRecord::Base.connection_pool.with_connection do
@@ -229,6 +270,12 @@ module Outboxer
       end
     end
 
+    # Buffers a limited number of queued messages by updating their status to buffered.
+    # @param limit [Integer] the number of messages to buffer.
+    # @param publisher_id [Integer, nil] the ID of the publisher.
+    # @param publisher_name [String, nil] the name of the publisher.
+    # @param time [Time] current time context used to update timestamps.
+    # @return [Array<Hash>] details of buffered messages.
     def buffer(limit: 1, publisher_id: nil, publisher_name: nil,
                time: ::Time)
       ActiveRecord::Base.connection_pool.with_connection do
@@ -286,6 +333,14 @@ module Outboxer
     LIST_TIME_ZONE_OPTIONS = (ActiveSupport::TimeZone.all.map(&:tzinfo).map(&:name) + ["UTC"]).sort
     LIST_TIME_ZONE_DEFAULT = "UTC"
 
+    # Lists messages based on given criteria and pagination settings.
+    # @param status [Symbol, nil] filter by message status.
+    # @param sort [Symbol] sort order field.
+    # @param order [Symbol] sort direction, either :asc or :desc.
+    # @param page [Integer] page number.
+    # @param per_page [Integer] number of items per page.
+    # @param time_zone [String] time zone to use for datetime fields.
+    # @return [Hash] paginated message details including total pages and counts.
     def list(status: LIST_STATUS_DEFAULT,
              sort: LIST_SORT_DEFAULT, order: LIST_ORDER_DEFAULT,
              page: LIST_PAGE_DEFAULT, per_page: LIST_PER_PAGE_DEFAULT,
@@ -358,10 +413,20 @@ module Outboxer
       }
     end
 
+    # Checks if all messages with a specific status can be requeued.
+    # @param status [Symbol] the status to check for requeue eligibility.
+    # @return [Boolean] true if messages with the given status can be requeued, false otherwise.
     def can_requeue_all?(status:)
       REQUEUE_STATUSES.include?(status&.to_sym)
     end
 
+    # Requeues all messages with a specific status in batches.
+    # @param status [Symbol] the status of messages to requeue.
+    # @param batch_size [Integer] number of messages to requeue in each batch.
+    # @param time [Time] current time context used to update timestamps.
+    # @param publisher_id [Integer, nil] the ID of the publisher.
+    # @param publisher_name [String, nil] the name of the publisher.
+    # @return [Hash] the count of messages that were requeued.
     def requeue_all(status:, batch_size: 100, time: ::Time,
                     publisher_id: nil, publisher_name: nil)
       if !can_requeue_all?(status: status)
@@ -408,6 +473,12 @@ module Outboxer
       { requeued_count: requeued_count }
     end
 
+    # Requeues a specific set of messages by their IDs.
+    # @param ids [Array<Integer>] the IDs of messages to requeue.
+    # @param publisher_id [Integer, nil] the ID of the publisher.
+    # @param publisher_name [String, nil] the name of the publisher.
+    # @param time [Time] current time context used to update timestamps.
+    # @return [Hash] the count of messages that were requeued and the IDs of those not requeued.
     def requeue_by_ids(ids:, publisher_id: nil, publisher_name: nil, time: Time)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
@@ -430,6 +501,11 @@ module Outboxer
       end
     end
 
+    # Deletes all messages that match certain criteria in batches.
+    # @param status [Symbol, nil] the status of messages to delete.
+    # @param batch_size [Integer] the number of messages to delete in each batch.
+    # @param older_than [Time, nil] threshold time before which messages are eligible for deletion.
+    # @return [Hash] the count of messages that were deleted.
     def delete_all(status: nil, batch_size: 100, older_than: nil)
       deleted_count = 0
 
@@ -481,6 +557,9 @@ module Outboxer
       { deleted_count: deleted_count }
     end
 
+    # Deletes a specific set of messages by their IDs.
+    # @param ids [Array<Integer>] the IDs of messages to delete.
+    # @return [Hash] the count of messages that were deleted and the IDs of those not deleted.
     def delete_by_ids(ids:)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
@@ -516,6 +595,9 @@ module Outboxer
       end
     end
 
+    # Retrieves and calculates metrics related to message statuses, including counts and throughput.
+    # @param time [Time] current time context used for calculating metrics.
+    # @return [Hash] detailed metrics about messages across various statuses.
     def metrics(time: ::Time)
       metrics = { all: { count: { current: 0 } } }
 
