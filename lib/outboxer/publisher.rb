@@ -284,11 +284,11 @@ module Outboxer
         Thread.new do
           Thread.current.name = "publisher-#{index + 1}"
 
-          while (message = queue.pop)
-            break if message.nil?
+          while (buffered_message = queue.pop)
+            break if buffered_message.nil?
 
-            publish_message(
-              id: id, name: name, buffered_message: message,
+            publish_buffered_message(
+              id: id, name: name, buffered_message: buffered_message,
               logger: logger, &block)
           end
         end
@@ -501,7 +501,7 @@ module Outboxer
       log_level: 1
     }
 
-    # Publishes messages by managing multiple threads.
+    # Publish queued messages concurrently
     # @param name [String] The name of the publisher.
     # @param buffer [Integer] The buffer size.
     # @param concurrency [Integer] The number of threads for concurrent publishing.
@@ -513,7 +513,7 @@ module Outboxer
     # @param process [Process] The process module for system metrics.
     # @param kernel [Kernel] The kernel module for sleeping operations.
     # @yield [Hash] A block to handle the publishing of each message.
-    def publish(
+    def publish_message(
       name: "#{::Socket.gethostname}:#{::Process.pid}",
       buffer: PUBLISH_DEFAULTS[:buffer],
       concurrency: PUBLISH_DEFAULTS[:concurrency],
@@ -596,13 +596,13 @@ module Outboxer
       logger.info "Outboxer terminated"
     end
 
-    # Handles the publication process for a single message.
+    # Publishes a buffered message
     # @param id [Integer] The ID of the publisher.
     # @param name [String] The name of the publisher.
     # @param buffered_message [Hash] The message data retrieved from the buffer.
     # @param logger [Logger] Logger for recording the outcome of the publishing attempt.
     # @yield [Hash] A block to process the publishing of the message.
-    def publish_message(id:, name:, buffered_message:, logger:, &block)
+    def publish_buffered_message(id:, name:, buffered_message:, logger:, &block)
       publishing_message = Message.publishing(
         id: buffered_message[:id], publisher_id: id, publisher_name: name)
 
