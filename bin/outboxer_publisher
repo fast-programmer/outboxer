@@ -23,7 +23,7 @@ database_config = Outboxer::Database.config(
 Outboxer::Database.connect(config: database_config, logger: logger)
 
 begin
-  Outboxer::Publisher.publish(
+  Outboxer::Publisher.publish_message(
     buffer: options[:buffer],
     concurrency: options[:concurrency],
     tick: options[:tick],
