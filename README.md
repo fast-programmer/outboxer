@@ -132,9 +132,8 @@ module Accountify
         contact = Contact.create!(tenant_id: tenant_id, email: email)
 
         event = ContactCreatedEvent.create!(
-          user_id: user_id, 
-          tenant_id: tenant_id,
-          eventable: contact, body: { "email" => email }
+          user_id: user_id, tenant_id: tenant_id, eventable: contact,
+          body: { "email" => email }
         )
       end
 
@@ -169,7 +168,7 @@ bin/rails c
 ### 10. call service
 
 ```ruby
-contact, event = Accountify::ContactService.create(....)
+contact, event = Accountify::ContactService.create(user_id: 1, tenant_id: 1, email: 'test@test.com')
 ```
 
 ### 11. observe transactional consistency
