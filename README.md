@@ -32,7 +32,7 @@ gem 'outboxer'
 bundle install
 ```
 
-### 3. generate schema and publisher
+### 3. generate schema, publisher and tests
 
 ```bash
 bin/rails g outboxer:install
