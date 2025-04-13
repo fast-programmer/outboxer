@@ -55,7 +55,7 @@ module Accountify
 end
 ```
 
-### 2. when new event created, queue outboxer message
+### 2. when a new event is created, queue an outboxer message
 
 ```ruby
 class Event < ApplicationRecord
@@ -107,6 +107,50 @@ Outboxer::Publisher.publish_message(...) do |message|
   end
 ```
 
+### 7. create event in application service
+
+```ruby
+module Accountify
+  module ContactService
+    module_function
+
+    def create(user_id:, tenant_id:, email:, ...)
+      contact = nil
+      event = nil
+
+      ActiveRecord::Transaction.execute do
+        contact = Contact.create!(tenant_id: tenant_id, ...)
+
+        event = ContactCreatedEvent.create!(
+          tenant_id: tenant_id, user_id: user_id, eventable: contact, body: ...)
+      end
+
+      [{ "id" => contact.id }, { "id" => event.id }]
+    end
+  end
+end
+```
+
+
+### 6. open rails console
+
+```bash
+bin/rails c
+```
+
+### 7. call service
+
+```ruby
+Accountify::ContactService.create(....)
+```
+
+### 7. observe transactional consistency
+
+```
+...
+```
+
+
 ### 4. run publisher
 
 ```bash
@@ -122,18 +166,6 @@ bin/sidekiq
 ```
 
 **Note:** Enabling [superfetch](https://github.com/sidekiq/sidekiq/wiki/Reliability#using-super_fetch) is strongly recommend, to preserve consistency across services.
-
-### 6. open rails console
-
-```bash
-bin/rails c
-```
-
-### 7. create event
-
-```ruby
-Accountify::InvoiceCreatedEvent.create!(...)
-```
 
 ## Testing
 
