@@ -14,7 +14,7 @@ It addresses the *dual write problem* that occurs in event driven Ruby on Rails 
 2. must be handled out of band (e.g. in a Sidekiq Job via redis)
 
 By providing *a ruby interface to queue events* in your application services, and *a multithreaded publisher script* to publish them out of band,
-Outboxer quickly transforms your existing stack to *eventually consistent architecture*, bringing with it all the benefits of high availability, scalability and resilience.
+Outboxer quickly transforms your existing stack to *eventually consistent architecture*, bringing with it all the benefits of *high availability*, *scalability* and *resilience*.
 
 See the [transactional outbox pattern](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html) for more details.
 
