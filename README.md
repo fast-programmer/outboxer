@@ -6,9 +6,16 @@
 
 ## Background
 
-Outboxer is designed to be **Ruby's fastest and most reliable SQL message publisher**.
+Outboxer is designed to be **Ruby's fastest and most reliable SQL event publisher**.
 
-It is a robust implementation of the [transactional outbox pattern](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html) and allows for reliable event streaming in distributed systems by ensuring that messages are eventually published to a message broker without holding up database transactions.
+It addresses the dual write problem that occurs in event driven Ruby on Rails apps where:
+
+1. an event row must be created in PostgreSQL or MySQL
+2. that event must also be published to Redis via Sidekiq
+
+By providing *an interface to queue events* and *a multithreaded publisher* to publish them out of band, Outboxer will quickly transform your existing stack to eventually consistent architecture, bringing with it all the benefits of high availability, scalability and resilience.
+
+See the [transactional outbox pattern](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html) for more details.
 
 ## Setup
 
