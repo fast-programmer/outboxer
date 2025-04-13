@@ -18,7 +18,7 @@ Outboxer quickly transforms your existing stack to *eventually consistent archit
 
 See the [transactional outbox pattern](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html) for more details.
 
-## Setup
+## Installation
 
 ### 1. add gem to gemfile
 
@@ -44,25 +44,74 @@ bin/rails g outboxer:install
 bin/rake db:migrate
 ```
 
-### 5. run publisher
+## Usage
+
+### 1. queue outboxer message in after_save callback of event
+
+```ruby
+class Event < ApplicationRecord
+  after_create do |event|
+    Outboxer::Message.queue(messageable: event)
+  end
+end
+```
+
+### 2. Review message publisher conventions
+
+By default, the publisher will perform sidekiq jobs asynchronously, based on the convention below:
+
+`Context::ResourceVerbEvent -> Context::ResourceVerbJob`
+
+#### Examples:
+
+```
+1. Accountify::InvoiceCreatedEvent -> Accountify::InvoiceCreatedJob
+2. Accountify::InvoiceUpdatedEvent -> Accountify::InvoiceUpdatedJob
+3. Accountify::ContactCreatedEvent -> Accountify::ContactUpdatedJob
+```
+
+
+### 3. Review bin/publisher block
+
+```ruby
+Outboxer::Publisher.publish_message(
+  buffer: options[:buffer],
+  concurrency: options[:concurrency],
+  tick: options[:tick],
+  poll: options[:poll],
+  heartbeat: options[:heartbeat],
+  logger: logger) do |message|
+    OutboxerIntegration::PublishMessageJob.perform_async({
+      "message_id" => message[:id],
+      "messageable_id" => message[:messageable_id],
+      "messageable_type" => message[:messageable_type]
+    })
+  end
+```
+
+### 4. run publisher
 
 ```bash
 bin/outboxer_publisher
 ```
 
-### 6. run sidekiq
+For a comprehensive list of settings, see [publisher options](https://github.com/fast-programmer/outboxer/wiki/Sidekiq-publisher-options).
+
+### 5. run sidekiq
 
 ```bash
 bin/sidekiq
 ```
 
-### 7. open rails console
+### 6. open rails console
 
 ```bash
 bin/rails c
 ```
 
-### 8. start test
+## Testing
+
+### 1. start test
 
 ```ruby
 OutboxerIntegration::TestService.start
@@ -77,7 +126,7 @@ TRANSACTION (0.7ms)  COMMIT
 => {:id=>1, :events=>[{:id=>1, :type=>"OutboxerIntegration::TestStartedEvent"}]}
 ```
 
-### 9. ensure test completes
+### 2. ensure test completes
 
 ```
 OutboxerIntegration::Test.find(1).events
@@ -101,6 +150,8 @@ OutboxerIntegration::Test.find(1).events
   body: {"test"=>{"id"=>1}},
   created_at: 2025-01-11 23:48:38.750419 UTC>]
 ```
+
+This is what the generated spec is testing, to ensure you have confidence in your stack.
 
 ## Management
 
