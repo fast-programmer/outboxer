@@ -181,7 +181,7 @@ OutboxerIntegration::Test.find(1).events
 
 ```bin/rspec spec/outboxer_integration/test_started_spec.rb```
 
-This is what the generated spec is testing, to ensure you have end to end confidence in your stack.
+This is what the generated spec is testing, to continue to ensure you have end to end confidence in your stack.
 
 ## Management
 
