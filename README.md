@@ -32,7 +32,7 @@ gem 'outboxer'
 bundle install
 ```
 
-### 3. generate schema, publisher and tests
+### 3. generate schema, publisher, router and tests
 
 ```bash
 bin/rails g outboxer:install
@@ -46,7 +46,16 @@ bin/rake db:migrate
 
 ## Usage
 
-### 1. queue outboxer message in after_save callback of event
+### 1. add your derived event type
+
+```ruby
+module Accountify
+  class InvoiceCreatedEvent < Event
+  end
+end
+```
+
+### 2. queue outboxer message in after_save callback of event
 
 ```ruby
 class Event < ApplicationRecord
@@ -56,11 +65,11 @@ class Event < ApplicationRecord
 end
 ```
 
-### 2. Review message publisher conventions
+### 3. Review message publisher conventions
 
 By default, the publisher will perform sidekiq jobs asynchronously, based on the convention below:
 
-`Context::ResourceVerbEvent -> Context::ResourceVerbJob`
+`Context::ResourcePastTenseVerbEvent -> Context::ResourcePastTenseVerbJob`
 
 #### Examples:
 
@@ -70,17 +79,26 @@ By default, the publisher will perform sidekiq jobs asynchronously, based on the
 3. Accountify::ContactCreatedEvent -> Accountify::ContactUpdatedJob
 ```
 
+**Note:** You can customise this behaviour in `app/jobs/outboxer_integration/publish_message_job.rb`
 
-### 3. Review bin/publisher block
+### 4. Add a job handler for your event
 
 ```ruby
-Outboxer::Publisher.publish_message(
-  buffer: options[:buffer],
-  concurrency: options[:concurrency],
-  tick: options[:tick],
-  poll: options[:poll],
-  heartbeat: options[:heartbeat],
-  logger: logger) do |message|
+module Accountify
+  class InvoiceCreatedJob
+    include Sidekiq::Job
+
+    def perform_async(args)
+      # your handler code here
+    end
+  end
+end
+```
+
+### 5. Review bin/publisher block
+
+```ruby
+Outboxer::Publisher.publish_message(...) do |message|
     OutboxerIntegration::PublishMessageJob.perform_async({
       "message_id" => message[:id],
       "messageable_id" => message[:messageable_id],
@@ -95,13 +113,15 @@ Outboxer::Publisher.publish_message(
 bin/outboxer_publisher
 ```
 
-For a comprehensive list of settings, see [publisher options](https://github.com/fast-programmer/outboxer/wiki/Sidekiq-publisher-options).
+**Note:** The outboxer publisher supports many [options](https://github.com/fast-programmer/outboxer/wiki/Sidekiq-publisher-options).
 
 ### 5. run sidekiq
 
 ```bash
 bin/sidekiq
 ```
+
+**Note:** enabling [superfetch](https://github.com/sidekiq/sidekiq/wiki/Reliability#using-super_fetch) is strongly recommend, to preserve consistency across services.
 
 ### 6. open rails console
 
@@ -151,7 +171,11 @@ OutboxerIntegration::Test.find(1).events
   created_at: 2025-01-11 23:48:38.750419 UTC>]
 ```
 
-This is what the generated spec is testing, to ensure you have confidence in your stack.
+3. run spec
+
+```bin/rspec spec/outboxer_integration/test_started_spec.rb```
+
+This is what the generated spec is testing, to ensure you have end to end confidence in your stack.
 
 ## Management
 
