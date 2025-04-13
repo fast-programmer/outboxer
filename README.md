@@ -46,7 +46,7 @@ bin/rake db:migrate
 
 ## Usage
 
-### 1. add your derived event type
+### 1. define new events using STI
 
 ```ruby
 module Accountify
@@ -55,7 +55,7 @@ module Accountify
 end
 ```
 
-### 2. queue outboxer message in after_save callback of event
+### 2. when new event created, queue outboxer message
 
 ```ruby
 class Event < ApplicationRecord
@@ -65,7 +65,7 @@ class Event < ApplicationRecord
 end
 ```
 
-### 3. Review message publisher conventions
+### 3. review outboxer publisher conventions
 
 By default, the publisher will perform sidekiq jobs asynchronously, based on the convention below:
 
@@ -81,7 +81,7 @@ By default, the publisher will perform sidekiq jobs asynchronously, based on the
 
 **Note:** You can customise this behaviour in `app/jobs/outboxer_integration/publish_message_job.rb`
 
-### 4. Add a job handler for your event
+### 4. add a job to handle your event
 
 ```ruby
 module Accountify
@@ -95,7 +95,7 @@ module Accountify
 end
 ```
 
-### 5. Review bin/publisher block
+### 5. review bin/publisher block
 
 ```ruby
 Outboxer::Publisher.publish_message(...) do |message|
@@ -121,12 +121,18 @@ bin/outboxer_publisher
 bin/sidekiq
 ```
 
-**Note:** enabling [superfetch](https://github.com/sidekiq/sidekiq/wiki/Reliability#using-super_fetch) is strongly recommend, to preserve consistency across services.
+**Note:** Enabling [superfetch](https://github.com/sidekiq/sidekiq/wiki/Reliability#using-super_fetch) is strongly recommend, to preserve consistency across services.
 
 ### 6. open rails console
 
 ```bash
 bin/rails c
+```
+
+### 7. create event
+
+```ruby
+Accountify::InvoiceCreatedEvent.create!(...)
 ```
 
 ## Testing
@@ -171,7 +177,7 @@ OutboxerIntegration::Test.find(1).events
   created_at: 2025-01-11 23:48:38.750419 UTC>]
 ```
 
-3. run spec
+### 3. run spec
 
 ```bin/rspec spec/outboxer_integration/test_started_spec.rb```
 
