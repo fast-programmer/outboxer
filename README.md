@@ -46,18 +46,11 @@ bin/rake db:migrate
 
 ## Usage
 
-### 1. define new events using STI
+### 1. when a new event is created, queue an outboxer message
 
 ```ruby
-module Accountify
-  class InvoiceCreatedEvent < Event
-  end
-end
-```
+# app/event.rb
 
-### 2. when a new event is created, queue an outboxer message
-
-```ruby
 class Event < ApplicationRecord
   after_create do |event|
     Outboxer::Message.queue(messageable: event)
@@ -65,27 +58,40 @@ class Event < ApplicationRecord
 end
 ```
 
-### 3. review outboxer publisher conventions
+### 2. review outboxer routing conventions
 
-By default, the publisher will perform sidekiq jobs asynchronously, based on the convention below:
+By default, the router will perform sidekiq jobs asynchronously, based on the convention below:
 
 `Context::ResourcePastTenseVerbEvent -> Context::ResourcePastTenseVerbJob`
 
 #### Examples:
 
 ```
-1. Accountify::InvoiceCreatedEvent -> Accountify::InvoiceCreatedJob
-2. Accountify::InvoiceUpdatedEvent -> Accountify::InvoiceUpdatedJob
-3. Accountify::ContactCreatedEvent -> Accountify::ContactUpdatedJob
+1. Accountify::ContactCreatedEvent -> Accountify::ContactUpdatedJob
+2. Accountify::InvoiceCreatedEvent -> Accountify::InvoiceCreatedJob
+3. Accountify::InvoiceUpdatedEvent -> Accountify::InvoiceUpdatedJob
 ```
 
 **Note:** You can customise this behaviour in `app/jobs/outboxer_integration/publish_message_job.rb`
 
+### 3. define new events using STI
+
+```ruby
+# app/models/accountify/contact_created_event.rb
+
+module Accountify
+  class ContactCreatedEvent < Event
+  end
+end
+```
+
 ### 4. add a job to handle your event
 
 ```ruby
+# app/jobs/accountify/contact_created_job.rb
+
 module Accountify
-  class InvoiceCreatedJob
+  class ContactCreatedJob
     include Sidekiq::Job
 
     def perform_async(args)
@@ -95,9 +101,11 @@ module Accountify
 end
 ```
 
-### 5. review bin/publisher block
+### 5. review publish message block
 
 ```ruby
+# bin/publisher
+
 Outboxer::Publisher.publish_message(...) do |message|
     OutboxerIntegration::PublishMessageJob.perform_async({
       "message_id" => message[:id],
@@ -107,22 +115,27 @@ Outboxer::Publisher.publish_message(...) do |message|
   end
 ```
 
-### 7. create event in application service
+### 6. create event in application service
 
 ```ruby
+# app/services/accountify/contact_service.rb
+
 module Accountify
   module ContactService
     module_function
 
-    def create(user_id:, tenant_id:, email:, ...)
+    def create(user_id:, tenant_id:, email:)
       contact = nil
       event = nil
 
       ActiveRecord::Transaction.execute do
-        contact = Contact.create!(tenant_id: tenant_id, ...)
+        contact = Contact.create!(tenant_id: tenant_id, email: email)
 
         event = ContactCreatedEvent.create!(
-          tenant_id: tenant_id, user_id: user_id, eventable: contact, body: ...)
+          user_id: user_id, 
+          tenant_id: tenant_id,
+          eventable: contact, body: { "email" => email }
+        )
       end
 
       [{ "id" => contact.id }, { "id" => event.id }]
@@ -131,27 +144,7 @@ module Accountify
 end
 ```
 
-
-### 6. open rails console
-
-```bash
-bin/rails c
-```
-
-### 7. call service
-
-```ruby
-Accountify::ContactService.create(....)
-```
-
-### 7. observe transactional consistency
-
-```
-...
-```
-
-
-### 4. run publisher
+### 7. run publisher
 
 ```bash
 bin/outboxer_publisher
@@ -159,13 +152,31 @@ bin/outboxer_publisher
 
 **Note:** The outboxer publisher supports many [options](https://github.com/fast-programmer/outboxer/wiki/Sidekiq-publisher-options).
 
-### 5. run sidekiq
+### 8. run sidekiq
 
 ```bash
 bin/sidekiq
 ```
 
 **Note:** Enabling [superfetch](https://github.com/sidekiq/sidekiq/wiki/Reliability#using-super_fetch) is strongly recommend, to preserve consistency across services.
+
+### 9. open rails console
+
+```bash
+bin/rails c
+```
+
+### 10. call service
+
+```ruby
+contact, event = Accountify::ContactService.create(....)
+```
+
+### 11. observe transactional consistency
+
+```
+# TODO:
+```
 
 ## Testing
 
