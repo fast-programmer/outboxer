@@ -48,7 +48,37 @@ bin/rake db:migrate
 
 ## Usage
 
-### 1. when a new event is created, queue an outboxer message
+### 1. review publish message block
+
+```ruby
+# bin/publisher
+
+Outboxer::Publisher.publish_message(...) do |message|
+    OutboxerIntegration::PublishMessageJob.perform_async({
+      "message_id" => message[:id],
+      "messageable_id" => message[:messageable_id],
+      "messageable_type" => message[:messageable_type]
+    })
+  end
+```
+
+### 2. review publish message job routing
+
+By default Sidekiq jobs will be performed asynchronously, based on the convention below:
+
+`Context::ResourceEvent -> Context::ResourceJob`
+
+#### Examples:
+
+```
+1. Accountify::ContactCreatedEvent -> Accountify::ContactUpdatedJob
+2. Accountify::InvoiceCreatedEvent -> Accountify::InvoiceCreatedJob
+3. Accountify::InvoiceUpdatedEvent -> Accountify::InvoiceUpdatedJob
+```
+
+**Note:** You can customise this behaviour in `app/jobs/outboxer_integration/publish_message_job.rb` 
+
+### 3. when a new event is created, queue an outboxer message
 
 ```ruby
 # app/event.rb
@@ -60,23 +90,7 @@ class Event < ApplicationRecord
 end
 ```
 
-### 2. review outboxer routing conventions
-
-By default, the router will perform sidekiq jobs asynchronously, based on the convention below:
-
-`Context::ResourcePastTenseVerbEvent -> Context::ResourcePastTenseVerbJob`
-
-#### Examples:
-
-```
-1. Accountify::ContactCreatedEvent -> Accountify::ContactUpdatedJob
-2. Accountify::InvoiceCreatedEvent -> Accountify::InvoiceCreatedJob
-3. Accountify::InvoiceUpdatedEvent -> Accountify::InvoiceUpdatedJob
-```
-
-**Note:** You can customise this behaviour in `app/jobs/outboxer_integration/publish_message_job.rb`
-
-### 3. define new events using STI
+### 4. define new events using STI
 
 ```ruby
 # app/models/accountify/contact_created_event.rb
@@ -87,7 +101,7 @@ module Accountify
 end
 ```
 
-### 4. add a job to handle your event
+### 5. add a job to handle your event
 
 ```ruby
 # app/jobs/accountify/contact_created_job.rb
@@ -103,21 +117,7 @@ module Accountify
 end
 ```
 
-### 5. review publish message block
-
-```ruby
-# bin/publisher
-
-Outboxer::Publisher.publish_message(...) do |message|
-    OutboxerIntegration::PublishMessageJob.perform_async({
-      "message_id" => message[:id],
-      "messageable_id" => message[:messageable_id],
-      "messageable_type" => message[:messageable_type]
-    })
-  end
-```
-
-### 6. create event in application service
+### 6. create an event in your application service
 
 ```ruby
 # app/services/accountify/contact_service.rb
