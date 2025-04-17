@@ -8,10 +8,12 @@
 
 Outboxer is designed to be **Ruby's fastest and most reliable SQL event publisher**.
 
-It addresses the *dual write problem* that occurs in event driven Ruby on Rails applications where an event:
+It addresses the *dual write problem* that occurs in event driven Ruby on Rails applications where:
 
-1. row must be inserted into a PostgreSQL or MySQL database table
-2. must be handled out of band (e.g. in a Sidekiq Job via redis)
+1. an event row must be inserted into an SQL table
+2. an event handler job must be performed async
+
+And both operations must happen attomically.
 
 By providing *a ruby interface to queue events* in your application services, and *a multithreaded publisher script* to publish them out of band,
 Outboxer quickly transforms your existing stack to *eventually consistent architecture*, bringing with it all the benefits of *high availability*, *scalability* and *resilience*.
