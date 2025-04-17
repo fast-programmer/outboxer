@@ -54,19 +54,21 @@ bin/rake db:migrate
 # bin/publisher
 
 Outboxer::Publisher.publish_message(...) do |message|
-    OutboxerIntegration::PublishMessageJob.perform_async({
-      "message_id" => message[:id],
-      "messageable_id" => message[:messageable_id],
-      "messageable_type" => message[:messageable_type]
-    })
-  end
+  OutboxerIntegration::PublishMessageJob.perform_async({
+    "message_id" => message[:id],
+    "messageable_id" => message[:messageable_id],
+    "messageable_type" => message[:messageable_type]
+  })
+end
 ```
 
 ### 2. review publish message job routing
 
-By default Sidekiq jobs will be performed asynchronously, based on the convention below:
+By default a Sidekiq job will be performed asynchronously, based on the convention below:
 
-`Context::ResourceEvent -> Context::ResourceJob`
+`Context::ResourceVerbEvent -> Context::ResourceVerbJob`
+
+where `Verb` is in past tense
 
 #### Examples:
 
@@ -76,9 +78,26 @@ By default Sidekiq jobs will be performed asynchronously, based on the conventio
 3. Accountify::InvoiceUpdatedEvent -> Accountify::InvoiceUpdatedJob
 ```
 
-**Note:** You can customise this behaviour in `app/jobs/outboxer_integration/publish_message_job.rb` 
+```ruby
+# app/jobs/outboxer_integration/publish_message_job.rb
 
-### 3. when a new event is created, queue an outboxer message
+module OutboxerIntegration
+  class PublishMessageJob
+    include Sidekiq::Job
+
+    def perform(args)
+      job_class_name = to_job_class_name(messageable_type: args["messageable_type"])
+      job_class_name&.safe_constantize&.perform_async("event_id" => args["messageable_id"])
+    end
+
+    def to_job_class_name(messageable_type:)
+      # your custom implementation here
+    end
+  end
+end
+```
+
+### 3. queue an outboxer message when a new event is created
 
 ```ruby
 # app/event.rb
@@ -90,7 +109,7 @@ class Event < ApplicationRecord
 end
 ```
 
-### 4. define new events using STI
+### 4. define a new event using STI
 
 ```ruby
 # app/models/accountify/contact_created_event.rb
@@ -102,6 +121,8 @@ end
 ```
 
 ### 5. add a job to handle your event
+
+Following the convention `Context::ResourceEvent -> Context::ResourceJob` e.g. `Accountify::ContactCreatedEvent -> Accountify::ContactUpdatedJob`
 
 ```ruby
 # app/jobs/accountify/contact_created_job.rb
@@ -176,7 +197,12 @@ contact, event = Accountify::ContactService.create(user_id: 1, tenant_id: 1, ema
 ### 11. observe transactional consistency
 
 ```
-# TODO:
+TRANSACTION (0.5ms)  BEGIN
+Accountify::Contact Create             (1.9ms)  INSERT INTO "accountify_contacts" ...
+Accountify::ContactCreatedEvent Create (1.8ms)  INSERT INTO "events" ...
+Outboxer::Message Create               (3.2ms)  INSERT INTO "outboxer_messages" ...
+TRANSACTION (0.7ms)  COMMIT
+=> {:id=>1, :events=>[{:id=>1, :type=>"Accountify::ContactCreatedEvent"}]}
 ```
 
 ## Testing
