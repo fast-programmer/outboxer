@@ -23,7 +23,7 @@ EventCreatedJob.perform_async(event.id)
 
 ### 1. Queue message (in same transaction)
 
-When your application creates an `Event` record, Outboxer automatically creates an `Outboxer::Message` record **within the same database transaction**, using an `after_create` callback.
+When an `Event` record is created in your SQL database, Outboxer automatically creates an `Outboxer::Message` record polymorphically associated to that `Event` **within the same database transaction**, using an `after_create` callback.
 
 ```ruby
 # app/event.rb
