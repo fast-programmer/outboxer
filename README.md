@@ -8,15 +8,15 @@
 
 **Outboxer** is Ruby's fastest and most reliable implementation of the [Transactional Outbox Pattern](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html).
 
-It addresses the *dual write problem* that can lead to inconsistent state in event driven Ruby on Rails applications e.g.
+It addresses the *dual write problem* that can occur in event driven Ruby on Rails applications, where an SQL insert succeeds for an event row, but a Sidekiq job to handle this event was not queued in redis e.g.
 
 ```ruby
 event = Event.create!(...)
 
-# <-- process terminates unexpectedly -->
+# ☠️ process terminates unexpectedly
 
 EventCreatedJob.perform_async(event.id)
-# ^ handler job was not queued as expected, resulting in inconsistent state downstream
+# ❌ job never runs and downstream state is now inconsistent
 ```
 
 ## How it works
