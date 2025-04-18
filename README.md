@@ -6,7 +6,7 @@
 
 ## Background
 
-**Outboxer** is Ruby's fastest and most reliable implementation of the [transactional outbox pattern](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html).
+**Outboxer** is Ruby's most reliable implementation of the [transactional outbox pattern](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html).
 
 It addresses the [*dual write problem*](https://www.confluent.io/blog/dual-write-problem/) that can occur in event driven Ruby on Rails applications, where an SQL insert succeeds for an event row, but a Sidekiq job to handle this event out of band was not queued in redis e.g.
 
@@ -23,7 +23,7 @@ EventCreatedJob.perform_async(event.id)
 
 ### 1. Queue message (in same transaction)
 
-When an `Event` record is created in your SQL database, Outboxer automatically creates an `Outboxer::Message` record polymorphically associated to that `Event` **within the same database transaction**, using an `after_create` callback.
+When an `Event` record is created in your SQL database, Outboxer automatically creates an `Outboxer::Message` record polymorphically associated to that `Event` **within the same database transaction**, using an `after_create` callback e.g.
 
 ```ruby
 # app/event.rb
@@ -37,7 +37,7 @@ end
 
 ### 2. Publish message (out-of-band)
 
-A high performance, multithreaded publisher script (e.g. `bin/outboxer_publisher`) continuously buffers and then publishes those queued messages.
+A high performance, multithreaded publisher script (e.g. `bin/outboxer_publisher`) buffers and then publishes those queued messages e.g.
 
 ```ruby
 # bin/publisher
