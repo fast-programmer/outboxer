@@ -16,20 +16,38 @@ event = Event.create!(...)
 # ☠️ process terminates unexpectedly
 
 EventCreatedJob.perform_async(event.id)
-# ❌ job never runs and downstream state is now inconsistent
+# ❌ job never ran and downstream state is now inconsistent
 ```
 
 ## How it works
 
 ### 1. Queue message (in same transaction)
 
-When your application creates an `Event` record, Outboxer automatically queues a corresponding `Outboxer::Message` **within the same database transaction**, using an `after_create` callback.
+When your application creates an `Event` record, Outboxer automatically creates an `Outboxer::Message` record **within the same database transaction**, using an `after_create` callback.
 
-This ensures your application can’t create an event without also queuing it for publishing.
+```ruby
+# app/event.rb
+
+class Event < ApplicationRecord
+  after_create do |event|
+    Outboxer::Message.queue(messageable: event)
+  end
+end
+```
 
 ### 2. Publish message (out-of-band)
 
 A high performance, multithreaded publisher script (e.g. `bin/outboxer_publisher`) continuously buffers and then publishes those queued messages.
+
+```ruby
+# bin/publisher
+
+Outboxer::Publisher.publish_message(...) do |message|
+  # queue job or message handler here
+end
+```
+
+For more details, see the wiki page: [How Outboxer works](https://github.com/fast-programmer/outboxer/wiki/How-outboxer-works)
 
 ## Installation
 
