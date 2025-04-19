@@ -22,7 +22,7 @@ EventCreatedJob.perform_async(event.id)
 
 ## How it works
 
-### 1. When an event is created, an outboxer message is queued in the same transaction
+### 1. When an event is created, an outboxer message is also created in the same transaction
 
 The `queued` `Outboxer::Message` record is polymorphically associated to the `Event` and is created automatically in the **same database transaction** using an `after_create` callback e.g.
 
