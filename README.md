@@ -8,7 +8,7 @@
 
 **Outboxer** is an implementation of the [transactional outbox pattern](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html) for event driven Ruby on Rails applications.
 
-It addresses the [*dual write problem*](https://www.confluent.io/blog/dual-write-problem/) that can occur when an event row was inserted into the database, but queueing the handler job to redis failed.
+It addresses the [*dual write problem*](https://www.confluent.io/blog/dual-write-problem/) that can occur when an event row is inserted into the database, but queueing the event handler job into redis failed.
 
 ```ruby
 event = Event.create!(...)
@@ -22,7 +22,7 @@ EventCreatedJob.perform_async(event.id)
 
 ## How it works
 
-  ### 1. When an event is created, an outboxer message is queued
+### 1. When an event is created, an outboxer message is queued in the same transaction
 
 The `queued` `Outboxer::Message` record is polymorphically associated to the `Event` and is created automatically in the **same database transaction** using an `after_create` callback e.g.
 
@@ -82,8 +82,8 @@ bin/rails g outboxer:install
 class CreateEvents < ActiveRecord::Migration[7.0]
   def up
     create_table :events do |t|
-      # t.bigint :user_id
-      # t.bigint :tenant_id
+      t.bigint :user_id
+      t.bigint :tenant_id
 
       t.string :eventable_type, limit: 255
       t.bigint :eventable_id
@@ -186,6 +186,8 @@ module Accountify
   end
 end
 ```
+
+**Note:** this can be customised in the generated `OutboxerIntegration::PublishMessageJob`
 
 ### 6. run publisher
 
