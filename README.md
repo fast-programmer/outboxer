@@ -8,7 +8,7 @@
 
 **Outboxer** is an implementation of the [transactional outbox pattern](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html) for event driven Ruby on Rails applications.
 
-It addresses the [*dual write problem*](https://www.confluent.io/blog/dual-write-problem/) that occurs where an event is inserted into the database, but a job did not queued into redis e.g.
+It addresses the [*dual write problem*](https://www.confluent.io/blog/dual-write-problem/) that occurs when an event is inserted into the database, but a handler job was not queued into redis e.g.
 
 ```ruby
 event = Event.create!(...)
@@ -38,7 +38,7 @@ end
 
 ### 2. Queued outboxer messages are published out of band
 
-A high performance, multithreaded publisher script (e.g. `bin/outboxer_publisher`) then publishes those queued messages e.g.
+A high performance, multithreaded publisher script then publishes those queued messages e.g.
 
 ```ruby
 # bin/publisher
@@ -169,7 +169,7 @@ end
 contact, event = Accountiy::ContactService.create(...)
 ```
 
-### 5. add job to handle event
+### 5. add event created job to route event
 
 Following the convention `Context::ResourceVerbEvent -> Context::ResourceVerbJob`
 
