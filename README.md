@@ -6,24 +6,25 @@
 
 ## Background
 
-**Outboxer** is Ruby's most reliable implementation of the [transactional outbox pattern](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html).
+**Outboxer** is an implementation of the [transactional outbox pattern](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html) for event driven Ruby on Rails applications.
 
-It addresses the [*dual write problem*](https://www.confluent.io/blog/dual-write-problem/) that can occur in event driven Ruby on Rails applications, where an SQL insert succeeds for an event row, but due to unexpected process termination a Sidekiq job to handle this event out of band was not queued into redis e.g.
+It addresses the [*dual write problem*](https://www.confluent.io/blog/dual-write-problem/) that occurs where an event is inserted into the database, but a job did not queued into redis e.g.
 
 ```ruby
 event = Event.create!(...)
 
-# ☠️ process dies unexpectedly
+# ☠️ process crashes
 
 EventCreatedJob.perform_async(event.id)
-# ❌ job never ran and downstream state is now inconsistent
+# ❌ job was not queued to redis
+# 🪲 downstream state is now inconsistent
 ```
 
 ## How it works
 
-### 1. Queue message (in same transaction)
+  ### 1. When an event is created, an outboxer message is queued
 
-When an `Event` record is created in your SQL database, Outboxer automatically creates an `Outboxer::Message` record polymorphically associated to that `Event` **within the same database transaction**, using an `after_create` callback e.g.
+The `queued` `Outboxer::Message` record is polymorphically associated to the `Event` and is created automatically in the **same database transaction** using an `after_create` callback e.g.
 
 ```ruby
 # app/event.rb
@@ -35,9 +36,9 @@ class Event < ApplicationRecord
 end
 ```
 
-### 2. Publish message (out-of-band)
+### 2. Queued outboxer messages are published out of band
 
-A high performance, multithreaded publisher script (e.g. `bin/outboxer_publisher`) buffers and then publishes those queued messages e.g.
+A high performance, multithreaded publisher script (e.g. `bin/outboxer_publisher`) then publishes those queued messages e.g.
 
 ```ruby
 # bin/publisher
@@ -81,8 +82,8 @@ bin/rails g outboxer:install
 class CreateEvents < ActiveRecord::Migration[7.0]
   def up
     create_table :events do |t|
-      t.bigint :user_id
-      t.bigint :tenant_id
+      # t.bigint :user_id
+      # t.bigint :tenant_id
 
       t.string :eventable_type, limit: 255
       t.bigint :eventable_id
