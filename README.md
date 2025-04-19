@@ -44,7 +44,7 @@ A high performance, multithreaded publisher script then publishes those queued m
 # bin/publisher
 
 Outboxer::Publisher.publish_message(...) do |message|
-  # queue job or message handler here
+  EventCreatedJob.perform_async(...)
 end
 ```
 
