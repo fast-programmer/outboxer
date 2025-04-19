@@ -8,12 +8,12 @@
 
 **Outboxer** is Ruby's most reliable implementation of the [transactional outbox pattern](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html).
 
-It addresses the [*dual write problem*](https://www.confluent.io/blog/dual-write-problem/) that can occur in event driven Ruby on Rails applications, where an SQL insert succeeds for an event row, but a Sidekiq job to handle this event out of band was not queued in redis e.g.
+It addresses the [*dual write problem*](https://www.confluent.io/blog/dual-write-problem/) that can occur in event driven Ruby on Rails applications, where an SQL insert succeeds for an event row, but due to unexpected process termination a Sidekiq job to handle this event out of band was not queued into redis e.g.
 
 ```ruby
 event = Event.create!(...)
 
-# ☠️ process terminates unexpectedly
+# ☠️ process dies unexpectedly
 
 EventCreatedJob.perform_async(event.id)
 # ❌ job never ran and downstream state is now inconsistent
@@ -63,82 +63,72 @@ gem 'outboxer'
 bundle install
 ```
 
-### 3. generate schema, publisher, router and tests
+### 3. generate schema, publisher and tests
 
 ```bash
 bin/rails g outboxer:install
 ```
 
-### 4. migrate schema
-
-```bash
-bin/rake db:migrate
-```
-
 ## Usage
 
-### 1. review publish message block
+### 1. review generated event schema and model
+
+#### Event schema
 
 ```ruby
-# bin/publisher
+# db/migrate/create_events.rb
 
-Outboxer::Publisher.publish_message(...) do |message|
-  OutboxerIntegration::PublishMessageJob.perform_async({
-    "message_id" => message[:id],
-    "messageable_id" => message[:messageable_id],
-    "messageable_type" => message[:messageable_type]
-  })
-end
-```
+class CreateEvents < ActiveRecord::Migration[7.0]
+  def up
+    create_table :events do |t|
+      t.bigint :user_id
+      t.bigint :tenant_id
 
-### 2. review publish message job routing
+      t.string :eventable_type, limit: 255
+      t.bigint :eventable_id
+      t.index [:eventable_type, :eventable_id]
 
-By default a Sidekiq job will be performed asynchronously, based on the convention below:
-
-`Context::ResourceVerbEvent -> Context::ResourceVerbJob`
-
-where `Verb` is in past tense
-
-#### Examples:
-
-```
-1. Accountify::ContactCreatedEvent -> Accountify::ContactUpdatedJob
-2. Accountify::InvoiceCreatedEvent -> Accountify::InvoiceCreatedJob
-3. Accountify::InvoiceUpdatedEvent -> Accountify::InvoiceUpdatedJob
-```
-
-```ruby
-# app/jobs/outboxer_integration/publish_message_job.rb
-
-module OutboxerIntegration
-  class PublishMessageJob
-    include Sidekiq::Job
-
-    def perform(args)
-      job_class_name = to_job_class_name(messageable_type: args["messageable_type"])
-      job_class_name&.safe_constantize&.perform_async("event_id" => args["messageable_id"])
-    end
-
-    def to_job_class_name(messageable_type:)
-      # your custom implementation here
+      t.string :type, null: false, limit: 255
+      t.send(json_column_type, :body)
+      t.datetime :created_at, null: false
     end
   end
+
+  # ...
 end
 ```
 
-### 3. queue an outboxer message when a new event is created
+#### Event model
 
 ```ruby
-# app/event.rb
+# app/models/event.rb
 
 class Event < ApplicationRecord
+  self.table_name = "events"
+
+  # associations
+
+  belongs_to :eventable, polymorphic: true
+
+  # validations
+
+  validates :type, presence: true, length: { maximum: 255 }
+
+  # callbacks
+
   after_create do |event|
     Outboxer::Message.queue(messageable: event)
   end
 end
 ```
 
-### 4. define a new event using STI
+### 2. migrate schema
+
+```bash
+bin/rake db:migrate
+```
+
+### 3. define new event using STI
 
 ```ruby
 # app/models/accountify/contact_created_event.rb
@@ -149,9 +139,38 @@ module Accountify
 end
 ```
 
-### 5. add a job to handle your event
+### 4. create new event in application service
 
-Following the convention `Context::ResourceEvent -> Context::ResourceJob` e.g. `Accountify::ContactCreatedEvent -> Accountify::ContactUpdatedJob`
+```ruby
+# app/services/accountify/contact_service.rb
+
+module Accountify
+  module ContactService
+    module_function
+
+    def create(user_id:, tenant_id:, email:)
+      ActiveRecord::Transaction.execute do
+        contact = Contact.create!(tenant_id: tenant_id, email: email)
+
+        event = ContactCreatedEvent.create!(
+          user_id: user_id, tenant_id: tenant_id,
+          eventable: contact, body: { "email" => email }
+        )
+
+        [contact, event]
+      end
+    end
+  end
+end
+```
+
+```
+contact, event = Accountiy::ContactService.create(...)
+```
+
+### 5. add job to handle event
+
+Following the convention `Context::ResourceVerbEvent -> Context::ResourceVerbJob`
 
 ```ruby
 # app/jobs/accountify/contact_created_job.rb
@@ -167,35 +186,7 @@ module Accountify
 end
 ```
 
-### 6. create an event in your application service
-
-```ruby
-# app/services/accountify/contact_service.rb
-
-module Accountify
-  module ContactService
-    module_function
-
-    def create(user_id:, tenant_id:, email:)
-      contact = nil
-      event = nil
-
-      ActiveRecord::Transaction.execute do
-        contact = Contact.create!(tenant_id: tenant_id, email: email)
-
-        event = ContactCreatedEvent.create!(
-          user_id: user_id, tenant_id: tenant_id, eventable: contact,
-          body: { "email" => email }
-        )
-      end
-
-      [{ "id" => contact.id }, { "id" => event.id }]
-    end
-  end
-end
-```
-
-### 7. run publisher
+### 6. run publisher
 
 ```bash
 bin/outboxer_publisher
@@ -203,7 +194,7 @@ bin/outboxer_publisher
 
 **Note:** The outboxer publisher supports many [options](https://github.com/fast-programmer/outboxer/wiki/Sidekiq-publisher-options).
 
-### 8. run sidekiq
+### 7. run sidekiq
 
 ```bash
 bin/sidekiq
@@ -211,19 +202,19 @@ bin/sidekiq
 
 **Note:** Enabling [superfetch](https://github.com/sidekiq/sidekiq/wiki/Reliability#using-super_fetch) is strongly recommend, to preserve consistency across services.
 
-### 9. open rails console
+### 8. open rails console
 
 ```bash
 bin/rails c
 ```
 
-### 10. call service
+### 9. call service
 
 ```ruby
 contact, event = Accountify::ContactService.create(user_id: 1, tenant_id: 1, email: 'test@test.com')
 ```
 
-### 11. observe transactional consistency
+### 10. observe transactional consistency
 
 ```
 TRANSACTION (0.5ms)  BEGIN
