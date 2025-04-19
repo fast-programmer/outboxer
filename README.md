@@ -25,8 +25,6 @@ EventCreatedJob.perform_async(event.id)
 
 ### 1. When an event is created, an outboxer message is also created in the same transaction
 
-The `queued` `Outboxer::Message` record is polymorphically associated to the `Event` and is created automatically in the **same database transaction** using an `after_create` callback e.g.
-
 ```ruby
 # app/event.rb
 
@@ -45,7 +43,10 @@ A high performance, multithreaded publisher script then publishes those queued m
 # bin/publisher
 
 Outboxer::Publisher.publish_message(...) do |message|
-  EventCreatedJob.perform_async(...)
+  case message[:messagable_type]
+  when 'Event'
+    EventCreatedJob.perform_async(message[:messageable_id))
+  end
 end
 ```
 
