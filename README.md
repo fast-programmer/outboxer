@@ -44,10 +44,10 @@ A high performance, multithreaded publisher script then publishes those queued m
 # bin/publisher
 
 Outboxer::Publisher.publish_message(...) do |message|
-  case message[:messagable_type]
-  when 'Event'
+  if EventCreatedJob.can_handle?(type: message[:messageable_type])
     EventCreatedJob.perform_async({
-      "id" => message[:messageable_id], "type" => message[:messageable_type]
+      "id" => message[:messageable_id],
+      "type" => message[:messageable_type]
     })
   end
 end
