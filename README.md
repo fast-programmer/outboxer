@@ -46,7 +46,9 @@ A high performance, multithreaded publisher script then publishes those queued m
 Outboxer::Publisher.publish_message(...) do |message|
   case message[:messagable_type]
   when 'Event'
-    EventCreatedJob.perform_async(message[:messageable_id))
+    EventCreatedJob.perform_async({
+      "id" => message[:messageable_id], "type" => message[:messageable_type]
+    })
   end
 end
 ```
@@ -190,7 +192,7 @@ module Accountify
 end
 ```
 
-**Note:** this can be customised in the generated `OutboxerIntegration::PublishMessageJob`
+**Note:** this can be customised in the generated `EventCreatedJob`
 
 ### 6. run publisher
 
