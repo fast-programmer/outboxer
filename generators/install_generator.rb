@@ -75,8 +75,8 @@ module Outboxer
 
     def copy_jobs
       copy_file(
-        "app/jobs/outboxer_integration/publish_message_job.rb",
-        "app/jobs/outboxer_integration/publish_message_job.rb")
+        "app/jobs/event_created_job.rb",
+        "app/jobs/event_created_job.rb")
 
       copy_file(
         "app/jobs/outboxer_integration/test_started_job.rb",
@@ -91,6 +91,10 @@ module Outboxer
       copy_file(
         "spec/bin/outboxer_publisher_spec.rb",
         "spec/bin/outboxer_publisher_spec.rb")
+
+      copy_file(
+        "spec/jobs/event_created_job_spec.rb",
+        "spec/jobs/event_created_job_spec.rb")
     end
   end
 end

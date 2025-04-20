@@ -32,8 +32,7 @@ begin
     tick: options[:tick],
     poll: options[:poll],
     heartbeat: options[:heartbeat],
-    logger: logger
-  ) do |message|
+    logger: logger) do |message|
     if EventCreatedJob.can_handle?(type: message[:messageable_type])
       EventCreatedJob.perform_async({
         "id" => message[:messageable_id],

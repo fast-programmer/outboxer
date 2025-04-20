@@ -59,10 +59,12 @@ RSpec.describe EventCreatedJob, type: :job do
       stub_const("MyApp::Domain::Event", Module.new)
       stub_const("MyApp::Domain::Event::UserSignedUpJob", Class.new { include Sidekiq::Job })
 
-      EventCreatedJob.new.perform({ "id" => 5, "type" => "MyApp::Domain::Event::UserSignedUpEvent" })
+      EventCreatedJob.new.perform(
+        { "id" => 5, "type" => "MyApp::Domain::Event::UserSignedUpEvent" })
 
       expect(MyApp::Domain::Event::UserSignedUpJob.jobs).to match([
-        hash_including("class" => "MyApp::Domain::Event::UserSignedUpJob", "args" => [{ "id" => 5 }])
+        hash_including(
+          "class" => "MyApp::Domain::Event::UserSignedUpJob", "args" => [{ "id" => 5 }])
       ])
     end
 
@@ -108,16 +110,14 @@ RSpec.describe EventCreatedJob, type: :job do
 
     it "logs debug message when type is invalid" do
       expect(Sidekiq.logger).to receive(:debug).with(
-        "Could not get job class name from event type: bad_type"
-      )
+        "Could not get job class name from event type: bad_type")
 
       EventCreatedJob.new.perform({ "id" => 13, "type" => "bad_type" })
     end
 
     it "logs debug message when job class name is not constantizable" do
       expect(Sidekiq.logger).to receive(:debug).with(
-        "Could not constantize job class name: ImaginaryThingJob"
-      )
+        "Could not constantize job class name: ImaginaryThingJob")
 
       EventCreatedJob.new.perform({ "id" => 14, "type" => "ImaginaryThingEvent" })
     end
