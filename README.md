@@ -6,9 +6,9 @@
 
 ## Background
 
-**Outboxer** helps you build eventually consistent, event driven Ruby on Rails applications fast.
+**Outboxer** helps you migrate Ruby on Rails applications to best practice event driven architecture fast.
 
-It is an implementation of the [transactional outbox pattern](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html) that addresses the [*dual write problem*](https://www.confluent.io/blog/dual-write-problem/) that can occur when attempting to insert an event row into the database and then queueing an event handler job for that event to redis.
+It was created out of a need to addresses the [*dual write problem*](https://www.confluent.io/blog/dual-write-problem/) that can occur when attempting to insert an `Event` row into an SQL database and then queuing an `EventCreatedJob` into redis to handle that event e.g.
 
 ```ruby
 event = Event.create!(...)
@@ -19,6 +19,7 @@ EventCreatedJob.perform_async(event.id)
 ```
 
 ❌ job was not queued to redis
+
 🪲 downstream state is now inconsistent
 
 ## How it works
