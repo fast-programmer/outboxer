@@ -20,7 +20,7 @@ class EventCreatedJob
       return
     end
 
-    job_class.perform_async("id" => args["id"])
+    job_class.perform_async("event_id" => args["id"])
   end
 
   def to_job_class_name(type:)
