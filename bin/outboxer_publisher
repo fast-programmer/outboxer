@@ -34,12 +34,7 @@ begin
     heartbeat: options[:heartbeat],
     logger: logger
   ) do |message|
-    if EventCreatedJob.can_handle?(type: message[:messageable_type])
-      EventCreatedJob.perform_async({
-        "id" => message[:messageable_id],
-        "type" => message[:messageable_type]
-      })
-    end
+    EventCreatedJob.perform_async(message[:messageable_id], message[:messageable_type])
   end
 ensure
   Outboxer::Database.disconnect(logger: logger)
