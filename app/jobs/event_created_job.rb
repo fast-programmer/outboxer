@@ -1,6 +1,10 @@
 class EventCreatedJob
   include Sidekiq::Job
 
+  def self.perform_async(*args)
+    can_handle?(type: args[0]["type"]) ? super : nil
+  end
+
   def perform(args)
     job_class_name = to_job_class_name(type: args["type"])
 
