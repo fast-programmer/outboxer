@@ -15,7 +15,7 @@ RSpec.describe EventCreatedJob, type: :job do
       EventCreatedJob.new.perform({ "id" => 1, "type" => "ContactCreatedEvent" })
 
       expect(ContactCreatedJob.jobs).to match([
-        hash_including("class" => "ContactCreatedJob", "args" => [{ "event_id" => 1 }])
+        hash_including("class" => "ContactCreatedJob", "args" => [1])
       ])
     end
 
@@ -26,7 +26,7 @@ RSpec.describe EventCreatedJob, type: :job do
       EventCreatedJob.new.perform({ "id" => 2, "type" => "Accountify::ContactCreatedEvent" })
 
       expect(Accountify::ContactCreatedJob.jobs).to match([
-        hash_including("class" => "Accountify::ContactCreatedJob", "args" => [{ "event_id" => 2 }])
+        hash_including("class" => "Accountify::ContactCreatedJob", "args" => [2])
       ])
     end
 
@@ -37,7 +37,7 @@ RSpec.describe EventCreatedJob, type: :job do
       EventCreatedJob.new.perform({ "id" => 3, "type" => "Accountify::InvoiceUpdatedEvent" })
 
       expect(Accountify::InvoiceUpdatedJob.jobs).to match([
-        hash_including("class" => "Accountify::InvoiceUpdatedJob", "args" => [{ "event_id" => 3 }])
+        hash_including("class" => "Accountify::InvoiceUpdatedJob", "args" => [3])
       ])
     end
 
@@ -49,9 +49,7 @@ RSpec.describe EventCreatedJob, type: :job do
       EventCreatedJob.new.perform({ "id" => 4, "type" => "Accountify::Invoice::CreatedEvent" })
 
       expect(Accountify::Invoice::CreatedJob.jobs).to match([
-        hash_including(
-          "class" => "Accountify::Invoice::CreatedJob",
-          "args" => [{ "event_id" => 4 }])
+        hash_including("class" => "Accountify::Invoice::CreatedJob", "args" => [4])
       ])
     end
 
@@ -65,8 +63,7 @@ RSpec.describe EventCreatedJob, type: :job do
         { "id" => 5, "type" => "MyApp::Domain::Event::UserSignedUpEvent" })
 
       expect(MyApp::Domain::Event::UserSignedUpJob.jobs).to match([
-        hash_including(
-          "class" => "MyApp::Domain::Event::UserSignedUpJob", "args" => [{ "event_id" => 5 }])
+        hash_including("class" => "MyApp::Domain::Event::UserSignedUpJob", "args" => [5])
       ])
     end
 
@@ -76,7 +73,7 @@ RSpec.describe EventCreatedJob, type: :job do
       EventCreatedJob.new.perform({ "id" => 6, "type" => "::ContactCreatedEvent" })
 
       expect(ContactCreatedJob.jobs).to match([
-        hash_including("class" => "ContactCreatedJob", "args" => [{ "event_id" => 6 }])
+        hash_including("class" => "ContactCreatedJob", "args" => [6])
       ])
     end
 
