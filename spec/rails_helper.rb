@@ -11,10 +11,6 @@ require_relative "../lib/outboxer"
 
 Dir[File.join(__dir__, "factories/**/*.rb")].each { |f| require f }
 
-require_relative "../app/models/application_record"
-require_relative "../app/models/event"
-require_relative "../app/services/event_service"
-
 SimpleCov.formatter = Coveralls::SimpleCov::Formatter
 SimpleCov.start
 

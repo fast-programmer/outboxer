@@ -3,14 +3,9 @@ module OutboxerIntegration
     include Sidekiq::Job
 
     def perform(event_id)
-      event = EventService.find_by_id(id: event_id)
+      test_started_event = TestStartedEvent.find(event_id)
 
-      CompleteTestJob.perform_async({
-        "user_id" => event.user_id,
-        "tenant_id" => event.tenant_id,
-        "id" => event.eventable_id,
-        "lock_version" => event.index
-      })
+      TestCompletedEvent.create!(body: { "test_id" => test_started_event.body["test_id"] })
     end
   end
 end

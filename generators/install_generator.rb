@@ -40,10 +40,6 @@ module Outboxer
       migration_template(
         "db/migrate/create_events.rb",
         "db/migrate/create_events.rb")
-
-      migration_template(
-        "db/migrate/create_outboxer_integration_tests.rb",
-        "db/migrate/create_outboxer_integration_tests.rb")
     end
 
     def copy_models
@@ -52,39 +48,12 @@ module Outboxer
         "app/models/event.rb")
 
       copy_file(
-        "app/models/outboxer_integration/test.rb",
-        "app/models/outboxer_integration/test.rb")
-
-      copy_file(
         "app/models/outboxer_integration/test_started_event.rb",
         "app/models/outboxer_integration/test_started_event.rb")
 
       copy_file(
         "app/models/outboxer_integration/test_completed_event.rb",
         "app/models/outboxer_integration/test_completed_event.rb")
-    end
-
-    def copy_services
-      copy_file(
-        "app/services/event_service.rb",
-        "app/services/event_service.rb")
-
-      copy_file(
-        "spec/services/event_service_spec.rb",
-        "spec/services/event_service_spec.rb")
-
-      copy_file(
-        "app/services/outboxer_integration/test_service.rb",
-        "app/services/outboxer_integration/test_service.rb")
-    end
-
-    def copy_bin_file
-      template "bin/outboxer_publisher", "bin/outboxer_publisher"
-      run "chmod +x bin/outboxer_publisher"
-
-      copy_file(
-        "spec/bin/outboxer_publisher_spec.rb",
-        "spec/bin/outboxer_publisher_spec.rb")
     end
 
     def copy_jobs
@@ -103,6 +72,15 @@ module Outboxer
       copy_file(
         "app/jobs/outboxer_integration/complete_test_job.rb",
         "app/jobs/outboxer_integration/complete_test_job.rb")
+    end
+
+    def copy_bin_file
+      template "bin/outboxer_publisher", "bin/outboxer_publisher"
+      run "chmod +x bin/outboxer_publisher"
+
+      copy_file(
+        "spec/bin/outboxer_publisher_spec.rb",
+        "spec/bin/outboxer_publisher_spec.rb")
     end
   end
 end
