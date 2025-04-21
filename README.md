@@ -38,14 +38,12 @@ end
 
 **Note:** This ensures an event is always created in the same transaction as the queued outboxer message referencing it.
 
-### 2. Define a new event type
+### 2. Define a new event
 
 ```ruby
 # app/models/user_created_event.rb
 
-class UserCreatedEvent < Event
-  # your definition here
-end
+class UserCreatedEvent < Event; end
 ```
 
 ### 3. Define a new job to handle the new event
@@ -56,13 +54,13 @@ end
 class UserCreatedJob
   include Sidekiq::Job
 
-  def perform(event_id)
+  def perform(event_id, event_type)
     # your code to handle UserCreatedEvent here
   end
 end
 ```
 
-### 4. Route the new event to the new job in EventCreatedJob
+### 4. Route the new event to the new job
 
 ```ruby
 # app/jobs/event_created_job.rb
@@ -70,22 +68,22 @@ end
 class EventCreatedJob
   include Sidekiq::Job
 
-  def perform(...)
-    # route to event to job here
+  def perform(event_id, event_type)
+    job_class_name = event_type.sub(/Event\z/, "Job")
+    job_class = job_class_name.safe_constantize
+    job_class.perform_async(event_id, event_type)
   end
 end
 ```
 
-### 5. Queue the EventCreatedJob in the bin/outboxer_publisher script block
+### 5. Queue the event created job in the outboxer_publisher script block
 
 ```ruby
 # bin/publisher
 
 Outboxer::Publisher.publish_message(...) do |message|
-  EventCreatedJob.perform_async({
-    "id" => message[:messageable_id],
-    "type" => message[:messageable_type]
-  })
+  EventCreatedJob.perform_async(
+    message[:messageable_id], message[:messageable_type])
 end
 ```
 
