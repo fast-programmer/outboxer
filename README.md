@@ -11,20 +11,20 @@
 It was created out of a need to addresses the [*dual write problem*](https://www.confluent.io/blog/dual-write-problem/) that can occur when attempting to insert an `Event` row into an SQL database and then queuing an `EventCreatedJob` into redis to handle that event e.g.
 
 ```ruby
-event = Event.create!(...)
+user_created_event = UserCreatedEvent.create!(...)
 
 # ☠️ process crashes
 
-EventCreatedJob.perform_async(event.id)
+UserCreatedJob.perform_async(user_created_event.id)
 ```
 
 ❌ job was not queued to redis
 
 🪲 downstream state is now inconsistent
 
-## How it works
+## Usage
 
-### 1. When an event is created, an outboxer message is also created in the same transaction
+### 1. Queue an outboxer message after an event is created
 
 ```ruby
 # app/event.rb
@@ -36,22 +36,70 @@ class Event < ApplicationRecord
 end
 ```
 
-### 2. Queued outboxer messages are published out of band
+**Note:** This ensures an event is always created in the same transaction as the queued outboxer message referencing it.
 
-A high performance, multithreaded publisher script then publishes those queued messages e.g.
+### 2. Define a new event type
+
+```ruby
+# app/models/user_created_event.rb
+
+class UserCreatedEvent < Event
+  # your definition here
+end
+```
+
+### 3. Define a new job to handle the new event
+
+```ruby
+# app/jobs/user_created_job.rb
+
+class UserCreatedJob
+  include Sidekiq::Job
+
+  def perform(event_id)
+    # your code to handle UserCreatedEvent here
+  end
+end
+```
+
+### 4. Route the new event to the new job in EventCreatedJob
+
+```ruby
+# app/jobs/event_created_job.rb
+
+class EventCreatedJob
+  include Sidekiq::Job
+
+  def perform(...)
+    # route to event to job here
+  end
+end
+```
+
+### 5. Queue the EventCreatedJob in the bin/outboxer_publisher script block
 
 ```ruby
 # bin/publisher
 
 Outboxer::Publisher.publish_message(...) do |message|
-  if EventCreatedJob.can_handle?(type: message[:messageable_type])
-    EventCreatedJob.perform_async({
-      "id" => message[:messageable_id],
-      "type" => message[:messageable_type]
-    })
-  end
+  EventCreatedJob.perform_async({
+    "id" => message[:messageable_id],
+    "type" => message[:messageable_type]
+  })
 end
 ```
+
+### 6. Run sidekiq
+
+### 7. Run bin/outboxer_publisher
+
+### 8. Create new event in console
+
+```ruby
+UserCreatedEvent.create!
+```
+
+### 9. Observe logs
 
 For more details, see the wiki page: [How Outboxer works](https://github.com/fast-programmer/outboxer/wiki/How-outboxer-works)
 
