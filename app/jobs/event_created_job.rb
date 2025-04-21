@@ -1,8 +1,6 @@
 class EventCreatedJob
   include Sidekiq::Job
 
-  TYPE_REGEX = /\A(::)?([A-Z][\w]*::)*[A-Z][\w]*Event\z/
-
   def perform(args)
     job_class_name = to_job_class_name(type: args["type"])
 
@@ -20,8 +18,10 @@ class EventCreatedJob
       return
     end
 
-    job_class.perform_async("event_id" => args["id"])
+    job_class.perform_async(args["id"])
   end
+
+  TYPE_REGEX = /\A(::)?([A-Z][\w]*::)*[A-Z][\w]*Event\z/
 
   def to_job_class_name(type:)
     self.class.can_handle?(type: type) ? type.sub(/Event\z/, "Job") : nil
