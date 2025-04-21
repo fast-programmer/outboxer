@@ -1,15 +1,15 @@
 class EventCreatedJob
   include Sidekiq::Job
 
-  def self.perform_async(*args)
-    can_handle?(type: args[0]["type"]) ? super : nil
+  def self.perform_async(event_id, event_type)
+    can_handle?(event_type: event_type) ? super : nil
   end
 
-  def perform(args)
-    job_class_name = to_job_class_name(type: args["type"])
+  def perform(event_id, event_type)
+    job_class_name = to_job_class_name(event_type: event_type)
 
     if job_class_name.nil?
-      Sidekiq.logger.debug("Could not get job class name from event type: #{args["type"]}")
+      Sidekiq.logger.debug("Could not get job class name from event type: #{event_type}")
 
       return
     end
@@ -22,16 +22,16 @@ class EventCreatedJob
       return
     end
 
-    job_class.perform_async(args["id"])
+    job_class.perform_async(event_id, event_type)
   end
 
   TYPE_REGEX = /\A(::)?([A-Z][\w]*::)*[A-Z][\w]*Event\z/
 
-  def to_job_class_name(type:)
-    self.class.can_handle?(type: type) ? type.sub(/Event\z/, "Job") : nil
+  def to_job_class_name(event_type:)
+    self.class.can_handle?(event_type: event_type) ? event_type.sub(/Event\z/, "Job") : nil
   end
 
-  def self.can_handle?(type:)
+  def self.can_handle?(event_type:)
     # \A            => start of string
     # (::)?         => optional leading ::
     # ([A-Z]\w*::)* => zero or more namespace segments like Foo:: or FooBar::
@@ -52,6 +52,6 @@ class EventCreatedJob
     #   ✘ 123::InvalidEvent            # starts with digit
     #   ✘ Foo::                        # incomplete constant
 
-    /\A(::)?([A-Z][\w]*::)*[A-Z][\w]*Event\z/.match?(type)
+    /\A(::)?([A-Z][\w]*::)*[A-Z][\w]*Event\z/.match?(event_type)
   end
 end
