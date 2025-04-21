@@ -12,11 +12,6 @@ RSpec.describe "POST /publisher/:id/signals", type: :request do
     Outboxer::Web
   end
 
-  let(:event) { Event.create!(type: "Event") }
-  let!(:message) do
-    Outboxer::Models::Message.find_by!(messageable_type: "Event", messageable_id: event.id)
-  end
-  let(:message) { create(:outboxer_message, :queued, messageable: event) }
   let(:publisher) { create(:outboxer_publisher, :publishing, name: "Test Publisher") }
 
   before do
@@ -27,6 +22,6 @@ RSpec.describe "POST /publisher/:id/signals", type: :request do
 
   it "returns publisher details" do
     expect(last_response).to be_ok
-    expect(last_response.body).to include(message.id.to_s)
+    expect(last_response.body).to include("Publisher::#{publisher.id}")
   end
 end
