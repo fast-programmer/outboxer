@@ -1,11 +1,7 @@
 class Event < ApplicationRecord
   self.table_name = "events"
 
-  default_scope { order(:index) }
-
-  # associations
-
-  belongs_to :eventable, polymorphic: true
+  default_scope { order(:created_at) }
 
   # validations
 

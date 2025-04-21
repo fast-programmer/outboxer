@@ -2,20 +2,16 @@ require "rails_helper"
 
 require_relative "../../app/models/application_record"
 require_relative "../../app/models/event"
-require_relative "../../app/models/outboxer_integration/test"
 require_relative "../../app/models/outboxer_integration/test_started_event"
 require_relative "../../app/models/outboxer_integration/test_completed_event"
 
-require_relative "../../app/services/outboxer_integration/test_service"
-
 RSpec.describe "bin/outboxer_publisher" do
-  let(:user_id) { 1 }
-  let(:tenant_id) { 2 }
+  let(:test_id) { 999 }
 
   it "performs event job handler async" do
     Sidekiq::Testing.disable!
 
-    test, _event = OutboxerIntegration::TestService.start(user_id: user_id, tenant_id: tenant_id)
+    OutboxerIntegration::TestStartedEvent.create!(body: { "test_id" => test_id })
 
     env = {
       "RAILS_ENV" => "test",
@@ -33,9 +29,8 @@ RSpec.describe "bin/outboxer_publisher" do
     test_completed_event = nil
 
     max_attempts.times do |attempt|
-      test = OutboxerIntegration::Test.find(test[:id])
       test_completed_event = OutboxerIntegration::TestCompletedEvent.last
-      break if test_completed_event && (test.events.last == test_completed_event)
+      break if test_completed_event
 
       sleep 1
 
@@ -43,7 +38,9 @@ RSpec.describe "bin/outboxer_publisher" do
         "Retrying (attempt #{attempt + 1}/#{max_attempts})..."
     end
 
-    expect(test_completed_event.body["test"]["id"]).to eql(test.id)
+    expect(test_completed_event.type).not_to be_nil
+    expect(test_completed_event.body).to eql({ "test_id" => test_id })
+    expect(test_completed_event.created_at).not_to be_nil
   ensure
     if sidekiq_pid
       Process.kill("TERM", sidekiq_pid)
