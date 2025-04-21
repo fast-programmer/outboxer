@@ -62,6 +62,12 @@ module Outboxer
       copy_file(
         "app/models/outboxer_integration/test_completed_event.rb",
         "app/models/outboxer_integration/test_completed_event.rb")
+    end
+
+    def copy_services
+      copy_file(
+        "app/services/event_service.rb",
+        "app/services/event_service.rb")
 
       copy_file(
         "app/services/outboxer_integration/test_service.rb",

@@ -6,6 +6,8 @@ require "outboxer"
 require "sidekiq"
 require "irb"
 
+require_relative "../app/services/outboxer_integration/test_service"
+
 Dir.glob(File.join(__dir__, "../app/models/**/*.rb")).each do |file|
   require file
 end

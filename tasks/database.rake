@@ -9,8 +9,8 @@ namespace :outboxer do
       environment = ENV["RAILS_ENV"] || "development"
       db_config = Outboxer::Database.config(environment: environment, concurrency: 1)
 
-      ActiveRecord::Base.establish_connection(db_config.merge("database" => "postgres"))
-      ActiveRecord::Base.connection.drop_database(db_config["database"])
+      ActiveRecord::Base.establish_connection(db_config.merge(database: "postgres"))
+      ActiveRecord::Base.connection.drop_database(db_config[:database])
       ActiveRecord::Base.connection.disconnect!
     end
 
@@ -18,8 +18,8 @@ namespace :outboxer do
       environment = ENV["RAILS_ENV"] || "development"
       db_config = Outboxer::Database.config(environment: environment, concurrency: 1)
 
-      ActiveRecord::Base.establish_connection(db_config.merge("database" => "postgres"))
-      ActiveRecord::Base.connection.create_database(db_config["database"])
+      ActiveRecord::Base.establish_connection(db_config.merge(database: "postgres"))
+      ActiveRecord::Base.connection.create_database(db_config[:database])
       ActiveRecord::Base.connection.disconnect!
     end
 

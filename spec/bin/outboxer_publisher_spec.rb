@@ -9,10 +9,13 @@ require_relative "../../app/models/outboxer_integration/test_completed_event"
 require_relative "../../app/services/outboxer_integration/test_service"
 
 RSpec.describe "bin/outboxer_publisher" do
+  let(:user_id) { 1 }
+  let(:tenant_id) { 2 }
+
   it "performs event job handler async" do
     Sidekiq::Testing.disable!
 
-    test, _events = OutboxerIntegration::TestService.start
+    test, _event = OutboxerIntegration::TestService.start(user_id: user_id, tenant_id: tenant_id)
 
     env = {
       "RAILS_ENV" => "test",

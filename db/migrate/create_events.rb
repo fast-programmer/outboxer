@@ -3,14 +3,15 @@ class CreateEvents < ActiveRecord::Migration[7.0]
     create_table :events do |t|
       t.bigint :user_id
       t.bigint :tenant_id
+      t.datetime :created_at, null: false
 
       t.string :eventable_type, limit: 255
       t.bigint :eventable_id
-      t.index [:eventable_type, :eventable_id]
+      t.bigint :index
+      t.index [:eventable_type, :eventable_id, :index], unique: true
 
       t.string :type, null: false, limit: 255
       t.send(json_column_type, :body)
-      t.datetime :created_at, null: false
     end
   end
 
