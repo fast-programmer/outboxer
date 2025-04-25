@@ -46,8 +46,10 @@ class UserCreatedEvent < Event; end
 class UserCreatedJob
   include Sidekiq::Job
 
-  def perform(event_id, event_type)
-    # handle event here
+  def perform(event_id)
+    event = Event.find(event_id)
+
+    Sidekiq.logger.info "UserCreatedJob#perform email=#{event.body['email']}"
   end
 end
 ```
@@ -68,7 +70,7 @@ bin/outboxer_publisher
 ### 5. create new event
 
 ```ruby
-UserCreatedEvent.create!
+UserCreatedEvent.create!(body: { 'email' => 'test@test.com' })
 ```
 
 ## 🧪 Testing
