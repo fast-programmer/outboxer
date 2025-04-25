@@ -36,7 +36,7 @@ bin/rails db:migrate
 
 ## Usage
 
-### 1. define new event
+### 1. derive new event
 
 ```ruby
 # app/models/user_created_event.rb
@@ -44,7 +44,7 @@ bin/rails db:migrate
 class UserCreatedEvent < Event; end
 ```
 
-### 2. define new job to handle new event
+### 2. define new event handler job
 
 ```ruby
 # app/jobs/user_created_job.rb
@@ -60,20 +60,36 @@ class UserCreatedJob
 end
 ```
 
-### 3. start sidekiq
+### 3. review event handler job routing
+
+```ruby
+# app/jobs/event_created_job.rb
+
+class EventCreatedJob
+  include Sidekiq::Job
+
+  def perform(event_id, event_type)
+    job_class_name = event_type.sub(/Event\z/, "Job")
+    job_class = job_class_name.safe_constantize
+    job_class.perform_async(event_id, event_type)
+  end
+end
+```
+
+### 4. start sidekiq
 
 ```bash
 bin/sidekiq
 ```
 
 
-### 4. start publisher
+### 5. start publisher
 
 ```bash
 bin/outboxer_publisher
 ```
 
-### 5. create new event
+### 6. create new event
 
 ```ruby
 UserCreatedEvent.create!(body: { 'email' => 'test@test.com' })
