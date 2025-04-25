@@ -71,7 +71,7 @@ class EventCreatedJob
   def perform(event_id, event_type)
     job_class_name = event_type.sub(/Event\z/, "Job")
     job_class = job_class_name.safe_constantize
-    job_class&.perform_async(event_id, event_type)
+    job_class.perform_async(event_id, event_type)
   end
 end
 ```
