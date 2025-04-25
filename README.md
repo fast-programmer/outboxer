@@ -28,6 +28,12 @@ bundle install
 bin/rails g outboxer:install
 ```
 
+### 4. migrate schema
+
+```bash
+bin/rails db:migrate
+```
+
 ## Usage
 
 ### 1. define new event
@@ -73,7 +79,7 @@ bin/outboxer_publisher
 UserCreatedEvent.create!(body: { 'email' => 'test@test.com' })
 ```
 
-## 🧪 Testing
+## Testing
 
 ### 1. start test
 
@@ -157,7 +163,7 @@ map '/outboxer' do
 end
 ```
 
-## 🤝 Contributing
+## Contributing
 
 Want to make Outboxer even better?
 
@@ -170,7 +176,7 @@ Contributions of all kinds are welcome including bug fixes, feature ideas, docum
 
 ---
 
-## ⚖ License
+## License
 
 This gem is available as open source under the terms of the  
 [GNU Lesser General Public License v3.0](https://www.gnu.org/licenses/lgpl-3.0.html)
