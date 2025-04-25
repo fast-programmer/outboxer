@@ -1,4 +1,4 @@
-# Outboxer
+# 📤 Outboxer
 
 [![Gem Version](https://badge.fury.io/rb/outboxer.svg)](https://badge.fury.io/rb/outboxer)
 [![Coverage Status](https://coveralls.io/repos/github/fast-programmer/outboxer/badge.svg)](https://coveralls.io/github/fast-programmer/outboxer)
@@ -6,116 +6,7 @@
 
 **Outboxer** is a framework for migrating **Ruby on Rails** applications to **eventually consistent, event-driven architecture**.
 
-It is an implementation of the [**transactional outbox pattern**](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html) designed for high reliability and performance in production environments.
-
-## Why Outboxer?
-
-You’ve probably seen this code before
-
-```ruby
-user_created_event = UserCreatedEvent.create!(...)
-
-# ☠️ process crashes
-
-UserCreatedJob.perform_async(user_created_event.id)
-```
-
-Welcome to the dual-write problem — when the database and message queue gets out of sync.
-
-Outboxer solves this by:
-
-* ✅ Writing the event and queuing the job in the same transaction
-* ✅ Guaranteeing delivery via a resilient outbox + Sidekiq
-* ✅ Letting you focus on your business logic, not infrastructure
-
-## 💡 Usage Example
-
-### 1. Queue an outboxer message after an event is created
-
-```ruby
-# app/event.rb
-
-class Event < ApplicationRecord
-  after_create do |event|
-    Outboxer::Message.queue(messageable: event)
-  end
-end
-```
-
-This ensures an event is always created in the same transaction as the queued outboxer message referencing it.
-
-### 2. Define a new event
-
-```ruby
-# app/models/user_created_event.rb
-
-class UserCreatedEvent < Event; end
-```
-
-### 3. Define a new job to handle the new event
-
-```ruby
-# app/jobs/user_created_job.rb
-
-class UserCreatedJob
-  include Sidekiq::Job
-
-  def perform(event_id, event_type)
-    # your code to handle UserCreatedEvent here
-  end
-end
-```
-
-### 4. Route the new event to the new job
-
-```ruby
-# app/jobs/event_created_job.rb
-
-class EventCreatedJob
-  include Sidekiq::Job
-
-  def perform(event_id, event_type)
-    job_class_name = event_type.sub(/Event\z/, "Job")
-    job_class = job_class_name.safe_constantize
-    job_class.perform_async(event_id, event_type)
-  end
-end
-```
-
-### 5. Queue the event created job in the outboxer_publisher script block
-
-```ruby
-# bin/publisher
-
-Outboxer::Publisher.publish_message(...) do |message|
-  EventCreatedJob.perform_async(
-    message[:messageable_id], message[:messageable_type])
-end
-```
-
-### 6. Run services
-
-```bash
-bin/sidekiq
-bin/outboxer_publisher
-```
-
-### 7. Create new event in console
-
-```ruby
-# bin/rails c
-
-UserCreatedEvent.create!
-```
-
-### 8. Observe logs
-
-```sql
-TRANSACTION               (0.5ms)  BEGIN
-UserCreatedEvent  Create  (1.8ms)  INSERT INTO "events" ...
-Outboxer::Message Create  (3.2ms)  INSERT INTO "outboxer_messages" ...
-TRANSACTION               (0.7ms)  COMMIT
-```
+By implementing the [**transactional outbox pattern**](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html), it addresses the **dual write problem** and promises **at-least-once delivery guarantees**.
 
 ## Installation
 
@@ -137,6 +28,48 @@ bundle install
 bin/rails g outboxer:install
 ```
 
+## Usage
+
+### 1. define new event
+
+```ruby
+# app/models/user_created_event.rb
+
+class UserCreatedEvent < Event; end
+```
+
+### 2. define new job to handle new event
+
+```ruby
+# app/jobs/user_created_job.rb
+
+class UserCreatedJob
+  include Sidekiq::Job
+
+  def perform(event_id, event_type)
+    # handle event here
+  end
+end
+```
+
+### 3. start sidekiq
+
+```bash
+bin/sidekiq
+```
+
+
+### 4. start publisher
+
+```bash
+bin/outboxer_publisher
+```
+
+### 5. create new event
+
+```ruby
+UserCreatedEvent.create!
+```
 
 ## 🧪 Testing
 
