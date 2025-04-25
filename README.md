@@ -6,7 +6,7 @@
 
 **Outboxer** is a framework for migrating **Ruby on Rails** applications to **eventually consistent, event-driven architecture**.
 
-By implementing the [**transactional outbox pattern**](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html), it can guarantee that for each event row inserted to the database, an out of band handler is eventually called at least once.
+By implementing the [**transactional outbox pattern**](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html), it can guarantee that for each `Event` created in the database, an `EventCreatedJob` is queued into redis.
 
 ## Installation
 
