@@ -4,7 +4,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/fast-programmer/outboxer/badge.svg)](https://coveralls.io/github/fast-programmer/outboxer)
 [![Join our Discord](https://img.shields.io/badge/Discord-blue?style=flat&logo=discord&logoColor=white)](https://discord.gg/x6EUehX6vU)
 
-**Outboxer** helps you build reliable event-driven Ruby on Rails applications quickly.
+**Outboxer** is a framework for migrating Ruby on Rails applications to eventually consistent, event-driven architecture.
 
 ## Why Outboxer?
 
