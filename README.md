@@ -4,7 +4,9 @@
 [![Coverage Status](https://coveralls.io/repos/github/fast-programmer/outboxer/badge.svg)](https://coveralls.io/github/fast-programmer/outboxer)
 [![Join our Discord](https://img.shields.io/badge/Discord-blue?style=flat&logo=discord&logoColor=white)](https://discord.gg/x6EUehX6vU)
 
-**Outboxer** is a framework for migrating **Ruby on Rails** applications to **eventually consistent, event-driven architecture** based on the [**transactional outbox pattern**](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html).
+**Outboxer** is a framework for migrating **Ruby on Rails** applications to **eventually consistent, event-driven architecture**.
+
+It is an implementation of the [**transactional outbox pattern**](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html) designed for high reliability and performance in production environments.
 
 ## Why Outboxer?
 
