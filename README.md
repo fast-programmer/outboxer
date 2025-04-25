@@ -108,6 +108,12 @@ UserCreatedEvent.create!
 
 ### 8. Observe logs
 
+```sql
+TRANSACTION               (0.5ms)  BEGIN
+UserCreatedEvent  Create  (1.8ms)  INSERT INTO "events" ...
+Outboxer::Message Create  (3.2ms)  INSERT INTO "outboxer_messages" ...
+TRANSACTION               (0.7ms)  COMMIT
+```
 
 ## Installation
 
