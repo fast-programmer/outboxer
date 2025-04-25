@@ -4,11 +4,11 @@
 [![Coverage Status](https://coveralls.io/repos/github/fast-programmer/outboxer/badge.svg)](https://coveralls.io/github/fast-programmer/outboxer)
 [![Join our Discord](https://img.shields.io/badge/Discord-blue?style=flat&logo=discord&logoColor=white)](https://discord.gg/x6EUehX6vU)
 
-## Background
+**Outboxer** helps you build reliable event-driven Ruby on Rails applications quickly.
 
-**Outboxer** helps you migrate Ruby on Rails applications to best practice event driven architecture fast.
+## Why Outboxer?
 
-It was created out of a need to addresses the [*dual write problem*](https://www.confluent.io/blog/dual-write-problem/) that can occur when attempting to insert an `Event` row into an SQL database and then queuing an `EventCreatedJob` into redis to handle that event e.g.
+You’ve probably seen this code before
 
 ```ruby
 user_created_event = UserCreatedEvent.create!(...)
@@ -18,11 +18,15 @@ user_created_event = UserCreatedEvent.create!(...)
 UserCreatedJob.perform_async(user_created_event.id)
 ```
 
-❌ job was not queued to redis
+Welcome to the dual-write problem — when the database and message queue gets out of sync.
 
-🪲 downstream state is now inconsistent
+Outboxer solves this by:
 
-## Usage
+* ✅ Writing the event and queuing the job in the same transaction
+* ✅ Guaranteeing delivery via a resilient outbox + Sidekiq
+* ✅ Letting you focus on your business logic, not infrastructure
+
+## 💡 Usage Example
 
 ### 1. Queue an outboxer message after an event is created
 
@@ -36,7 +40,7 @@ class Event < ApplicationRecord
 end
 ```
 
-**Note:** This ensures an event is always created in the same transaction as the queued outboxer message referencing it.
+This ensures an event is always created in the same transaction as the queued outboxer message referencing it.
 
 ### 2. Define a new event
 
@@ -87,19 +91,23 @@ Outboxer::Publisher.publish_message(...) do |message|
 end
 ```
 
-### 6. Run sidekiq
+### 6. Run services
 
-### 7. Run bin/outboxer_publisher
+```bash
+bin/sidekiq
+bin/outboxer_publisher
+```
 
-### 8. Create new event in console
+### 7. Create new event in console
 
 ```ruby
+# bin/rails c
+
 UserCreatedEvent.create!
 ```
 
-### 9. Observe logs
+### 8. Observe logs
 
-For more details, see the wiki page: [How Outboxer works](https://github.com/fast-programmer/outboxer/wiki/How-outboxer-works)
 
 ## Installation
 
@@ -121,66 +129,9 @@ bundle install
 bin/rails g outboxer:install
 ```
 
-## Usage
+💡 Usage Example
 
-### 1. review generated event schema and model
-
-#### Event schema
-
-```ruby
-# db/migrate/create_events.rb
-
-class CreateEvents < ActiveRecord::Migration[7.0]
-  def up
-    create_table :events do |t|
-      t.bigint :user_id
-      t.bigint :tenant_id
-
-      t.string :eventable_type, limit: 255
-      t.bigint :eventable_id
-      t.index [:eventable_type, :eventable_id]
-
-      t.string :type, null: false, limit: 255
-      t.send(json_column_type, :body)
-      t.datetime :created_at, null: false
-    end
-  end
-
-  # ...
-end
-```
-
-#### Event model
-
-```ruby
-# app/models/event.rb
-
-class Event < ApplicationRecord
-  self.table_name = "events"
-
-  # associations
-
-  belongs_to :eventable, polymorphic: true
-
-  # validations
-
-  validates :type, presence: true, length: { maximum: 255 }
-
-  # callbacks
-
-  after_create do |event|
-    Outboxer::Message.queue(messageable: event)
-  end
-end
-```
-
-### 2. migrate schema
-
-```bash
-bin/rake db:migrate
-```
-
-### 3. define new event using STI
+### 1. define new event using STI
 
 ```ruby
 # app/models/accountify/contact_created_event.rb
@@ -191,7 +142,7 @@ module Accountify
 end
 ```
 
-### 4. create new event in application service
+### 2. create new event in application service
 
 ```ruby
 # app/services/accountify/contact_service.rb
@@ -220,9 +171,8 @@ end
 contact, event = Accountiy::ContactService.create(...)
 ```
 
-### 5. add event created job to route event
+### 3. add job to handle event
 
-Following the convention `Context::ResourceVerbEvent -> Context::ResourceVerbJob`
 
 ```ruby
 # app/jobs/accountify/contact_created_job.rb
@@ -231,44 +181,20 @@ module Accountify
   class ContactCreatedJob
     include Sidekiq::Job
 
-    def perform_async(args)
+    def perform(event_id, event_type)
       # your handler code here
     end
   end
 end
 ```
 
-**Note:** this can be customised in the generated `EventCreatedJob`
-
-### 6. run publisher
-
-```bash
-bin/outboxer_publisher
-```
-
-**Note:** The outboxer publisher supports many [options](https://github.com/fast-programmer/outboxer/wiki/Sidekiq-publisher-options).
-
-### 7. run sidekiq
-
-```bash
-bin/sidekiq
-```
-
-**Note:** Enabling [superfetch](https://github.com/sidekiq/sidekiq/wiki/Reliability#using-super_fetch) is strongly recommend, to preserve consistency across services.
-
-### 8. open rails console
-
-```bash
-bin/rails c
-```
-
-### 9. call service
+#### 4. call service and observe transaction
 
 ```ruby
-contact, event = Accountify::ContactService.create(user_id: 1, tenant_id: 1, email: 'test@test.com')
+contact, event = Accountify::ContactService.create(
+  user_id: 1, tenant_id: 1, email: "test@test.com"
+)
 ```
-
-### 10. observe transactional consistency
 
 ```
 TRANSACTION (0.5ms)  BEGIN
@@ -279,7 +205,10 @@ TRANSACTION (0.7ms)  COMMIT
 => {:id=>1, :events=>[{:id=>1, :type=>"Accountify::ContactCreatedEvent"}]}
 ```
 
-## Testing
+Everything committed in one atomic transaction.
+
+
+## 🧪 Testing
 
 ### 1. start test
 
@@ -363,12 +292,20 @@ map '/outboxer' do
 end
 ```
 
-## Contributing
+## 🤝 Contributing
 
-If you'd like to help out, take a look at the project's [open issues](https://github.com/fast-programmer/outboxer/issues).
+Want to make Outboxer even better?
 
-Also [join our discord](https://discord.gg/x6EUehX6vU) and ping `bedrock-adam` if you'd like to contribute to [upcoming features](https://github.com/orgs/fast-programmer/projects/4).
+- ⭐ [Star the repo](https://github.com/fast-programmer/outboxer)
+- 📮 [Check out open issues](https://github.com/fast-programmer/outboxer/issues)
+- 💬 [Join our Discord](https://discord.gg/x6EUehX6vU) and say hey to `bedrock-adam`
+- 🔭 [See our upcoming roadmap](https://github.com/orgs/fast-programmer/projects/4)
 
-## License
+Contributions of all kinds are welcome including bug fixes, feature ideas, documentation improvements, and general feedback!
 
-This gem is available as open source under the terms of the [GNU Lesser General Public License v3.0](https://www.gnu.org/licenses/lgpl-3.0.html).
+---
+
+## ⚖ License
+
+This gem is available as open source under the terms of the  
+[GNU Lesser General Public License v3.0](https://www.gnu.org/licenses/lgpl-3.0.html)
