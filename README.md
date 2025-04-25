@@ -97,51 +97,13 @@ UserCreatedEvent.create!(body: { 'email' => 'test@test.com' })
 
 ## Testing
 
-### 1. start test
+Outboxer provides full test coverage to ensure confidence:
 
-```ruby
-OutboxerIntegration::TestService.start
-```
+- **Unit Tests** (`spec/jobs/event_created_job_spec.rb`):  
+  Validate that [`EventCreatedJob`](../../app/jobs/event_created_job.rb) correctly resolves event types to Sidekiq job classes and enqueues them appropriately, including edge cases like missing or invalid event types.
 
-```
-TRANSACTION (0.5ms)  BEGIN
-OutboxerIntegration::Test Create             (1.9ms)  INSERT INTO "outboxer_integration_tests" ...
-OutboxerIntegration::TestStartedEvent Create (1.8ms)  INSERT INTO "events" ...
-Outboxer::Message Create                     (3.2ms)  INSERT INTO "outboxer_messages" ...
-TRANSACTION (0.7ms)  COMMIT
-=> {:id=>1, :events=>[{:id=>1, :type=>"OutboxerIntegration::TestStartedEvent"}]}
-```
-
-### 2. ensure test completes
-
-```
-OutboxerIntegration::Test.find(1).events
-=>
-[#<OutboxerIntegration::TestStartedEvent:0x0000000105749158
-  id: 1,
-  user_id: nil,
-  tenant_id: nil,
-  eventable_type: "OutboxerIntegration::Test",
-  eventable_id: 1,
-  type: "OutboxerIntegration::TestStartedEvent",
-  body: {"test"=>{"id"=>1}},
-  created_at: 2025-01-11 23:37:36.009745 UTC>,
- #<OutboxerIntegration::TestCompletedEvent:0x0000000105748be0
-  id: 2,
-  user_id: nil,
-  tenant_id: nil,
-  eventable_type: "OutboxerIntegration::Test",
-  eventable_id: 1,
-  type: "OutboxerIntegration::TestCompletedEvent",
-  body: {"test"=>{"id"=>1}},
-  created_at: 2025-01-11 23:48:38.750419 UTC>]
-```
-
-### 3. run spec
-
-```bin/rspec spec/outboxer_integration/test_started_spec.rb```
-
-This is what the generated spec is testing, to continue to ensure you have end to end confidence in your stack.
+- **End-to-End Tests** (`spec/bin/outboxer_publisher_spec.rb`):  
+  Verify that a full event lifecycle works by running the publisher and Sidekiq worker processes together, ensuring events are published, handled, and result in downstream events being created.
 
 ## Management
 
