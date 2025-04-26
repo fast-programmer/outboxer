@@ -97,13 +97,13 @@ UserCreatedEvent.create!(body: { 'email' => 'test@test.com' })
 
 ## Testing
 
-Outboxer provides full test coverage to ensure confidence:
+To ensure you retain confidence in your stack, Outboxer generators create the following:
 
 - **Unit Tests** (`spec/jobs/event_created_job_spec.rb`):  
-  Validate that [`EventCreatedJob`](../../app/jobs/event_created_job.rb) correctly resolves event types to Sidekiq job classes and enqueues them appropriately, including edge cases like missing or invalid event types.
+  Which validate that [`EventCreatedJob`](../../app/jobs/event_created_job.rb) correctly routes Events to Jobs.
 
 - **End-to-End Tests** (`spec/bin/outboxer_publisher_spec.rb`):  
-  Verify that a full event lifecycle works by running the publisher and Sidekiq worker processes together, ensuring events are published, handled, and result in downstream events being created.
+  Which verify the full event lifecycle including creating events and handling them async.
 
 ## Management
 
