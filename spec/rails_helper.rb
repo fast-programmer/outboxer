@@ -1,6 +1,10 @@
-require "spec_helper"
-require "coveralls"
 require "simplecov"
+require "coveralls"
+
+SimpleCov.formatter = Coveralls::SimpleCov::Formatter
+SimpleCov.start
+
+require "spec_helper"
 require "pry-byebug"
 require "rack/test"
 require "database_cleaner"
@@ -10,9 +14,6 @@ require "sidekiq/testing"
 require_relative "../lib/outboxer"
 
 Dir[File.join(__dir__, "factories/**/*.rb")].each { |f| require f }
-
-SimpleCov.formatter = Coveralls::SimpleCov::Formatter
-SimpleCov.start
 
 RSpec.configure do |config|
   config.include FactoryBot::Syntax::Methods
