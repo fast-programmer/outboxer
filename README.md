@@ -6,7 +6,7 @@
 
 **Outboxer** is a framework for migrating **Ruby on Rails** applications to **eventually consistent, event-driven architecture**.
 
-By implementing the [**transactional outbox pattern**](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html), it guarantees that for each `Event` created in the database, an `EventCreatedJob` is eventually queued into redis at least once.
+It is an implementation of the [**transactional outbox pattern**](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html) and guarantees that for every `Event` created in your database, an `EventCreatedJob` is eventually enqueued into Redis to handle that event.
 
 ## Installation
 
@@ -100,10 +100,10 @@ UserCreatedEvent.create!(body: { 'email' => 'test@test.com' })
 To ensure you retain confidence in your stack, Outboxer generators create the following:
 
 - **Unit Tests** (`spec/jobs/event_created_job_spec.rb`):  
-  Which validate that [`EventCreatedJob`](../../app/jobs/event_created_job.rb) correctly routes Events to Jobs.
+  which validate that [`EventCreatedJob`](../../app/jobs/event_created_job.rb) correctly routes Events to Jobs.
 
 - **End-to-End Tests** (`spec/bin/outboxer_publisher_spec.rb`):  
-  Which verify the full event lifecycle including creating events and handling them async.
+  which verify the full event lifecycle including creating events and handling them async.
 
 ## Management
 
