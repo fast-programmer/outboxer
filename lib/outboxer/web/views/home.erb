@@ -39,14 +39,14 @@
                                         tick: <%= publisher[:settings]['tick'] %>, poll: <%= publisher[:settings]['poll'] %>, heartbeat: <%= publisher[:settings]['heartbeat'] %>
                                     </div>
                                 </td>
-                                <td><%= time_ago_in_words(publisher[:created_at]) %> ago</td>
-                                <td><%= time_ago_in_words(publisher[:updated_at]) %> ago</td>
+                                <td><%= Outboxer::Web.time_ago_in_words(publisher[:created_at]) %> ago</td>
+                                <td><%= Outboxer::Web.time_ago_in_words(publisher[:updated_at]) %> ago</td>
                                 <td class="text-capitalize"><%= publisher[:status] %></td>
-                                <td><%= pretty_throughput(per_second: publisher[:metrics]['throughput']) %></td>
-                                <td><%= pretty_duration_from_seconds(seconds: publisher[:metrics]['latency']) %></td>
+                                <td><%= Outboxer::Web.pretty_throughput(per_second: publisher[:metrics]['throughput']) %></td>
+                                <td><%= Outboxer::Web.pretty_duration_from_seconds(seconds: publisher[:metrics]['latency']) %></td>
                                 <td><%= publisher[:metrics]['cpu'].round(0) %>%</td>
-                                <td><%= human_readable_size(kilobytes: publisher[:metrics]['rss']) %></td>
-                                <td><%= pretty_duration_from_seconds(seconds: publisher[:metrics]['rtt']) %></td>
+                                <td><%= Outboxer::Web.human_readable_size(kilobytes: publisher[:metrics]['rss']) %></td>
+                                <td><%= Outboxer::Web.pretty_duration_from_seconds(seconds: publisher[:metrics]['rtt']) %></td>
                                 <td>
                                     <div class="d-flex gap-1">
                                         <!-- Pause Button -->
@@ -129,11 +129,11 @@
                                         <%= status %>
                                     </a>
                                 </td>
-                                <td><%= pretty_number(number: messages_metrics[status.to_sym][:count][:current]) %></td>
-                                <td><%= pretty_throughput(per_second: messages_metrics[status.to_sym][:throughput]) %></td>
-                                <td><%= pretty_duration_from_seconds(seconds: messages_metrics[status.to_sym][:latency]) %></td>
-                                <td><%= pretty_number(number: messages_metrics[status.to_sym][:count][:historic]) %></td>
-                                <td><%= pretty_number(number: messages_metrics[status.to_sym][:count][:total]) %></td>
+                                <td><%= Outboxer::Web.pretty_number(number: messages_metrics[status.to_sym][:count][:current]) %></td>
+                                <td><%= Outboxer::Web.pretty_throughput(per_second: messages_metrics[status.to_sym][:throughput]) %></td>
+                                <td><%= Outboxer::Web.pretty_duration_from_seconds(seconds: messages_metrics[status.to_sym][:latency]) %></td>
+                                <td><%= Outboxer::Web.pretty_number(number: messages_metrics[status.to_sym][:count][:historic]) %></td>
+                                <td><%= Outboxer::Web.pretty_number(number: messages_metrics[status.to_sym][:count][:total]) %></td>
                             </tr>
                         <% end %>
                     </tbody>

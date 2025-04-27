@@ -5,6 +5,7 @@ logger = Logger.new($stdout)
 begin
   require "sinatra"
 rescue LoadError
+  # :nocov:
   error_message = <<~ERROR
     [Outboxer::Web] Sinatra is required to run the web interface. Add this to your Gemfile:
       gem 'sinatra'
@@ -12,6 +13,7 @@ rescue LoadError
   ERROR
   logger.error(error_message.strip)
   raise LoadError, error_message.strip
+  # :cov:
 end
 
 require "outboxer"
@@ -55,7 +57,9 @@ module Outboxer
           (plural.nil? ? "#{count} #{singular}s" : "#{count} #{plural}")
         end
       end
+    end
 
+    class << self
       def pretty_number(number:, delimiter: ",", separator: ".")
         return "-" if number.nil?
 
