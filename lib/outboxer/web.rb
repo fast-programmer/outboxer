@@ -20,7 +20,7 @@ require "outboxer"
 require "sinatra/base"
 require "uri"
 
-environment = ENV["RAILS_ENV"] || "development"
+environment = ENV["APP_ENV"] || ENV["RAILS_ENV"] || "development"
 
 config = Outboxer::Database.config(environment: environment, concurrency: 5)
 Outboxer::Database.connect(config: config)

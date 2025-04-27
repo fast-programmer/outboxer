@@ -12,66 +12,58 @@ module Outboxer
       end
 
       context "when parsing the concurrency option" do
-        let(:argv) { ["-c", "5"] }
-
-        it "parses correctly" do
-          expect(Publisher.parse_cli_options(argv)).to eq({ concurrency: 5 })
+        it "parses short and long flags" do
+          expect(Publisher.parse_cli_options(["-c", "5"])).to eq({ concurrency: 5 })
+          expect(Publisher.parse_cli_options(["--concurrency", "5"])).to eq({ concurrency: 5 })
         end
       end
 
       context "when parsing the environment option" do
-        let(:argv) { ["-e", "staging"] }
-
-        it "parses correctly" do
-          expect(Publisher.parse_cli_options(argv)).to eq({ environment: "staging" })
+        it "parses short and long flags" do
+          expect(Publisher.parse_cli_options(["-e", "staging"])).to eq({ environment: "staging" })
+          expect(Publisher.parse_cli_options(["--environment", "staging"])).to eq({ environment: "staging" })
         end
       end
 
-      context "when parsing the buffer limit option" do
-        let(:argv) { ["-b", "100"] }
-
-        it "parses correctly" do
-          expect(Publisher.parse_cli_options(argv)).to eq({ buffer: 100 })
+      context "when parsing the buffer size option" do
+        it "parses short and long flags" do
+          expect(Publisher.parse_cli_options(["-b", "100"])).to eq({ buffer_size: 100 })
+          expect(Publisher.parse_cli_options(["--buffer-size", "100"])).to eq({ buffer_size: 100 })
         end
       end
 
       context "when parsing the tick interval option" do
-        let(:argv) { ["-t", "0.5"] }
-
-        it "parses correctly" do
-          expect(Publisher.parse_cli_options(argv)).to eq({ tick: 0.5 })
+        it "parses short and long flags" do
+          expect(Publisher.parse_cli_options(["-t", "0.5"])).to eq({ tick_interval: 0.5 })
+          expect(Publisher.parse_cli_options(["--tick-interval", "0.5"])).to eq({ tick_interval: 0.5 })
         end
       end
 
       context "when parsing the poll interval option" do
-        let(:argv) { ["-p", "30"] }
-
-        it "parses correctly" do
-          expect(Publisher.parse_cli_options(argv)).to eq({ poll: 30 })
+        it "parses short and long flags" do
+          expect(Publisher.parse_cli_options(["-p", "30"])).to eq({ poll_interval: 30 })
+          expect(Publisher.parse_cli_options(["--poll-interval", "30"])).to eq({ poll_interval: 30 })
         end
       end
 
       context "when parsing the heartbeat interval option" do
-        let(:argv) { ["-a", "10"] }
-
-        it "parses correctly" do
-          expect(Publisher.parse_cli_options(argv)).to eq({ heartbeat: 10 })
+        it "parses short and long flags" do
+          expect(Publisher.parse_cli_options(["-a", "10"])).to eq({ heartbeat_interval: 10 })
+          expect(Publisher.parse_cli_options(["--heartbeat-interval", "10"])).to eq({ heartbeat_interval: 10 })
         end
       end
 
       context "when parsing the config file path option" do
-        let(:argv) { ["-C", "config/path.yml"] }
-
-        it "parses correctly" do
-          expect(Publisher.parse_cli_options(argv)).to eq({ config: "config/path.yml" })
+        it "parses short and long flags" do
+          expect(Publisher.parse_cli_options(["-C", "config/path.yml"])).to eq({ config: "config/path.yml" })
+          expect(Publisher.parse_cli_options(["--config", "config/path.yml"])).to eq({ config: "config/path.yml" })
         end
       end
 
       context "when parsing the log level option" do
-        let(:argv) { ["-l", "0"] }
-
-        it "parses correctly" do
-          expect(Publisher.parse_cli_options(argv)).to eq({ log_level: 0 })
+        it "parses short and long flags" do
+          expect(Publisher.parse_cli_options(["-l", "0"])).to eq({ log_level: 0 })
+          expect(Publisher.parse_cli_options(["--log-level", "0"])).to eq({ log_level: 0 })
         end
       end
 
