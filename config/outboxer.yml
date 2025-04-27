@@ -1,9 +1,9 @@
 ---
-:buffer: 100
+:buffer_size: 100
 :concurrency: 1
-:tick: 0.1
-:poll: 5.0
-:heartbeat: 5.0
+:tick_interval: 0.1
+:poll_interval: 5.0
+:heartbeat_interval: 5.0
 :log_level: 1
 development:
   :concurrency: 2
