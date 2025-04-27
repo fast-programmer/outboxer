@@ -17,7 +17,7 @@ bundle add outboxer
 bundle install
 ```
 
-**2. Generate schema migrations and publisher script**
+**2. Generate schema migrations, publisher script and tests**
 
 ```bash
 bin/rails g outboxer:install
