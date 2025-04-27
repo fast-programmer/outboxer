@@ -1,8 +1,5 @@
 require "rails_helper"
 
-require_relative "../../../../../app/models/application_record"
-require_relative "../../../../../app/models/event"
-
 require_relative "../../../../../lib/outboxer/web"
 
 RSpec.describe "POST /messages/requeue_all", type: :request do
@@ -12,20 +9,17 @@ RSpec.describe "POST /messages/requeue_all", type: :request do
     Outboxer::Web
   end
 
-  let!(:event_1) { Event.create!(id: 1, type: "Event") }
-  let!(:message_1) do
-    Outboxer::Models::Message.find_by!(messageable_type: "Event", messageable_id: event_1)
-  end
+  let(:messageable_1) { double("Event", id: 1, class: double(name: "Event")) }
+  let(:message_1_id) { Outboxer::Message.queue(messageable: messageable_1)[:id] }
+  let!(:message_1) { Outboxer::Models::Message.find(message_1_id) }
 
-  let!(:event_2) { Event.create!(id: 2, type: "Event") }
-  let!(:message_2) do
-    Outboxer::Models::Message.find_by!(messageable_type: "Event", messageable_id: event_2)
-  end
+  let(:messageable_2) { double("Event", id: 2, class: double(name: "Event")) }
+  let(:message_2_id) { Outboxer::Message.queue(messageable: messageable_2)[:id] }
+  let!(:message_2) { Outboxer::Models::Message.find(message_2_id) }
 
-  let!(:event_3) { Event.create!(id: 3, type: "Event") }
-  let!(:message_3) do
-    Outboxer::Models::Message.find_by!(messageable_type: "Event", messageable_id: event_3)
-  end
+  let(:messageable_3) { double("Event", id: 3, class: double(name: "Event")) }
+  let(:message_3_id) { Outboxer::Message.queue(messageable: messageable_3)[:id] }
+  let!(:message_3) { Outboxer::Models::Message.find(message_3_id) }
 
   context "when no status provided" do
     before do

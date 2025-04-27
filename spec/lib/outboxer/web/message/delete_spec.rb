@@ -1,7 +1,5 @@
 require "rails_helper"
 
-require_relative "../../../../../app/models/application_record"
-
 require_relative "../../../../../lib/outboxer/web"
 
 RSpec.describe "POST /message/:id/delete", type: :request do

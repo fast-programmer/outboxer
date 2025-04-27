@@ -9,9 +9,8 @@ RSpec.describe "GET /message/:id/messageable", type: :request do
     Outboxer::Web
   end
 
-  let!(:message) do
-    Outboxer::Message.queue(messageable_type: "Event", messageable_id: 1)
-  end
+  let(:messageable) { double("Event", id: 123, class: double(name: "Event")) }
+  let!(:message) { Outboxer::Message.queue(messageable: messageable) }
 
   before do
     header "Host", "localhost"

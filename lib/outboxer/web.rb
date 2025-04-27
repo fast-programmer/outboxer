@@ -607,10 +607,8 @@ module Outboxer
 
       message = Message.find_by_id(id: params[:id])
 
-      require 'pry'; binding.pry
       messageable_class = message[:messageable_type]&.safe_constantize
-      binding.pry
-      messageable = messageable_class&.find_by_id(id: message[:messageable_id])
+      messageable = message && messageable_class&.find_by_id(id: message[:messageable_id])
 
       erb :message, locals: {
         denormalised_query_params: denormalised_query_params,

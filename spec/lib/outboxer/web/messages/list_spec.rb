@@ -10,15 +10,13 @@ RSpec.describe "GET /messages", type: :request do
   end
 
   context "when no status provided" do
-    let!(:event_1) { Event.create!(id: 1, type: "Event") }
-    let!(:message_1) do
-      Outboxer::Models::Message.find_by!(messageable_type: "Event", messageable_id: event_1.id)
-    end
+    let(:messageable_1) { double("Event", id: 1, class: double(name: "Event")) }
+    let(:message_1_id) { Outboxer::Message.queue(messageable: messageable_1)[:id] }
+    let!(:message_1) { Outboxer::Models::Message.find(message_1_id) }
 
-    let!(:event_2) { Event.create!(id: 2, type: "Event") }
-    let!(:message_2) do
-      Outboxer::Models::Message.find_by!(messageable_type: "Event", messageable_id: event_2.id)
-    end
+    let(:messageable_2) { double("Event", id: 2, class: double(name: "Event")) }
+    let(:message_2_id) { Outboxer::Message.queue(messageable: messageable_2)[:id] }
+    let!(:message_2) { Outboxer::Models::Message.find(message_2_id) }
 
     before do
       header "Host", "localhost"
@@ -34,15 +32,13 @@ RSpec.describe "GET /messages", type: :request do
   end
 
   context "when publishing status provided" do
-    let!(:event_1) { Event.create!(id: 1, type: "Event") }
-    let!(:message_1) do
-      Outboxer::Models::Message.find_by!(messageable_type: "Event", messageable_id: event_1.id)
-    end
+    let(:messageable_1) { double("Event", id: 1, class: double(name: "Event")) }
+    let(:message_1_id) { Outboxer::Message.queue(messageable: messageable_1)[:id] }
+    let!(:message_1) { Outboxer::Models::Message.find(message_1_id) }
 
-    let!(:event_2) { Event.create!(id: 2, type: "Event") }
-    let!(:message_2) do
-      Outboxer::Models::Message.find_by!(messageable_type: "Event", messageable_id: event_2.id)
-    end
+    let(:messageable_2) { double("Event", id: 2, class: double(name: "Event")) }
+    let(:message_2_id) { Outboxer::Message.queue(messageable: messageable_2)[:id] }
+    let!(:message_2) { Outboxer::Models::Message.find(message_2_id) }
 
     before do
       message_2.update!(status: Outboxer::Message::Status::PUBLISHING)
