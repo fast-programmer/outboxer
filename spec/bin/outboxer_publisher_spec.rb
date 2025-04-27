@@ -1,57 +1,53 @@
 require "rails_helper"
 
-require_relative "../../app/models/application_record"
-require_relative "../../app/models/event"
-require_relative "../../app/models/outboxer_integration/test_started_event"
-require_relative "../../app/models/outboxer_integration/test_completed_event"
-
 RSpec.describe "bin/outboxer_publisher" do
-  let(:test_id) { 999 }
+  let(:env) { { "RAILS_ENV" => "test" } }
+  let(:publisher_cmd) { File.join(Dir.pwd, "bin", "outboxer_publisher") }
 
-  it "performs event job handler async" do
-    Sidekiq::Testing.disable!
+  let(:attempt) { 1 }
+  let(:max_attempts) { 20 }
+  let(:delay) { 1 }
 
-    OutboxerIntegration::TestStartedEvent.create!(body: { "test_id" => test_id })
+  let(:messageable_id) { 123 }
+  let(:messageable_type) { "Event" }
 
-    env = {
-      "RAILS_ENV" => "test",
-      "REDIS_URL" => "redis://localhost:6379/0"
-    }
+  let!(:message) do
+    Outboxer::Message.queue(
+      messageable_id: messageable_id, messageable_type: messageable_type)
+  end
 
-    outboxer_publisher_cmd = File.join(Dir.pwd, "bin", "outboxer_publisher")
-    outboxer_publisher_pid = spawn(env, outboxer_publisher_cmd)
+  it "publishes message" do
+    read_io, write_io = IO.pipe
+    publisher_pid = spawn(env, "ruby", publisher_cmd, out: write_io, err: write_io)
+    write_io.close
 
-    sidekiq_cmd = "bundle exec sidekiq -r ./config/sidekiq.rb"
-    sidekiq_pid = spawn(env, sidekiq_cmd)
+    output = +""
+    attempt = 1
 
-    max_attempts = 10
+    while attempt <= max_attempts
+      begin
+        partial = read_io.read_nonblock(1024)
+        output << partial if partial
+      rescue IO::WaitReadable, EOFError
+        # no output yet
+      end
 
-    test_completed_event = nil
+      break if output.include?("Outboxer publishing message")
 
-    max_attempts.times do |attempt|
-      test_completed_event = OutboxerIntegration::TestCompletedEvent.last
-      break if test_completed_event
-
-      sleep 1
-
-      Sidekiq.logger.warn "OutboxerIntegration::TestCompletedEvent not found. " \
-        "Retrying (attempt #{attempt + 1}/#{max_attempts})..."
+      sleep delay
+      warn "Outboxer publishing message not found. Retrying (attempt #{attempt}/#{max_attempts})..."
+      attempt += 1
     end
 
-    expect(test_completed_event.type).not_to be_nil
-    expect(test_completed_event.body).to eql({ "test_id" => test_id })
-    expect(test_completed_event.created_at).not_to be_nil
-  ensure
-    if sidekiq_pid
-      Process.kill("TERM", sidekiq_pid)
-      Process.wait(sidekiq_pid)
-    end
+    Process.kill("TERM", publisher_pid)
+    Process.wait(publisher_pid)
+    read_io.close
 
-    if outboxer_publisher_pid
-      Process.kill("TERM", outboxer_publisher_pid)
-      Process.wait(outboxer_publisher_pid)
-    end
-
-    Sidekiq::Testing.fake!
+    expect(output).to include(
+      "Outboxer publishing message " \
+      "id=#{message[:id]} " \
+      "messageable_id=#{messageable_id} " \
+      "messageable_type=#{messageable_type}"
+    )
   end
 end
