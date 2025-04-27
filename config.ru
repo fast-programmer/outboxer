@@ -4,8 +4,6 @@ require "dotenv/load"
 
 require "securerandom"
 require "sinatra"
-require "sidekiq"
-require "sidekiq/web"
 require "outboxer/web"
 
 use Rack::Session::Cookie,
@@ -13,8 +11,4 @@ use Rack::Session::Cookie,
 
 map "/outboxer" do
   run Outboxer::Web
-end
-
-map "/sidekiq" do
-  run Sidekiq::Web
 end
