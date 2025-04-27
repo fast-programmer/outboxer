@@ -37,7 +37,7 @@
                         <th scope="row">Messageable</th>
                         <td>
                             <a href="<%= outboxer_path("/message/#{message[:id]}/messageable#{normalised_query_string}") %>" class="custom-link">
-                                <%= message[:messageable_type] %>::<%= message[:messageable_id] %>
+                                <%= message[:messageable_type] %>/<%= message[:messageable_id] %>
                             </a>
                         </td>
                     </tr>

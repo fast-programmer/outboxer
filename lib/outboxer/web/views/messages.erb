@@ -122,7 +122,7 @@
                                     <td class="text-capitalize"><%= message[:status] %></td>
                                     <td>
                                         <a href="<%= outboxer_path("/message/#{message[:id]}/messageable#{normalised_query_string}") %>" class="custom-link">
-                                            <%= message[:messageable_type] %>::<%= message[:messageable_id] %>
+                                            <%= message[:messageable_type] %>/<%= message[:messageable_id] %>
                                         </a>
                                     </td>
                                     <td title="<%= message[:queued_at].in_time_zone(denormalised_query_params[:time_zone]) %>">
