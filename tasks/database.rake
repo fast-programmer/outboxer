@@ -6,7 +6,7 @@ require "pry-byebug"
 namespace :outboxer do
   namespace :db do
     task :drop do
-      environment = ENV["RAILS_ENV"] || "development"
+      environment = ENV["APP_ENV"] || ENV["RAILS_ENV"] || "development"
       db_config = Outboxer::Database.config(environment: environment, concurrency: 1)
 
       ActiveRecord::Base.establish_connection(db_config.merge(database: "postgres"))
@@ -15,7 +15,7 @@ namespace :outboxer do
     end
 
     task :create do
-      environment = ENV["RAILS_ENV"] || "development"
+      environment = ENV["APP_ENV"] || ENV["RAILS_ENV"] || "development"
       db_config = Outboxer::Database.config(environment: environment, concurrency: 1)
 
       ActiveRecord::Base.establish_connection(db_config.merge(database: "postgres"))
@@ -24,15 +24,9 @@ namespace :outboxer do
     end
 
     task :migrate do
-      environment = ENV["RAILS_ENV"] || "development"
+      environment = ENV["APP_ENV"] || ENV["RAILS_ENV"] || "development"
       db_config = Outboxer::Database.config(environment: environment, concurrency: 1)
       ActiveRecord::Base.establish_connection(db_config)
-
-      require_relative "../db/migrate/create_outboxer_integration_tests"
-      CreateOutboxerIntegrationTests.new.up
-
-      require_relative "../db/migrate/create_events"
-      CreateEvents.new.up
 
       require_relative "../db/migrate/create_outboxer_settings"
       CreateOutboxerSettings.new.up
@@ -56,7 +50,7 @@ namespace :outboxer do
     end
 
     task :seed do
-      environment = ENV["RAILS_ENV"] || "development"
+      environment = ENV["APP_ENV"] || ENV["RAILS_ENV"] || "development"
       db_config = Outboxer::Database.config(environment: environment, concurrency: 1)
       ActiveRecord::Base.establish_connection(db_config)
 

@@ -1,8 +1,5 @@
 require "rails_helper"
 
-require_relative "../../../../../app/models/application_record"
-require_relative "../../../../../app/models/event"
-
 require_relative "../../../../../lib/outboxer/web"
 
 RSpec.describe "GET /message/:id", type: :request do
@@ -12,19 +9,17 @@ RSpec.describe "GET /message/:id", type: :request do
     Outboxer::Web
   end
 
-  let(:event) { Event.create!(type: "Event") }
-  let!(:message) do
-    Outboxer::Models::Message.find_by!(messageable_type: "Event", messageable_id: event.id)
-  end
+  let(:messageable) { double("Event", id: "1", class: double(name: "Event")) }
+  let!(:message) { Outboxer::Message.queue(messageable: messageable) }
 
   before do
     header "Host", "localhost"
 
-    get "/message/#{message.id}"
+    get "/message/#{message[:id]}"
   end
 
   it "loads message" do
     expect(last_response).to be_ok
-    expect(last_response.body).to include(message.id.to_s)
+    expect(last_response.body).to include(message[:id].to_s)
   end
 end

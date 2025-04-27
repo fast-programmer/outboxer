@@ -1,9 +1,7 @@
 #!/usr/bin/env ruby
 
 require "bundler/setup"
-require "sidekiq"
 require "outboxer"
-require_relative "../app/jobs/event_created_job"
 
 cli_options = Outboxer::Publisher.parse_cli_options(ARGV)
 environment = cli_options.delete(:environment) || ENV["APP_ENV"] || ENV["RAILS_ENV"] || "development"
@@ -11,14 +9,6 @@ config_path = cli_options.delete(:config) || Outboxer::Publisher::CONFIG_DEFAULT
 config = Outboxer::Publisher.config(environment: environment, path: config_path)
 options = Outboxer::Publisher::PUBLISH_MESSAGE_DEFAULTS.merge(config.merge(cli_options))
 logger = Outboxer::Logger.new($stdout, level: options[:log_level])
-
-Sidekiq.configure_client do |client_config|
-  client_config.redis = {
-    url: ENV["REDIS_URL"] || "redis://localhost:6379",
-    size: options[:concurrency]
-  }
-  client_config.logger = logger
-end
 
 database_config = Outboxer::Database.config(
   environment: environment, concurrency: options[:concurrency])
@@ -34,7 +24,10 @@ begin
     heartbeat_interval: options[:heartbeat_interval],
     logger: logger
   ) do |message|
-    EventCreatedJob.perform_async(message[:messageable_id], message[:messageable_type])
+    logger.info "Outboxer publishing message " \
+      "id=#{message[:id]} " \
+      "messageable_id=#{message[:messageable_id]} " \
+      "messageable_type=#{message[:messageable_type]}"
   end
 ensure
   Outboxer::Database.disconnect(logger: logger)

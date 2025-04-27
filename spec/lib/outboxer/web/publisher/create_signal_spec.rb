@@ -1,8 +1,5 @@
 require "rails_helper"
 
-require_relative "../../../../../app/models/application_record"
-require_relative "../../../../../app/models/event"
-
 require_relative "../../../../../lib/outboxer/web"
 
 RSpec.describe "POST /publisher/:id/signals", type: :request do
@@ -12,10 +9,9 @@ RSpec.describe "POST /publisher/:id/signals", type: :request do
     Outboxer::Web
   end
 
-  let(:event) { Event.create!(type: "Event") }
-  let!(:message) do
-    Outboxer::Models::Message.find_by!(messageable_type: "Event", messageable_id: event.id)
-  end
+  let(:messageable) { double("Event", id: 123, class: double(name: "Event")) }
+  let!(:message) { Outboxer::Message.queue(messageable: messageable) }
+
   let(:publisher) { create(:outboxer_publisher, :publishing, name: "Test Publisher") }
 
   before do

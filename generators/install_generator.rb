@@ -36,42 +36,6 @@ module Outboxer
       migration_template(
         "db/migrate/create_outboxer_signals.rb",
         "db/migrate/create_outboxer_signals.rb")
-
-      migration_template(
-        "db/migrate/create_events.rb",
-        "db/migrate/create_events.rb")
-    end
-
-    def copy_models
-      copy_file(
-        "app/models/event.rb",
-        "app/models/event.rb")
-
-      copy_file(
-        "app/models/outboxer_integration/test_started_event.rb",
-        "app/models/outboxer_integration/test_started_event.rb")
-
-      copy_file(
-        "app/models/outboxer_integration/test_completed_event.rb",
-        "app/models/outboxer_integration/test_completed_event.rb")
-    end
-
-    def copy_jobs
-      copy_file(
-        "app/jobs/event_created_job.rb",
-        "app/jobs/event_created_job.rb")
-
-      copy_file(
-        "spec/jobs/event_created_job_spec.rb",
-        "spec/jobs/event_created_job_spec.rb")
-
-      copy_file(
-        "app/jobs/outboxer_integration/test_started_job.rb",
-        "app/jobs/outboxer_integration/test_started_job.rb")
-
-      copy_file(
-        "app/jobs/outboxer_integration/complete_test_job.rb",
-        "app/jobs/outboxer_integration/complete_test_job.rb")
     end
 
     def copy_bin_file

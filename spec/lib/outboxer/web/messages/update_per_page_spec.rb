@@ -1,8 +1,5 @@
 require "rails_helper"
 
-require_relative "../../../../../app/models/application_record"
-require_relative "../../../../../app/models/event"
-
 require_relative "../../../../../lib/outboxer/web"
 
 RSpec.describe "POST /messages/update_per_page", type: :request do

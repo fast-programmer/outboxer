@@ -11,14 +11,12 @@ module Outboxer
     # @param messageable_id [Integer, nil] ID of the polymorphic messageable model
     # @param time [Time] time context for setting timestamps.
     # @return [Hash] a hash with message details including IDs and timestamps.
-    def queue(messageable: nil,
-              messageable_type: nil, messageable_id: nil,
-              time: ::Time)
+    def queue(messageable:, time: ::Time)
       current_utc_time = time.now.utc
 
       message = Models::Message.create!(
-        messageable_id: messageable&.id || messageable_id,
-        messageable_type: messageable&.class&.name || messageable_type,
+        messageable_id: messageable.id,
+        messageable_type: messageable.class.name,
         status: Message::Status::QUEUED,
         queued_at: current_utc_time,
         buffered_at: nil,

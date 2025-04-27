@@ -1,8 +1,5 @@
 require "rails_helper"
 
-require_relative "../../../../../app/models/application_record"
-require_relative "../../../../../app/models/event"
-
 require_relative "../../../../../lib/outboxer/web"
 
 RSpec.describe "POST /message/:id/requeue", type: :request do
@@ -12,23 +9,19 @@ RSpec.describe "POST /message/:id/requeue", type: :request do
     Outboxer::Web
   end
 
-  let!(:event) { Event.create!(id: 1, type: "Event") }
-  let!(:message) do
-    Outboxer::Models::Message.find_by!(messageable_type: "Event", messageable_id: event.id)
-  end
+  let(:messageable) { double("Event", id: 123, class: double(name: "Event")) }
+  let!(:message) { Outboxer::Message.queue(messageable: messageable) }
 
   before do
     header "Host", "localhost"
 
-    post "/message/#{message.id}/requeue"
+    post "/message/#{message[:id]}/requeue"
 
     follow_redirect!
-
-    message.reload
   end
 
   it "requeues a message" do
-    expect(message.status).to eql("queued")
+    expect(Outboxer::Models::Message.find(message[:id]).status).to eql("queued")
   end
 
   it "redirects with flash" do
