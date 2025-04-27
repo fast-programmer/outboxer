@@ -1,7 +1,7 @@
 require "simplecov"
 require "coveralls"
 
-# SimpleCov.formatter = Coveralls::SimpleCov::Formatter
+SimpleCov.formatter = Coveralls::SimpleCov::Formatter
 SimpleCov.start
 
 require "spec_helper"
