@@ -6,7 +6,7 @@
 
 **Outboxer** is a **high-reliability, high-performance** implementation of the [**transactional outbox pattern**](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html) for **Ruby on Rails** applications.
 
-It ensures **at-least-once delivery** of messages across **distributed systems** such as PostgreSQL, MySQL, Redis, RabbitMQ and Kafka.
+It ensures **at-least-once delivery** of messages across **distributed systems** such as PostgreSQL or MySQL, and Redis, RabbitMQ or Kafka.
 
 # 🚀 Quickstart
 
