@@ -55,7 +55,7 @@
         <div class="container-fluid">
             <a class="navbar-brand" href="<%= outboxer_path('') %>">
                 <i class="bi bi-envelope-open-fill"></i> Outboxer
-                <span class="badge bg-secondary"><%= pretty_number(number: messages_metrics[:published][:count][:historic] + messages_metrics[:published][:count][:current]) %></span>
+                <span class="badge bg-secondary"><%= Outboxer::Web.pretty_number(number: messages_metrics[:published][:count][:historic] + messages_metrics[:published][:count][:current]) %></span>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
@@ -73,7 +73,7 @@
                     <li class="nav-item">
                         <a class="nav-link <%= 'active' if denormalised_query_params[:status] == nil %>"
                            href="<%= outboxer_path("/messages#{normalise_query_string(status: nil, time_zone: denormalised_query_params[:time_zone])}") %>">
-                            All (<%= pretty_number(number: messages_metrics[:all][:count][:current]) %>)
+                            All (<%= Outboxer::Web.pretty_number(number: messages_metrics[:all][:count][:current]) %>)
                         </a>
                     </li>
 
@@ -81,7 +81,7 @@
                         <li class="nav-item">
                             <a class="nav-link <%= 'active' if denormalised_query_params[:status] == status[:key] %>"
                                href="<%= outboxer_path("/messages#{normalise_query_string(status: status[:key], time_zone: params[:time_zone])}") %>">
-                                <%= status[:name] %> (<%= pretty_number(number: messages_metrics[status[:key].to_sym][:count][:current]) %>)
+                                <%= status[:name] %> (<%= Outboxer::Web.pretty_number(number: messages_metrics[status[:key].to_sym][:count][:current]) %>)
                             </a>
                         </li>
                     <% end %>

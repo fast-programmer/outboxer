@@ -48,13 +48,13 @@
                     <tr>
                         <th scope="row">Queued</th>
                         <td title="<%= message[:queued_at].in_time_zone(denormalised_query_params[:time_zone]) %>">
-                            <%= time_ago_in_words(message[:queued_at]) %> ago
+                            <%= Outboxer::Web.time_ago_in_words(message[:queued_at]) %> ago
                         </td>
                     </tr>
                     <tr>
                         <th scope="row">Updated</th>
                         <td title="<%= message[:updated_at].in_time_zone(denormalised_query_params[:time_zone]) %>">
-                            <%= time_ago_in_words(message[:updated_at]) %> ago
+                            <%= Outboxer::Web.time_ago_in_words(message[:updated_at]) %> ago
                         </td>
                     </tr>
                     <tr>
@@ -97,14 +97,14 @@
                         <!-- Queue Latency -->
                         <tr>
                             <td>Queued to Buffered</td>
-                            <td><%= pretty_duration_from_seconds_to_milliseconds(seconds: queue_latency) %></td>
+                            <td><%= Outboxer::Web.pretty_duration_from_seconds_to_milliseconds(seconds: queue_latency) %></td>
                             <td><%= queue_percent %>%</td>
                         </tr>
 
                         <!-- Buffer Latency -->
                         <tr>
                             <td>Buffered to Publishing</td>
-                            <td><%= pretty_duration_from_seconds_to_milliseconds(seconds: buffer_latency) %></td>
+                            <td><%= Outboxer::Web.pretty_duration_from_seconds_to_milliseconds(seconds: buffer_latency) %></td>
                             <td><%= buffer_percent %>%</td>
                         </tr>
 
@@ -112,21 +112,21 @@
                             <!-- Publish Latency for Published -->
                             <tr>
                                 <td>Publishing to Published</td>
-                                <td><%= pretty_duration_from_seconds_to_milliseconds(seconds: publish_latency) %></td>
+                                <td><%= Outboxer::Web.pretty_duration_from_seconds_to_milliseconds(seconds: publish_latency) %></td>
                                 <td><%= publish_percent %></td>
                             </tr>
                         <% elsif message[:status] == Outboxer::Message::Status::FAILED %>
                             <!-- Publish Latency for Failed -->
                             <tr>
                                 <td>Publishing to Failed</td>
-                                <td><%= pretty_duration_from_seconds_to_milliseconds(seconds: publish_latency) %></td>
+                                <td><%= Outboxer::Web.pretty_duration_from_seconds_to_milliseconds(seconds: publish_latency) %></td>
                                 <td><%= publish_percent %></td>
                             </tr>
                         <% else %>
                             <!-- Publish Latency for Other -->
                             <tr>
                                 <td>Publishing to Published</td>
-                                <td><%= pretty_duration_from_seconds_to_milliseconds(seconds: publish_latency) %></td>
+                                <td><%= Outboxer::Web.pretty_duration_from_seconds_to_milliseconds(seconds: publish_latency) %></td>
                                 <td><%= publish_percent %></td>
                             </tr>
                         <% end %>
@@ -134,7 +134,7 @@
                     <tfoot>
                         <tr>
                             <th>Total</th>
-                            <td><%= pretty_duration_from_seconds_to_milliseconds(seconds: total_latency) %></td>
+                            <td><%= Outboxer::Web.pretty_duration_from_seconds_to_milliseconds(seconds: total_latency) %></td>
                             <td>100%</td>
                         </tr>
                     </tfoot>

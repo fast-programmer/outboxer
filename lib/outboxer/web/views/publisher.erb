@@ -59,13 +59,13 @@
                     <tr>
                         <th scope="row">Created</th>
                         <td title="<%= publisher[:created_at].in_time_zone(denormalised_query_params[:time_zone]) %>">
-                            <%= time_ago_in_words(publisher[:created_at]) %> ago
+                            <%= Outboxer::Web.time_ago_in_words(publisher[:created_at]) %> ago
                         </td>
                     </tr>
                     <tr>
                         <th scope="row">Updated</th>
                         <td title="<%= publisher[:updated_at].in_time_zone(denormalised_query_params[:time_zone]) %>">
-                            <%= time_ago_in_words(publisher[:updated_at]) %> ago
+                            <%= Outboxer::Web.time_ago_in_words(publisher[:updated_at]) %> ago
                         </td>
                     </tr>
                 </tbody>
@@ -102,11 +102,11 @@
                 <tbody>
                     <tr>
                         <th scope="row">Throughput</th>
-                        <td><%= pretty_throughput(per_second: publisher[:metrics]['throughput']) %></td>
+                        <td><%= Outboxer::Web.pretty_throughput(per_second: publisher[:metrics]['throughput']) %></td>
                     </tr>
                     <tr>
                         <th scope="row">Latency</th>
-                        <td><%= pretty_duration_from_seconds(seconds: publisher[:metrics]['latency']) %></td>
+                        <td><%= Outboxer::Web.pretty_duration_from_seconds(seconds: publisher[:metrics]['latency']) %></td>
                     </tr>
                     <tr>
                         <th scope="row">CPU</th>
@@ -114,11 +114,11 @@
                     </tr>
                     <tr>
                         <th scope="row">RSS</th>
-                        <td><%= human_readable_size(kilobytes: publisher[:metrics]['rss']) %></td>
+                        <td><%= Outboxer::Web.human_readable_size(kilobytes: publisher[:metrics]['rss']) %></td>
                     </tr>
                     <tr>
                         <th scope="row">RTT</th>
-                        <td><%= pretty_duration_from_seconds(seconds: publisher[:metrics]['rtt']) %></td>
+                        <td><%= Outboxer::Web.pretty_duration_from_seconds(seconds: publisher[:metrics]['rtt']) %></td>
                     </tr>
                 </tbody>
             </table>

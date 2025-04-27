@@ -58,6 +58,7 @@ Layout/MultilineMethodCallBraceLayout:
   EnforcedStyle: same_line
   Exclude:
     - 'bin/outboxer_publisher'
+    - 'spec/**/*'
 Naming/VariableNumber:
   Enabled: false
 Naming/RescuedExceptionsVariableName:

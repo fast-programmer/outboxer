@@ -55,7 +55,9 @@ module Outboxer
           (plural.nil? ? "#{count} #{singular}s" : "#{count} #{plural}")
         end
       end
+    end
 
+    class << self
       def pretty_number(number:, delimiter: ",", separator: ".")
         return "-" if number.nil?
 
