@@ -4,76 +4,72 @@
 [![Coverage Status](https://coveralls.io/repos/github/fast-programmer/outboxer/badge.svg)](https://coveralls.io/github/fast-programmer/outboxer)
 [![Join our Discord](https://img.shields.io/badge/Discord-blue?style=flat&logo=discord&logoColor=white)](https://discord.gg/x6EUehX6vU)
 
-**Outboxer** is a **high-performance, high-reliability implementation** of the [**transactional outbox pattern**](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html) for **Ruby on Rails** applications.
+**Outboxer** is a battle tested implementation of the [**transactional outbox pattern**](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html) for **Ruby on Rails** applications.
 
-By solving the **dual write problem**, Outboxer ensures **reliable, at-least-once delivery** of messages across distributed systems.
+It addresses the **dual write problem**, ensuring **reliable, at-least-once delivery** of messages across distributed systems such as SQL and Redis, RabbitMQ or Kafka.
 
 # Installation
 
-1. Add the gem to your Gemfile:
+1. Add gem to your Gemfile:
 
-    ```ruby
-    gem 'outboxer'
-    ```
+```ruby
+gem 'outboxer'
+```
 
-2. Install:
+2. Install gem:
 
-    ```bash
-    bundle install
-    ```
+```bash
+bundle install
+```
 
-3. Generate schema, publisher, and test scaffolding:
+3. Generate schema, publisher, and tests
 
-    ```bash
-    bin/rails g outboxer:install
-    ```
+```bash
+bin/rails g outboxer:install
+```
 
-4. Migrate the database:
+4. Migrate database:
 
-    ```bash
-    bin/rails db:migrate
-    ```
+```bash
+bin/rails db:migrate
+```
 
 # Usage
 
-## 1. Queue an outboxer message after model creation
+1. Create queued outboxer message after model creation
 
-Add an `after_create` callback to your `Event` model:
+Add an `after_create` callback to your messageable model e.g.
 
-    ```ruby
-    # app/models/event.rb
+```ruby
+# app/models/event.rb
 
-    class Event < ApplicationRecord
-      after_create { Outboxer::Message.queue(messageable: self) }
-    end
-    ```
+class Event < ApplicationRecord
+  after_create { Outboxer::Message.queue(messageable: self) }
+end
+```
 
-**Note:** This ensures the outboxer messageable is created within the **same transaction** as your model.
+This ensures the outboxer messageable is created within the **same transaction** as your model e.g.
 
-#### Example ActiveRecord logs:
+```irb
+irb(main):001:0> Event.create!
+  TRANSACTION              (0.2ms)  BEGIN
+  Event Create             (1.0ms)  INSERT INTO "events" ...
+  Outboxer::Message Create (0.8ms)  INSERT INTO "outboxer_messages" ...
+  TRANSACTION              (0.3ms)  COMMIT
+=> #<Event id: 1, ...>
+```
 
-    ```sql
-    BEGIN
-    INSERT INTO "events" ...
-    INSERT INTO "outboxer_messages" ...
-    COMMIT
-    ```
-
-As shown, both the `Event` and the `Outboxer::Message` are committed atomically together.
-
-## 2. Publish queued outboxer messages
+2. Publish queued outboxer messages
 
 Refer to the generated `bin/outboxer_publisher`:
 
-    ```ruby
-    # bin/outboxer_publisher
+```ruby
+# bin/outboxer_publisher
 
-    require "outboxer"
-
-    Outboxer::Publisher.publish_message do |message|
-      # TODO: publish message here
-    end
-    ```
+Outboxer::Publisher.publish_message do |message|
+  # TODO: publish message here
+end
+```
 
 # Management UI
 
@@ -81,27 +77,27 @@ Outboxer ships with a simple web interface to monitor publishers and messages.
 
 ## Rails Mounting
 
-    ```ruby
-    # config/routes.rb
+```ruby
+# config/routes.rb
 
-    require 'outboxer/web'
+require 'outboxer/web'
 
-    Rails.application.routes.draw do
-      mount Outboxer::Web, at: '/outboxer'
-    end
-    ```
+Rails.application.routes.draw do
+  mount Outboxer::Web, at: '/outboxer'
+end
+```
 
 ## Rack Mounting
 
-    ```ruby
-    # config.ru
+```ruby
+# config.ru
 
-    require 'outboxer/web'
+require 'outboxer/web'
 
-    map '/outboxer' do
-      run Outboxer::Web
-    end
-    ```
+map '/outboxer' do
+  run Outboxer::Web
+end
+```
 
 # Contributing
 
