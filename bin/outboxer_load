@@ -24,9 +24,18 @@ queued_messages_count = 0
 while queued_messages_count < max_messages_count
   break if reader.wait_readable(0) && reader.gets.strip == "INT"
 
-  messageable_id = SecureRandom.hex(3)
-  Outboxer::Message.queue(messageable_type: "Event", messageable_id: messageable_id)
-  puts "queued message for Event::#{messageable_id}"
+  class Event
+    attr_accessor :id
+
+    def initialize(id:)
+      @id = id
+    end
+  end
+
+  messageable = Event.new(id: SecureRandom.hex(3))
+
+  Outboxer::Message.queue(messageable: messageable)
+  puts "queued message for #{messageable.class.name}/#{messageable.id}"
   queued_messages_count += 1
 end
 

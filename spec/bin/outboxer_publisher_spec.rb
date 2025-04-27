@@ -8,13 +8,8 @@ RSpec.describe "bin/outboxer_publisher" do
   let(:max_attempts) { 20 }
   let(:delay) { 1 }
 
-  let(:messageable_id) { 123 }
-  let(:messageable_type) { "Event" }
-
-  let!(:message) do
-    Outboxer::Message.queue(
-      messageable_id: messageable_id, messageable_type: messageable_type)
-  end
+  let(:messageable) { double("Event", id: 123, class: double(name: "Event")) }
+  let!(:message) { Outboxer::Message.queue(messageable: messageable) }
 
   it "publishes message" do
     read_io, write_io = IO.pipe
@@ -46,8 +41,8 @@ RSpec.describe "bin/outboxer_publisher" do
     expect(output).to include(
       "Outboxer publishing message " \
       "id=#{message[:id]} " \
-      "messageable_id=#{messageable_id} " \
-      "messageable_type=#{messageable_type}"
+      "messageable_id=#{message[:messageable_id]} " \
+      "messageable_type=#{message[:messageable_type]}"
     )
   end
 end

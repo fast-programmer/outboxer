@@ -607,8 +607,10 @@ module Outboxer
 
       message = Message.find_by_id(id: params[:id])
 
-      messageable_class = Object.const_get(message[:messageable_type])
-      messageable = messageable_class.find_by_id(id: message[:messageable_id])
+      require 'pry'; binding.pry
+      messageable_class = message[:messageable_type]&.safe_constantize
+      binding.pry
+      messageable = messageable_class&.find_by_id(id: message[:messageable_id])
 
       erb :message, locals: {
         denormalised_query_params: denormalised_query_params,
@@ -632,8 +634,8 @@ module Outboxer
       message = Message.find_by_id(id: params[:id])
       messages_metrics = Message.metrics
 
-      messageable_class = Object.const_get(message[:messageable_type])
-      messageable = messageable_class.find(message[:messageable_id])
+      messageable_class = message[:messageable_type]&.safe_constantize
+      messageable = messageable_class&.find_by_id(id: message[:messageable_id])
 
       erb :messageable, locals: {
         message: message,

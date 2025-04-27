@@ -15,9 +15,8 @@ module Outboxer
       end
 
       context "when messageable_type and messageable_id arguments provided" do
-        let!(:queued_message) do
-          Message.queue(messageable_type: "Event", messageable_id: "1")
-        end
+        let(:messageable) { double("Event", id: "1", class: double(name: "Event")) }
+        let!(:queued_message) { Outboxer::Message.queue(messageable: messageable) }
 
         it "creates model with queued status" do
           expect(queued_message[:id]).to eq(
