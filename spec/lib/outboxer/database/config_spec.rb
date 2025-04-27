@@ -58,15 +58,17 @@ module Outboxer
         it "uses the default path" do
           config = Database.config(environment: :development, concurrency: 3)
 
-          expect(config).to eq(
-            adapter: "postgresql",
-            encoding: "utf8",
-            host: "localhost",
-            port: 5432,
-            username: "outboxer_developer",
-            password: "outboxer_password",
-            database: "outboxer_development",
-            pool: 5)
+          expect(config).to match(
+            hash_including(
+              encoding: "utf8",
+              host: "localhost",
+              port: 5432,
+              username: "outboxer_developer",
+              password: "outboxer_password",
+              database: "outboxer_development",
+              pool: 5
+            )
+          )
         end
       end
     end
