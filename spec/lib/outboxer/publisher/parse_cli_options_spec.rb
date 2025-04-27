@@ -35,11 +35,27 @@ module Outboxer
         end
       end
 
+      context "when parsing the tick interval option" do
+        let(:argv) { ["-t", "0.5"] }
+
+        it "parses correctly" do
+          expect(Publisher.parse_cli_options(argv)).to eq({ tick: 0.5 })
+        end
+      end
+
       context "when parsing the poll interval option" do
         let(:argv) { ["-p", "30"] }
 
         it "parses correctly" do
           expect(Publisher.parse_cli_options(argv)).to eq({ poll: 30 })
+        end
+      end
+
+      context "when parsing the heartbeat interval option" do
+        let(:argv) { ["-a", "10"] }
+
+        it "parses correctly" do
+          expect(Publisher.parse_cli_options(argv)).to eq({ heartbeat: 10 })
         end
       end
 
