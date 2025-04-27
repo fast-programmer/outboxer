@@ -21,7 +21,9 @@ module Outboxer
       context "when parsing the environment option" do
         it "parses short and long flags" do
           expect(Publisher.parse_cli_options(["-e", "staging"])).to eq({ environment: "staging" })
-          expect(Publisher.parse_cli_options(["--environment", "staging"])).to eq({ environment: "staging" })
+          expect(
+            Publisher.parse_cli_options(["--environment", "staging"])
+          ).to eq({ environment: "staging" })
         end
       end
 
@@ -35,28 +37,38 @@ module Outboxer
       context "when parsing the tick interval option" do
         it "parses short and long flags" do
           expect(Publisher.parse_cli_options(["-t", "0.5"])).to eq({ tick_interval: 0.5 })
-          expect(Publisher.parse_cli_options(["--tick-interval", "0.5"])).to eq({ tick_interval: 0.5 })
+          expect(
+            Publisher.parse_cli_options(["--tick-interval", "0.5"])
+          ).to eq({ tick_interval: 0.5 })
         end
       end
 
       context "when parsing the poll interval option" do
         it "parses short and long flags" do
           expect(Publisher.parse_cli_options(["-p", "30"])).to eq({ poll_interval: 30 })
-          expect(Publisher.parse_cli_options(["--poll-interval", "30"])).to eq({ poll_interval: 30 })
+          expect(
+            Publisher.parse_cli_options(["--poll-interval", "30"])
+          ).to eq({ poll_interval: 30 })
         end
       end
 
       context "when parsing the heartbeat interval option" do
         it "parses short and long flags" do
           expect(Publisher.parse_cli_options(["-a", "10"])).to eq({ heartbeat_interval: 10 })
-          expect(Publisher.parse_cli_options(["--heartbeat-interval", "10"])).to eq({ heartbeat_interval: 10 })
+          expect(
+            Publisher.parse_cli_options(["--heartbeat-interval", "10"])
+          ).to eq({ heartbeat_interval: 10 })
         end
       end
 
       context "when parsing the config file path option" do
         it "parses short and long flags" do
-          expect(Publisher.parse_cli_options(["-C", "config/path.yml"])).to eq({ config: "config/path.yml" })
-          expect(Publisher.parse_cli_options(["--config", "config/path.yml"])).to eq({ config: "config/path.yml" })
+          expect(
+            Publisher.parse_cli_options(["-C", "config/path.yml"])
+          ).to eq({ config: "config/path.yml" })
+          expect(
+            Publisher.parse_cli_options(["--config", "config/path.yml"])
+          ).to eq({ config: "config/path.yml" })
         end
       end
 

@@ -84,8 +84,8 @@ module Outboxer
 
       yaml = YAML.safe_load(erb_result, permitted_classes: [Symbol], aliases: true)
       yaml.deep_symbolize_keys!
-      yaml_override = yaml.fetch(environment&.to_sym, {}).slice(*PUBLISH_DEFAULTS.keys)
-      yaml.slice(*PUBLISH_DEFAULTS.keys).merge(yaml_override)
+      yaml_override = yaml.fetch(environment&.to_sym, {}).slice(*PUBLISH_MESSAGE_DEFAULTS.keys)
+      yaml.slice(*PUBLISH_MESSAGE_DEFAULTS.keys).merge(yaml_override)
     rescue Errno::ENOENT
       {}
     end
@@ -491,7 +491,7 @@ module Outboxer
       end
     end
 
-    PUBLISH_DEFAULTS = {
+    PUBLISH_MESSAGE_DEFAULTS = {
       buffer_size: 100,
       concurrency: 1,
       tick_interval: 0.1,
@@ -514,12 +514,12 @@ module Outboxer
     # @yield [Hash] A block to handle the publishing of each message.
     def publish_message(
       name: "#{::Socket.gethostname}:#{::Process.pid}",
-      buffer_size: PUBLISH_DEFAULTS[:buffer_size],
-      concurrency: PUBLISH_DEFAULTS[:concurrency],
-      tick_interval: PUBLISH_DEFAULTS[:tick_interval],
-      poll_interval: PUBLISH_DEFAULTS[:poll_interval],
-      heartbeat_interval: PUBLISH_DEFAULTS[:heartbeat_interval],
-      logger: Logger.new($stdout, level: PUBLISH_DEFAULTS[:log_level]),
+      buffer_size: PUBLISH_MESSAGE_DEFAULTS[:buffer_size],
+      concurrency: PUBLISH_MESSAGE_DEFAULTS[:concurrency],
+      tick_interval: PUBLISH_MESSAGE_DEFAULTS[:tick_interval],
+      poll_interval: PUBLISH_MESSAGE_DEFAULTS[:poll_interval],
+      heartbeat_interval: PUBLISH_MESSAGE_DEFAULTS[:heartbeat_interval],
+      logger: Logger.new($stdout, level: PUBLISH_MESSAGE_DEFAULTS[:log_level]),
       time: ::Time, process: ::Process, kernel: ::Kernel,
       &block
     )
