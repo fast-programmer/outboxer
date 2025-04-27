@@ -6,19 +6,14 @@
 
 **Outboxer** is a **high-reliability, high-performance** implementation of the [**transactional outbox pattern**](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html) for **Ruby on Rails** applications.
 
-It addresses the [**dual write problem**](https://www.confluent.io/blog/dual-write-problem/) and ensures **at-least-once delivery** of messages across **distributed systems** such as SQL and Redis, RabbitMQ or Kafka.
+It addresses the [**dual write problem**](https://www.confluent.io/blog/dual-write-problem/) and ensures **at-least-once delivery** of messages across **distributed systems** such as PostgreSQL, MySQL, Redis, RabbitMQ or Kafka.
 
 # 🚀 Quickstart
 
-**1. Install and set up**
-
-```ruby
-# Gemfile
-
-gem 'outboxer'
-```
+**1. Install**
 
 ```bash
+bundle add outboxer
 bundle install
 bin/rails g outboxer:install
 bin/rails db:migrate
@@ -37,6 +32,8 @@ end
 Example:
 
 ```
+# bin/rails c
+
 irb(main):001:0> Event.create!
   TRANSACTION              (0.2ms)  BEGIN
   Event Create             (1.0ms)  INSERT INTO "events" ...
@@ -55,8 +52,6 @@ Outboxer::Publisher.publish_message do |message|
 end
 ```
 
----
-
 # 📊 Web Dashboard
 
 Monitor publishers and messages with a lightweight built-in UI.
@@ -65,7 +60,9 @@ Monitor publishers and messages with a lightweight built-in UI.
 
 ```ruby
 # config/routes.rb
+
 require 'outboxer/web'
+
 mount Outboxer::Web, at: '/outboxer'
 ```
 
@@ -73,11 +70,11 @@ mount Outboxer::Web, at: '/outboxer'
 
 ```ruby
 # config.ru
+
 require 'outboxer/web'
+
 map '/outboxer' { run Outboxer::Web }
 ```
-
----
 
 # 🤝 Contributing
 
@@ -87,13 +84,9 @@ map '/outboxer' { run Outboxer::Web }
 
 All contributions are welcome!
 
----
-
 # ⚖️ License
 
 Open-sourced under [LGPL v3.0](https://www.gnu.org/licenses/lgpl-3.0.html).
-
----
 
 # 🏁 Why Outboxer?
 
