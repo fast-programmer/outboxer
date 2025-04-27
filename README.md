@@ -10,16 +10,26 @@ It ensures **at-least-once delivery** of messages across **distributed systems**
 
 # 🚀 Quickstart
 
-**1. Install**
+**1. Install gem**
 
 ```bash
 bundle add outboxer
 bundle install
+```
+
+**2. Generate schema migrations and publisher script**
+
+```bash
 bin/rails g outboxer:install
+```
+
+**3. Migrate database**
+
+```bash
 bin/rails db:migrate
 ```
 
-**2. Queue messages**
+**4. Queue message in same database transaction**
 
 ```ruby
 # app/models/event.rb
@@ -42,7 +52,7 @@ irb(main):001:0> Event.create!
 => #<Event id: 1, ...>
 ```
 
-**3. Publish messages**
+**5. Publish messages**
 
 ```ruby
 # bin/outboxer_publisher
