@@ -67,9 +67,9 @@ Retain confidence in your stack with end to end message queue and publish covera
 
 See the generated: `spec/bin/outboxer_publisher`
 
-# 📈 Web Dashboard
+# 📈 Monitoring
 
-Monitor publishers and messages with the lightweight built-in UI.
+Monitor publishers and messages with the built-in web UI.
 
 **Rails**
 
