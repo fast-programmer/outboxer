@@ -27,10 +27,10 @@ RSpec.describe "bin/outboxer_publisher" do
         # no output yet
       end
 
-      break if output.include?("Outboxer publishing message")
+      break if output.include?("Outboxer published message")
 
       sleep delay
-      warn "Outboxer publishing message not found. Retrying (attempt #{attempt}/#{max_attempts})..."
+      warn "Outboxer published message not found. Retrying (attempt #{attempt}/#{max_attempts})..."
       attempt += 1
     end
 
@@ -39,10 +39,10 @@ RSpec.describe "bin/outboxer_publisher" do
     read_io.close
 
     expect(output).to include(
-      "Outboxer publishing message " \
+      "Outboxer published message " \
       "id=#{message[:id]} " \
-      "messageable_id=#{message[:messageable_id]} " \
-      "messageable_type=#{message[:messageable_type]}"
+      "messageable_type=#{message[:messageable_type]} " \
+      "messageable_id=#{message[:messageable_id]} "
     )
   end
 end

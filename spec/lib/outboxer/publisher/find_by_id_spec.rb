@@ -9,11 +9,11 @@ module Outboxer
             name: "server-09:67000",
             status: Publisher::Status::PUBLISHING,
             settings: {
-              "buffer" => 1000,
+              "buffer_size" => 1000,
               "concurrency" => 2,
-              "tick" => 0.1,
-              "poll" => 5.0,
-              "heartbeat" => 5.0
+              "tick_interval" => 0.1,
+              "poll_interval" => 5.0,
+              "heartbeat_interval" => 5.0
             },
             metrics: {
               "throughput" => 700,
@@ -45,11 +45,11 @@ module Outboxer
           expect(result[:name]).to eq(publisher.name)
           expect(result[:status]).to eq("publishing")
           expect(result[:settings]).to eq({
-            "buffer" => 1000,
+            "buffer_size" => 1000,
             "concurrency" => 2,
-            "tick" => 0.1,
-            "poll" => 5.0,
-            "heartbeat" => 5
+            "tick_interval" => 0.1,
+            "poll_interval" => 5.0,
+            "heartbeat_interval" => 5
           })
           expect(result[:created_at]).to eq(publisher.created_at.utc)
           expect(result[:metrics]).to eq({

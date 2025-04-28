@@ -19,6 +19,6 @@ RSpec.describe "POST /publisher/:id/signals", type: :request do
 
   it "returns publisher details" do
     expect(last_response).to be_ok
-    expect(last_response.body).to include("Publisher/#{publisher.id}")
+    expect(last_response.body).to include("Publisher #{publisher.id}")
   end
 end

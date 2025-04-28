@@ -43,6 +43,8 @@ module Outboxer
     # @param config [Hash] the configuration hash for the database.
     # @param logger [Logger, nil] the logger to log connection activity.
     def connect(config:, logger: nil)
+      Thread.current.name = "main"
+
       ActiveRecord::Base.logger = logger
 
       logger&.info "Outboxer connecting to database"

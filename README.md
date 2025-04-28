@@ -52,12 +52,12 @@ end
 # bin/outboxer_publisher
 
 Outboxer::Publisher.publish_message(...) do |message|
-  logger.info "Outboxer publishing message " \
-    "id=#{message[:id]} " \
-    "messageable_id=#{message[:messageable_id]} " \
-    "messageable_type=#{message[:messageable_type]}"
+  # TODO: publish message here
 
-  # Publish message to Redis (Sidekiq), RabbitMQ, Kafka here
+  logger.info "Outboxer published message " \
+    "id=#{message[:id]} " \
+    "messageable_type=#{message[:messageable_type]} " \
+    "messageable_id=#{message[:messageable_id]} "
 end
 ```
 
