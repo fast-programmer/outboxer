@@ -34,6 +34,10 @@ jobs:
           TARGET_RUBY_VERSION: 3.2.2
           TARGET_RAILS_VERSION: 7.1.5.1
           TARGET_SQL_ADAPTER: postgresql
+          PGHOST: localhost
+          PGUSER: outboxer_developer
+          PGPASSWORD: outboxer_password
+          PGPORT: 5432
         run: |
           ./quickstart_e2e_tests.sh
 
