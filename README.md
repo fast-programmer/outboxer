@@ -4,11 +4,9 @@
 [![Coverage Status](https://coveralls.io/repos/github/fast-programmer/outboxer/badge.svg)](https://coveralls.io/github/fast-programmer/outboxer)
 [![Join our Discord](https://img.shields.io/badge/Discord-blue?style=flat&logo=discord&logoColor=white)](https://discord.gg/x6EUehX6vU)
 
-**Outboxer** is a **high-reliability, high-performance** implementation of the [**transactional outbox pattern**](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html) for **Ruby on Rails** applications.
+**Outboxer** is a high-reliability, high-performance implementation of the [**transactional outbox pattern**](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html) for **Ruby on Rails** applications.
 
-By solving the [*dual write problem*](https://www.confluent.io/blog/dual-write-problem/), *at-least-once delivery* of messages across *distributed systems* can be guaranteed.
-
-This allows you to quickly *migrate your existing stack* to *eventually consistent, event driven architecture* and get all the benefits including *scalability*, *resilence*, *fault tolerance* and *performance*.
+Quickly migrate your existing stack to eventually consistent, event driven architecture and get all the benefits including resilence, fault tolerance and scalability without the fear of lost messages, data corruption and long nights.
 
 # 🚀 Quickstart
 
