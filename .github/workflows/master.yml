@@ -7,6 +7,36 @@ on:
   pull_request:
 
 jobs:
+  quickstart_e2e_tests:
+    runs-on: ubuntu-latest
+    name: run quickstart e2e tests
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          DATABASE_ADAPTER: postgresql
+          DATABASE_PORT: 5432
+          POSTGRES_USER: outboxer_developer
+          POSTGRES_PASSWORD: outboxer_password
+          POSTGRES_DB: outboxer_test
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+      - uses: actions/checkout@v3
+      - name: set up ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.2.2
+          bundler-cache: true
+      - name: run quickstart e2e script
+        env:
+          TARGET_RUBY_VERSION: 3.2.2
+          TARGET_RAILS_VERSION: 7.1.5.1
+          TARGET_SQL_ADAPTER: postgresql
+        run: |
+          ./quickstart_e2e_tests.sh
+
   gitleaks:
     runs-on: ubuntu-latest
     name: run gitleaks
