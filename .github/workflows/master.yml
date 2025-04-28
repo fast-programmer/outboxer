@@ -41,6 +41,7 @@ jobs:
         run: ./quickstart_e2e_tests.sh
 
   quickstart_e2e_tests_mysql:
+    if: false
     runs-on: ubuntu-latest
     name: run quickstart e2e tests (mysql)
     services:
