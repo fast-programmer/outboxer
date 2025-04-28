@@ -35,8 +35,9 @@
                                         <%= publisher[:name] %>
                                     </a>
                                     <div class="text-muted small mt-1">
-                                        buffer: <%= publisher[:settings]['buffer'] %>, concurrency: <%= publisher[:settings]['concurrency'] %><br>
-                                        tick: <%= publisher[:settings]['tick'] %>, poll: <%= publisher[:settings]['poll'] %>, heartbeat: <%= publisher[:settings]['heartbeat'] %>
+                                        buffer_size: <%= publisher[:settings]['buffer_size'] %>, concurrency: <%= publisher[:settings]['concurrency'] %><br>
+                                        tick_interval: <%= publisher[:settings]['tick_interval'] %>, poll_interval: <%= publisher[:settings]['poll_interval'] %><br>
+                                        heartbeat_interval: <%= publisher[:settings]['heartbeat_interval'] %>
                                     </div>
                                 </td>
                                 <td><%= Outboxer::Web.time_ago_in_words(publisher[:created_at]) %> ago</td>

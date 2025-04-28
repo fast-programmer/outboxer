@@ -523,8 +523,6 @@ module Outboxer
       time: ::Time, process: ::Process, kernel: ::Kernel,
       &block
     )
-      Thread.current.name = "main"
-
       logger.info "Outboxer v#{Outboxer::VERSION} running in ruby #{RUBY_VERSION} " \
         "(#{RUBY_RELEASE_DATE} revision #{RUBY_REVISION[0, 10]}) [#{RUBY_PLATFORM}]"
 
