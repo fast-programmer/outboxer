@@ -6,7 +6,9 @@
 
 **Outboxer** is a **high-reliability, high-performance** implementation of the [**transactional outbox pattern**](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html) for **Ruby on Rails** applications.
 
-It ensures **at-least-once delivery** of messages across **distributed systems** such as PostgreSQL or MySQL, and Redis, RabbitMQ or Kafka.
+By solving the [*dual write problem*](https://www.confluent.io/blog/dual-write-problem/), *at-least-once delivery* of messages across *distributed systems* can be guaranteed.
+
+This allows you to quickly *migrate your existing stack* to *eventually consistent, event driven architecture* and get all the benefits including *scalability*, *resilence*, *fault tolerance* and *performance*.
 
 # 🚀 Quickstart
 
@@ -29,7 +31,7 @@ bin/rails g outboxer:install
 bin/rails db:migrate
 ```
 
-**4. Queue message in same database transaction**
+**4. Queue message after messageable is created**
 
 ```ruby
 # app/models/event.rb
@@ -51,6 +53,8 @@ irb(main):001:0> Event.create!
   TRANSACTION              (0.3ms)  COMMIT
 => #<Event id: 1, ...>
 ```
+
+Note: `messageable` is created in the same transaction as `message`.
 
 **5. Publish messages**
 
