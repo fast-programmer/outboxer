@@ -65,7 +65,7 @@ end
 
 Retain confidence in your stack with end to end message queue and publish coverage.
 
-See the generated: `spec/bin/outboxer_publisher`
+See the generated: `bin/rspec spec/bin/outboxer_publisher`
 
 # 📈 Web Dashboard
 
