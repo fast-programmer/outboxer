@@ -61,7 +61,13 @@ Outboxer::Publisher.publish_message(...) do |message|
 end
 ```
 
-# 📊 Web Dashboard
+# 🧪 Testing
+
+Retain confidence in your stack with end to end message queue and publish coverage.
+
+See the generated: `spec/bin/outboxer_publisher`
+
+# 📈 Web Dashboard
 
 Monitor publishers and messages with the lightweight built-in UI.
 
