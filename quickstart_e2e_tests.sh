@@ -3,7 +3,7 @@ set -euo pipefail
 
 : "${TARGET_RUBY_VERSION:?must be set}"
 : "${TARGET_RAILS_VERSION:?must be set}"
-: "${TARGET_SQL_ADAPTER:?must be set}"
+: "${TARGET_DATABASE_ADAPTER:?must be set}"
 
 app_dir="outboxer_app_$(date +"%Y%m%d%H%M%S")"
 mkdir "$app_dir"
@@ -13,12 +13,12 @@ cd "$app_dir"
 bundle init
 bundle add rails --version "$TARGET_RAILS_VERSION"
 
-if [[ "$TARGET_SQL_ADAPTER" == "postgresql" ]]; then
+if [[ "$TARGET_DATABASE_ADAPTER" == "postgresql" ]]; then
   bundle add pg
-elif [[ "$TARGET_SQL_ADAPTER" == "mysql2" ]]; then
+elif [[ "$TARGET_DATABASE_ADAPTER" == "mysql" ]]; then
   bundle add mysql2
 else
-  echo "Unsupported TARGET_SQL_ADAPTER: $TARGET_SQL_ADAPTER (must be 'postgresql' or 'mysql2')"
+  echo "Unsupported TARGET_DATABASE_ADAPTER: $TARGET_DATABASE_ADAPTER (must be 'postgresql' or 'mysql')"
   exit 1
 fi
 
@@ -38,7 +38,7 @@ bundle exec rails new . \
   --skip-test \
   --force \
   --skip-bundle \
-  --database="$TARGET_SQL_ADAPTER"
+  --database="$TARGET_DATABASE_ADAPTER"
 
 bundle install
 bundle exec rails db:create
@@ -93,4 +93,4 @@ else
 end
 RUBY
 
-# TARGET_RUBY_VERSION=3.2.2 TARGET_RAILS_VERSION=7.1.5.1 TARGET_SQL_ADAPTER=postgresql ./quickstart_e2e_tests.sh
+# TARGET_RUBY_VERSION=3.2.2 TARGET_RAILS_VERSION=7.1.5.1 TARGET_DATABASE_ADAPTER=postgresql ./quickstart_e2e_tests.sh

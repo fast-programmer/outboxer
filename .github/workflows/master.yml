@@ -33,7 +33,7 @@ jobs:
         env:
           TARGET_RUBY_VERSION: 3.2.2
           TARGET_RAILS_VERSION: 7.1.5.1
-          TARGET_SQL_ADAPTER: postgresql
+          TARGET_DATABASE_ADAPTER: postgresql
           PGHOST: localhost
           PGUSER: outboxer_developer
           PGPASSWORD: outboxer_password
@@ -71,7 +71,7 @@ jobs:
         env:
           TARGET_RUBY_VERSION: 3.2.2
           TARGET_RAILS_VERSION: 7.1.5.1
-          TARGET_SQL_ADAPTER: mysql2
+          TARGET_DATABASE_ADAPTER: mysql
           DATABASE_ADAPTER: mysql2
           DATABASE_HOST: 127.0.0.1
           DATABASE_PORT: 3306
