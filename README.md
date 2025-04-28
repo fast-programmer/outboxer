@@ -4,9 +4,9 @@
 [![Coverage Status](https://coveralls.io/repos/github/fast-programmer/outboxer/badge.svg)](https://coveralls.io/github/fast-programmer/outboxer)
 [![Join our Discord](https://img.shields.io/badge/Discord-blue?style=flat&logo=discord&logoColor=white)](https://discord.gg/x6EUehX6vU)
 
-**Outboxer** is a high-reliability, high-performance implementation of the [**transactional outbox pattern**](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html) for **Ruby on Rails** applications.
+**Outboxer** is an implementation of the [**transactional outbox pattern**](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html) for **Ruby on Rails** applications.
 
-Migrate your existing stack to eventually consistent, event driven architecture quickly and get all the benefits including resilence, fault tolerance and scalability without the fear of lost messages, data corruption and long nights.
+It helps you migrate your existing stack to eventually consistent, event driven architecture quickly and get all the benefits including resilence, fault tolerance and scalability without the fear of lost messages, data corruption and long nights.
 
 # 🚀 Quickstart
 
@@ -29,7 +29,14 @@ bin/rails g outboxer:install
 bin/rails db:migrate
 ```
 
-**4. Queue message after messageable is created**
+**4. Generate messageable schema and model**
+
+```bash
+bin/rails generate model Event
+bin/rails db:migrate
+```
+
+**5. Queue message after messageable is created**
 
 ```ruby
 # app/models/event.rb
@@ -39,34 +46,24 @@ class Event < ApplicationRecord
 end
 ```
 
-Example:
-
-```
-# bin/rails c
-
-irb(main):001:0> Event.create!
-  TRANSACTION              (0.2ms)  BEGIN
-  Event Create             (1.0ms)  INSERT INTO "events" ...
-  Outboxer::Message Create (0.8ms)  INSERT INTO "outboxer_messages" ...
-  TRANSACTION              (0.3ms)  COMMIT
-=> #<Event id: 1, ...>
-```
-
-Note: `messageable` is created in the same transaction as `message`.
-
-**5. Publish messages**
+**6. Publish messages**
 
 ```ruby
 # bin/outboxer_publisher
 
-Outboxer::Publisher.publish_message do |message|
-  # Publish message to Sidekiq, Kafka, RabbitMQ, etc
+Outboxer::Publisher.publish_message(...) do |message|
+  logger.info "Outboxer publishing message " \
+    "id=#{message[:id]} " \
+    "messageable_id=#{message[:messageable_id]} " \
+    "messageable_type=#{message[:messageable_type]}"
+
+  # Publish message to Redis (Sidekiq), RabbitMQ, Kafka here
 end
 ```
 
 # 📊 Web Dashboard
 
-Monitor publishers and messages with a lightweight built-in UI.
+Monitor publishers and messages with the lightweight built-in UI.
 
 **Rails**
 
