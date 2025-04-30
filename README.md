@@ -67,7 +67,15 @@ The generated `spec/bin/outboxer_publisher` adds end to end queue and publish me
 
 # 📈 Monitoring
 
-Monitor publishers and messages with the built-in web UI.
+Monitor using the built-in web UI:
+
+## Publishers
+
+<img width="1288" alt="Screenshot 2025-04-30 at 6 25 06 pm" src="https://github.com/user-attachments/assets/a3844b78-82aa-4b08-9b6d-f71d6829d31f" />
+
+## Messages
+
+<img width="1290" alt="Screenshot 2025-04-30 at 6 25 37 pm" src="https://github.com/user-attachments/assets/9ccfc7e5-abd4-4a21-9dfe-7916044b1096" />
 
 **Rails**
 
