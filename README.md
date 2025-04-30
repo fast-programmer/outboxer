@@ -4,9 +4,9 @@
 [![Coverage Status](https://coveralls.io/repos/github/fast-programmer/outboxer/badge.svg)](https://coveralls.io/github/fast-programmer/outboxer)
 [![Join our Discord](https://img.shields.io/badge/Discord-blue?style=flat&logo=discord&logoColor=white)](https://discord.gg/x6EUehX6vU)
 
-**Outboxer** is a minimal, battle-tested, high-throughput implementation of the [**transactional outbox pattern**](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html) for **Ruby on Rails** applications.
+**Outboxer** is a battle-tested implementation of the [**transactional outbox pattern**](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html) for **Ruby on Rails** applications.
 
-It helps you quickly migrate your stack to eventually consistent, event-driven architecture — gaining resilience, fault tolerance, and scalability without the fear of lost messages, data corruption, or sleepless nights.
+It helps you quickly migrate your tech stack to eventually consistent, event-driven architecture — gaining resilience, fault tolerance, and scalability without the fear of lost messages, data corruption, or sleepless nights.
 
 # 🚀 Quickstart
 
@@ -63,9 +63,7 @@ end
 
 # 🧪 Testing
 
-Retain confidence in your stack with end to end message queue and publish coverage.
-
-See the generated: `spec/bin/outboxer_publisher`
+The generated `spec/bin/outboxer_publisher` adds end to end queue and publish message test coverage.
 
 # 📈 Monitoring
 
