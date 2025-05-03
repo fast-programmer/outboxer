@@ -284,11 +284,11 @@ module Outboxer
         Thread.new do
           Thread.current.name = "publisher-#{index + 1}"
 
-          while (buffered_message = queue.pop)
-            break if buffered_message.nil?
+          while (buffered_messages = queue.pop)
+            break if buffered_messages.nil?
 
-            publish_buffered_message(
-              id: id, name: name, buffered_message: buffered_message,
+            publish_buffered_messages(
+              id: id, name: name, buffered_messages: buffered_messages,
               logger: logger, &block)
           end
         end
@@ -597,36 +597,39 @@ module Outboxer
       logger.info "Outboxer terminated"
     end
 
-    # Publishes a buffered message
+    # Publishes buffered messages
     # @param id [Integer] The ID of the publisher.
     # @param name [String] The name of the publisher.
-    # @param buffered_message [Hash] The message data retrieved from the buffer.
+    # @param buffered_messages [Hash] The message data retrieved from the buffer.
     # @param logger [Logger] Logger for recording the outcome of the publishing attempt.
     # @yield [Hash] A block to process the publishing of the message.
-    def publish_buffered_message(id:, name:, buffered_message:, logger:, &block)
-      publishing_message = Message.publishing(
-        id: buffered_message[:id], publisher_id: id, publisher_name: name)
+    def publish_buffered_messages(id:, name:, buffered_messages:, logger:, &block)
+      buffered_message_ids = buffered_messages.map { |buffered_message| buffered_message[:id] }
+
+      publishing_messages = Message.publishing_by_ids(
+        ids: buffered_message_ids, publisher_id: id, publisher_name: name)
 
       begin
-        block.call(publishing_message)
+        block.call(publishing_messages)
       rescue ::Exception => error
-        failed_message = Message.failed(
-          id: publishing_message[:id], exception: error, publisher_id: id, publisher_name: name)
+        failed_messages = Message.failed_by_ids(
+          ids: buffered_message_ids, exception: error, publisher_id: id, publisher_name: name)
 
-        logger.debug "Outboxer failed to publish message id=#{failed_message[:id]} " \
-          "messageable=#{failed_message[:messageable_type]}::#{failed_message[:messageable_id]} " \
-          "in #{(failed_message[:updated_at] - failed_message[:queued_at]).round(3)}s"
+        failed_messages.each do |message|
+          logger.debug "Outboxer failed to publish message id=#{message[:id]} " \
+            "messageable=#{message[:messageable_type]}::#{message[:messageable_id]} in " \
+            "#{(message[:failed_at] - message[:queued_at]).round(3)}s"
 
         raise
-      end
+        end
 
-      published_message = Message.published(
-        id: publishing_message[:id], publisher_id: id, publisher_name: name)
+      published_messages = Message.published_by_ids(
+        ids: buffered_message_ids, publisher_id: id, publisher_name: name)
 
-      logger.debug "Outboxer published message id=#{published_message[:id]} " \
-        "messageable=#{published_message[:messageable_type]}::" \
-        "#{published_message[:messageable_id]} in " \
-        "#{(published_message[:updated_at] - published_message[:queued_at]).round(3)}s"
+      published_messages.each do |message|
+        logger.debug "Outboxer published message id=#{message[:id]} " \
+          "messageable=#{message[:messageable_type]}::#{message[:messageable_id]} in " \
+          "#{(message[:published_at] - message[:queued_at]).round(3)}s"
     rescue StandardError => error
       logger.error(
         "#{error.class}: #{error.message}\n" \
