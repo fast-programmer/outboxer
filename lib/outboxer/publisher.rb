@@ -277,9 +277,9 @@ module Outboxer
     # @param logger [Logger] The logger to use for logging operations.
     # @return [Array<Thread>] An array of threads managing publishing.
     # @yieldparam message [Hash] A message being processed.
-    def create_publisher_threads(id:, name:,
-                                 queue:, concurrency:,
-                                 logger:, &block)
+    def create_worker_threads(id:, name:,
+                              queue:, concurrency:,
+                              logger:, &block)
       concurrency.times.each_with_index.map do |_, index|
         Thread.new do
           Thread.current.name = "publisher-#{index + 1}"
@@ -542,7 +542,7 @@ module Outboxer
         heartbeat_interval: heartbeat_interval)
       id = publisher[:id]
 
-      publisher_threads = create_publisher_threads(
+      worker_threads = create_worker_threads(
         id: id, name: name, queue: queue, concurrency: concurrency,
         logger: logger, &block)
 
@@ -589,7 +589,7 @@ module Outboxer
       logger.info "Outboxer terminating"
 
       concurrency.times { queue.push(nil) }
-      publisher_threads.each(&:join)
+      worker_threads.each(&:join)
       heartbeat_thread.join
 
       delete(id: id)
