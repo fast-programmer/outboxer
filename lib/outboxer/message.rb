@@ -5,6 +5,23 @@ module Outboxer
 
     Status = Models::Message::Status
 
+    def serialize(id:, status:, messageable_type:, messageable_id:,
+                  queued_at:, buffered_at:, publishing_at:, updated_at:,
+                  publisher_id:, publisher_name:)
+      {
+        id: id,
+        status: status,
+        messageable_type: messageable_type,
+        messageable_id: messageable_id,
+        queued_at: queued_at,
+        buffered_at: buffered_at,
+        publishing_at: publishing_at,
+        updated_at: updated_at,
+        publisher_id: publisher_id,
+        publisher_name: publisher_name
+      }
+    end
+
     # Queues a new message.
     # @param messageable [Object, nil] the object associated with the message.
     # @param messageable_type [String, nil] type of the polymorphic messageable model
@@ -25,7 +42,7 @@ module Outboxer
         publisher_id: nil,
         publisher_name: nil)
 
-      {
+      serialize(
         id: message.id,
         status: message.status,
         messageable_type: message.messageable_type,
@@ -33,8 +50,9 @@ module Outboxer
         queued_at: message.queued_at,
         buffered_at: message.buffered_at,
         publishing_at: nil,
-        updated_at: message.updated_at
-      }
+        updated_at: message.updated_at,
+        publisher_id: nil,
+        publisher_name: nil)
     end
 
     # Finds a message by ID, including details about related publishers and exceptions.
@@ -110,7 +128,7 @@ module Outboxer
             publisher_id: publisher_id,
             publisher_name: publisher_name)
 
-          {
+          serialize(
             id: id,
             status: message.status,
             messageable_type: message.messageable_type,
@@ -118,8 +136,9 @@ module Outboxer
             queued_at: message.queued_at,
             buffered_at: message.buffered_at,
             publishing_at: message.publishing_at,
-            updated_at: message.updated_at
-          }
+            updated_at: message.updated_at,
+            publisher_id: publisher_id,
+            publisher_name: publisher_name)
         end
       end
     end
@@ -148,7 +167,7 @@ module Outboxer
             publisher_id: publisher_id,
             publisher_name: publisher_name)
 
-          {
+          serialize(
             id: id,
             status: message.status,
             messageable_type: message.messageable_type,
@@ -156,8 +175,9 @@ module Outboxer
             queued_at: message.queued_at,
             buffered_at: message.buffered_at,
             publishing_at: message.publishing_at,
-            updated_at: message.updated_at
-          }
+            updated_at: message.updated_at,
+            publisher_id: publisher_id,
+            publisher_name: publisher_name)
         end
       end
     end
@@ -195,7 +215,7 @@ module Outboxer
             outboxer_exception.frames.create!(index: index, text: frame)
           end
 
-          {
+          serialize(
             id: id,
             status: message.status,
             messageable_type: message.messageable_type,
@@ -203,8 +223,9 @@ module Outboxer
             queued_at: message.queued_at,
             buffered_at: message.buffered_at,
             publishing_at: message.publishing_at,
-            updated_at: message.updated_at
-          }
+            updated_at: message.updated_at,
+            publisher_id: publisher_id,
+            publisher_name: publisher_name)
         end
       end
     end
@@ -299,7 +320,7 @@ module Outboxer
           end
 
           messages.map do |message|
-            {
+            serialize(
               id: message.id,
               status: Message::Status::BUFFERED,
               messageable_type: message.messageable_type,
@@ -307,8 +328,9 @@ module Outboxer
               queued_at: message.queued_at,
               buffered_at: current_utc_time,
               publishing_at: nil,
-              updated_at: current_utc_time
-            }
+              updated_at: current_utc_time,
+              publisher_id: publisher_id,
+              publisher_name: publisher_name)
           end
         end
       end
