@@ -304,8 +304,8 @@ module Outboxer
     # @param id [Integer] The ID of the publisher.
     # @param name [String] The name of the publisher.
     # @param queue [Queue] The queue of messages to be published.
-    # @param batch_size [Integer] The batch sie.
-    # @param buffer_size [Integer] The buffer sie.
+    # @param batch_size [Integer] The batch size.
+    # @param buffer_size [Integer] The buffer size.
     # @param poll_interval [Float] The poll interval in seconds.
     # @param tick_interval [Float] The tick interval in seconds.
     # @param signal_read [IO] The IO object to read signals.

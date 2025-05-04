@@ -677,7 +677,7 @@ module Outboxer
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           messages = Models::Message
-            .where(id: ids, status: Status::BUFFERED)
+            .where(status: Status::BUFFERED, id: ids)
             .lock("FOR UPDATE SKIP LOCKED")
             .to_a
 
@@ -685,7 +685,7 @@ module Outboxer
 
           current_utc_time = time.now.utc
 
-          Models::Message.where(id: ids).update_all(
+          Models::Message.where(status: Status::BUFFERED, id: ids).update_all(
             status: Status::PUBLISHING,
             publishing_at: current_utc_time,
             updated_at: current_utc_time,
@@ -713,7 +713,7 @@ module Outboxer
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           messages = Models::Message
-            .where(id: ids, status: Status::PUBLISHING)
+            .where(status: Status::PUBLISHING, id: ids)
             .lock("FOR UPDATE SKIP LOCKED")
             .to_a
 
@@ -721,7 +721,7 @@ module Outboxer
 
           current_utc_time = time.now.utc
 
-          Models::Message.where(id: ids).update_all(
+          Models::Message.where(status: Status::PUBLISHING, id: ids).update_all(
             status: Status::PUBLISHED,
             updated_at: current_utc_time,
             publisher_id: publisher_id,
@@ -748,7 +748,7 @@ module Outboxer
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           messages = Models::Message
-            .where(id: ids, status: Status::PUBLISHING)
+            .where(status: Status::PUBLISHING, id: ids)
             .lock("FOR UPDATE SKIP LOCKED")
             .to_a
 
@@ -756,7 +756,7 @@ module Outboxer
 
           current_utc_time = time.now.utc
 
-          Models::Message.where(id: ids).update_all(
+          Models::Message.where(status: Status::PUBLISHING, id: ids).update_all(
             status: Status::FAILED,
             updated_at: current_utc_time,
             publisher_id: publisher_id,
