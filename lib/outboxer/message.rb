@@ -672,5 +672,121 @@ module Outboxer
 
       metrics
     end
+
+    def publishing_by_ids(ids:, publisher_id: nil, publisher_name: nil, time: ::Time)
+      ActiveRecord::Base.connection_pool.with_connection do
+        ActiveRecord::Base.transaction do
+          messages = Models::Message
+            .where(status: Status::BUFFERED, id: ids)
+            .lock("FOR UPDATE SKIP LOCKED")
+            .to_a
+
+          raise ArgumentError, "Some messages not buffered" if messages.size != ids.size
+
+          current_utc_time = time.now.utc
+
+          Models::Message.where(status: Status::BUFFERED, id: ids).update_all(
+            status: Status::PUBLISHING,
+            publishing_at: current_utc_time,
+            updated_at: current_utc_time,
+            publisher_id: publisher_id,
+            publisher_name: publisher_name)
+
+          messages.map do |message|
+            Message.serialize(
+              id: message.id,
+              status: Status::PUBLISHING,
+              messageable_type: message.messageable_type,
+              messageable_id: message.messageable_id,
+              queued_at: message.queued_at,
+              buffered_at: message.buffered_at,
+              publishing_at: current_utc_time,
+              updated_at: current_utc_time,
+              publisher_id: publisher_id,
+              publisher_name: publisher_name)
+          end
+        end
+      end
+    end
+
+    def published_by_ids(ids:, publisher_id: nil, publisher_name: nil, time: ::Time)
+      ActiveRecord::Base.connection_pool.with_connection do
+        ActiveRecord::Base.transaction do
+          messages = Models::Message
+            .where(status: Status::PUBLISHING, id: ids)
+            .lock("FOR UPDATE SKIP LOCKED")
+            .to_a
+
+          raise ArgumentError, "Some messages not publishing" if messages.size != ids.size
+
+          current_utc_time = time.now.utc
+
+          Models::Message.where(status: Status::PUBLISHING, id: ids).update_all(
+            status: Status::PUBLISHED,
+            updated_at: current_utc_time,
+            publisher_id: publisher_id,
+            publisher_name: publisher_name)
+
+          messages.map do |message|
+            Message.serialize(
+              id: message.id,
+              status: Status::PUBLISHED,
+              messageable_type: message.messageable_type,
+              messageable_id: message.messageable_id,
+              queued_at: message.queued_at,
+              buffered_at: message.buffered_at,
+              publishing_at: message.publishing_at,
+              updated_at: current_utc_time,
+              publisher_id: publisher_id,
+              publisher_name: publisher_name)
+          end
+        end
+      end
+    end
+
+    def failed_by_ids(ids:, exception:, publisher_id: nil, publisher_name: nil, time: ::Time)
+      ActiveRecord::Base.connection_pool.with_connection do
+        ActiveRecord::Base.transaction do
+          messages = Models::Message
+            .where(status: Status::PUBLISHING, id: ids)
+            .lock("FOR UPDATE SKIP LOCKED")
+            .to_a
+
+          raise ArgumentError, "Some messages not publishing" if messages.size != ids.size
+
+          current_utc_time = time.now.utc
+
+          Models::Message.where(status: Status::PUBLISHING, id: ids).update_all(
+            status: Status::FAILED,
+            updated_at: current_utc_time,
+            publisher_id: publisher_id,
+            publisher_name: publisher_name)
+
+          messages.each do |message|
+            outboxer_exception = message.exceptions.create!(
+              class_name: exception.class.name,
+              message_text: exception.message)
+
+            exception.backtrace.each_with_index do |frame, index|
+              outboxer_exception.frames.create!(index: index, text: frame)
+            end
+          end
+
+          messages.map do |message|
+            Message.serialize(
+              id: message.id,
+              status: Status::FAILED,
+              messageable_type: message.messageable_type,
+              messageable_id: message.messageable_id,
+              queued_at: message.queued_at,
+              buffered_at: message.buffered_at,
+              publishing_at: message.publishing_at,
+              updated_at: current_utc_time,
+              publisher_id: publisher_id,
+              publisher_name: publisher_name)
+          end
+        end
+      end
+    end
   end
 end
