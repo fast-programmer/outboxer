@@ -23,13 +23,15 @@ begin
     poll_interval: options[:poll_interval],
     heartbeat_interval: options[:heartbeat_interval],
     logger: logger
-  ) do |message|
-    # TODO: publish message here
+  ) do |messages|
+    # TODO: publish messages here
 
-    logger.info "Outboxer published message " \
-      "id=#{message[:id]} " \
-      "messageable_type=#{message[:messageable_type]} " \
-      "messageable_id=#{message[:messageable_id]} "
+    messages.each do |message|
+      logger.info "Outboxer published message " \
+        "id=#{message[:id]} " \
+        "messageable_type=#{message[:messageable_type]} " \
+        "messageable_id=#{message[:messageable_id]} "
+    end
   end
 ensure
   Outboxer::Database.disconnect(logger: logger)

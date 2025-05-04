@@ -23,7 +23,11 @@ module Outboxer
           options[:environment] = v
         end
 
-        opts.on("-b", "--buffer-size SIZE", Integer, "Buffer size") do |v|
+        opts.on("-b", "--batch-size SIZE", Integer, "Batch size") do |v|
+          options[:batch_size] = v
+        end
+
+        opts.on("-u", "--buffer-size SIZE", Integer, "Buffer size") do |v|
           options[:buffer_size] = v
         end
 
@@ -127,7 +131,7 @@ module Outboxer
     # @param heartbeat_interval [Float] The heartbeat interval in seconds.
     # @param time [Time] The current time context for timestamping.
     # @return [Hash] Details of the created publisher.
-    def create(name:, buffer_size:, concurrency:,
+    def create(name:, batch_size:, buffer_size:, concurrency:,
                tick_interval:, poll_interval:, heartbeat_interval:, time: ::Time)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
@@ -137,6 +141,7 @@ module Outboxer
             name: name,
             status: Status::PUBLISHING,
             settings: {
+              "batch_size" => batch_size,
               "buffer_size" => buffer_size,
               "concurrency" => concurrency,
               "tick_interval" => tick_interval,
@@ -299,6 +304,7 @@ module Outboxer
     # @param id [Integer] The ID of the publisher.
     # @param name [String] The name of the publisher.
     # @param queue [Queue] The queue of messages to be published.
+    # @param batch_size [Integer] The batch sie.
     # @param buffer_size [Integer] The buffer sie.
     # @param poll_interval [Float] The poll interval in seconds.
     # @param tick_interval [Float] The tick interval in seconds.
@@ -306,16 +312,18 @@ module Outboxer
     # @param logger [Logger] The logger to use for logging operations.
     # @param process [Process] The process object to use for timing.
     # @param kernel [Kernel] The kernel module to use for sleep operations.
-    def buffer_messages(id:, name:, queue:, buffer_size:, poll_interval:, tick_interval:,
+    def buffer_messages(id:, name:, queue:, batch_size:, buffer_size:,
+                        poll_interval:, tick_interval:,
                         signal_read:, logger:, process:, kernel:)
       buffer_remaining = buffer_size - queue.size
 
       if buffer_remaining > 0
         buffered_messages = Message.buffer(
-          limit: buffer_remaining, publisher_id: id, publisher_name: name)
+          limit: [buffer_remaining, batch_size].min,
+          publisher_id: id, publisher_name: name)
 
         if buffered_messages.count > 0
-          buffered_messages.each { |message| queue.push(message) }
+          queue.push(buffered_messages)
         else
           Publisher.sleep(
             poll_interval,
@@ -492,6 +500,7 @@ module Outboxer
     end
 
     PUBLISH_MESSAGE_DEFAULTS = {
+      batch_size: 10,
       buffer_size: 100,
       concurrency: 1,
       tick_interval: 0.1,
@@ -502,6 +511,7 @@ module Outboxer
 
     # Publish queued messages concurrently
     # @param name [String] The name of the publisher.
+    # @param batch_size [Integer] The batch size.
     # @param buffer_size [Integer] The buffer size.
     # @param concurrency [Integer] The number of threads for concurrent publishing.
     # @param tick_interval [Float] The tick interval in seconds.
@@ -514,6 +524,7 @@ module Outboxer
     # @yield [Hash] A block to handle the publishing of each message.
     def publish_message(
       name: "#{::Socket.gethostname}:#{::Process.pid}",
+      batch_size: PUBLISH_MESSAGE_DEFAULTS[:batch_size],
       buffer_size: PUBLISH_MESSAGE_DEFAULTS[:buffer_size],
       concurrency: PUBLISH_MESSAGE_DEFAULTS[:concurrency],
       tick_interval: PUBLISH_MESSAGE_DEFAULTS[:tick_interval],
@@ -527,8 +538,11 @@ module Outboxer
         "(#{RUBY_RELEASE_DATE} revision #{RUBY_REVISION[0, 10]}) [#{RUBY_PLATFORM}]"
 
       logger.info "Outboxer config " \
-        "buffer_size=#{buffer_size}, concurrency=#{concurrency}, " \
-        "tick_interval=#{tick_interval}, poll_interval=#{poll_interval}, " \
+        "batch_size=#{buffer_size}, " \
+        "buffer_size=#{buffer_size}, " \
+        "concurrency=#{concurrency}, " \
+        "tick_interval=#{tick_interval} " \
+        "poll_interval=#{poll_interval}, " \
         "heartbeat_interval=#{heartbeat_interval}, " \
         "log_level=#{logger.level}"
 
@@ -537,7 +551,7 @@ module Outboxer
       queue = Queue.new
 
       publisher = create(
-        name: name, buffer_size: buffer_size, concurrency: concurrency,
+        name: name, batch_size: batch_size, buffer_size: buffer_size, concurrency: concurrency,
         tick_interval: tick_interval, poll_interval: poll_interval,
         heartbeat_interval: heartbeat_interval)
       id = publisher[:id]
@@ -561,7 +575,7 @@ module Outboxer
         when Status::PUBLISHING
           buffer_messages(
             id: id, name: name,
-            queue: queue, buffer_size: buffer_size,
+            queue: queue, batch_size: batch_size, buffer_size: buffer_size,
             poll_interval: poll_interval, tick_interval: tick_interval,
             signal_read: signal_read, logger: logger, process: process, kernel: kernel)
         when Status::STOPPED
@@ -618,10 +632,11 @@ module Outboxer
         failed_messages.each do |message|
           logger.debug "Outboxer failed to publish message id=#{message[:id]} " \
             "messageable=#{message[:messageable_type]}::#{message[:messageable_id]} in " \
-            "#{(message[:failed_at] - message[:queued_at]).round(3)}s"
+            "#{(message[:updated_at] - message[:queued_at]).round(3)}s"
+        end
 
         raise
-        end
+      end
 
       published_messages = Message.published_by_ids(
         ids: buffered_message_ids, publisher_id: id, publisher_name: name)
@@ -629,7 +644,8 @@ module Outboxer
       published_messages.each do |message|
         logger.debug "Outboxer published message id=#{message[:id]} " \
           "messageable=#{message[:messageable_type]}::#{message[:messageable_id]} in " \
-          "#{(message[:published_at] - message[:queued_at]).round(3)}s"
+          "#{(message[:updated_at] - message[:queued_at]).round(3)}s"
+      end
     rescue StandardError => error
       logger.error(
         "#{error.class}: #{error.message}\n" \

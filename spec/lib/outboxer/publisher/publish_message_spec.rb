@@ -4,6 +4,7 @@ require "rails_helper"
 module Outboxer
   RSpec.describe Publisher do
     describe ".publish_message" do
+      let(:batch_size) { 1 }
       let(:buffer_size) { 1 }
       let(:poll_interval) { 1 }
       let(:tick_interval) { 0.1 }
@@ -20,6 +21,7 @@ module Outboxer
         it "dumps stack trace" do
           publish_message_thread = Thread.new do
             Outboxer::Publisher.publish_message(
+              batch_size: batch_size,
               buffer_size: buffer_size,
               poll_interval: poll_interval,
               tick_interval: tick_interval,
@@ -45,6 +47,7 @@ module Outboxer
         it "stops and resumes the publishing process correctly" do
           publish_message_thread = Thread.new do
             Outboxer::Publisher.publish_message(
+              batch_size: batch_size,
               buffer_size: buffer_size,
               poll_interval: poll_interval,
               tick_interval: tick_interval,
@@ -67,11 +70,14 @@ module Outboxer
       context "when message published successfully" do
         it "sets the message to published" do
           Publisher.publish_message(
+            batch_size: batch_size,
             buffer_size: buffer_size,
             poll_interval: poll_interval,
             tick_interval: tick_interval,
             logger: logger,
-            kernel: kernel) do |message|
+            kernel: kernel) do |messages|
+            message = messages.first
+
             expect(message[:id]).to eq(queued_message.id)
             expect(message[:messageable_type]).to eq(queued_message.messageable_type)
             expect(message[:messageable_id]).to eq(queued_message.messageable_id)
@@ -90,6 +96,7 @@ module Outboxer
 
           before do
             Publisher.publish_message(
+              batch_size: batch_size,
               buffer_size: buffer_size,
               poll_interval: poll_interval,
               tick_interval: tick_interval,
@@ -131,6 +138,7 @@ module Outboxer
 
           before do
             Publisher.publish_message(
+              batch_size: batch_size,
               buffer_size: buffer_size,
               poll_interval: poll_interval,
               tick_interval: tick_interval,
@@ -184,6 +192,7 @@ module Outboxer
             expect(logger).to receive(:error).with(include("StandardError: queue error")).once
 
             Publisher.publish_message(
+              batch_size: batch_size,
               buffer_size: buffer_size,
               poll_interval: poll_interval,
               tick_interval: tick_interval,
@@ -202,6 +211,7 @@ module Outboxer
               .once
 
             Publisher.publish_message(
+              batch_size: batch_size,
               buffer_size: buffer_size,
               poll_interval: poll_interval,
               tick_interval: tick_interval,

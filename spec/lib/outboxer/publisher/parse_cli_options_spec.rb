@@ -27,9 +27,16 @@ module Outboxer
         end
       end
 
+      context "when parsing the batch size option" do
+        it "parses short and long flags" do
+          expect(Publisher.parse_cli_options(["-b", "10"])).to eq({ batch_size: 10 })
+          expect(Publisher.parse_cli_options(["--batch-size", "10"])).to eq({ batch_size: 10 })
+        end
+      end
+
       context "when parsing the buffer size option" do
         it "parses short and long flags" do
-          expect(Publisher.parse_cli_options(["-b", "100"])).to eq({ buffer_size: 100 })
+          expect(Publisher.parse_cli_options(["-u", "100"])).to eq({ buffer_size: 100 })
           expect(Publisher.parse_cli_options(["--buffer-size", "100"])).to eq({ buffer_size: 100 })
         end
       end
