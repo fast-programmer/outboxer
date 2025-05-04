@@ -29,6 +29,10 @@ class CreateOutboxerMessages < ActiveRecord::Migration[6.1]
     # publisher throughput
     add_index :outboxer_messages, [:status, :publisher_id, :updated_at],
       name: "idx_outboxer_status_pub_id_updated_at"
+
+    # bulk status + id locking
+    add_index :outboxer_messages, [:status, :id],
+      name: "idx_outboxer_status_id"
   end
 
   def down
