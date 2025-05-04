@@ -6,6 +6,6 @@
 :heartbeat_interval: 5.0
 :log_level: 1
 development:
-  :concurrency: 2
+  :concurrency: 1
 staging:
   :concurrency: 10
