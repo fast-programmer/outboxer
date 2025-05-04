@@ -51,13 +51,15 @@ end
 ```ruby
 # bin/outboxer_publisher
 
-Outboxer::Publisher.publish_message(...) do |message|
-  # TODO: publish message here
+Outboxer::Publisher.publish_messages(...) do |messages|
+  # TODO: publish messages here
 
-  logger.info "Outboxer published message " \
-    "id=#{message[:id]} " \
-    "messageable_type=#{message[:messageable_type]} " \
-    "messageable_id=#{message[:messageable_id]} "
+  messages.each do |message|
+    logger.info "Outboxer published message " \
+      "id=#{message[:id]} " \
+      "messageable_type=#{message[:messageable_type]} " \
+      "messageable_id=#{message[:messageable_id]} "
+  end
 end
 ```
 
