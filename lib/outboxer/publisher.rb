@@ -538,7 +538,7 @@ module Outboxer
         "(#{RUBY_RELEASE_DATE} revision #{RUBY_REVISION[0, 10]}) [#{RUBY_PLATFORM}]"
 
       logger.info "Outboxer config " \
-        "batch_size=#{buffer_size}, " \
+        "batch_size=#{batch_size}, " \
         "buffer_size=#{buffer_size}, " \
         "concurrency=#{concurrency}, " \
         "tick_interval=#{tick_interval} " \
