@@ -17,7 +17,6 @@ Outboxer::Database.connect(config: database_config, logger: logger)
 
 begin
   Outboxer::Publisher.publish_messages(
-    batch_size: options[:batch_size],
     buffer_size: options[:buffer_size],
     concurrency: options[:concurrency],
     tick_interval: options[:tick_interval],

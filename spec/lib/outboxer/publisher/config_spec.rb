@@ -9,7 +9,6 @@ module Outboxer
         allow(ENV).to receive(:[]).with("RAILS_MAX_THREADS").and_return("4")
         config = Publisher.config(environment: "test", path: path)
         expect(config).to eq({
-          batch_size: 10,
           buffer_size: 100,
           concurrency: 4,
           tick_interval: 0.1,
@@ -21,7 +20,6 @@ module Outboxer
 
       it "returns root values when environment not overridden" do
         expect(Publisher.config(path: path)).to eq({
-          batch_size: 10,
           buffer_size: 100,
           concurrency: 1,
           tick_interval: 0.1,
@@ -34,7 +32,6 @@ module Outboxer
       it "returns environment overrides" do
         expect(Publisher.config(environment: "development", path: path))
           .to eq({
-            batch_size: 10,
             buffer_size: 100,
             concurrency: 2,
             tick_interval: 0.1,
