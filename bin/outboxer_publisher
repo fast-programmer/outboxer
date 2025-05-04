@@ -7,7 +7,7 @@ cli_options = Outboxer::Publisher.parse_cli_options(ARGV)
 environment = cli_options.delete(:environment) || ENV["APP_ENV"] || ENV["RAILS_ENV"] || "development"
 config_path = cli_options.delete(:config) || Outboxer::Publisher::CONFIG_DEFAULTS[:path]
 config = Outboxer::Publisher.config(environment: environment, path: config_path)
-options = Outboxer::Publisher::PUBLISH_MESSAGE_DEFAULTS.merge(config.merge(cli_options))
+options = Outboxer::Publisher::PUBLISH_MESSAGES_DEFAULTS.merge(config.merge(cli_options))
 logger = Outboxer::Logger.new($stdout, level: options[:log_level])
 
 database_config = Outboxer::Database.config(
@@ -16,7 +16,7 @@ database_config = Outboxer::Database.config(
 Outboxer::Database.connect(config: database_config, logger: logger)
 
 begin
-  Outboxer::Publisher.publish_message(
+  Outboxer::Publisher.publish_messages(
     batch_size: options[:batch_size],
     buffer_size: options[:buffer_size],
     concurrency: options[:concurrency],

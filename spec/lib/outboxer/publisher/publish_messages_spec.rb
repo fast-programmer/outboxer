@@ -3,7 +3,7 @@ require "rails_helper"
 
 module Outboxer
   RSpec.describe Publisher do
-    describe ".publish_message" do
+    describe ".publish_messages" do
       let(:batch_size) { 1 }
       let(:buffer_size) { 1 }
       let(:poll_interval) { 1 }
@@ -19,13 +19,13 @@ module Outboxer
 
       context "when TTIN signal sent" do
         it "dumps stack trace" do
-          publish_message_thread = Thread.new do
-            Outboxer::Publisher.publish_message(
+          publish_messages_thread = Thread.new do
+            Outboxer::Publisher.publish_messages(
               batch_size: batch_size,
               buffer_size: buffer_size,
               poll_interval: poll_interval,
               tick_interval: tick_interval,
-              logger: logger, kernel: kernel) do |_message|
+              logger: logger, kernel: kernel) do |_messages|
               ::Process.kill("TTIN", ::Process.pid)
             end
           end
@@ -34,7 +34,7 @@ module Outboxer
 
           ::Process.kill("TERM", ::Process.pid)
 
-          publish_message_thread.join
+          publish_messages_thread.join
 
           expect(logger)
             .to have_received(:info)
@@ -45,14 +45,14 @@ module Outboxer
 
       context "when stopped and resumed during message publishing" do
         it "stops and resumes the publishing process correctly" do
-          publish_message_thread = Thread.new do
-            Outboxer::Publisher.publish_message(
+          publish_messages_thread = Thread.new do
+            Outboxer::Publisher.publish_messages(
               batch_size: batch_size,
               buffer_size: buffer_size,
               poll_interval: poll_interval,
               tick_interval: tick_interval,
               logger: logger,
-              kernel: kernel) do |_message|
+              kernel: kernel) do |_messages|
               ::Process.kill("TSTP", ::Process.pid)
             end
           end
@@ -63,13 +63,13 @@ module Outboxer
 
           ::Process.kill("TERM", ::Process.pid)
 
-          publish_message_thread.join
+          publish_messages_thread.join
         end
       end
 
       context "when message published successfully" do
         it "sets the message to published" do
-          Publisher.publish_message(
+          Publisher.publish_messages(
             batch_size: batch_size,
             buffer_size: buffer_size,
             poll_interval: poll_interval,
@@ -95,7 +95,7 @@ module Outboxer
           let(:standard_error) { StandardError.new("some error") }
 
           before do
-            Publisher.publish_message(
+            Publisher.publish_messages(
               batch_size: batch_size,
               buffer_size: buffer_size,
               poll_interval: poll_interval,
@@ -120,7 +120,7 @@ module Outboxer
             expect(queued_message.exceptions[0].frames[0].index).to eq(0)
 
             expect(queued_message.exceptions[0].frames[0].text).to match(
-              /outboxer\/publisher\/publish_message_spec.rb:\d+:in `block \(6 levels\) in <module:Outboxer>'/)
+              /outboxer\/publisher\/publish_messages_spec.rb:\d+:in `block \(6 levels\) in <module:Outboxer>'/)
           end
 
           it "logs errors" do
@@ -137,7 +137,7 @@ module Outboxer
           let(:no_memory_error) { NoMemoryError.new }
 
           before do
-            Publisher.publish_message(
+            Publisher.publish_messages(
               batch_size: batch_size,
               buffer_size: buffer_size,
               poll_interval: poll_interval,
@@ -159,7 +159,7 @@ module Outboxer
 
             expect(queued_message.exceptions[0].frames[0].index).to eq(0)
             expect(queued_message.exceptions[0].frames[0].text).to match(
-              /outboxer\/publisher\/publish_message_spec.rb:\d+:in `block \(6 levels\) in <module:Outboxer>'/)
+              /outboxer\/publisher\/publish_messages_spec.rb:\d+:in `block \(6 levels\) in <module:Outboxer>'/)
           end
 
           it "logs errors" do
@@ -191,7 +191,7 @@ module Outboxer
 
             expect(logger).to receive(:error).with(include("StandardError: queue error")).once
 
-            Publisher.publish_message(
+            Publisher.publish_messages(
               batch_size: batch_size,
               buffer_size: buffer_size,
               poll_interval: poll_interval,
@@ -210,7 +210,7 @@ module Outboxer
               .with(include("NoMemoryError: failed to allocate memory"))
               .once
 
-            Publisher.publish_message(
+            Publisher.publish_messages(
               batch_size: batch_size,
               buffer_size: buffer_size,
               poll_interval: poll_interval,

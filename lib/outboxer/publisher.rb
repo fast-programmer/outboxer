@@ -88,8 +88,8 @@ module Outboxer
 
       yaml = YAML.safe_load(erb_result, permitted_classes: [Symbol], aliases: true)
       yaml.deep_symbolize_keys!
-      yaml_override = yaml.fetch(environment&.to_sym, {}).slice(*PUBLISH_MESSAGE_DEFAULTS.keys)
-      yaml.slice(*PUBLISH_MESSAGE_DEFAULTS.keys).merge(yaml_override)
+      yaml_override = yaml.fetch(environment&.to_sym, {}).slice(*PUBLISH_MESSAGES_DEFAULTS.keys)
+      yaml.slice(*PUBLISH_MESSAGES_DEFAULTS.keys).merge(yaml_override)
     rescue Errno::ENOENT
       {}
     end
@@ -499,7 +499,7 @@ module Outboxer
       end
     end
 
-    PUBLISH_MESSAGE_DEFAULTS = {
+    PUBLISH_MESSAGES_DEFAULTS = {
       batch_size: 10,
       buffer_size: 100,
       concurrency: 1,
@@ -522,15 +522,15 @@ module Outboxer
     # @param process [Process] The process module for system metrics.
     # @param kernel [Kernel] The kernel module for sleeping operations.
     # @yield [Hash] A block to handle the publishing of each message.
-    def publish_message(
+    def publish_messages(
       name: "#{::Socket.gethostname}:#{::Process.pid}",
-      batch_size: PUBLISH_MESSAGE_DEFAULTS[:batch_size],
-      buffer_size: PUBLISH_MESSAGE_DEFAULTS[:buffer_size],
-      concurrency: PUBLISH_MESSAGE_DEFAULTS[:concurrency],
-      tick_interval: PUBLISH_MESSAGE_DEFAULTS[:tick_interval],
-      poll_interval: PUBLISH_MESSAGE_DEFAULTS[:poll_interval],
-      heartbeat_interval: PUBLISH_MESSAGE_DEFAULTS[:heartbeat_interval],
-      logger: Logger.new($stdout, level: PUBLISH_MESSAGE_DEFAULTS[:log_level]),
+      batch_size: PUBLISH_MESSAGES_DEFAULTS[:batch_size],
+      buffer_size: PUBLISH_MESSAGES_DEFAULTS[:buffer_size],
+      concurrency: PUBLISH_MESSAGES_DEFAULTS[:concurrency],
+      tick_interval: PUBLISH_MESSAGES_DEFAULTS[:tick_interval],
+      poll_interval: PUBLISH_MESSAGES_DEFAULTS[:poll_interval],
+      heartbeat_interval: PUBLISH_MESSAGES_DEFAULTS[:heartbeat_interval],
+      logger: Logger.new($stdout, level: PUBLISH_MESSAGES_DEFAULTS[:log_level]),
       time: ::Time, process: ::Process, kernel: ::Kernel,
       &block
     )
