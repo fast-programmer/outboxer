@@ -32,7 +32,7 @@ module Outboxer
       yaml = YAML.safe_load(erb_result, permitted_classes: [Symbol], aliases: true)
       yaml.deep_symbolize_keys!
       yaml = yaml[environment.to_sym] || {}
-      yaml[:pool] = concurrency + 2 # concurency + main + heartbeat
+      yaml[:pool] = concurrency + 3 # workers + (main + heartbeat + sweeper)
 
       yaml
     rescue Errno::ENOENT

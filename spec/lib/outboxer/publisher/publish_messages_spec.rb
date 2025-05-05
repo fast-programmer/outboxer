@@ -14,7 +14,94 @@ module Outboxer
         allow(logger).to receive(:level=)
       end
 
-      let!(:queued_message) { create(:outboxer_message, :queued) }
+      context "when sweeper deletes a message" do
+        let!(:old_message) { create(:outboxer_message, :published, updated_at: 2.seconds.ago) }
+
+        before do
+          Publisher.publish_messages(
+            buffer_size: buffer_size,
+            poll_interval: poll_interval,
+            tick_interval: tick_interval,
+            sweep_interval: 0.1,
+            sweep_retention: 1,
+            sweep_batch_size: 1,
+            logger: logger,
+            kernel: kernel
+          ) do |_messages|
+            sleep 0.2
+
+            ::Process.kill("TERM", ::Process.pid)
+          end
+        end
+
+        it "deletes the old published message" do
+          expect(Models::Message.exists?(id: old_message.id)).to be(false)
+        end
+      end
+
+      context "when sweeper raises StandardError" do
+        let!(:old_message) { create(:outboxer_message, :published, updated_at: 2.seconds.ago) }
+
+        before do
+          allow(Models::Message).to receive(:delete_all)
+            .and_raise(StandardError, "sweep fail")
+
+          Publisher.publish_messages(
+            buffer_size: buffer_size,
+            poll_interval: poll_interval,
+            tick_interval: tick_interval,
+            sweep_interval: 0.1,
+            sweep_retention: 1,
+            sweep_batch_size: 1,
+            logger: logger,
+            kernel: kernel
+          ) do |_messages|
+            sleep 0.2
+            ::Process.kill("TERM", ::Process.pid)
+          end
+        end
+
+        it "logs error" do
+          expect(logger).to have_received(:error)
+            .with(include("StandardError: sweep fail"))
+        end
+
+        it "does not delete the old message" do
+          expect(Models::Message.exists?(id: old_message.id)).to be(true)
+        end
+      end
+
+      context "when sweeper raises critical error" do
+        let!(:old_message) { create(:outboxer_message, :published, updated_at: 2.seconds.ago) }
+
+        before do
+          allow(Models::Message).to receive(:delete_all)
+            .and_raise(NoMemoryError, "boom")
+
+          Publisher.publish_messages(
+            buffer_size: buffer_size,
+            poll_interval: poll_interval,
+            tick_interval: tick_interval,
+            sweep_interval: 0.1,
+            sweep_retention: 1,
+            sweep_batch_size: 1,
+            logger: logger,
+            kernel: kernel
+          ) do |_messages|
+            sleep 0.2
+            ::Process.kill("TERM", ::Process.pid)
+          end
+        end
+
+        it "logs fatal error" do
+          expect(logger).to have_received(:fatal)
+            .with(include("NoMemoryError: boom"))
+        end
+
+        it "does not delete the old message" do
+          expect(Models::Message.exists?(id: old_message.id)).to be(true)
+        end
+      end
 
       context "when TTIN signal sent" do
         it "dumps stack trace" do
@@ -65,6 +152,8 @@ module Outboxer
       end
 
       context "when message published successfully" do
+        let!(:queued_message) { create(:outboxer_message, :queued, updated_at: 2.seconds.ago) }
+
         it "sets the message to published" do
           Publisher.publish_messages(
             buffer_size: buffer_size,
@@ -87,6 +176,8 @@ module Outboxer
       end
 
       context "when an error is raised in the block" do
+        let!(:queued_message) { create(:outboxer_message, :queued, updated_at: 2.seconds.ago) }
+
         context "when a standard error is raised" do
           let(:standard_error) { StandardError.new("some error") }
 
@@ -130,6 +221,7 @@ module Outboxer
 
         context "when a critical error is raised" do
           let(:no_memory_error) { NoMemoryError.new }
+          let!(:queued_message) { create(:outboxer_message, :queued, updated_at: 2.seconds.ago) }
 
           before do
             Publisher.publish_messages(
