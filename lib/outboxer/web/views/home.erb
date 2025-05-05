@@ -36,8 +36,11 @@
                                     </a>
                                     <div class="text-muted small mt-1">
                                         buffer_size: <%= publisher[:settings]['buffer_size'] %>, concurrency: <%= publisher[:settings]['concurrency'] %><br>
-                                        tick_interval: <%= publisher[:settings]['tick_interval'] %>, poll_interval: <%= publisher[:settings]['poll_interval'] %><br>
-                                        heartbeat_interval: <%= publisher[:settings]['heartbeat_interval'] %>
+                                        <!-- tick_interval: <%= publisher[:settings]['tick_interval'] %>, poll_interval: <%= publisher[:settings]['poll_interval'] %><br>
+                                             heartbeat_interval: <%= publisher[:settings]['heartbeat_interval'] %><br>
+                                             sweep_interval: <%= publisher[:settings]['sweep_interval'] %><br>
+                                             sweep_retention: <%= publisher[:settings]['sweep_retention'] %><br>
+                                             sweep_batch_size: <%= publisher[:settings]['sweep_batch_size'] %> -->
                                     </div>
                                 </td>
                                 <td><%= Outboxer::Web.time_ago_in_words(publisher[:created_at]) %> ago</td>

@@ -47,6 +47,18 @@ module Outboxer
           options[:log_level] = v
         end
 
+        opts.on("-s", "--sweep-interval SECS", Float, "Sweep interval in seconds") do |v|
+          options[:sweep_interval] = v
+        end
+
+        opts.on("-w", "--sweep-retention SECS", Float, "Sweep retention in seconds") do |v|
+          options[:sweep_retention] = v
+        end
+
+        opts.on("-r", "--sweep-batch-size SIZE", Integer, "Sweep batch size") do |v|
+          options[:sweep_batch_size] = v
+        end
+
         opts.on("-V", "--version", "Print version and exit") do
           puts "Outboxer version #{Outboxer::VERSION}"
           exit
@@ -128,7 +140,9 @@ module Outboxer
     # @param time [Time] The current time context for timestamping.
     # @return [Hash] Details of the created publisher.
     def create(name:, buffer_size:, concurrency:,
-               tick_interval:, poll_interval:, heartbeat_interval:, time: ::Time)
+               tick_interval:, poll_interval:, heartbeat_interval:,
+               sweep_interval:, sweep_retention:, sweep_batch_size:,
+               time: ::Time)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           current_utc_time = time.now.utc
@@ -141,7 +155,10 @@ module Outboxer
               "concurrency" => concurrency,
               "tick_interval" => tick_interval,
               "poll_interval" => poll_interval,
-              "heartbeat_interval" => heartbeat_interval
+              "heartbeat_interval" => heartbeat_interval,
+              "sweep_interval" => sweep_interval,
+              "sweep_retention" => sweep_retention,
+              "sweep_batch_size" => sweep_batch_size,
             },
             metrics: {
               "throughput" => 0,
@@ -499,6 +516,9 @@ module Outboxer
       tick_interval: 0.1,
       poll_interval: 5.0,
       heartbeat_interval: 5.0,
+      sweep_interval: 60,
+      sweep_retention: 60,
+      sweep_batch_size: 100,
       log_level: 1
     }
 
@@ -509,6 +529,9 @@ module Outboxer
     # @param tick_interval [Float] The tick interval in seconds.
     # @param poll_interval [Float] The poll interval in seconds.
     # @param heartbeat_interval [Float] The heartbeat interval in seconds.
+    # @param sweep_interval [Float] The interval in seconds between sweeper runs.
+    # @param sweep_retention [Float] The retention period in seconds for published messages.
+    # @param sweep_batch_size [Integer] The maximum number of messages to delete in each sweep.
     # @param logger [Logger] Logger for recording publishing activities.
     # @param time [Time] The current time context.
     # @param process [Process] The process module for system metrics.
@@ -521,6 +544,9 @@ module Outboxer
       tick_interval: PUBLISH_MESSAGES_DEFAULTS[:tick_interval],
       poll_interval: PUBLISH_MESSAGES_DEFAULTS[:poll_interval],
       heartbeat_interval: PUBLISH_MESSAGES_DEFAULTS[:heartbeat_interval],
+      sweep_interval: PUBLISH_MESSAGES_DEFAULTS[:sweep_interval],
+      sweep_retention: PUBLISH_MESSAGES_DEFAULTS[:sweep_retention],
+      sweep_batch_size: PUBLISH_MESSAGES_DEFAULTS[:sweep_batch_size],
       logger: Logger.new($stdout, level: PUBLISH_MESSAGES_DEFAULTS[:log_level]),
       time: ::Time, process: ::Process, kernel: ::Kernel,
       &block
@@ -534,6 +560,9 @@ module Outboxer
         "tick_interval=#{tick_interval} " \
         "poll_interval=#{poll_interval}, " \
         "heartbeat_interval=#{heartbeat_interval}, " \
+        "sweep_interval=#{sweep_interval}, " \
+        "sweep_retention=#{sweep_retention}, " \
+        "sweep_batch_size=#{sweep_batch_size}, " \
         "log_level=#{logger.level}"
 
       Setting.create_all
@@ -543,7 +572,11 @@ module Outboxer
       publisher = create(
         name: name, buffer_size: buffer_size, concurrency: concurrency,
         tick_interval: tick_interval, poll_interval: poll_interval,
-        heartbeat_interval: heartbeat_interval)
+        heartbeat_interval: heartbeat_interval,
+        sweep_interval: sweep_interval,
+        sweep_retention: sweep_retention,
+        sweep_batch_size: sweep_batch_size)
+
       id = publisher[:id]
 
       worker_threads = create_worker_threads(
@@ -559,6 +592,18 @@ module Outboxer
         signal_read: signal_read,
         logger: logger,
         time: time, process: process, kernel: kernel)
+
+      sweeper_thread = create_sweeper_thread(
+        id: id,
+        sweep_interval: sweep_interval,
+        sweep_retention: sweep_retention,
+        sweep_batch_size: sweep_batch_size,
+        tick_interval: tick_interval,
+        signal_read: signal_read,
+        logger: logger,
+        time: time,
+        process: process,
+        kernel: kernel)
 
       loop do
         case @status
@@ -593,8 +638,10 @@ module Outboxer
       logger.info "Outboxer terminating"
 
       concurrency.times { queue.push(nil) }
+
       worker_threads.each(&:join)
       heartbeat_thread.join
+      sweeper_thread.join
 
       delete(id: id)
 
@@ -672,6 +719,57 @@ module Outboxer
                 }
               end
             }
+          end
+        end
+      end
+    end
+
+    # Creates a sweeper thread to periodically delete old published messages for a publisher.
+    #
+    # @param id [Integer] The ID of the publisher.
+    # @param sweep_interval [Float] Time in seconds between each sweep run.
+    # @param sweep_retention [Float] Retention period in seconds for keeping published messages.
+    # @param sweep_batch_size [Integer] Max number of messages to delete in each sweep.
+    # @param tick_interval [Float] Time in seconds between signal checks while sleeping.
+    # @param signal_read [IO] IO pipe to receive signals for graceful handling.
+    # @param logger [Logger] Logger instance to report errors and fatal issues.
+    # @param time [Time] Module used for fetching current UTC time.
+    # @param process [Process] Process module used for monotonic clock timings.
+    # @param kernel [Kernel] Kernel module used for sleeping between sweeps.
+    # @return [Thread] The thread executing the sweeping logic.
+    def create_sweeper_thread(id:, sweep_interval:, sweep_retention:, sweep_batch_size:,
+                              tick_interval:, signal_read:, logger:, time:, process:, kernel:)
+      Thread.new do
+        Thread.current.name = "sweeper"
+
+        while @status != Status::TERMINATING
+          begin
+            deleted_count = Models::Message
+              .where(status: Message::Status::PUBLISHED)
+              .where("updated_at <= ?", time.now.utc - sweep_retention)
+              .order(updated_at: :asc)
+              .limit(sweep_batch_size)
+              .delete_all
+
+            if deleted_count == 0
+              Publisher.sleep(
+                sweep_interval,
+                start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
+                tick_interval: tick_interval,
+                signal_read: signal_read,
+                process: process,
+                kernel: kernel)
+            end
+          rescue StandardError => error
+            logger.error(
+              "#{error.class}: #{error.message}\n" \
+              "#{error.backtrace.join("\n")}")
+          rescue ::Exception => error
+            logger.fatal(
+              "#{error.class}: #{error.message}\n" \
+              "#{error.backtrace.join("\n")}")
+
+            terminate(id: id)
           end
         end
       end
