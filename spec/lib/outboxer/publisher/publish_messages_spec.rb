@@ -14,27 +14,29 @@ module Outboxer
         allow(logger).to receive(:level=)
       end
 
+      # t = 0.0  ➜ test starts
+      # t = 0.0  ➜ message created (2s old)
+      # t = 0.0  ➜ sweeper thread starts
+      # t ≈ 0.1  ➜ first sweep cycle runs (message qualifies, gets deleted)
+      # t = 0.3  ➜ main thread sends TERM
+      # t = 0.3+ ➜ publisher shuts down cleanly
       context "when sweeper deletes a message" do
         let!(:old_message) { create(:outboxer_message, :published, updated_at: 2.seconds.ago) }
 
-        before do
+        it "deletes the old published message" do
           Publisher.publish_messages(
             buffer_size: buffer_size,
             poll_interval: poll_interval,
             tick_interval: tick_interval,
             sweep_interval: 0.1,
-            sweep_retention: 1,
+            sweep_retention: 0.1,
             sweep_batch_size: 1,
             logger: logger,
             kernel: kernel
           ) do |_messages|
-            sleep 0.2
-
             ::Process.kill("TERM", ::Process.pid)
           end
-        end
 
-        it "deletes the old published message" do
           expect(Models::Message.exists?(id: old_message.id)).to be(false)
         end
       end

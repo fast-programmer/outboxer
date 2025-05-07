@@ -14,6 +14,9 @@ module Outboxer
           tick_interval: 0.1,
           poll_interval: 5.0,
           heartbeat_interval: 5.0,
+          sweep_interval: 60,
+          sweep_retention: 60,
+          sweep_batch_size: 100,
           log_level: 1
         })
       end
@@ -25,6 +28,9 @@ module Outboxer
           tick_interval: 0.1,
           poll_interval: 5.0,
           heartbeat_interval: 5.0,
+          sweep_interval: 60,
+          sweep_retention: 60,
+          sweep_batch_size: 100,
           log_level: 1
         })
       end
@@ -37,6 +43,9 @@ module Outboxer
             tick_interval: 0.1,
             poll_interval: 5.0,
             heartbeat_interval: 5.0,
+            sweep_interval: 60,
+            sweep_retention: 60,
+            sweep_batch_size: 100,
             log_level: 1
           })
       end

@@ -744,12 +744,10 @@ module Outboxer
 
         while @status != Status::TERMINATING
           begin
-            deleted_count = Models::Message
-              .where(status: Message::Status::PUBLISHED)
-              .where("updated_at <= ?", time.now.utc - sweep_retention)
-              .order(updated_at: :asc)
-              .limit(sweep_batch_size)
-              .delete_all
+            deleted_count = Message.delete_batch(
+              status: Message::Status::PUBLISHED,
+              older_than: time.now.utc - sweep_retention,
+              batch_size: sweep_batch_size)[:deleted_count]
 
             if deleted_count == 0
               Publisher.sleep(
