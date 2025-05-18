@@ -158,7 +158,7 @@ module Outboxer
               "heartbeat_interval" => heartbeat_interval,
               "sweep_interval" => sweep_interval,
               "sweep_retention" => sweep_retention,
-              "sweep_batch_size" => sweep_batch_size,
+              "sweep_batch_size" => sweep_batch_size
             },
             metrics: {
               "throughput" => 0,
