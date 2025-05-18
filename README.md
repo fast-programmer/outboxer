@@ -51,7 +51,7 @@ end
 ```ruby
 # bin/outboxer_publisher
 
-Outboxer::Publisher.publish_messages do |messages|
+Outboxer::Publisher.publish_messages do |publisher, messages|
   # TODO: publish messages here
 
   messages.each do |message|

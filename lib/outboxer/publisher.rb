@@ -536,7 +536,9 @@ module Outboxer
     # @param time [Time] The current time context.
     # @param process [Process] The process module for system metrics.
     # @param kernel [Kernel] The kernel module for sleeping operations.
-    # @yield [Hash] A block to handle the publishing of each message.
+    # @yield [publisher, messages] Yields publisher and messages to be published.
+    # @yieldparam publisher [Hash] A hash with keys `:id` and `:name` representing the publisher.
+    # @yieldparam messages [Array<Hash>] An array of message hashes retrieved from the buffer.
     def publish_messages(
       name: "#{::Socket.gethostname}:#{::Process.pid}",
       buffer_size: PUBLISH_MESSAGES_DEFAULTS[:buffer_size],
@@ -661,7 +663,7 @@ module Outboxer
         ids: buffered_message_ids, publisher_id: id, publisher_name: name)
 
       begin
-        block.call(publishing_messages)
+        block.call({ id: id, name: name }, publishing_messages)
       rescue ::Exception => error
         failed_messages = Message.failed_by_ids(
           ids: buffered_message_ids, exception: error, publisher_id: id, publisher_name: name)
