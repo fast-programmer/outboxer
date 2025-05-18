@@ -51,11 +51,11 @@ module Outboxer
           options[:sweep_interval] = v
         end
 
-        opts.on("-w", "--sweep-retention SECS", Float, "Sweep retention in seconds") do |v|
+        opts.on("-r", "--sweep-retention SECS", Float, "Sweep retention in seconds") do |v|
           options[:sweep_retention] = v
         end
 
-        opts.on("-r", "--sweep-batch-size SIZE", Integer, "Sweep batch size") do |v|
+        opts.on("-w", "--sweep-batch-size SIZE", Integer, "Sweep batch size") do |v|
           options[:sweep_batch_size] = v
         end
 
