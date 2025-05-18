@@ -26,11 +26,11 @@ begin
     sweep_retention: options[:sweep_retention],
     sweep_batch_size: options[:sweep_batch_size],
     logger: logger
-  ) do |messages|
+  ) do |publisher, messages|
     # TODO: publish messages here
 
     messages.each do |message|
-      logger.info "Outboxer published message " \
+      logger.info "Outboxer publisher id=#{publisher[:id]} published message " \
         "id=#{message[:id]} " \
         "messageable_type=#{message[:messageable_type]} " \
         "messageable_id=#{message[:messageable_id]} "

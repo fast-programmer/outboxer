@@ -29,7 +29,7 @@ module Outboxer
               sweep_batch_size: 100,
               logger: logger,
               kernel: kernel
-            ) do |_messages| # no op
+            ) do |_publisher, _messages| # no op
             end
           end
 
@@ -62,7 +62,7 @@ module Outboxer
               sweep_batch_size: 100,
               logger: logger,
               kernel: kernel
-            ) do |_messages| # no op
+            ) do |_publisher, _messages| # no op
             end
           end
 
@@ -86,7 +86,7 @@ module Outboxer
               sweep_batch_size: 1,
               logger: logger,
               kernel: kernel
-            ) do |_messages| # not called
+            ) do |_publisher, _messages| # no op
             end
           end
 
@@ -115,7 +115,7 @@ module Outboxer
               sweep_batch_size: 100,
               logger: logger,
               kernel: kernel
-            ) do |_messages| # no op
+            ) do |_publisher, _messages| # no op
             end
           end
 
@@ -143,7 +143,7 @@ module Outboxer
               buffer_size: buffer_size,
               poll_interval: poll_interval,
               tick_interval: tick_interval,
-              logger: logger, kernel: kernel) do |_messages|
+              logger: logger, kernel: kernel) do |_publisher, _messages|
               ::Process.kill("TTIN", ::Process.pid)
             end
           end
@@ -169,7 +169,7 @@ module Outboxer
               poll_interval: poll_interval,
               tick_interval: tick_interval,
               logger: logger,
-              kernel: kernel) do |_messages|
+              kernel: kernel) do |_publisher, _messages|
               ::Process.kill("TSTP", ::Process.pid)
             end
           end
@@ -193,7 +193,7 @@ module Outboxer
             poll_interval: poll_interval,
             tick_interval: tick_interval,
             logger: logger,
-            kernel: kernel) do |messages|
+            kernel: kernel) do |_publisher, messages|
             message = messages.first
 
             expect(message[:id]).to eq(queued_message.id)
@@ -220,7 +220,7 @@ module Outboxer
               poll_interval: poll_interval,
               tick_interval: tick_interval,
               logger: logger,
-              kernel: kernel) do |_message|
+              kernel: kernel) do |_publisher, _message|
               ::Process.kill("TERM", ::Process.pid)
 
               raise standard_error
@@ -262,7 +262,7 @@ module Outboxer
               poll_interval: poll_interval,
               tick_interval: tick_interval,
               logger: logger,
-              kernel: kernel) do |_buffer_sizeed_message|
+              kernel: kernel) do |_publisher, _buffer_sized_message|
               raise no_memory_error
             end
           end
