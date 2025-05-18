@@ -531,7 +531,7 @@ module Outboxer
     # @param heartbeat_interval [Float] The heartbeat interval in seconds.
     # @param sweep_interval [Float] The interval in seconds between sweeper runs.
     # @param sweep_retention [Float] The retention period in seconds for published messages.
-    # @param sweep_batch_size [Integer] The maximum number of messages to delete in each sweep.
+    # @param sweep_batch_size [Integer] The maximum number of messages to delete per batch.
     # @param logger [Logger] Logger for recording publishing activities.
     # @param time [Time] The current time context.
     # @param process [Process] The process module for system metrics.
