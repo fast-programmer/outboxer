@@ -178,25 +178,24 @@ module Outboxer
       end
 
       context "when stopped and resumed during message publishing" do
+        let!(:queued_message) { create(:outboxer_message, :queued, updated_at: 2.seconds.ago) }
+
         it "stops and resumes the publishing process correctly" do
-          publish_messages_thread = Thread.new do
-            Publisher.publish_messages(
-              buffer_size: buffer_size,
-              poll_interval: poll_interval,
-              tick_interval: tick_interval,
-              logger: logger,
-              kernel: kernel) do |_publisher, _messages|
-              ::Process.kill("TSTP", ::Process.pid)
-            end
+          Publisher.publish_messages(
+            buffer_size: buffer_size,
+            poll_interval: poll_interval,
+            tick_interval: tick_interval,
+            logger: logger,
+            kernel: kernel
+          ) do |_publisher, _messages|
+            ::Process.kill("TSTP", ::Process.pid)
+            sleep 0.5
+            ::Process.kill("CONT", ::Process.pid)
+            sleep 0.5
+            ::Process.kill("TERM", ::Process.pid)
           end
-          sleep 2
 
-          ::Process.kill("CONT", ::Process.pid)
-          sleep 1
-
-          ::Process.kill("TERM", ::Process.pid)
-
-          publish_messages_thread.join
+          expect(Models::Message.published.count).to eq(1)
         end
       end
 
