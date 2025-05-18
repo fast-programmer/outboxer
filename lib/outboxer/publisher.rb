@@ -536,7 +536,7 @@ module Outboxer
     # @param time [Time] The current time context.
     # @param process [Process] The process module for system metrics.
     # @param kernel [Kernel] The kernel module for sleeping operations.
-    # @yield [publisher, messages] Yields the publisher info and the messages to be published.
+    # @yield [publisher, messages] Yields publisher and messages to be published.
     # @yieldparam publisher [Hash] A hash with keys `:id` and `:name` representing the publisher.
     # @yieldparam messages [Array<Hash>] An array of message hashes retrieved from the buffer.
     def publish_messages(
