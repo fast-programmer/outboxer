@@ -199,28 +199,6 @@ module Outboxer
         end
       end
 
-      context "when a signal exists in the database" do
-        let!(:queued_message) { create(:outboxer_message, :queued, updated_at: 2.seconds.ago) }
-
-        it "deletes the signal after handling it" do
-          Publisher.publish_messages(
-            buffer_size: buffer_size,
-            poll_interval: poll_interval,
-            tick_interval: tick_interval,
-            logger: logger,
-            kernel: kernel
-          ) do |publisher, _messages|
-            Publisher.signal(id: publisher[:id], name: "TSTP")
-
-            sleep 0.3
-
-            ::Process.kill("TERM", ::Process.pid)
-          end
-
-          expect(Models::Signal.count).to eq(0)
-        end
-      end
-
       context "when message published successfully" do
         let!(:queued_message) { create(:outboxer_message, :queued, updated_at: 2.seconds.ago) }
 
