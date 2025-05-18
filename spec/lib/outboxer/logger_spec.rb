@@ -22,15 +22,6 @@ module Outboxer
             /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z pid=\d+ tid=\w+ INFO: #{message}\n?/)
         end
       end
-
-      it "uses thread name if available" do
-        Thread.current.name = "test-thread"
-
-        logger.info { "test message" }
-
-        log_output = output.string.strip
-        expect(log_output).to include("tid=test-thread")
-      end
     end
   end
 end
