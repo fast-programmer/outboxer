@@ -61,6 +61,33 @@ module Outboxer
         end
       end
 
+      context "when parsing the sweep interval option" do
+        it "parses short and long flags" do
+          expect(Publisher.parse_cli_options(["-s", "10"])).to eq({ sweep_interval: 10 })
+          expect(
+            Publisher.parse_cli_options(["--sweep-interval", "10"])
+          ).to eq({ sweep_interval: 10 })
+        end
+      end
+
+      context "when parsing the sweep retention option" do
+        it "parses short and long flags" do
+          expect(Publisher.parse_cli_options(["-r", "10"])).to eq({ sweep_retention: 10 })
+          expect(
+            Publisher.parse_cli_options(["--sweep-retention", "10"])
+          ).to eq({ sweep_retention: 10 })
+        end
+      end
+
+      context "when parsing the sweep batch size option" do
+        it "parses short and long flags" do
+          expect(Publisher.parse_cli_options(["-w", "10"])).to eq({ sweep_batch_size: 10 })
+          expect(
+            Publisher.parse_cli_options(["--sweep-batch_size", "10"])
+          ).to eq({ sweep_batch_size: 10 })
+        end
+      end
+
       context "when parsing the config file path option" do
         it "parses short and long flags" do
           expect(

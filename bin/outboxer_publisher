@@ -22,6 +22,9 @@ begin
     tick_interval: options[:tick_interval],
     poll_interval: options[:poll_interval],
     heartbeat_interval: options[:heartbeat_interval],
+    sweep_interval: options[:sweep_interval],
+    sweep_retention: options[:sweep_retention],
+    sweep_batch_size: options[:sweep_batch_size],
     logger: logger
   ) do |messages|
     # TODO: publish messages here

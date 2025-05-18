@@ -527,51 +527,55 @@ module Outboxer
     # @param older_than [Time, nil] threshold time before which messages are eligible for deletion.
     # @return [Hash] the count of messages that were deleted.
     def delete_all(status: nil, batch_size: 100, older_than: nil)
+      deleted_batch_count = delete_batch(
+        status: status, batch_size: batch_size, older_than: older_than)[:deleted_count]
+      deleted_count = deleted_batch_count
+
+      while deleted_batch_count == batch_size
+        deleted_batch_count = delete_batch(
+          status: status, batch_size: batch_size, older_than: older_than)[:deleted_count]
+
+        deleted_count += deleted_batch_count
+      end
+
+      { deleted_count: deleted_count }
+    end
+
+    # Deletes a batch of messages
+    # @param status [Symbol, nil] the status of messages to delete.
+    # @param batch_size [Integer] the number of messages to delete in each batch.
+    # @return [Hash] the count of messages that were deleted.
+    def delete_batch(status: nil, batch_size: 100, older_than: nil)
       deleted_count = 0
 
-      loop do
-        deleted_count_batch = 0
+      ActiveRecord::Base.connection_pool.with_connection do
+        ActiveRecord::Base.transaction do
+          query = Models::Message.all
+          query = query.where(status: status) unless status.nil?
+          query = query.where("updated_at < ?", older_than) if older_than
 
-        ActiveRecord::Base.connection_pool.with_connection do
-          ActiveRecord::Base.transaction do
-            query = Models::Message.all
-            query = query.where(status: status) unless status.nil?
-            query = query.where("updated_at < ?", older_than) if older_than
-            messages = query.order(:updated_at)
-              .limit(batch_size)
-              .lock("FOR UPDATE SKIP LOCKED")
-              .pluck(:id, :status)
-              .map { |message_id, message_status| { id: message_id, status: message_status } }
+          messages = query.order(:updated_at)
+            .limit(batch_size)
+            .lock("FOR UPDATE SKIP LOCKED")
+            .pluck(:id, :status)
+            .map { |message_id, message_status| { id: message_id, status: message_status } }
+          message_ids = messages.map { |message| message[:id] }
 
-            message_ids = messages.map { |message| message[:id] }
+          Models::Frame.joins(:exception).where(exception: { message_id: message_ids }).delete_all
+          Models::Exception.where(message_id: message_ids).delete_all
 
-            Models::Frame
-              .joins(:exception)
-              .where(exception: { message_id: message_ids })
-              .delete_all
+          deleted_count = Models::Message.where(id: message_ids).delete_all
 
-            Models::Exception.where(message_id: message_ids).delete_all
+          [Message::Status::PUBLISHED, Message::Status::FAILED].each do |message_status|
+            current_messages = messages.select { |message| message[:status] == message_status }
 
-            deleted_count_batch = Models::Message.where(id: message_ids).delete_all
-
-            [
-              Message::Status::PUBLISHED,
-              Message::Status::FAILED
-            ].each do |message_status|
-              current_messages = messages.select { |message| message[:status] == message_status }
-
-              if current_messages.count > 0
-                setting_name = "messages.#{message_status}.count.historic"
-                setting = Models::Setting.lock("FOR UPDATE").find_by!(name: setting_name)
-                setting.update!(value: setting.value.to_i + current_messages.count).to_s
-              end
+            if current_messages.count > 0
+              setting_name = "messages.#{message_status}.count.historic"
+              setting = Models::Setting.lock("FOR UPDATE").find_by!(name: setting_name)
+              setting.update!(value: setting.value.to_i + current_messages.count).to_s
             end
           end
         end
-
-        deleted_count += deleted_count_batch
-
-        break if deleted_count_batch < batch_size
       end
 
       { deleted_count: deleted_count }
