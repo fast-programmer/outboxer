@@ -14,13 +14,29 @@ module Outboxer
         allow(logger).to receive(:level=)
       end
 
+      context "when Publisher.terminate is called from within the block" do
+        let!(:queued_message) { create(:outboxer_message, :queued, updated_at: 2.seconds.ago) }
+
+        it "terminates the publisher" do
+          Publisher.publish_messages(
+            buffer_size: buffer_size,
+            poll_interval: poll_interval,
+            tick_interval: tick_interval,
+            logger: logger,
+            kernel: kernel
+          ) do |publisher, _messages|
+            Publisher.terminate(id: publisher[:id])
+          end
+        end
+      end
+
       context "when sweeper deletes a message" do
         let!(:message_1) { create(:outboxer_message, :published, updated_at: 2.seconds.ago) }
         let!(:message_2) { create(:outboxer_message, :published, updated_at: 2.seconds.ago) }
 
         it "deletes the old published message" do
           publish_messages_thread = Thread.new do
-            Outboxer::Publisher.publish_messages(
+            Publisher.publish_messages(
               buffer_size: buffer_size,
               poll_interval: poll_interval,
               tick_interval: tick_interval,
@@ -47,13 +63,13 @@ module Outboxer
         let!(:old_message) { create(:outboxer_message, :published, updated_at: 2.seconds.ago) }
 
         before do
-          allow(Outboxer::Message).to receive(:delete_batch)
+          allow(Message).to receive(:delete_batch)
             .and_raise(StandardError, "sweep fail")
         end
 
         it "logs error" do
           publish_messages_thread = Thread.new do
-            Outboxer::Publisher.publish_messages(
+            Publisher.publish_messages(
               buffer_size: buffer_size,
               poll_interval: poll_interval,
               tick_interval: tick_interval,
@@ -77,7 +93,7 @@ module Outboxer
 
         it "does not delete the old message" do
           thread = Thread.new do
-            Outboxer::Publisher.publish_messages(
+            Publisher.publish_messages(
               buffer_size: buffer_size,
               poll_interval: poll_interval,
               tick_interval: tick_interval,
@@ -94,7 +110,7 @@ module Outboxer
           ::Process.kill("TERM", ::Process.pid)
           thread.join
 
-          expect(Outboxer::Models::Message.exists?(id: old_message.id)).to be(true)
+          expect(Models::Message.exists?(id: old_message.id)).to be(true)
         end
       end
 
@@ -106,7 +122,7 @@ module Outboxer
             .and_raise(NoMemoryError, "boom")
 
           thread = Thread.new do
-            Outboxer::Publisher.publish_messages(
+            Publisher.publish_messages(
               buffer_size: buffer_size,
               poll_interval: poll_interval,
               tick_interval: tick_interval,
@@ -139,7 +155,7 @@ module Outboxer
 
         it "dumps stack trace" do
           publish_messages_thread = Thread.new do
-            Outboxer::Publisher.publish_messages(
+            Publisher.publish_messages(
               buffer_size: buffer_size,
               poll_interval: poll_interval,
               tick_interval: tick_interval,
@@ -164,7 +180,7 @@ module Outboxer
       context "when stopped and resumed during message publishing" do
         it "stops and resumes the publishing process correctly" do
           publish_messages_thread = Thread.new do
-            Outboxer::Publisher.publish_messages(
+            Publisher.publish_messages(
               buffer_size: buffer_size,
               poll_interval: poll_interval,
               tick_interval: tick_interval,

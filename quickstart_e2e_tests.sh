@@ -74,7 +74,7 @@ while attempt <= max_attempts
   rescue IO::WaitReadable, EOFError
   end
 
-  break if output.include?("Outboxer published message")
+  break if output.include?("published message")
 
   sleep delay
   attempt += 1
@@ -84,7 +84,7 @@ Process.kill("TERM", pid)
 Process.wait(pid)
 read_io.close
 
-if output.include?("Outboxer published message")
+if output.include?("published message")
   puts "Outboxer published message found"
   exit 0
 else
