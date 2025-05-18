@@ -14,12 +14,6 @@ module Outboxer
         allow(logger).to receive(:level=)
       end
 
-      # t = 0.0  ➜ test starts
-      # t = 0.0  ➜ message created (2s old)
-      # t = 0.0  ➜ sweeper thread starts
-      # t ≈ 0.1  ➜ first sweep cycle runs (message qualifies, gets deleted)
-      # t = 0.3  ➜ main thread sends TERM
-      # t = 0.3+ ➜ publisher shuts down cleanly
       context "when sweeper deletes a message" do
         let!(:message_1) { create(:outboxer_message, :published, updated_at: 2.seconds.ago) }
         let!(:message_2) { create(:outboxer_message, :published, updated_at: 2.seconds.ago) }
