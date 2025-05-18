@@ -170,7 +170,7 @@ module Outboxer
         if seconds < 60
           "#{seconds} #{seconds == 1 ? "second" : "seconds"}"
         else
-          prefix = seconds.negative? ? "from now" : "ago"
+          prefix = seconds.negative? ? "from now" : ""
           seconds = seconds.abs
 
           case seconds

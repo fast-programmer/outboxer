@@ -98,14 +98,14 @@
                         <tr>
                             <td>Queued to Buffered</td>
                             <td><%= Outboxer::Web.pretty_duration_from_seconds_to_milliseconds(seconds: queue_latency) %></td>
-                            <td><%= queue_percent %>%</td>
+                            <td><%= queue_percent %></td>
                         </tr>
 
                         <!-- Buffer Latency -->
                         <tr>
                             <td>Buffered to Publishing</td>
                             <td><%= Outboxer::Web.pretty_duration_from_seconds_to_milliseconds(seconds: buffer_latency) %></td>
-                            <td><%= buffer_percent %>%</td>
+                            <td><%= buffer_percent %></td>
                         </tr>
 
                         <% if message[:status] == Outboxer::Message::Status::PUBLISHED %>
@@ -135,7 +135,7 @@
                         <tr>
                             <th>Total</th>
                             <td><%= Outboxer::Web.pretty_duration_from_seconds_to_milliseconds(seconds: total_latency) %></td>
-                            <td>100%</td>
+                            <td>100</td>
                         </tr>
                     </tfoot>
                 </table>
