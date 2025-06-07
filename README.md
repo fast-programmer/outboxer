@@ -6,9 +6,9 @@
 
 **Outboxer** is a battle-tested implementation of the [**transactional outbox pattern**](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html) for **Ruby on Rails** applications.
 
-It helps you increase the reliability, resilience, fault tolerance and scalability of your application without the fear of lost messages, data corruption, or sleepless nights.
+Increase the reliability, resilience, fault tolerance and scalability of your application without the fear of lost messages, data corruption, or sleepless nights.
 
-# 🚀 Quickstart
+# Quickstart
 
 **1. Install gem**
 
@@ -63,11 +63,11 @@ Outboxer::Publisher.publish_messages do |publisher, messages|
 end
 ```
 
-# 🧪 Testing
+# Testing
 
 The generated `spec/bin/outboxer_publisher` adds end to end queue and publish message test coverage.
 
-# 📈 Monitoring
+# Monitoring
 
 Monitor using the built-in web UI:
 
@@ -99,7 +99,7 @@ require 'outboxer/web'
 map '/outboxer' { run Outboxer::Web }
 ```
 
-# 🤝 Contributing
+# Contributing
 
 - ⭐ [Star us on GitHub](https://github.com/fast-programmer/outboxer)
 - 🐛 [Report issues](https://github.com/fast-programmer/outboxer/issues)
@@ -107,11 +107,11 @@ map '/outboxer' { run Outboxer::Web }
 
 All contributions are welcome!
 
-# ⚖️ License
+# License
 
 Open-sourced under [LGPL v3.0](https://www.gnu.org/licenses/lgpl-3.0.html).
 
-# 🏁 Why Outboxer?
+# Why Outboxer?
 
 - Production-hardened
 - Lightweight and easy to integrate
