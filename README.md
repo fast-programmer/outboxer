@@ -101,19 +101,12 @@ map '/outboxer' { run Outboxer::Web }
 
 # Contributing
 
-- ⭐ [Star us on GitHub](https://github.com/fast-programmer/outboxer)
-- 🐛 [Report issues](https://github.com/fast-programmer/outboxer/issues)
-- 💬 [Chat on Discord](https://discord.gg/x6EUehX6vU)
+* [Star us on GitHub](https://github.com/fast-programmer/outboxer)
+* [Report issues](https://github.com/fast-programmer/outboxer/issues)
+* [Chat on Discord](https://discord.gg/x6EUehX6vU)
 
 All contributions are welcome!
 
 # License
 
 Open-sourced under [LGPL v3.0](https://www.gnu.org/licenses/lgpl-3.0.html).
-
-# Why Outboxer?
-
-- Production-hardened
-- Lightweight and easy to integrate
-- Scales to millions of messages
-- Built to survive crashes, outages, and scale
