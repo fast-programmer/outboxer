@@ -6,7 +6,7 @@
 
 **Outboxer** is a battle-tested implementation of the [**transactional outbox pattern**](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html) for **Ruby on Rails** applications.
 
-Increase the reliability, resilience, fault tolerance and scalability of your application without the fear of lost messages, data corruption, or sleepless nights.
+It helps you migrate to a reliable **event-driven architecture**, based on **Domain-Driven Design (DDD)** principles.
 
 # Quickstart
 
