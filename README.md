@@ -6,7 +6,7 @@
 
 **Outboxer** is a battle-tested implementation of the [**transactional outbox pattern**](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html) for **Ruby on Rails** applications.
 
-It helps you build reliable **event-driven architecture** based on **Domain-Driven Design (DDD) principles** — without the risk of lost messages or inconsistent state.
+It helps you migrate your existing stack to **event-driven architecture** based on **Domain-Driven Design (DDD) principles** — without the risk of lost messages or inconsistent state.
 
 # Quickstart
 
@@ -29,14 +29,14 @@ bin/rails g outboxer:install
 bin/rails db:migrate
 ```
 
-**4. Generate messageable schema and model**
+**4. Generate basic event schema and model**
 
 ```bash
-bin/rails generate model Event
+bin/rails generate model Event type:string created_at:datetime --skip-timestamps
 bin/rails db:migrate
 ```
 
-**5. Queue message after messageable is created**
+**5. Queue message after event created**
 
 ```ruby
 # app/models/event.rb
@@ -52,13 +52,10 @@ end
 # bin/outboxer_publisher
 
 Outboxer::Publisher.publish_messages do |publisher, messages|
-  # TODO: publish messages here
-
   messages.each do |message|
-    logger.info "Outboxer published message " \
-      "id=#{message[:id]} " \
-      "messageable_type=#{message[:messageable_type]} " \
-      "messageable_id=#{message[:messageable_id]} "
+    # TODO: publish messages here
+
+    logger.info "Outboxer published message id=#{message[:id]}"
   end
 end
 ```
