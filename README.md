@@ -56,6 +56,7 @@ end
 Outboxer::Publisher.publish_messages do |publisher, messages|
   messages.each do |message|
     # TODO: publish messages here
+    # see https://github.com/fast-programmer/outboxer/wiki/Outboxer-publisher-block-examples
 
     Outboxer::Message.published_by_ids(
       ids: [message[:id]],
