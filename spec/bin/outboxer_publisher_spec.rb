@@ -40,9 +40,7 @@ RSpec.describe "bin/outboxer_publisher" do
 
     expect(output).to match(
       "published message " \
-      "id=#{message[:id]} " \
-      "messageable_type=#{message[:messageable_type]} " \
-      "messageable_id=#{message[:messageable_id]} "
+      "id=#{message[:id]} "
     )
   end
 end

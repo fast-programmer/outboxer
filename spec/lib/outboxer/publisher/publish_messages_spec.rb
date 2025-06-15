@@ -187,7 +187,13 @@ module Outboxer
             tick_interval: tick_interval,
             logger: logger,
             kernel: kernel
-          ) do |_publisher, _messages|
+          ) do |publisher, messages|
+            Message.published_by_ids(
+              ids: messages.map { |message| message[:id] },
+              publisher_id: publisher[:id],
+              publisher_name: publisher[:name]
+            )
+
             ::Process.kill("TSTP", ::Process.pid)
             sleep 0.5
             ::Process.kill("CONT", ::Process.pid)
@@ -208,13 +214,16 @@ module Outboxer
             poll_interval: poll_interval,
             tick_interval: tick_interval,
             logger: logger,
-            kernel: kernel) do |_publisher, messages|
-            message = messages.first
+            kernel: kernel) do |publisher, messages|
+            expect(messages.first[:id]).to eq(queued_message.id)
+            expect(messages.first[:messageable_type]).to eq(queued_message.messageable_type)
+            expect(messages.first[:messageable_id]).to eq(queued_message.messageable_id)
+            expect(messages.first[:status]).to eq(Message::Status::PUBLISHING)
 
-            expect(message[:id]).to eq(queued_message.id)
-            expect(message[:messageable_type]).to eq(queued_message.messageable_type)
-            expect(message[:messageable_id]).to eq(queued_message.messageable_id)
-            expect(message[:status]).to eq(Message::Status::PUBLISHING)
+            Message.published_by_ids(
+              ids: messages.map { |message| message[:id] },
+              publisher_id: publisher[:id],
+              publisher_name: publisher[:name])
 
             ::Process.kill("TERM", ::Process.pid)
           end
@@ -235,35 +244,22 @@ module Outboxer
               poll_interval: poll_interval,
               tick_interval: tick_interval,
               logger: logger,
-              kernel: kernel) do |_publisher, _message|
+              kernel: kernel) do |_publisher, _messages|
               ::Process.kill("TERM", ::Process.pid)
 
               raise standard_error
             end
           end
 
-          it "sets message to failed" do
+          it "does not change publishing status" do
             queued_message.reload
 
-            expect(queued_message.status).to eq(Message::Status::FAILED)
-            expect(queued_message.exceptions.count).to eq(1)
-            expect(queued_message.exceptions[0].class_name).to eq(standard_error.class.name)
-            expect(queued_message.exceptions[0].message_text).to eq(standard_error.message)
-            expect(queued_message.exceptions[0].created_at).not_to be_nil
-
-            expect(queued_message.exceptions[0].frames[0].index).to eq(0)
-
-            expect(queued_message.exceptions[0].frames[0].text).to match(
-              /outboxer\/publisher\/publish_messages_spec.rb:\d+:in `block \(6 levels\) in <module:Outboxer>'/)
+            expect(queued_message.status).to eq(Message::Status::PUBLISHING)
           end
 
           it "logs errors" do
             expect(logger).to have_received(:error).with(
               a_string_matching(/^StandardError: some error/)).once
-
-            expect(logger).to have_received(:debug).with(
-              a_string_matching("failed to publish message id=#{queued_message.id} " \
-                "messageable=#{queued_message[:messageable_type]}::#{queued_message[:messageable_id]}")).once
           end
         end
 
@@ -282,25 +278,13 @@ module Outboxer
             end
           end
 
-          it "sets message to failed" do
+          it "does not change publishing status" do
             queued_message.reload
 
-            expect(queued_message.status).to eq(Message::Status::FAILED)
-            expect(queued_message.exceptions.count).to eq(1)
-            expect(queued_message.exceptions[0].class_name).to eq(no_memory_error.class.name)
-            expect(queued_message.exceptions[0].message_text).to eq(no_memory_error.message)
-            expect(queued_message.exceptions[0].created_at).not_to be_nil
-
-            expect(queued_message.exceptions[0].frames[0].index).to eq(0)
-            expect(queued_message.exceptions[0].frames[0].text).to match(
-              /outboxer\/publisher\/publish_messages_spec.rb:\d+:in `block \(6 levels\) in <module:Outboxer>'/)
+            expect(queued_message.status).to eq(Message::Status::PUBLISHING)
           end
 
           it "logs errors" do
-            expect(logger).to have_received(:debug).with(
-              a_string_matching("failed to publish message id=#{queued_message.id} " \
-                "messageable=#{queued_message[:messageable_type]}::#{queued_message[:messageable_id]}")).once
-
             expect(logger).to have_received(:fatal).with(
               a_string_matching("#{no_memory_error.class}: #{no_memory_error.message}")).once
           end
