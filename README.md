@@ -57,7 +57,16 @@ Outboxer::Publisher.publish_messages do |publisher, messages|
   messages.each do |message|
     # TODO: publish messages here
 
-    logger.info "Outboxer published message id=#{message[:id]}"
+    Outboxer::Message.published_by_ids(
+      ids: [message[:id]],
+      publisher_id: publisher[:id],
+      publisher_name: publisher[:name])
+  rescue StandardError => error
+    Outboxer::Message.failed_by_ids(
+      ids: [message[:id]],
+      exception: error,
+      publisher_id: publisher[:id],
+      publisher_name: publisher[:name])
   end
 end
 ```
