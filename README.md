@@ -62,7 +62,7 @@ Outboxer::Publisher.publish_messages do |publisher, messages|
       ids: [message[:id]],
       publisher_id: publisher[:id],
       publisher_name: publisher[:name])
-  rescue StandardError => error
+  rescue => error
     Outboxer::Message.failed_by_ids(
       ids: [message[:id]],
       exception: error,
