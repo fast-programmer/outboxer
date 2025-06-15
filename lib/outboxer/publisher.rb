@@ -15,10 +15,6 @@ module Outboxer
       parser = ::OptionParser.new do |opts|
         opts.banner = "Usage: outboxer_publisher [options]"
 
-        opts.on("-C", "--config PATH", "Path to YAML config file") do |v|
-          options[:config] = v
-        end
-
         opts.on("-e", "--environment ENV", "Application environment") do |v|
           options[:environment] = v
         end
@@ -43,10 +39,6 @@ module Outboxer
           options[:heartbeat_interval] = v
         end
 
-        opts.on("-l", "--log-level LEVEL", Integer, "Log level") do |v|
-          options[:log_level] = v
-        end
-
         opts.on("-s", "--sweep-interval SECS", Float, "Sweep interval in seconds") do |v|
           options[:sweep_interval] = v
         end
@@ -57,6 +49,14 @@ module Outboxer
 
         opts.on("-w", "--sweep-batch-size SIZE", Integer, "Sweep batch size") do |v|
           options[:sweep_batch_size] = v
+        end
+
+        opts.on("-l", "--log-level LEVEL", Integer, "Log level") do |v|
+          options[:log_level] = v
+        end
+
+        opts.on("-C", "--config PATH", "Path to YAML config file") do |v|
+          options[:config] = v
         end
 
         opts.on("-V", "--version", "Print version and exit") do
