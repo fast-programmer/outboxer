@@ -42,7 +42,9 @@ bin/rails db:migrate
 # app/models/event.rb
 
 class Event < ApplicationRecord
-  after_create { Outboxer::Message.queue(messageable: self) }
+  after_create do |event|
+    Outboxer::Message.queue(messageable: event)
+  end
 end
 ```
 
