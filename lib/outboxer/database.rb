@@ -9,7 +9,8 @@ module Outboxer
 
     CONFIG_DEFAULTS = {
       environment: "development",
-      concurrency: 1,
+      buffering_thread_count: 1,
+      publishing_thread_count: 1,
       path: "config/database.yml"
     }
 
@@ -22,7 +23,8 @@ module Outboxer
     # @note Extra connections are added to the pool to cover for internal threads like main
     #   and the heartbeat thread.
     def config(environment: CONFIG_DEFAULTS[:environment],
-               concurrency: CONFIG_DEFAULTS[:concurrency],
+               buffering_thread_count: CONFIG_DEFAULTS[:buffering_thread_count],
+               publishing_thread_count: CONFIG_DEFAULTS[:publishing_thread_count],
                path: CONFIG_DEFAULTS[:path])
       path_expanded = ::File.expand_path(path)
       text = File.read(path_expanded)
@@ -32,7 +34,7 @@ module Outboxer
       yaml = YAML.safe_load(erb_result, permitted_classes: [Symbol], aliases: true)
       yaml.deep_symbolize_keys!
       yaml = yaml[environment.to_sym] || {}
-      yaml[:pool] = concurrency + 3 # workers + (main + heartbeat + sweeper)
+      yaml[:pool] = buffering_thread_count + publishing_thread_count + 3 # threads + (main + heartbeat + sweeper)
 
       yaml
     rescue Errno::ENOENT

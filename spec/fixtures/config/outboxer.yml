@@ -1,6 +1,7 @@
 ---
 :buffer_size: 100
-:concurrency: 1
+:buffering_threads_count: 1
+:publishing_threads_count: 1
 :tick_interval: 0.1
 :poll_interval: 5.0
 :heartbeat_interval: 5.0

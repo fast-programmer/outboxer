@@ -22,8 +22,10 @@ require "uri"
 
 environment = ENV["APP_ENV"] || ENV["RAILS_ENV"] || "development"
 
-config = Outboxer::Database.config(environment: environment, concurrency: 5)
+config = Outboxer::Database.config(environment: environment, buffering_thread_count: 5, publishing_thread_count: 5)
 Outboxer::Database.connect(config: config)
+
+# require 'pry'; binding.pry
 
 module Outboxer
   # The Web interface for Outboxer, providing a web-based view into the system's operations,

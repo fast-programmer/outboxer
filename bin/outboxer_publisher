@@ -11,14 +11,18 @@ options = Outboxer::Publisher::PUBLISH_MESSAGES_DEFAULTS.merge(config.merge(cli_
 logger = Outboxer::Logger.new($stdout, level: options[:log_level])
 
 database_config = Outboxer::Database.config(
-  environment: environment, concurrency: options[:concurrency])
+  environment: environment,
+  buffering_thread_count: options[:buffering_thread_count],
+  publishing_thread_count: options[:publishing_thread_count])
 
 Outboxer::Database.connect(config: database_config, logger: logger)
 
 begin
   Outboxer::Publisher.publish_messages(
     buffer_size: options[:buffer_size],
-    concurrency: options[:concurrency],
+    batch_size: options[:batch_size],
+    buffering_threads_count: options[:buffering_threads_count],
+    publishing_threads_count: options[:publishing_threads_count],
     tick_interval: options[:tick_interval],
     poll_interval: options[:poll_interval],
     heartbeat_interval: options[:heartbeat_interval],
@@ -36,9 +40,9 @@ begin
         publisher_id: publisher[:id],
         publisher_name: publisher[:name])
 
-      logger.info "Outboxer published message id=#{message[:id]} " \
-        "messageable=#{message[:messageable_type]}::#{message[:messageable_id]} in " \
-        "#{(message[:updated_at] - message[:queued_at]).round(3)}s"
+      # logger.info "Outboxer published message id=#{message[:id]} " \
+      #   "messageable=#{message[:messageable_type]}::#{message[:messageable_id]} in " \
+      #   "#{(message[:updated_at] - message[:queued_at]).round(3)}s"
     rescue StandardError => error
       Outboxer::Message.failed_by_ids(
         ids: [message[:id]],

@@ -5,10 +5,14 @@ module Outboxer
   module Publisher
     module_function
 
+    def terminating?
+      @status == Status::TERMINATING
+    end
+
     # Parses command line arguments to configure the publisher.
     # @param args [Array<String>] The arguments passed via the command line.
     # @return [Hash] The parsed options including configuration path, environment,
-    # buffer size, concurrency, and intervals.
+    # buffer size, batch_size, and intervals.
     def self.parse_cli_options(args)
       options = {}
 
@@ -23,8 +27,16 @@ module Outboxer
           options[:buffer_size] = v
         end
 
-        opts.on("-c", "--concurrency SIZE", Integer, "Concurrency") do |v|
-          options[:concurrency] = v
+        opts.on("-B", "--batch-size SIZE", Integer, "Batch size") do |v|
+          options[:batch_size] = v
+        end
+
+        opts.on("--buffering-thread-count N", Integer, "Buffering thread count") do |v|
+          options[:buffering_thread_count] = v
+        end
+
+        opts.on("--publishing-thread-count N", Integer, "Publishing thread count") do |v|
+          options[:publishing_thread_count] = v
         end
 
         opts.on("-t", "--tick-interval SECS", Float, "Tick interval in seconds") do |v|
@@ -133,13 +145,15 @@ module Outboxer
     # Creates a new publisher with specified settings and metrics.
     # @param name [String] The name of the publisher.
     # @param buffer_size [Integer] The buffer size.
-    # @param concurrency [Integer] The number of concurrent operations.
+    # @param buffering_threads_count [Integer] The number of buffering threads.
+    # @param publishing_threads_count [Integer] The number of publishing threads.
     # @param tick_interval [Float] The tick interval in seconds.
     # @param poll_interval [Float] The poll interval in seconds.
     # @param heartbeat_interval [Float] The heartbeat interval in seconds.
     # @param time [Time] The current time context for timestamping.
     # @return [Hash] Details of the created publisher.
-    def create(name:, buffer_size:, concurrency:,
+    def create(name:, buffer_size:,
+               buffering_threads_count:, publishing_threads_count:,
                tick_interval:, poll_interval:, heartbeat_interval:,
                sweep_interval:, sweep_retention:, sweep_batch_size:,
                time: ::Time)
@@ -152,7 +166,8 @@ module Outboxer
             status: Status::PUBLISHING,
             settings: {
               "buffer_size" => buffer_size,
-              "concurrency" => concurrency,
+              "buffering_threads_count" => buffering_threads_count,
+              "publishing_threads_count" => publishing_threads_count,
               "tick_interval" => tick_interval,
               "poll_interval" => poll_interval,
               "heartbeat_interval" => heartbeat_interval,
@@ -257,17 +272,16 @@ module Outboxer
       end
     end
 
-    # Sleeps for the specified duration or until a signal is received, whichever comes first.
+    # Sleeps for the specified duration or until terminating, in tick-sized intervals.
     # @param duration [Float] The maximum duration to sleep in seconds.
-    # @param start_time [Time] The start time from which the duration is calculated.
-    # @param tick [Float] The interval in seconds to check for signals.
-    # @param signal_read [IO] An IO object to check for readable data.
-    # @param process [Process] The process module used for timing.
-    # @param kernel [Kernel] The kernel module used for sleeping.
-    def sleep(duration, start_time:, tick_interval:, signal_read:, process:, kernel:)
-      while (@status != Status::TERMINATING) &&
-            ((process.clock_gettime(process::CLOCK_MONOTONIC) - start_time) < duration) &&
-            !signal_read.wait_readable(0)
+    # @param tick_interval [Float] Interval between termination checks.
+    # @param process [Process] Module used for monotonic clock timing.
+    # @param kernel [Kernel] Module used for sleep operations.
+    def sleep(duration, tick_interval:, process:, kernel:)
+      start_time = process.clock_gettime(process::CLOCK_MONOTONIC)
+
+      while !terminating? &&
+            (process.clock_gettime(process::CLOCK_MONOTONIC) - start_time) < duration
         kernel.sleep(tick_interval)
       end
     end
@@ -286,83 +300,6 @@ module Outboxer
       [signal_read, signal_write]
     end
 
-    # Creates and manages threads dedicated to publishing operations.
-    # @param id [Integer] The ID of the publisher.
-    # @param name [String] The name of the publisher.
-    # @param queue [Queue] The queue to manage publishing messages.
-    # @param concurrency [Integer] The number of concurrent threads.
-    # @param logger [Logger] The logger to use for logging operations.
-    # @return [Array<Thread>] An array of threads managing publishing.
-    # @yieldparam message [Hash] A message being processed.
-    def create_worker_threads(id:, name:,
-                              queue:, concurrency:,
-                              logger:, &block)
-      concurrency.times.each_with_index.map do |_, index|
-        Thread.new do
-          Thread.current.name = "publisher-#{index + 1}"
-
-          while (buffered_messages = queue.pop)
-            break if buffered_messages.nil?
-
-            publish_buffered_messages(
-              id: id, name: name, buffered_messages: buffered_messages,
-              logger: logger, &block)
-          end
-        end
-      end
-    end
-
-    # Handles the buffering of messages based on the publisher's buffer capacity.
-    # @param id [Integer] The ID of the publisher.
-    # @param name [String] The name of the publisher.
-    # @param queue [Queue] The queue of messages to be published.
-    # @param buffer_size [Integer] The buffer size.
-    # @param poll_interval [Float] The poll interval in seconds.
-    # @param tick_interval [Float] The tick interval in seconds.
-    # @param signal_read [IO] The IO object to read signals.
-    # @param logger [Logger] The logger to use for logging operations.
-    # @param process [Process] The process object to use for timing.
-    # @param kernel [Kernel] The kernel module to use for sleep operations.
-    def buffer_messages(id:, name:, queue:, buffer_size:,
-                        poll_interval:, tick_interval:,
-                        signal_read:, logger:, process:, kernel:)
-      buffer_remaining = buffer_size - queue.size
-
-      if buffer_remaining > 0
-        buffered_messages = Message.buffer(
-          limit: buffer_remaining,
-          publisher_id: id, publisher_name: name)
-
-        if buffered_messages.count > 0
-          queue.push(buffered_messages)
-        else
-          Publisher.sleep(
-            poll_interval,
-            start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
-            tick_interval: tick_interval,
-            signal_read: signal_read,
-            process: process, kernel: kernel)
-        end
-      else
-        Publisher.sleep(
-          tick_interval,
-          start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
-          tick_interval: tick_interval,
-          signal_read: signal_read,
-          process: process, kernel: kernel)
-      end
-    rescue StandardError => error
-      logger.error(
-        "#{error.class}: #{error.message}\n" \
-        "#{error.backtrace.join("\n")}")
-    rescue ::Exception => error
-      logger.fatal(
-        "#{error.class}: #{error.message}\n" \
-        "#{error.backtrace.join("\n")}")
-
-      terminate(id: id)
-    end
-
     # Creates a new thread that manages heartbeat checks, providing system metrics and
     # handling the first signal in the queue.
     # @param id [Integer] The ID of the publisher.
@@ -375,7 +312,7 @@ module Outboxer
     # @param kernel [Kernel] The kernel module for sleeping operations.
     # @return [Thread] The heartbeat thread.
     def create_heartbeat_thread(id:,
-                                heartbeat_interval:, tick_interval:, signal_read:,
+                                heartbeat_interval:, tick_interval:,
                                 logger:, time:, process:, kernel:)
       Thread.new do
         Thread.current.name = "heartbeat"
@@ -415,7 +352,7 @@ module Outboxer
                 latency = if last_updated_message.nil?
                             0
                           else
-                            (Time.now.utc - last_updated_message.updated_at).to_i
+                            (time.now.utc - last_updated_message.updated_at).to_i
                           end
 
                 publisher.update!(
@@ -432,8 +369,6 @@ module Outboxer
 
             Publisher.sleep(
               heartbeat_interval,
-              signal_read: signal_read,
-              start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
               tick_interval: tick_interval,
               process: process, kernel: kernel)
           rescue ActiveRecord::RecordNotFound => error
@@ -449,10 +384,7 @@ module Outboxer
 
             Publisher.sleep(
               heartbeat_interval,
-              signal_read: signal_read,
-              start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
-              tick_interval: tick_interval,
-              process: process, kernel: kernel)
+              tick_interval: tick_interval, process: process, kernel: kernel)
           rescue ::Exception => error
             logger.fatal(
               "#{error.class}: #{error.message}\n" \
@@ -512,7 +444,9 @@ module Outboxer
 
     PUBLISH_MESSAGES_DEFAULTS = {
       buffer_size: 100,
-      concurrency: 1,
+      batch_size: 1000,
+      buffering_threads_count: 1,
+      publishing_threads_count: 1,
       tick_interval: 0.1,
       poll_interval: 5.0,
       heartbeat_interval: 5.0,
@@ -525,7 +459,8 @@ module Outboxer
     # Publish queued messages concurrently
     # @param name [String] The name of the publisher.
     # @param buffer_size [Integer] The buffer size.
-    # @param concurrency [Integer] The number of threads for concurrent publishing.
+    # @param buffering_threads_count [Integer] The number of threads buffering queued messages.
+    # @param publishing_threads_count [Integer] The number of threads publishing buffered messages.
     # @param tick_interval [Float] The tick interval in seconds.
     # @param poll_interval [Float] The poll interval in seconds.
     # @param heartbeat_interval [Float] The heartbeat interval in seconds.
@@ -542,7 +477,9 @@ module Outboxer
     def publish_messages(
       name: "#{::Socket.gethostname}:#{::Process.pid}",
       buffer_size: PUBLISH_MESSAGES_DEFAULTS[:buffer_size],
-      concurrency: PUBLISH_MESSAGES_DEFAULTS[:concurrency],
+      batch_size: PUBLISH_MESSAGES_DEFAULTS[:batch_size],
+      buffering_threads_count: PUBLISH_MESSAGES_DEFAULTS[:buffering_threads_count],
+      publishing_threads_count: PUBLISH_MESSAGES_DEFAULTS[:publishing_threads_count],
       tick_interval: PUBLISH_MESSAGES_DEFAULTS[:tick_interval],
       poll_interval: PUBLISH_MESSAGES_DEFAULTS[:poll_interval],
       heartbeat_interval: PUBLISH_MESSAGES_DEFAULTS[:heartbeat_interval],
@@ -558,7 +495,8 @@ module Outboxer
 
       logger.info "Outboxer config " \
         "buffer_size=#{buffer_size}, " \
-        "concurrency=#{concurrency}, " \
+        "buffering_threads_count=#{buffering_threads_count}, " \
+        "publishing_threads_count=#{publishing_threads_count}, " \
         "tick_interval=#{tick_interval} " \
         "poll_interval=#{poll_interval}, " \
         "heartbeat_interval=#{heartbeat_interval}, " \
@@ -569,10 +507,12 @@ module Outboxer
 
       Setting.create_all
 
-      queue = Queue.new
+      queue = SizedQueue.new(buffer_size)
 
       publisher = create(
-        name: name, buffer_size: buffer_size, concurrency: concurrency,
+        name: name, buffer_size: buffer_size,
+        buffering_threads_count: buffering_threads_count,
+        publishing_threads_count: publishing_threads_count,
         tick_interval: tick_interval, poll_interval: poll_interval,
         heartbeat_interval: heartbeat_interval,
         sweep_interval: sweep_interval,
@@ -581,19 +521,21 @@ module Outboxer
 
       id = publisher[:id]
 
-      worker_threads = create_worker_threads(
-        id: id, name: name, queue: queue, concurrency: concurrency,
+      buffering_threads = create_buffering_threads(
+        id: id, name: name,
+        count: buffering_threads_count,
+        queue: queue,
+        batch_size: batch_size,
+        poll_interval: poll_interval, tick_interval: tick_interval,
+        logger: logger, process: process, kernel: kernel)
+
+      publishing_threads = create_publishing_threads(
+        id: id, name: name, queue: queue, count: publishing_threads_count,
         logger: logger, &block)
 
-      signal_read, _signal_write = trap_signals
-
       heartbeat_thread = create_heartbeat_thread(
-        id: id,
-        heartbeat_interval: heartbeat_interval,
-        tick_interval: tick_interval,
-        signal_read: signal_read,
-        logger: logger,
-        time: time, process: process, kernel: kernel)
+        id: id, heartbeat_interval: heartbeat_interval, tick_interval: tick_interval,
+        logger: logger, time: time, process: process, kernel: kernel)
 
       sweeper_thread = create_sweeper_thread(
         id: id,
@@ -601,47 +543,24 @@ module Outboxer
         sweep_retention: sweep_retention,
         sweep_batch_size: sweep_batch_size,
         tick_interval: tick_interval,
-        signal_read: signal_read,
         logger: logger,
         time: time,
         process: process,
         kernel: kernel)
 
-      loop do
-        case @status
-        when Status::PUBLISHING
-          buffer_messages(
-            id: id, name: name,
-            queue: queue, buffer_size: buffer_size,
-            poll_interval: poll_interval, tick_interval: tick_interval,
-            signal_read: signal_read, logger: logger, process: process, kernel: kernel)
-        when Status::STOPPED
-          Publisher.sleep(
-            tick_interval,
-            start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
-            tick_interval: tick_interval,
-            signal_read: signal_read, process: process, kernel: kernel)
-        when Status::TERMINATING
-          break
-        end
+      signal_read, _signal_write = trap_signals
 
-        if signal_read.wait_readable(0)
-          signal_name =
-            begin
-              signal_read.gets.strip
-            rescue StandardError
-              nil
-            end
-
-          handle_signal(id: id, name: signal_name, logger: logger)
-        end
+      while !terminating?
+        signal_name = read_signal(signal_read: signal_read, tick_interval: tick_interval)
+        handle_signal(id: id, name: signal_name, logger: logger)
       end
 
       logger.info "Outboxer terminating"
 
-      concurrency.times { queue.push(nil) }
+      publishing_threads_count.times { queue.push(nil) }
 
-      worker_threads.each(&:join)
+      buffering_threads.each(&:join)
+      publishing_threads.each(&:join)
       heartbeat_thread.join
       sweeper_thread.join
 
@@ -650,29 +569,88 @@ module Outboxer
       logger.info "Outboxer terminated"
     end
 
-    # Publishes buffered messages
+    # @param signal_read [IO] The read-end of the signal pipe.
+    # @param tick_interval [Float] Seconds to wait for signal readability.
+    # @return [String, nil] The signal name read from the pipe, or nil if none or error occurs.
+    def read_signal(signal_read:, tick_interval:)
+      signal_read.wait_readable(tick_interval) ? signal_read.gets&.chomp : nil
+    rescue StandardError
+      nil
+    end
+
     # @param id [Integer] The ID of the publisher.
     # @param name [String] The name of the publisher.
-    # @param buffered_messages [Hash] The message data retrieved from the buffer.
-    # @param logger [Logger] Logger for recording the outcome of the publishing attempt.
-    # @yield [Hash] A block to process the publishing of the message.
-    def publish_buffered_messages(id:, name:, buffered_messages:, logger:, &block)
-      buffered_message_ids = buffered_messages.map { |buffered_message| buffered_message[:id] }
+    # @param queue [Queue] A sized queue to hold buffered messages.
+    # @param count [Integer] The number of buffering threads to start.
+    # @param batch_size [Integer] The number of messages to buffer per batch.
+    # @param logger [Logger] Logger instance for logging errors or diagnostics.
+    # @return [Array<Thread>] An array of started buffering threads.
+    def create_buffering_threads(id:, name:, count:, queue:, batch_size:,
+                                 poll_interval:, tick_interval:, logger:,
+                                 process:, kernel:)
+      Array.new(count) do |index|
+        Thread.new do
+          Thread.current.name = "buffering-#{index}"
 
-      publishing_messages = Message.publishing_by_ids(
-        ids: buffered_message_ids, publisher_id: id, publisher_name: name)
+          while !terminating?
+            begin
+              buffered_messages = Message.buffer(
+                publisher_id: id, publisher_name: name, limit: batch_size)
 
-      block.call({ id: id, name: name }, publishing_messages)
-    rescue StandardError => error
-      logger.error(
-        "#{error.class}: #{error.message}\n" \
-        "#{error.backtrace.join("\n")}")
-    rescue ::Exception => error
-      logger.fatal(
-        "#{error.class}: #{error.message}\n" \
-        "#{error.backtrace.join("\n")}")
+              if buffered_messages.any?
+                queue.push(buffered_messages)
+              else
+                Publisher.sleep(
+                  poll_interval, tick_interval: tick_interval, process: process, kernel: kernel)
+              end
+            rescue StandardError => error
+              logger.error("#{error.class}: #{error.message}\n#{error.backtrace.join("\n")}")
+            rescue Exception => error
+              logger.fatal("#{error.class}: #{error.message}\n#{error.backtrace.join("\n")}")
 
-      terminate(id: id)
+              terminate(id: id)
+            end
+          end
+        end
+      end
+    end
+
+    # Creates and manages threads dedicated to publishing operations.
+    # @param id [Integer] The ID of the publisher.
+    # @param name [String] The name of the publisher.
+    # @param queue [Queue] The queue to manage publishing messages.
+    # @param concurrency [Integer] The number of concurrent threads.
+    # @param logger [Logger] The logger to use for logging operations.
+    # @return [Array<Thread>] An array of threads managing publishing.
+    # @yieldparam message [Hash] A message being processed.
+    def create_publishing_threads(id:, name:, queue:, count:,
+                                  logger:, &block)
+      Array.new(count) do |index|
+        Thread.new do
+          Thread.current.name = "publish-#{index + 1}"
+
+          while (messages = queue.pop)
+            begin
+              message_ids = messages.map { |message| message[:id] }
+
+              publishing_messages = Message.publishing_by_ids(
+                ids: message_ids, publisher_id: id, publisher_name: name)
+
+              block.call({ id: id, name: name }, publishing_messages)
+            rescue StandardError => error
+              logger.error(
+                "#{error.class}: #{error.message}\n" \
+                "#{error.backtrace.join("\n")}")
+            rescue ::Exception => error
+              logger.fatal(
+                "#{error.class}: #{error.message}\n" \
+                "#{error.backtrace.join("\n")}")
+
+              terminate(id: id)
+            end
+          end
+        end
+      end
     end
 
     # Retrieves all publishers including signals.
@@ -711,14 +689,13 @@ module Outboxer
     # @param sweep_retention [Float] Retention period in seconds for keeping published messages.
     # @param sweep_batch_size [Integer] Max number of messages to delete in each sweep.
     # @param tick_interval [Float] Time in seconds between signal checks while sleeping.
-    # @param signal_read [IO] IO pipe to receive signals for graceful handling.
     # @param logger [Logger] Logger instance to report errors and fatal issues.
     # @param time [Time] Module used for fetching current UTC time.
     # @param process [Process] Process module used for monotonic clock timings.
     # @param kernel [Kernel] Kernel module used for sleeping between sweeps.
     # @return [Thread] The thread executing the sweeping logic.
     def create_sweeper_thread(id:, sweep_interval:, sweep_retention:, sweep_batch_size:,
-                              tick_interval:, signal_read:, logger:, time:, process:, kernel:)
+                              tick_interval:, logger:, time:, process:, kernel:)
       Thread.new do
         Thread.current.name = "sweeper"
 
@@ -732,9 +709,7 @@ module Outboxer
             if deleted_count == 0
               Publisher.sleep(
                 sweep_interval,
-                start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
                 tick_interval: tick_interval,
-                signal_read: signal_read,
                 process: process,
                 kernel: kernel)
             end
