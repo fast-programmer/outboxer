@@ -144,6 +144,7 @@ module Outboxer
 
     # Creates a new publisher with specified settings and metrics.
     # @param name [String] The name of the publisher.
+    # @param batch_size [Integer] The batch size.
     # @param buffer_size [Integer] The buffer size.
     # @param buffering_concurrency [Integer] The number of buffering threads.
     # @param publishing_concurrency [Integer] The number of publishing threads.
@@ -152,7 +153,7 @@ module Outboxer
     # @param heartbeat_interval [Float] The heartbeat interval in seconds.
     # @param time [Time] The current time context for timestamping.
     # @return [Hash] Details of the created publisher.
-    def create(name:, buffer_size:,
+    def create(name:, batch_size:, buffer_size:,
                buffering_concurrency:, publishing_concurrency:,
                tick_interval:, poll_interval:, heartbeat_interval:,
                sweep_interval:, sweep_retention:, sweep_batch_size:,
@@ -165,6 +166,7 @@ module Outboxer
             name: name,
             status: Status::PUBLISHING,
             settings: {
+              "batch_size" => batch_size,
               "buffer_size" => buffer_size,
               "buffering_concurrency" => buffering_concurrency,
               "publishing_concurrency" => publishing_concurrency,
@@ -590,7 +592,7 @@ module Outboxer
       queue = SizedQueue.new(buffer_size)
 
       publisher = create(
-        name: name, buffer_size: buffer_size,
+        name: name, batch_size: batch_size, buffer_size: buffer_size,
         buffering_concurrency: buffering_concurrency,
         publishing_concurrency: publishing_concurrency,
         tick_interval: tick_interval, poll_interval: poll_interval,
@@ -629,8 +631,9 @@ module Outboxer
       signal_read, _signal_write = trap_signals
 
       while !terminating?
-        signal_name = read_signal(signal_read: signal_read, tick_interval: tick_interval)
-        handle_signal(id: publisher[:id], name: signal_name, logger: logger)
+        if signal_read.wait_readable(tick_interval)
+          handle_signal(id: publisher[:id], name: signal_read.gets.chomp, logger: logger)
+        end
       end
 
       logger.info "Outboxer terminating"
@@ -650,15 +653,6 @@ module Outboxer
 
     def database_pool_size(buffering_concurrency:, publishing_concurrency:)
       buffering_concurrency + publishing_concurrency + 3 # (main + heartbeat + sweeper)
-    end
-
-    # @param signal_read [IO] The read-end of the signal pipe.
-    # @param tick_interval [Float] Seconds to wait for signal readability.
-    # @return [String, nil] The signal name read from the pipe, or nil if none or error occurs.
-    def read_signal(signal_read:, tick_interval:)
-      signal_read.wait_readable(tick_interval) ? signal_read.gets&.chomp : nil
-    rescue StandardError
-      nil
     end
 
     # @param id [Integer] The ID of the publisher.
