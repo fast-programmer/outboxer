@@ -78,7 +78,15 @@
                 <%
                     queue_latency = message[:buffered_at] && message[:queued_at] ? (message[:buffered_at] - message[:queued_at]) : 0
                     buffer_latency = message[:publishing_at] && message[:buffered_at] ? (message[:publishing_at] - message[:buffered_at]) : 0
-                    publish_latency = message[:publishing_at] ? (message[:updated_at] - message[:publishing_at]) : 0
+                    publish_latency =
+                        case message[:status]
+                            when Outboxer::Message::Status::PUBLISHED
+                                message[:published_at] - message[:publishing_at]
+                            when Outboxer::Message::Status::FAILED
+                                message[:failed_at] - message[:publishing_at]
+                            else
+                                0
+                            end
                     total_latency = queue_latency + buffer_latency + publish_latency
 
                     queue_percent = total_latency > 0 ? (queue_latency / total_latency * 100).round(2) : 0

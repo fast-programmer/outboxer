@@ -10,10 +10,11 @@ module Outboxer
             status: "publishing",
             messageable_type: "Invoice",
             messageable_id: "INV-001",
+            updated_at: "2025-05-03T10:00:10Z",
             queued_at: "2025-05-03T10:00:00Z",
             buffered_at: "2025-05-03T10:00:05Z",
             publishing_at: "2025-05-03T10:00:10Z",
-            updated_at: "2025-05-03T10:00:10Z",
+            published_at: "2025-05-03T11:00:10Z",
             publisher_id: 42,
             publisher_name: "host.local:12345"
           )
@@ -23,10 +24,12 @@ module Outboxer
             status: "publishing",
             messageable_type: "Invoice",
             messageable_id: "INV-001",
+            updated_at: "2025-05-03T10:00:10Z",
             queued_at: "2025-05-03T10:00:00Z",
             buffered_at: "2025-05-03T10:00:05Z",
             publishing_at: "2025-05-03T10:00:10Z",
-            updated_at: "2025-05-03T10:00:10Z",
+            published_at: "2025-05-03T11:00:10Z",
+            failed_at: nil,
             publisher_id: 42,
             publisher_name: "host.local:12345"
           }
