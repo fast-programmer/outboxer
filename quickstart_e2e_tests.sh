@@ -71,6 +71,8 @@ delay = 1
 
 was_published = false
 
+puts "publishing > Outboxer::Models::Message.count is #{Outboxer::Models::Message.count}"
+
 was_published = Outboxer::Message
     .list(status: :published)
     .fetch(:messages)
@@ -80,6 +82,8 @@ was_published = Outboxer::Message
     end
 
 while (attempt <= max_attempts) && !was_published
+    puts "publishing > Outboxer::Models::Message.count is #{Outboxer::Models::Message.count}"
+
     warn "Outboxer message not published yet. Retrying (#{attempt}/#{max_attempts})..."
     sleep delay
     attempt += 1
