@@ -57,6 +57,9 @@ bundle exec rails runner - <<'RUBY'
 require "outboxer"
 
 event = Event.create!
+puts "Event #{event.id} created"
+puts "Outboxer::Models::Message.count is #{Outboxer::Models::Message.count}"
+puts "ENV['RAILS_ENV'] is #{ENV['RAILS_ENV']}"
 
 env = { "RAILS_ENV" => "development" }
 publisher_cmd = File.join(Dir.pwd, "bin", "outboxer_publisher")
