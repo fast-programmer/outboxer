@@ -60,7 +60,7 @@ event = Event.create!
 
 env = { "RAILS_ENV" => "development" }
 publisher_cmd = File.join(Dir.pwd, "bin", "outboxer_publisher")
-spawn(env, "ruby", publisher_cmd)
+publisher_id = spawn(env, "ruby", publisher_cmd)
 
 attempt = 1
 max_attempts = 10
@@ -89,6 +89,9 @@ while (attempt <= max_attempts) && !was_published
       published_message[:messageable_id] == event.id.to_s
     end
 end
+
+Process.kill("TERM", publisher_pid)
+Process.wait(publisher_pid)
 
 exit(was_published ? 0 : 1)
 RUBY
