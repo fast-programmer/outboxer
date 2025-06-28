@@ -591,7 +591,7 @@ module Outboxer
           [Message::Status::PUBLISHED, Message::Status::FAILED].each do |message_status|
             current_messages = messages.select { |message| message[:status] == message_status }
 
-            if current_messages.count > 0
+            if current_messages.any?
               setting_name = "messages.#{message_status}.count.historic"
               setting = Models::Setting.lock("FOR UPDATE").find_by!(name: setting_name)
               setting.update!(value: setting.value.to_i + current_messages.count).to_s
@@ -629,7 +629,7 @@ module Outboxer
           [Message::Status::PUBLISHED, Message::Status::FAILED].each do |status|
             current_messages = messages.select { |message| message[:status] == status }
 
-            if current_messages.count > 0
+            if current_messages.any?
               setting_name = "messages.#{status}.count.historic"
               setting = Models::Setting.lock("FOR UPDATE").find_by!(name: setting_name)
               setting.update!(value: setting.value.to_i + current_messages.count).to_s

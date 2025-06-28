@@ -333,7 +333,7 @@ module Outboxer
           limit: buffer_remaining,
           publisher_id: id, publisher_name: name)
 
-        if buffered_messages.count > 0
+        if buffered_messages.any?
           queue.push(buffered_messages)
         else
           Publisher.sleep(
