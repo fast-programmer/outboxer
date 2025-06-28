@@ -12,8 +12,8 @@ logger = Outboxer::Logger.new($stdout, level: options[:log_level])
 
 database_config = Outboxer::Database.config(
   environment: environment,
-  buffering_thread_count: options[:buffering_thread_count],
-  publishing_thread_count: options[:publishing_thread_count])
+  buffering_threads_count: options[:buffering_threads_count],
+  publishing_threads_count: options[:publishing_threads_count])
 
 Outboxer::Database.connect(config: database_config, logger: logger)
 
@@ -31,29 +31,27 @@ begin
     sweep_batch_size: options[:sweep_batch_size],
     logger: logger
   ) do |publisher, messages|
-    messages.each do |message|
-      # TODO: publish message here
-      # see https://github.com/fast-programmer/outboxer/wiki/Outboxer-publisher-block-examples
+    # TODO: publish message here
+    # see https://github.com/fast-programmer/outboxer/wiki/Outboxer-publisher-block-examples
 
-      Outboxer::Message.published_by_ids(
-        ids: [message[:id]],
-        publisher_id: publisher[:id],
-        publisher_name: publisher[:name])
+    Outboxer::Message.published_by_ids(
+      ids: messages.map { |message| message[:id] },
+      publisher_id: publisher[:id],
+      publisher_name: publisher[:name])
 
-      # logger.info "Outboxer published message id=#{message[:id]} " \
-      #   "messageable=#{message[:messageable_type]}::#{message[:messageable_id]} in " \
-      #   "#{(message[:updated_at] - message[:queued_at]).round(3)}s"
-    rescue StandardError => error
-      Outboxer::Message.failed_by_ids(
-        ids: [message[:id]],
-        exception: error,
-        publisher_id: publisher[:id],
-        publisher_name: publisher[:name])
+    # logger.info "Outboxer published message id=#{message[:id]} " \
+    #   "messageable=#{message[:messageable_type]}::#{message[:messageable_id]} in " \
+    #   "#{(message[:updated_at] - message[:queued_at]).round(3)}s"
+  rescue StandardError => error
+    Outboxer::Message.failed_by_ids(
+      ids: messages.map { |message| message[:id] },
+      exception: error,
+      publisher_id: publisher[:id],
+      publisher_name: publisher[:name])
 
-      logger.info "Outboxer failed to publish message id=#{message[:id]} " \
-        "messageable=#{message[:messageable_type]}::#{message[:messageable_id]} in " \
-        "#{(message[:updated_at] - message[:queued_at]).round(3)}s"
-    end
+    logger.info "Outboxer failed to publish message id=#{message[:id]} " \
+      "messageable=#{message[:messageable_type]}::#{message[:messageable_id]} in " \
+      "#{(message[:updated_at] - message[:queued_at]).round(3)}s"
   end
 ensure
   Outboxer::Database.disconnect(logger: logger)

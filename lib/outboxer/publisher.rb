@@ -31,12 +31,12 @@ module Outboxer
           options[:batch_size] = v
         end
 
-        opts.on("--buffering-thread-count N", Integer, "Buffering thread count") do |v|
-          options[:buffering_thread_count] = v
+        opts.on("--buffering-threads-count N", Integer, "Buffering threads count") do |v|
+          options[:buffering_threads_count] = v
         end
 
-        opts.on("--publishing-thread-count N", Integer, "Publishing thread count") do |v|
-          options[:publishing_thread_count] = v
+        opts.on("--publishing-threads-count N", Integer, "Publishing threads count") do |v|
+          options[:publishing_threads_count] = v
         end
 
         opts.on("-t", "--tick-interval SECS", Float, "Tick interval in seconds") do |v|
@@ -495,6 +495,7 @@ module Outboxer
 
       logger.info "Outboxer config " \
         "buffer_size=#{buffer_size}, " \
+        "batch_size=#{batch_size}, " \
         "buffering_threads_count=#{buffering_threads_count}, " \
         "publishing_threads_count=#{publishing_threads_count}, " \
         "tick_interval=#{tick_interval} " \
@@ -519,10 +520,8 @@ module Outboxer
         sweep_retention: sweep_retention,
         sweep_batch_size: sweep_batch_size)
 
-      id = publisher[:id]
-
       buffering_threads = create_buffering_threads(
-        id: id, name: name,
+        id: publisher[:id], name: name,
         count: buffering_threads_count,
         queue: queue,
         batch_size: batch_size,
@@ -530,15 +529,15 @@ module Outboxer
         logger: logger, process: process, kernel: kernel)
 
       publishing_threads = create_publishing_threads(
-        id: id, name: name, queue: queue, count: publishing_threads_count,
+        id: publisher[:id], name: name, queue: queue, count: publishing_threads_count,
         logger: logger, &block)
 
       heartbeat_thread = create_heartbeat_thread(
-        id: id, heartbeat_interval: heartbeat_interval, tick_interval: tick_interval,
+        id: publisher[:id], heartbeat_interval: heartbeat_interval, tick_interval: tick_interval,
         logger: logger, time: time, process: process, kernel: kernel)
 
       sweeper_thread = create_sweeper_thread(
-        id: id,
+        id: publisher[:id],
         sweep_interval: sweep_interval,
         sweep_retention: sweep_retention,
         sweep_batch_size: sweep_batch_size,
@@ -552,19 +551,20 @@ module Outboxer
 
       while !terminating?
         signal_name = read_signal(signal_read: signal_read, tick_interval: tick_interval)
-        handle_signal(id: id, name: signal_name, logger: logger)
+        handle_signal(id: publisher[:id], name: signal_name, logger: logger)
       end
 
       logger.info "Outboxer terminating"
 
       publishing_threads_count.times { queue.push(nil) }
+      logger.info "#{Thread.current.name} pushed #{publishing_threads_count} nils to queue"
 
       buffering_threads.each(&:join)
       publishing_threads.each(&:join)
       heartbeat_thread.join
       sweeper_thread.join
 
-      delete(id: id)
+      delete(id: publisher[:id])
 
       logger.info "Outboxer terminated"
     end
@@ -590,7 +590,7 @@ module Outboxer
                                  process:, kernel:)
       Array.new(count) do |index|
         Thread.new do
-          Thread.current.name = "buffering-#{index}"
+          Thread.current.name = "buffering-#{index + 1}"
 
           while !terminating?
             begin
@@ -599,6 +599,8 @@ module Outboxer
 
               if buffered_messages.any?
                 queue.push(buffered_messages)
+
+                logger.info "#{Thread.current.name} pushed #{buffered_messages.count} buffered messages to queue"
               else
                 Publisher.sleep(
                   poll_interval, tick_interval: tick_interval, process: process, kernel: kernel)
@@ -611,6 +613,8 @@ module Outboxer
               terminate(id: id)
             end
           end
+
+          logger.info "#{Thread.current.name} shutting down"
         end
       end
     end
@@ -627,9 +631,12 @@ module Outboxer
                                   logger:, &block)
       Array.new(count) do |index|
         Thread.new do
-          Thread.current.name = "publish-#{index + 1}"
+          Thread.current.name = "publishing-#{index + 1}"
 
           while (messages = queue.pop)
+
+            logger.info "#{Thread.current.name} popped from queue and size is now #{queue.size}"
+
             begin
               message_ids = messages.map { |message| message[:id] }
 
@@ -640,15 +647,17 @@ module Outboxer
             rescue StandardError => error
               logger.error(
                 "#{error.class}: #{error.message}\n" \
-                "#{error.backtrace.join("\n")}")
+                  "#{error.backtrace.join("\n")}")
             rescue ::Exception => error
               logger.fatal(
                 "#{error.class}: #{error.message}\n" \
-                "#{error.backtrace.join("\n")}")
+                  "#{error.backtrace.join("\n")}")
 
               terminate(id: id)
             end
           end
+
+          logger.info "#{Thread.current.name} shutting down"
         end
       end
     end
