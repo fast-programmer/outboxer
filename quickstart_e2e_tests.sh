@@ -58,7 +58,7 @@ require "outboxer"
 
 event = Event.create!
 
-env = { "RAILS_ENV" => "test" }
+env = { "RAILS_ENV" => "development" }
 publisher_cmd = File.join(Dir.pwd, "bin", "outboxer_publisher")
 spawn(env, "ruby", publisher_cmd)
 
