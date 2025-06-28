@@ -26,12 +26,12 @@ class CreateOutboxerMessages < ActiveRecord::Migration[6.1]
       name: "idx_outboxer_status_updated_at"
 
     # publisher latency
-    add_index :outboxer_messages, [:publisher_id, :updated_at],
-      name: "idx_outboxer_pub_id_updated_at"
+    add_index :outboxer_messages, [:publisher_id, :published_at],
+      name: "idx_outboxer_pub_id_published_at"
 
     # publisher throughput
-    add_index :outboxer_messages, [:status, :publisher_id, :updated_at],
-      name: "idx_outboxer_status_pub_id_updated_at"
+    add_index :outboxer_messages, [:status, :publisher_id, :published_at],
+      name: "idx_outboxer_status_pub_id_published_at"
 
     # bulk status + id locking
     add_index :outboxer_messages, [:status, :id],

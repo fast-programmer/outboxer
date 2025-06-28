@@ -53,44 +53,45 @@ bundle exec ruby -pi -e \
   "sub(/class Event < ApplicationRecord/, \"class Event < ApplicationRecord\\n  after_create { Outboxer::Message.queue(messageable: self) }\")" \
   app/models/event.rb
 
-bundle exec rails runner 'Event.create!'
+bundle exec ruby - <<'RUBY'
+require_relative "config/environment"
 
-bundle exec ruby - <<RUBY
+event = Event.create!
+
+env = { "RAILS_ENV" => ENV["RAILS_ENV"] }
 publisher_cmd = File.join(Dir.pwd, "bin", "outboxer_publisher")
-read_io, write_io = IO.pipe
+publisher_pid = spawn(env, "ruby", publisher_cmd)
 
-pid = spawn("ruby", publisher_cmd, out: write_io, err: write_io)
-write_io.close
-
-output = +""
 attempt = 1
-max_attempts = 20
+max_attempts = 10
 delay = 1
 
-while attempt <= max_attempts
-  begin
-    partial = read_io.read_nonblock(1024)
-    output << partial if partial
-  rescue IO::WaitReadable, EOFError
-  end
+messageable_was_published = false
 
-  break if output.include?("published message")
+published_messages = Outboxer::Message.list(status: :published)[:messages]
 
-  sleep delay
-  attempt += 1
+messageable_was_published = published_messages.any? do |published_message|
+    published_message[:messageable_type] == event.class.name &&
+    published_message[:messageable_id] == event.id.to_s
 end
 
-Process.kill("TERM", pid)
-Process.wait(pid)
-read_io.close
+while (attempt <= max_attempts) && !messageable_was_published
+    warn "Outboxer message not published yet. Retrying (#{attempt}/#{max_attempts})..."
+    sleep delay
+    attempt += 1
 
-if output.include?("published message")
-  puts "Outboxer published message found"
-  exit 0
-else
-  puts "Outboxer published message not found after #{max_attempts} attempts"
-  exit 1
+    published_messages = Outboxer::Message.list(status: :published)[:messages]
+
+    messageable_was_published = published_messages.any? do |published_message|
+        published_message[:messageable_type] == event.class.name &&
+        published_message[:messageable_id] == event.id.to_s
+    end
 end
+
+Process.kill("TERM", publisher_pid)
+Process.wait(publisher_pid)
+
+exit(messageable_was_published ? 0 : 1)
 RUBY
 
 # TARGET_RUBY_VERSION=3.2.2 TARGET_RAILS_VERSION=7.1.5.1 TARGET_DATABASE_ADAPTER=postgresql ./quickstart_e2e_tests.sh
