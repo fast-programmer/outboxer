@@ -12,7 +12,7 @@ module Outboxer
     LOAD_DEFAULTS = {
       batch_size: 1_000,
       concurrency: 5,
-      count: 1_000_000,
+      size: 1_000_000,
       tick_interval: 1
     }
 
@@ -34,8 +34,8 @@ module Outboxer
           options[:concurrency] = v
         end
 
-        opts.on("-C", "--count COUNT", Integer, "Number of messages to load") do |v|
-          options[:count] = v
+        opts.on("-s", "--size SIZE", Integer, "Number of messages to load") do |v|
+          options[:size] = v
         end
 
         opts.on("-t", "--tick-interval SECONDS", Float, "Tick interval in seconds (default: 1)") do |v|
@@ -64,7 +64,7 @@ module Outboxer
 
     def load(batch_size: LOAD_DEFAULTS[:batch_size],
              concurrency: LOAD_DEFAULTS[:concurrency],
-             count: LOAD_DEFAULTS[:count],
+             size: LOAD_DEFAULTS[:size],
              tick_interval: LOAD_DEFAULTS[:tick_interval],
              logger: Outboxer::Logger.new($stdout))
       status = :loading
@@ -75,7 +75,7 @@ module Outboxer
       enqueued = 0
       started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
-      while enqueued < count
+      while enqueued < size
         status = read_status(reader) || status
 
         case status
@@ -94,7 +94,7 @@ module Outboxer
           end
           queue << batch
           enqueued += batch.size
-          # logger.info "[main] enqueued #{enqueued}/#{count}" if (enqueued % (batch_size * 2)).zero?
+          # logger.info "[main] enqueued #{enqueued}/#{size}" if (enqueued % (batch_size * 2)).zero?
         end
 
         # display_metrics(logger)

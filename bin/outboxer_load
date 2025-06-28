@@ -16,7 +16,7 @@ Outboxer::Database.connect(config: database_config, logger: logger)
 
 begin
   Outboxer::Loader.load(
-    count: options[:count],
+    size: options[:size],
     batch_size: options[:batch_size],
     concurrency: options[:concurrency],
     logger: logger)
