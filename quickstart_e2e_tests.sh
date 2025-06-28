@@ -71,29 +71,33 @@ delay = 1
 
 messageable_was_published = false
 
-puts "publishing > Outboxer::Models::Message.count is #{Outboxer::Models::Message.count}"
+puts "publishing > Outboxer::Models::Message.group(:status).count:"
+Outboxer::Models::Message.group(:status).count.each do |status, count|
+  puts "  #{status}: #{count}"
+end
 
-published_messages = Outboxer::Message.list(status: :published).fetch(:messages)
+published_messages = Outboxer::Message.list(status: :published)
 puts JSON.pretty_generate(published_messages)
 
-messageable_was_published = published_messages.any? do |published_message|
+messageable_was_published = published_messages[:messages].any? do |published_message|
     published_message[:messageable_type] == event.class.name &&
     published_message[:messageable_id] == event.id.to_s
 end
 
 while (attempt <= max_attempts) && !messageable_was_published
-    puts "publishing > Outboxer::Models::Message.count is #{Outboxer::Models::Message.count}"
+    puts "publishing > Outboxer::Models::Message.group(:status).count:"
+    Outboxer::Models::Message.group(:status).count.each do |status, count|
+        puts "  #{status}: #{count}"
+    end
 
     warn "Outboxer message not published yet. Retrying (#{attempt}/#{max_attempts})..."
     sleep delay
     attempt += 1
 
-    published_messages = Outboxer::Message.list(status: :published).fetch(:messages)
+    published_messages = Outboxer::Message.list(status: :published)
     puts JSON.pretty_generate(published_messages)
-    puts published_messages[0][:messageable_type]
-    puts published_messages[0][:messageable_id]
 
-    messageable_was_published = published_messages.any? do |published_message|
+    messageable_was_published = published_messages[:messages].any? do |published_message|
         published_message[:messageable_type] == event.class.name &&
         published_message[:messageable_id] == event.id.to_s
     end
