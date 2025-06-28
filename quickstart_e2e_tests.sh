@@ -53,7 +53,7 @@ bundle exec ruby -pi -e \
   "sub(/class Event < ApplicationRecord/, \"class Event < ApplicationRecord\\n  after_create { Outboxer::Message.queue(messageable: self) }\")" \
   app/models/event.rb
 
-bundle exec rails runner <<'RUBY'
+bundle exec rails runner - <<'RUBY'
 require "outboxer"
 
 event = Event.create!
