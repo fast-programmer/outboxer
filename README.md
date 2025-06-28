@@ -72,14 +72,16 @@ Accountify::InvoiceRaisedEvent.create!(created_at: Time.current)
 Outboxer::Publisher.publish_messages do |publisher, messages|
   # TODO: publish messages here
 
-  messages_published_by_ids(
-    id: publisher[:id], name: publisher[:name],
-    message_ids: messages.map { |message| message[:id] })
-  rescue => error
-    messages_failed_by_ids(
-      id: publisher[:id], name: publisher[:name], exception: error,
-      message_ids: messages.map { |message| message[:id] })
-  end
+  Outboxer::Message.published_by_ids(
+    ids: messages.map { |message| message[:id] },
+    publisher_id: publisher[:id],
+    publisher_name: publisher[:name])
+rescue => error
+  Outboxer::Message.failed_by_ids(
+    ids: messages.map { |message| message[:id] },
+    exception: error,
+    publisher_id: publisher[:id],
+    publisher_name: publisher[:name])
 end
 ```
 
