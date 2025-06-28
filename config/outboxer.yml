@@ -1,8 +1,8 @@
 ---
-:buffer_size: 100
 :batch_size: 1000
-:buffering_threads_count: 1
-:publishing_threads_count: 1
+:buffer_size: 10
+:buffering_concurrency: 1
+:publishing_concurrency: 1
 :tick_interval: 0.1
 :poll_interval: 5.0
 :heartbeat_interval: 5.0

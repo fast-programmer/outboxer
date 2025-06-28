@@ -6,12 +6,12 @@ module Outboxer
       before(:each) { Database.disconnect(logger: nil) }
 
       after(:all) do
-        config = Database.config(environment: "test", concurrency: 20)
+        config = Database.config(environment: "test", pool: 20)
         Database.connect(config: config, logger: nil)
       end
 
       context "when db config valid" do
-        let(:config) { Database.config(environment: "test", concurrency: 20) }
+        let(:config) { Database.config(environment: "test", pool: 20) }
 
         it "establishes a connection without errors" do
           expect do

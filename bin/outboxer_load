@@ -10,8 +10,7 @@ environment = cli_options.delete(:environment) || ENV["APP_ENV"] || ENV["RAILS_E
 options = Outboxer::Loader::LOAD_DEFAULTS.merge(cli_options)
 logger = Outboxer::Logger.new($stdout, level: Outboxer::Logger::INFO)
 
-database_config = Outboxer::Database.config(
-  environment: environment, buffering_threads_count: 0, publishing_threads_count: 0)
+database_config = Outboxer::Database.config(environment: environment, pool: options[:concurrency])
 
 Outboxer::Database.connect(config: database_config, logger: logger)
 
@@ -20,8 +19,7 @@ begin
     count: options[:count],
     batch_size: options[:batch_size],
     concurrency: options[:concurrency],
-    logger: logger
-  )
+    logger: logger)
 ensure
   Outboxer::Database.disconnect(logger: logger)
 end

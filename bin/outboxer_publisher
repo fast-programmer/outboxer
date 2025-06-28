@@ -12,17 +12,18 @@ logger = Outboxer::Logger.new($stdout, level: options[:log_level])
 
 database_config = Outboxer::Database.config(
   environment: environment,
-  buffering_threads_count: options[:buffering_threads_count],
-  publishing_threads_count: options[:publishing_threads_count])
+  pool: Outboxer::Publisher.database_pool_size(
+    buffering_concurrency: options[:buffering_concurrency],
+    publishing_concurrency: options[:publishing_concurrency]))
 
 Outboxer::Database.connect(config: database_config, logger: logger)
 
 begin
   Outboxer::Publisher.publish_messages(
-    buffer_size: options[:buffer_size],
     batch_size: options[:batch_size],
-    buffering_threads_count: options[:buffering_threads_count],
-    publishing_threads_count: options[:publishing_threads_count],
+    buffer_size: options[:buffer_size],
+    buffering_concurrency: options[:buffering_concurrency],
+    publishing_concurrency: options[:publishing_concurrency],
     tick_interval: options[:tick_interval],
     poll_interval: options[:poll_interval],
     heartbeat_interval: options[:heartbeat_interval],

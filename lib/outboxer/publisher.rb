@@ -23,20 +23,20 @@ module Outboxer
           options[:environment] = v
         end
 
-        opts.on("-b", "--buffer-size SIZE", Integer, "Buffer size") do |v|
-          options[:buffer_size] = v
-        end
-
         opts.on("-B", "--batch-size SIZE", Integer, "Batch size") do |v|
           options[:batch_size] = v
         end
 
-        opts.on("--buffering-threads-count N", Integer, "Buffering threads count") do |v|
-          options[:buffering_threads_count] = v
+        opts.on("-b", "--buffer-size SIZE", Integer, "Buffer size") do |v|
+          options[:buffer_size] = v
         end
 
-        opts.on("--publishing-threads-count N", Integer, "Publishing threads count") do |v|
-          options[:publishing_threads_count] = v
+        opts.on("--buffering-concurrency N", Integer, "Number of threads to buffer messages") do |v|
+          options[:buffering_concurrency] = v
+        end
+
+        opts.on("--publishing-concurrency N", Integer, "Number of threads to publish messages") do |v|
+          options[:publishing_concurrency] = v
         end
 
         opts.on("-t", "--tick-interval SECS", Float, "Tick interval in seconds") do |v|
@@ -145,15 +145,15 @@ module Outboxer
     # Creates a new publisher with specified settings and metrics.
     # @param name [String] The name of the publisher.
     # @param buffer_size [Integer] The buffer size.
-    # @param buffering_threads_count [Integer] The number of buffering threads.
-    # @param publishing_threads_count [Integer] The number of publishing threads.
+    # @param buffering_concurrency [Integer] The number of buffering threads.
+    # @param publishing_concurrency [Integer] The number of publishing threads.
     # @param tick_interval [Float] The tick interval in seconds.
     # @param poll_interval [Float] The poll interval in seconds.
     # @param heartbeat_interval [Float] The heartbeat interval in seconds.
     # @param time [Time] The current time context for timestamping.
     # @return [Hash] Details of the created publisher.
     def create(name:, buffer_size:,
-               buffering_threads_count:, publishing_threads_count:,
+               buffering_concurrency:, publishing_concurrency:,
                tick_interval:, poll_interval:, heartbeat_interval:,
                sweep_interval:, sweep_retention:, sweep_batch_size:,
                time: ::Time)
@@ -166,8 +166,8 @@ module Outboxer
             status: Status::PUBLISHING,
             settings: {
               "buffer_size" => buffer_size,
-              "buffering_threads_count" => buffering_threads_count,
-              "publishing_threads_count" => publishing_threads_count,
+              "buffering_concurrency" => buffering_concurrency,
+              "publishing_concurrency" => publishing_concurrency,
               "tick_interval" => tick_interval,
               "poll_interval" => poll_interval,
               "heartbeat_interval" => heartbeat_interval,
@@ -521,10 +521,10 @@ module Outboxer
     end
 
     PUBLISH_MESSAGES_DEFAULTS = {
-      buffer_size: 100,
       batch_size: 1000,
-      buffering_threads_count: 1,
-      publishing_threads_count: 1,
+      buffer_size: 10,
+      buffering_concurrency: 1,
+      publishing_concurrency: 1,
       tick_interval: 0.1,
       poll_interval: 5.0,
       heartbeat_interval: 5.0,
@@ -536,9 +536,10 @@ module Outboxer
 
     # Publish queued messages concurrently
     # @param name [String] The name of the publisher.
+    # @param batch_size [Integer] The batch size.
     # @param buffer_size [Integer] The buffer size.
-    # @param buffering_threads_count [Integer] The number of threads buffering queued messages.
-    # @param publishing_threads_count [Integer] The number of threads publishing buffered messages.
+    # @param buffering_concurrency [Integer] The number of threads buffering queued messages.
+    # @param publishing_concurrency [Integer] The number of threads publishing buffered messages.
     # @param tick_interval [Float] The tick interval in seconds.
     # @param poll_interval [Float] The poll interval in seconds.
     # @param heartbeat_interval [Float] The heartbeat interval in seconds.
@@ -554,10 +555,10 @@ module Outboxer
     # @yieldparam messages [Array<Hash>] An array of message hashes retrieved from the buffer.
     def publish_messages(
       name: "#{::Socket.gethostname}:#{::Process.pid}",
-      buffer_size: PUBLISH_MESSAGES_DEFAULTS[:buffer_size],
       batch_size: PUBLISH_MESSAGES_DEFAULTS[:batch_size],
-      buffering_threads_count: PUBLISH_MESSAGES_DEFAULTS[:buffering_threads_count],
-      publishing_threads_count: PUBLISH_MESSAGES_DEFAULTS[:publishing_threads_count],
+      buffer_size: PUBLISH_MESSAGES_DEFAULTS[:buffer_size],
+      buffering_concurrency: PUBLISH_MESSAGES_DEFAULTS[:buffering_concurrency],
+      publishing_concurrency: PUBLISH_MESSAGES_DEFAULTS[:publishing_concurrency],
       tick_interval: PUBLISH_MESSAGES_DEFAULTS[:tick_interval],
       poll_interval: PUBLISH_MESSAGES_DEFAULTS[:poll_interval],
       heartbeat_interval: PUBLISH_MESSAGES_DEFAULTS[:heartbeat_interval],
@@ -572,10 +573,10 @@ module Outboxer
         "(#{RUBY_RELEASE_DATE} revision #{RUBY_REVISION[0, 10]}) [#{RUBY_PLATFORM}]"
 
       logger.info "Outboxer config " \
-        "buffer_size=#{buffer_size}, " \
         "batch_size=#{batch_size}, " \
-        "buffering_threads_count=#{buffering_threads_count}, " \
-        "publishing_threads_count=#{publishing_threads_count}, " \
+        "buffer_size=#{buffer_size}, " \
+        "buffering_concurrency=#{buffering_concurrency}, " \
+        "publishing_concurrency=#{publishing_concurrency}, " \
         "tick_interval=#{tick_interval} " \
         "poll_interval=#{poll_interval}, " \
         "heartbeat_interval=#{heartbeat_interval}, " \
@@ -590,8 +591,8 @@ module Outboxer
 
       publisher = create(
         name: name, buffer_size: buffer_size,
-        buffering_threads_count: buffering_threads_count,
-        publishing_threads_count: publishing_threads_count,
+        buffering_concurrency: buffering_concurrency,
+        publishing_concurrency: publishing_concurrency,
         tick_interval: tick_interval, poll_interval: poll_interval,
         heartbeat_interval: heartbeat_interval,
         sweep_interval: sweep_interval,
@@ -600,14 +601,14 @@ module Outboxer
 
       buffering_threads = create_buffering_threads(
         id: publisher[:id], name: name,
-        count: buffering_threads_count,
+        concurrency: buffering_concurrency,
         queue: queue,
         batch_size: batch_size,
         poll_interval: poll_interval, tick_interval: tick_interval,
         logger: logger, process: process, kernel: kernel)
 
       publishing_threads = create_publishing_threads(
-        id: publisher[:id], name: name, queue: queue, count: publishing_threads_count,
+        id: publisher[:id], name: name, queue: queue, concurrency: publishing_concurrency,
         logger: logger, &block)
 
       heartbeat_thread = create_heartbeat_thread(
@@ -634,8 +635,8 @@ module Outboxer
 
       logger.info "Outboxer terminating"
 
-      publishing_threads_count.times { queue.push(nil) }
-      logger.info "#{Thread.current.name} pushed #{publishing_threads_count} nils to queue"
+      publishing_concurrency.times { queue.push(nil) }
+      logger.info "#{Thread.current.name} pushed #{publishing_concurrency} nils to queue"
 
       buffering_threads.each(&:join)
       publishing_threads.each(&:join)
@@ -645,6 +646,10 @@ module Outboxer
       delete(id: publisher[:id])
 
       logger.info "Outboxer terminated"
+    end
+
+    def database_pool_size(buffering_concurrency:, publishing_concurrency:)
+      buffering_concurrency + publishing_concurrency + 3 # (main + heartbeat + sweeper)
     end
 
     # @param signal_read [IO] The read-end of the signal pipe.
@@ -659,14 +664,14 @@ module Outboxer
     # @param id [Integer] The ID of the publisher.
     # @param name [String] The name of the publisher.
     # @param queue [Queue] A sized queue to hold buffered messages.
-    # @param count [Integer] The number of buffering threads to start.
+    # @param concurrency [Integer] The number of concurrent threads.
     # @param batch_size [Integer] The number of messages to buffer per batch.
     # @param logger [Logger] Logger instance for logging errors or diagnostics.
     # @return [Array<Thread>] An array of started buffering threads.
-    def create_buffering_threads(id:, name:, count:, queue:, batch_size:,
+    def create_buffering_threads(id:, name:, concurrency:, queue:, batch_size:,
                                  poll_interval:, tick_interval:, logger:,
                                  process:, kernel:)
-      Array.new(count) do |index|
+      Array.new(concurrency) do |index|
         Thread.new do
           Thread.current.name = "buffering-#{index + 1}"
 
@@ -705,9 +710,9 @@ module Outboxer
     # @param logger [Logger] The logger to use for logging operations.
     # @return [Array<Thread>] An array of threads managing publishing.
     # @yieldparam message [Hash] A message being processed.
-    def create_publishing_threads(id:, name:, queue:, count:,
+    def create_publishing_threads(id:, name:, queue:, concurrency:,
                                   logger:, &block)
-      Array.new(count) do |index|
+      Array.new(concurrency) do |index|
         Thread.new do
           Thread.current.name = "publishing-#{index + 1}"
 
