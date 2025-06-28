@@ -1,48 +1,29 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 
 require "bundler/setup"
 require "outboxer"
-require "securerandom"
+require "outboxer/loader"
 
+cli_options = Outboxer::Loader.parse_cli_options(ARGV)
+environment = cli_options.delete(:environment) || ENV["APP_ENV"] || ENV["RAILS_ENV"] || "development"
+options = Outboxer::Loader::LOAD_DEFAULTS.merge(cli_options)
 logger = Outboxer::Logger.new($stdout, level: Outboxer::Logger::INFO)
 
-max_messages_count = ARGV.empty? ? 500_000 : ARGV[0].to_i
+database_config = Outboxer::Database.config(
+  environment: environment,
+  concurrency: options[:concurrency]
+)
 
-if max_messages_count <= 0
-  logger.info "Please provide a positive integer for max messages count"
-  exit(1)
+Outboxer::Database.connect(config: database_config, logger: logger)
+
+begin
+  Outboxer::Loader.load(
+    count: options[:count],
+    batch_size: options[:batch_size],
+    concurrency: options[:concurrency],
+    logger: logger
+  )
+ensure
+  Outboxer::Database.disconnect(logger: logger)
 end
-
-environment = ENV.fetch("RAILS_ENV", "development")
-db_config = Outboxer::Database.config(environment: environment, concurrency: 1)
-Outboxer::Database.connect(config: db_config)
-
-reader, writer = IO.pipe
-
-Signal.trap("INT") { writer.puts("INT") }
-
-queued_messages_count = 0
-
-while queued_messages_count < max_messages_count
-  break if reader.wait_readable(0) && reader.gets.strip == "INT"
-
-  class Event
-    attr_accessor :id
-
-    def initialize(id:)
-      @id = id
-    end
-  end
-
-  messageable = Event.new(id: SecureRandom.hex(3))
-
-  message = Outboxer::Message.queue(messageable: messageable)
-
-  logger.info "Outboxer queued message " \
-      "id=#{message[:id]} " \
-      "messageable_type=#{message[:messageable_type]} " \
-      "messageable_id=#{message[:messageable_id]} "
-  queued_messages_count += 1
-end
-
-logger.info "Outboxer finished queuing #{queued_messages_count} messages"
