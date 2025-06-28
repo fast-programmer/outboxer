@@ -29,14 +29,24 @@ bin/rails g outboxer:install
 bin/rails db:migrate
 ```
 
-**4. Generate basic event schema and model**
+**4. Generate event schema and model**
 
 ```bash
 bin/rails generate model Event type:string created_at:datetime --skip-timestamps
 bin/rails db:migrate
 ```
 
-**5. Queue message after event created**
+**5. Define new event type**
+
+```ruby
+# app/models/accountify/invoice_raised_event.rb
+
+module Accountify
+  class InvoiceRaisedEvent < Event; end
+end
+```
+
+**6. Queue outboxer message after event created**
 
 ```ruby
 # app/models/event.rb
@@ -48,29 +58,32 @@ class Event < ApplicationRecord
 end
 ```
 
-**6. Publish messages**
+**7. Create new event**
+
+```ruby
+Accountify::InvoiceRaisedEvent.create!(created_at: Time.current)
+```
+
+**8. Publish messages**
 
 ```ruby
 # bin/outboxer_publisher
 
 Outboxer::Publisher.publish_messages do |publisher, messages|
-  messages.each do |message|
-    # TODO: publish messages here
-    # see https://github.com/fast-programmer/outboxer/wiki/Outboxer-publisher-block-examples
+  # TODO: publish messages here
 
-    Outboxer::Message.published_by_ids(
-      ids: [message[:id]],
-      publisher_id: publisher[:id],
-      publisher_name: publisher[:name])
+  messages_published_by_ids(
+    id: publisher[:id], name: publisher[:name],
+    message_ids: messages.map { |message| message[:id] })
   rescue => error
-    Outboxer::Message.failed_by_ids(
-      ids: [message[:id]],
-      exception: error,
-      publisher_id: publisher[:id],
-      publisher_name: publisher[:name])
+    messages_failed_by_ids(
+      id: publisher[:id], name: publisher[:name], exception: error,
+      message_ids: messages.map { |message| message[:id] })
   end
 end
 ```
+
+see https://github.com/fast-programmer/outboxer/wiki/Outboxer-publisher-block-examples
 
 # Testing
 
