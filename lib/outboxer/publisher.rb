@@ -404,18 +404,19 @@ module Outboxer
                 throughput = Models::Message
                   .where(status: Message::Status::PUBLISHED)
                   .where(publisher_id: id)
-                  .where("updated_at >= ?", 1.second.ago)
+                  .where("published_at >= ?", 1.second.ago)
                   .count
 
-                last_updated_message = Models::Message
+                last_published_message = Models::Message
+                  .where(status: Message::Status::PUBLISHED)
                   .where(publisher_id: id)
                   .order(updated_at: :desc)
                   .first
 
-                latency = if last_updated_message.nil?
+                latency = if last_published_message.nil?
                             0
                           else
-                            (Time.now.utc - last_updated_message.updated_at).to_i
+                            (Time.now.utc - last_published_message.updated_at).to_i
                           end
 
                 publisher.update!(
