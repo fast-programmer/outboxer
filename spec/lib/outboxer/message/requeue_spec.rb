@@ -34,7 +34,7 @@ module Outboxer
 
         it "does not delete queued message" do
           begin
-            Message.published(id: queued_message.id)
+            Message.published_by_ids(ids: [queued_message.id])
           rescue ArgumentError
             # ignore
           end

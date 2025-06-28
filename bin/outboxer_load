@@ -11,9 +11,7 @@ options = Outboxer::Loader::LOAD_DEFAULTS.merge(cli_options)
 logger = Outboxer::Logger.new($stdout, level: Outboxer::Logger::INFO)
 
 database_config = Outboxer::Database.config(
-  environment: environment,
-  concurrency: options[:concurrency]
-)
+  environment: environment, buffering_threads_count: 0, publishing_threads_count: 0)
 
 Outboxer::Database.connect(config: database_config, logger: logger)
 

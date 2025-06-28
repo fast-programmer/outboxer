@@ -300,6 +300,83 @@ module Outboxer
       [signal_read, signal_write]
     end
 
+    # Creates and manages threads dedicated to publishing operations.
+    # @param id [Integer] The ID of the publisher.
+    # @param name [String] The name of the publisher.
+    # @param queue [Queue] The queue to manage publishing messages.
+    # @param concurrency [Integer] The number of concurrent threads.
+    # @param logger [Logger] The logger to use for logging operations.
+    # @return [Array<Thread>] An array of threads managing publishing.
+    # @yieldparam message [Hash] A message being processed.
+    def create_worker_threads(id:, name:,
+                              queue:, concurrency:,
+                              logger:, &block)
+      concurrency.times.each_with_index.map do |_, index|
+        Thread.new do
+          Thread.current.name = "publisher-#{index + 1}"
+
+          while (buffered_messages = queue.pop)
+            break if buffered_messages.nil?
+
+            publish_buffered_messages(
+              id: id, name: name, buffered_messages: buffered_messages,
+              logger: logger, &block)
+          end
+        end
+      end
+    end
+
+    # Handles the buffering of messages based on the publisher's buffer capacity.
+    # @param id [Integer] The ID of the publisher.
+    # @param name [String] The name of the publisher.
+    # @param queue [Queue] The queue of messages to be published.
+    # @param buffer_size [Integer] The buffer size.
+    # @param poll_interval [Float] The poll interval in seconds.
+    # @param tick_interval [Float] The tick interval in seconds.
+    # @param signal_read [IO] The IO object to read signals.
+    # @param logger [Logger] The logger to use for logging operations.
+    # @param process [Process] The process object to use for timing.
+    # @param kernel [Kernel] The kernel module to use for sleep operations.
+    def buffer_messages(id:, name:, queue:, buffer_size:,
+                        poll_interval:, tick_interval:,
+                        signal_read:, logger:, process:, kernel:)
+      buffer_remaining = buffer_size - queue.size
+
+      if buffer_remaining > 0
+        buffered_messages = Message.buffer(
+          limit: buffer_remaining,
+          publisher_id: id, publisher_name: name)
+
+        if buffered_messages.any?
+          queue.push(buffered_messages)
+        else
+          Publisher.sleep(
+            poll_interval,
+            start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
+            tick_interval: tick_interval,
+            signal_read: signal_read,
+            process: process, kernel: kernel)
+        end
+      else
+        Publisher.sleep(
+          tick_interval,
+          start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
+          tick_interval: tick_interval,
+          signal_read: signal_read,
+          process: process, kernel: kernel)
+      end
+    rescue StandardError => error
+      logger.error(
+        "#{error.class}: #{error.message}\n" \
+        "#{error.backtrace.join("\n")}")
+    rescue ::Exception => error
+      logger.fatal(
+        "#{error.class}: #{error.message}\n" \
+        "#{error.backtrace.join("\n")}")
+
+      terminate(id: id)
+    end
+
     # Creates a new thread that manages heartbeat checks, providing system metrics and
     # handling the first signal in the queue.
     # @param id [Integer] The ID of the publisher.
@@ -341,18 +418,19 @@ module Outboxer
                 throughput = Models::Message
                   .where(status: Message::Status::PUBLISHED)
                   .where(publisher_id: id)
-                  .where("updated_at >= ?", 1.second.ago)
+                  .where("published_at >= ?", 1.second.ago)
                   .count
 
-                last_updated_message = Models::Message
+                last_published_message = Models::Message
+                  .where(status: Message::Status::PUBLISHED)
                   .where(publisher_id: id)
-                  .order(updated_at: :desc)
+                  .order(published_at: :desc)
                   .first
 
-                latency = if last_updated_message.nil?
+                latency = if last_published_message.nil?
                             0
                           else
-                            (time.now.utc - last_updated_message.updated_at).to_i
+                            (Time.now.utc - last_published_message.published_at).to_i
                           end
 
                 publisher.update!(

@@ -6,10 +6,13 @@ class CreateOutboxerMessages < ActiveRecord::Migration[6.1]
       t.string :messageable_id, limit: 255, null: false
       t.string :messageable_type, limit: 255, null: false
 
+      t.datetime :updated_at, precision: 6, null: false
+
       t.datetime :queued_at, precision: 6, null: false
       t.datetime :buffered_at, precision: 6
       t.datetime :publishing_at, precision: 6
-      t.datetime :updated_at, precision: 6, null: false
+      t.datetime :published_at, precision: 6
+      t.datetime :failed_at, precision: 6
 
       t.bigint :publisher_id
       t.string :publisher_name, limit: 263 # 255 (hostname) + 1 (colon) + 7 (pid)
@@ -23,12 +26,12 @@ class CreateOutboxerMessages < ActiveRecord::Migration[6.1]
       name: "idx_outboxer_status_updated_at"
 
     # publisher latency
-    add_index :outboxer_messages, [:publisher_id, :updated_at],
-      name: "idx_outboxer_pub_id_updated_at"
+    add_index :outboxer_messages, [:publisher_id, :published_at],
+      name: "idx_outboxer_pub_id_published_at"
 
     # publisher throughput
-    add_index :outboxer_messages, [:status, :publisher_id, :updated_at],
-      name: "idx_outboxer_status_pub_id_updated_at"
+    add_index :outboxer_messages, [:status, :publisher_id, :published_at],
+      name: "idx_outboxer_status_pub_id_published_at"
 
     # bulk status + id locking
     add_index :outboxer_messages, [:status, :id],

@@ -31,27 +31,18 @@ begin
     sweep_batch_size: options[:sweep_batch_size],
     logger: logger
   ) do |publisher, messages|
-    # TODO: publish message here
-    # see https://github.com/fast-programmer/outboxer/wiki/Outboxer-publisher-block-examples
+    # TODO: publish messages here
 
     Outboxer::Message.published_by_ids(
       ids: messages.map { |message| message[:id] },
       publisher_id: publisher[:id],
       publisher_name: publisher[:name])
-
-    # logger.info "Outboxer published message id=#{message[:id]} " \
-    #   "messageable=#{message[:messageable_type]}::#{message[:messageable_id]} in " \
-    #   "#{(message[:updated_at] - message[:queued_at]).round(3)}s"
   rescue StandardError => error
     Outboxer::Message.failed_by_ids(
       ids: messages.map { |message| message[:id] },
       exception: error,
       publisher_id: publisher[:id],
       publisher_name: publisher[:name])
-
-    logger.info "Outboxer failed to publish message id=#{message[:id]} " \
-      "messageable=#{message[:messageable_type]}::#{message[:messageable_id]} in " \
-      "#{(message[:updated_at] - message[:queued_at]).round(3)}s"
   end
 ensure
   Outboxer::Database.disconnect(logger: logger)
