@@ -69,38 +69,38 @@ attempt = 1
 max_attempts = 10
 delay = 1
 
-was_published = false
+messageable_was_published = false
 
 puts "publishing > Outboxer::Models::Message.count is #{Outboxer::Models::Message.count}"
 
-was_published = Outboxer::Message
-    .list(status: :published)
-    .fetch(:messages)
-    .any? do |published_message|
-      published_message[:messageable_type] == event.class.name &&
-      published_message[:messageable_id] == event.id.to_s
-    end
+published_messages = Outboxer::Message.list(status: :published).fetch(:messages)
+puts published_messages
 
-while (attempt <= max_attempts) && !was_published
+messageable_was_published = published_messages.any? do |published_message|
+    published_message[:messageable_type] == event.class.name &&
+    published_message[:messageable_id] == event.id.to_s
+end
+
+while (attempt <= max_attempts) && !messageable_was_published
     puts "publishing > Outboxer::Models::Message.count is #{Outboxer::Models::Message.count}"
 
     warn "Outboxer message not published yet. Retrying (#{attempt}/#{max_attempts})..."
     sleep delay
     attempt += 1
 
-    was_published = Outboxer::Message
-    .list(status: :published)
-    .fetch(:messages)
-    .any? do |published_message|
-      published_message[:messageable_type] == event.class.name &&
-      published_message[:messageable_id] == event.id.to_s
+    published_messages = Outboxer::Message.list(status: :published).fetch(:messages)
+    puts published_messages
+
+    messageable_was_published = published_messages.any? do |published_message|
+        published_message[:messageable_type] == event.class.name &&
+        published_message[:messageable_id] == event.id.to_s
     end
 end
 
 Process.kill("TERM", publisher_pid)
 Process.wait(publisher_pid)
 
-exit(was_published ? 0 : 1)
+exit(messageable_was_published ? 0 : 1)
 RUBY
 
 # TARGET_RUBY_VERSION=3.2.2 TARGET_RAILS_VERSION=7.1.5.1 TARGET_DATABASE_ADAPTER=postgresql ./quickstart_e2e_tests.sh

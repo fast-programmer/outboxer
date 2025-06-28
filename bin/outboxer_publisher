@@ -34,7 +34,7 @@ begin
       publisher_id: publisher[:id],
       publisher_name: publisher[:name])
 
-    logger.info "published messages"
+    logger.info "published messages #{ messages.map { |m| m[:id] }}"
     puts "published messages"
   rescue StandardError => error
     logger.info error.message
