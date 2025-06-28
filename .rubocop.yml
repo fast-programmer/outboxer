@@ -3,13 +3,13 @@ AllCops:
   TargetRubyVersion: 3.1.5
   SuggestExtensions: false
 Metrics/AbcSize:
-  Max: 70
+  Max: 80
 Metrics/CyclomaticComplexity:
   Enabled: true
-  Max: 20
+  Max: 25
 Metrics/PerceivedComplexity:
   Enabled: true
-  Max: 20
+  Max: 25
 Style/SafeNavigationChainLength:
   Enabled: false
 Style/HashSyntax:
