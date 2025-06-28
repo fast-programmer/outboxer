@@ -61,7 +61,7 @@ puts "Event #{event.id} created"
 puts "Outboxer::Models::Message.count is #{Outboxer::Models::Message.count}"
 puts "ENV['RAILS_ENV'] is #{ENV['RAILS_ENV']}"
 
-env = { "RAILS_ENV" => "development" }
+env = { "RAILS_ENV" => ENV["RAILS_ENV"] }
 publisher_cmd = File.join(Dir.pwd, "bin", "outboxer_publisher")
 publisher_pid = spawn(env, "ruby", publisher_cmd)
 
