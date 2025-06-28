@@ -74,8 +74,7 @@ messageable_was_published = false
 puts "publishing > Outboxer::Models::Message.count is #{Outboxer::Models::Message.count}"
 
 published_messages = Outboxer::Message.list(status: :published).fetch(:messages)
-puts published_messages[0][:messageable_type]
-puts published_messages[0][:messageable_id]
+puts JSON.pretty_generate(published_messages)
 
 messageable_was_published = published_messages.any? do |published_message|
     published_message[:messageable_type] == event.class.name &&
@@ -90,6 +89,7 @@ while (attempt <= max_attempts) && !messageable_was_published
     attempt += 1
 
     published_messages = Outboxer::Message.list(status: :published).fetch(:messages)
+    puts JSON.pretty_generate(published_messages)
     puts published_messages[0][:messageable_type]
     puts published_messages[0][:messageable_id]
 
