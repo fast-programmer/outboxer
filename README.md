@@ -64,7 +64,7 @@ end
 Accountify::InvoiceRaisedEvent.create!(created_at: Time.current)
 ```
 
-**8. Publish messages**
+**8. Publish outboxer messages**
 
 ```ruby
 # bin/outboxer_publisher
