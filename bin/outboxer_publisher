@@ -35,6 +35,7 @@ begin
       publisher_name: publisher[:name])
   rescue StandardError => error
     logger.info error.message
+    puts error.message
 
     Outboxer::Message.failed_by_ids(
       ids: messages.map { |message| message[:id] },
