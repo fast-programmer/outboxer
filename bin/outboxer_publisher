@@ -33,6 +33,9 @@ begin
       ids: messages.map { |message| message[:id] },
       publisher_id: publisher[:id],
       publisher_name: publisher[:name])
+
+    logger.info "published messages"
+    puts "published messages"
   rescue StandardError => error
     logger.info error.message
     puts error.message
