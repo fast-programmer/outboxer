@@ -523,6 +523,8 @@ module Outboxer
             .lock("FOR UPDATE SKIP LOCKED")
             .pluck(:id)
 
+          current_utc_time = time.now.utc
+
           requeued_count = Models::Message
             .where(id: locked_ids)
             .update_all(
