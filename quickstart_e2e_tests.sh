@@ -60,7 +60,7 @@ event = Event.create!
 
 env = { "RAILS_ENV" => "development" }
 publisher_cmd = File.join(Dir.pwd, "bin", "outboxer_publisher")
-publisher_id = spawn(env, "ruby", publisher_cmd)
+publisher_pid = spawn(env, "ruby", publisher_cmd)
 
 attempt = 1
 max_attempts = 10

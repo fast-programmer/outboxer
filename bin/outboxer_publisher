@@ -29,6 +29,8 @@ begin
   ) do |publisher, messages|
     # TODO: publish messages here
 
+    logger.info "published message #{message[:id]}"
+
     Outboxer::Message.published_by_ids(
       ids: messages.map { |message| message[:id] },
       publisher_id: publisher[:id],
