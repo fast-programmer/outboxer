@@ -623,19 +623,10 @@ module Outboxer
 
           while !terminating?
             begin
-
               buffered_messages = Message.buffer(
                 publisher_id: id, publisher_name: name, limit: batch_size)
 
-              # kernel.sleep(0.1)
-
-              if buffered_messages.size > 0
-                buffered_ids = buffered_messages.map { |msg| msg[:id] }
-
-                # logger.info(
-                #   "#{Thread.current.name} pushed #{buffered_ids.size} buffered messages to queue: " \
-                #     "#{buffered_ids.inspect}")
-
+              if buffered_messages.any?
                 queue.push(buffered_messages)
               else
                 Publisher.sleep(
