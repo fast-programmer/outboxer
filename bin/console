@@ -6,7 +6,7 @@ require "outboxer"
 require "irb"
 
 environment = ENV["RAILS_ENV"] || "development"
-db_config = Outboxer::Database.config(environment: environment, concurrency: 1)
+db_config = Outboxer::Database.config(environment: environment, pool: 1)
 Outboxer::Database.connect(config: db_config)
 
 ActiveRecord::Base.logger = Logger.new($stdout)

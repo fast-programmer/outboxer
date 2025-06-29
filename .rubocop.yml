@@ -215,6 +215,8 @@ Style/NegatedIfElseCondition: # new in 1.2
   Enabled: true
 Style/NegatedIf:
   Enabled: false
+Style/NegatedWhile:
+  Enabled: false
 Style/NestedFileDirname: # new in 1.26
   Enabled: true
 Style/NilLambda: # new in 1.3

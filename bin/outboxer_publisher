@@ -10,15 +10,19 @@ config = Outboxer::Publisher.config(environment: environment, path: config_path)
 options = Outboxer::Publisher::PUBLISH_MESSAGES_DEFAULTS.merge(config.merge(cli_options))
 logger = Outboxer::Logger.new($stdout, level: options[:log_level])
 
-database_config = Outboxer::Database.config(
-  environment: environment, concurrency: options[:concurrency])
+connection_pool_size = Outboxer::Publisher.connection_pool_size(
+  buffering_concurrency: options[:buffering_concurrency],
+  publishing_concurrency: options[:publishing_concurrency])
 
+database_config = Outboxer::Database.config(environment: environment, pool: connection_pool_size)
 Outboxer::Database.connect(config: database_config, logger: logger)
 
 begin
   Outboxer::Publisher.publish_messages(
+    batch_size: options[:batch_size],
     buffer_size: options[:buffer_size],
-    concurrency: options[:concurrency],
+    buffering_concurrency: options[:buffering_concurrency],
+    publishing_concurrency: options[:publishing_concurrency],
     tick_interval: options[:tick_interval],
     poll_interval: options[:poll_interval],
     heartbeat_interval: options[:heartbeat_interval],
@@ -27,18 +31,22 @@ begin
     sweep_batch_size: options[:sweep_batch_size],
     logger: logger
   ) do |publisher, messages|
-    # TODO: publish messages here
+    begin
+      # TODO: publish messages here
+    rescue => error
+      Outboxer::Message.failed_by_ids(
+        ids: messages.map { |message| message[:id] },
+        exception: error,
+        publisher_id: publisher[:id],
+        publisher_name: publisher[:name])
+    else
+      Outboxer::Message.published_by_ids(
+        ids: messages.map { |message| message[:id] },
+        publisher_id: publisher[:id],
+        publisher_name: publisher[:name])
 
-    Outboxer::Message.published_by_ids(
-      ids: messages.map { |message| message[:id] },
-      publisher_id: publisher[:id],
-      publisher_name: publisher[:name])
-  rescue StandardError => error
-    Outboxer::Message.failed_by_ids(
-      ids: messages.map { |message| message[:id] },
-      exception: error,
-      publisher_id: publisher[:id],
-      publisher_name: publisher[:name])
+      # logger.info "#{messages.count} messages published"
+    end
   end
 ensure
   Outboxer::Database.disconnect(logger: logger)
