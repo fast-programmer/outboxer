@@ -142,6 +142,35 @@ module Outboxer
       end
     end
 
+    # Retrieves all publishers including signals.
+    # @return [Array<Hash>] A list of all publishers and their details.
+    def all
+      ActiveRecord::Base.connection_pool.with_connection do
+        ActiveRecord::Base.transaction do
+          publishers = Models::Publisher.includes(:signals).all
+
+          publishers.map do |publisher|
+            {
+              id: publisher.id,
+              name: publisher.name,
+              status: publisher.status,
+              settings: publisher.settings,
+              metrics: publisher.metrics,
+              created_at: publisher.created_at.utc,
+              updated_at: publisher.updated_at.utc,
+              signals: publisher.signals.map do |signal|
+                {
+                  id: signal.id,
+                  name: signal.name,
+                  created_at: signal.created_at.utc
+                }
+              end
+            }
+          end
+        end
+      end
+    end
+
     # Creates a new publisher with specified settings and metrics.
     # @param name [String] The name of the publisher.
     # @param batch_size [Integer] The batch size.
@@ -300,83 +329,6 @@ module Outboxer
       end
 
       [signal_read, signal_write]
-    end
-
-    # Creates and manages threads dedicated to publishing operations.
-    # @param id [Integer] The ID of the publisher.
-    # @param name [String] The name of the publisher.
-    # @param queue [Queue] The queue to manage publishing messages.
-    # @param concurrency [Integer] The number of concurrent threads.
-    # @param logger [Logger] The logger to use for logging operations.
-    # @return [Array<Thread>] An array of threads managing publishing.
-    # @yieldparam message [Hash] A message being processed.
-    def create_worker_threads(id:, name:,
-                              queue:, concurrency:,
-                              logger:, &block)
-      concurrency.times.each_with_index.map do |_, index|
-        Thread.new do
-          Thread.current.name = "publisher-#{index + 1}"
-
-          while (buffered_messages = queue.pop)
-            break if buffered_messages.nil?
-
-            publish_buffered_messages(
-              id: id, name: name, buffered_messages: buffered_messages,
-              logger: logger, &block)
-          end
-        end
-      end
-    end
-
-    # Handles the buffering of messages based on the publisher's buffer capacity.
-    # @param id [Integer] The ID of the publisher.
-    # @param name [String] The name of the publisher.
-    # @param queue [Queue] The queue of messages to be published.
-    # @param buffer_size [Integer] The buffer size.
-    # @param poll_interval [Float] The poll interval in seconds.
-    # @param tick_interval [Float] The tick interval in seconds.
-    # @param signal_read [IO] The IO object to read signals.
-    # @param logger [Logger] The logger to use for logging operations.
-    # @param process [Process] The process object to use for timing.
-    # @param kernel [Kernel] The kernel module to use for sleep operations.
-    def buffer_messages(id:, name:, queue:, buffer_size:,
-                        poll_interval:, tick_interval:,
-                        signal_read:, logger:, process:, kernel:)
-      buffer_remaining = buffer_size - queue.size
-
-      if buffer_remaining > 0
-        buffered_messages = Message.buffer(
-          limit: buffer_remaining,
-          publisher_id: id, publisher_name: name)
-
-        if buffered_messages.any?
-          queue.push(buffered_messages)
-        else
-          Publisher.sleep(
-            poll_interval,
-            start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
-            tick_interval: tick_interval,
-            signal_read: signal_read,
-            process: process, kernel: kernel)
-        end
-      else
-        Publisher.sleep(
-          tick_interval,
-          start_time: process.clock_gettime(process::CLOCK_MONOTONIC),
-          tick_interval: tick_interval,
-          signal_read: signal_read,
-          process: process, kernel: kernel)
-      end
-    rescue StandardError => error
-      logger.error(
-        "#{error.class}: #{error.message}\n" \
-        "#{error.backtrace.join("\n")}")
-    rescue ::Exception => error
-      logger.fatal(
-        "#{error.class}: #{error.message}\n" \
-        "#{error.backtrace.join("\n")}")
-
-      terminate(id: id)
     end
 
     # Creates a new thread that manages heartbeat checks, providing system metrics and
@@ -651,7 +603,7 @@ module Outboxer
       logger.info "Outboxer terminated"
     end
 
-    def database_pool_size(buffering_concurrency:, publishing_concurrency:)
+    def connection_pool_size(buffering_concurrency:, publishing_concurrency:)
       buffering_concurrency + publishing_concurrency + 3 # (main + heartbeat + sweeper)
     end
 
@@ -671,13 +623,20 @@ module Outboxer
 
           while !terminating?
             begin
+
               buffered_messages = Message.buffer(
                 publisher_id: id, publisher_name: name, limit: batch_size)
 
-              if buffered_messages.any?
-                queue.push(buffered_messages)
+              # kernel.sleep(0.1)
 
-                logger.info "#{Thread.current.name} pushed #{buffered_messages.count} buffered messages to queue"
+              if buffered_messages.size > 0
+                buffered_ids = buffered_messages.map { |msg| msg[:id] }
+
+                # logger.info(
+                #   "#{Thread.current.name} pushed #{buffered_ids.size} buffered messages to queue: " \
+                #     "#{buffered_ids.inspect}")
+
+                queue.push(buffered_messages)
               else
                 Publisher.sleep(
                   poll_interval, tick_interval: tick_interval, process: process, kernel: kernel)
@@ -712,7 +671,7 @@ module Outboxer
 
           while (messages = queue.pop)
 
-            logger.info "#{Thread.current.name} popped from queue and size is now #{queue.size}"
+            # logger.info "#{Thread.current.name} popped from queue and size is now #{queue.size}"
 
             begin
               message_ids = messages.map { |message| message[:id] }
@@ -724,46 +683,17 @@ module Outboxer
             rescue StandardError => error
               logger.error(
                 "#{error.class}: #{error.message}\n" \
-                  "#{error.backtrace.join("\n")}")
+                "#{error.backtrace.join("\n")}")
             rescue ::Exception => error
               logger.fatal(
                 "#{error.class}: #{error.message}\n" \
-                  "#{error.backtrace.join("\n")}")
+                "#{error.backtrace.join("\n")}")
 
               terminate(id: id)
             end
           end
 
           logger.info "#{Thread.current.name} shutting down"
-        end
-      end
-    end
-
-    # Retrieves all publishers including signals.
-    # @return [Array<Hash>] A list of all publishers and their details.
-    def all
-      ActiveRecord::Base.connection_pool.with_connection do
-        ActiveRecord::Base.transaction do
-          publishers = Models::Publisher.includes(:signals).all
-
-          publishers.map do |publisher|
-            {
-              id: publisher.id,
-              name: publisher.name,
-              status: publisher.status,
-              settings: publisher.settings,
-              metrics: publisher.metrics,
-              created_at: publisher.created_at.utc,
-              updated_at: publisher.updated_at.utc,
-              signals: publisher.signals.map do |signal|
-                {
-                  id: signal.id,
-                  name: signal.name,
-                  created_at: signal.created_at.utc
-                }
-              end
-            }
-          end
         end
       end
     end

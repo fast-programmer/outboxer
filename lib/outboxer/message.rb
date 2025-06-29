@@ -37,37 +37,46 @@ module Outboxer
     # @param time [Time] current time context used to update timestamps.
     # @return [Array<Hash>] details of buffered messages.
     def buffer(limit: 1, publisher_id: nil, publisher_name: nil, time: ::Time)
+      current_utc_time = time.now.utc
+      messages = []
+
+      # logger = Outboxer::Logger.new($stdout)
+
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           messages = Models::Message
             .where(status: Message::Status::QUEUED)
             .order(updated_at: :asc)
-            .lock("FOR UPDATE SKIP LOCKED")
             .limit(limit)
-            .select(:id, :messageable_type, :messageable_id, :queued_at)
+            .lock("FOR UPDATE SKIP LOCKED")
+            .pluck(:id, :messageable_type, :messageable_id)
 
-          current_utc_time = time.now.utc
+          message_ids = messages.map(&:first)
 
-          if messages.present?
-            Models::Message
-              .where(id: messages.map { |message| message[:id] })
-              .update_all(
-                status: Message::Status::BUFFERED,
-                updated_at: current_utc_time,
-                buffered_at: current_utc_time,
-                publisher_id: publisher_id,
-                publisher_name: publisher_name)
-          end
+          # logger.info("[outboxer] .buffer > locked message ids #{message_ids.inspect}")
 
-          messages.map do |message|
-            serialize(
-              id: message.id,
+          updated_rows = Models::Message
+            .where(id: message_ids, status: Message::Status::QUEUED)
+            .update_all(
               status: Message::Status::BUFFERED,
-              messageable_type: message.messageable_type,
-              messageable_id: message.messageable_id,
-              updated_at: current_utc_time)
-          end
+              updated_at: current_utc_time,
+              buffered_at: current_utc_time,
+              publisher_id: publisher_id,
+              publisher_name: publisher_name)
+
+          raise ArgumentError, "Some messages not buffered" if updated_rows != message_ids.size
         end
+      end
+
+      # logger.info("[outboxer] .buffer > unlocked message ids #{ids.inspect}")
+
+      messages.map do |(id, type, mid)|
+        serialize(
+          id: id,
+          status: Message::Status::BUFFERED,
+          messageable_type: type,
+          messageable_id: mid,
+          updated_at: current_utc_time)
       end
     end
 
@@ -84,19 +93,21 @@ module Outboxer
         ActiveRecord::Base.transaction do
           messages = Models::Message
             .where(status: Status::BUFFERED, id: ids)
-            .lock("FOR UPDATE SKIP LOCKED")
+            .lock("FOR UPDATE")
             .to_a
 
           raise ArgumentError, "Some messages not buffered" if messages.size != ids.size
 
           current_utc_time = time.now.utc
 
-          Models::Message.where(status: Status::BUFFERED, id: ids).update_all(
-            status: Status::PUBLISHING,
-            updated_at: current_utc_time,
-            publishing_at: current_utc_time,
-            publisher_id: publisher_id,
-            publisher_name: publisher_name)
+          Models::Message
+            .where(status: Status::BUFFERED, id: ids)
+            .update_all(
+              status: Status::PUBLISHING,
+              updated_at: current_utc_time,
+              publishing_at: current_utc_time,
+              publisher_id: publisher_id,
+              publisher_name: publisher_name)
 
           messages.map do |message|
             Message.serialize(
@@ -125,19 +136,21 @@ module Outboxer
         ActiveRecord::Base.transaction do
           messages = Models::Message
             .where(status: Status::PUBLISHING, id: ids)
-            .lock("FOR UPDATE SKIP LOCKED")
+            .lock("FOR UPDATE")
             .to_a
 
           raise ArgumentError, "Some messages not publishing" if messages.size != ids.size
 
           current_utc_time = time.now.utc
 
-          Models::Message.where(status: Status::PUBLISHING, id: ids).update_all(
-            status: Status::PUBLISHED,
-            updated_at: current_utc_time,
-            published_at: current_utc_time,
-            publisher_id: publisher_id,
-            publisher_name: publisher_name)
+          Models::Message
+            .where(status: Status::PUBLISHING, id: ids)
+            .update_all(
+              status: Status::PUBLISHED,
+              updated_at: current_utc_time,
+              published_at: current_utc_time,
+              publisher_id: publisher_id,
+              publisher_name: publisher_name)
 
           messages.map do |message|
             Message.serialize(
@@ -167,19 +180,21 @@ module Outboxer
         ActiveRecord::Base.transaction do
           messages = Models::Message
             .where(status: Status::PUBLISHING, id: ids)
-            .lock("FOR UPDATE SKIP LOCKED")
+            .lock("FOR UPDATE")
             .to_a
 
           raise ArgumentError, "Some messages not publishing" if messages.size != ids.size
 
           current_utc_time = time.now.utc
 
-          Models::Message.where(status: Status::PUBLISHING, id: ids).update_all(
-            status: Status::FAILED,
-            updated_at: current_utc_time,
-            failed_at: current_utc_time,
-            publisher_id: publisher_id,
-            publisher_name: publisher_name)
+          Models::Message
+            .where(status: Status::PUBLISHING, id: ids)
+            .update_all(
+              status: Status::FAILED,
+              updated_at: current_utc_time,
+              failed_at: current_utc_time,
+              publisher_id: publisher_id,
+              publisher_name: publisher_name)
 
           messages.each do |message|
             outboxer_exception = message.exceptions.create!(
