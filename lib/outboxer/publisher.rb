@@ -733,12 +733,12 @@ module Outboxer
 
     # Marks queued messages as buffered.
     #
-    # @param id [Integer, nil] the ID of the publisher.
-    # @param name [String, nil] the name of the publisher.
+    # @param id [Integer] the ID of the publisher.
+    # @param name [String] the name of the publisher.
     # @param limit [Integer] the number of messages to buffer.
     # @param time [Time] current time context used to update timestamps.
     # @return [Array<Hash>] details of buffered messages.
-    def buffer_messages(id: nil, name: nil, limit: 1, time: ::Time)
+    def buffer_messages(id:, name:, limit: 1, time: ::Time)
       current_utc_time = time.now.utc
       messages = []
 
