@@ -90,9 +90,11 @@ Outboxer::Publisher.publish_messages do |publisher, messages|
   begin
     # TODO: publish messages here
   rescue => error
-    messages_failed_by_ids(message_ids: mesage_ids, exception: error)
+    Outboxer::Publisher.messages_failed_by_ids(
+      id: publisher[:id], name: publisher[:name], message_ids: message_id, exception: error)
   else
-    messages_published_by_ids(message_ids: message_ids)
+    Outboxer::Publisher.messages_published_by_ids(
+      id: publisher[:id], name: publisher[:name], message_ids: message_ids)
   end
 end
 ```
