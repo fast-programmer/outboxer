@@ -1,7 +1,11 @@
 require "simplecov"
 require "coveralls"
 
-SimpleCov.formatter = Coveralls::SimpleCov::Formatter
+SimpleCov.formatters = SimpleCov::Formatter::MultiFormatter.new([
+  SimpleCov::Formatter::HTMLFormatter,
+  Coveralls::SimpleCov::Formatter
+])
+
 SimpleCov.start
 
 require "spec_helper"

@@ -348,7 +348,7 @@ module Outboxer
       Thread.new do
         Thread.current.name = "heartbeat"
 
-        while @status != Status::TERMINATING
+        while !terminating?
           begin
             cpu = `ps -p #{process.pid} -o %cpu`.split("\n").last.to_f
             rss = `ps -p #{process.pid} -o rss`.split("\n").last.to_i
@@ -706,7 +706,7 @@ module Outboxer
       Thread.new do
         Thread.current.name = "sweeper"
 
-        while @status != Status::TERMINATING
+        while !terminating?
           begin
             deleted_count = Message.delete_batch(
               status: Message::Status::PUBLISHED,
