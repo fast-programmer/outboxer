@@ -1,8 +1,8 @@
 require "rails_helper"
 
 module Outboxer
-  RSpec.describe Message do
-    describe ".buffer" do
+  RSpec.describe Publisher do
+    describe ".buffer_messages" do
       context "when there are 2 queued messages" do
         let!(:queued_messages) do
           [
@@ -12,7 +12,7 @@ module Outboxer
         end
 
         context "when limit is 1" do
-          let!(:buffered_messages) { Message.buffer(limit: 1) }
+          let!(:buffered_messages) { Publisher.buffer_messages(limit: 1) }
 
           it "returns first buffered message" do
             expect(buffered_messages.count).to eq(1)

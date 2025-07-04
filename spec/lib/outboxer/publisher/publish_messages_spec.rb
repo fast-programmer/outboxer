@@ -188,10 +188,10 @@ module Outboxer
             logger: logger,
             kernel: kernel
           ) do |publisher, messages|
-            Message.published_by_ids(
-              ids: messages.map { |message| message[:id] },
-              publisher_id: publisher[:id],
-              publisher_name: publisher[:name]
+            Publisher.messages_published_by_ids(
+              id: publisher[:id],
+              name: publisher[:name],
+              message_ids: messages.map { |message| message[:id] }
             )
 
             ::Process.kill("TSTP", ::Process.pid)
@@ -220,10 +220,9 @@ module Outboxer
             expect(messages.first[:messageable_id]).to eq(queued_message.messageable_id)
             expect(messages.first[:status]).to eq(Message::Status::PUBLISHING)
 
-            Message.published_by_ids(
-              ids: messages.map { |message| message[:id] },
-              publisher_id: publisher[:id],
-              publisher_name: publisher[:name])
+            Publisher.messages_published_by_ids(
+              id: publisher[:id], name: publisher[:name],
+              message_ids: messages.map { |message| message[:id] })
 
             ::Process.kill("TERM", ::Process.pid)
           end
@@ -290,11 +289,11 @@ module Outboxer
           end
         end
 
-        context "when Message.buffer raises a StandardError" do
+        context "when buffer_messages raises a StandardError" do
           it "logs the error and continues processing" do
             call_count = 0
 
-            allow(Message).to receive(:buffer) do
+            allow(Publisher).to receive(:buffer_messages) do
               call_count += 1
 
               case call_count
@@ -318,9 +317,9 @@ module Outboxer
           end
         end
 
-        context "when Message.buffer raises an Exception" do
+        context "when buffer_messages raises an Exception" do
           it "logs the exception and shuts down" do
-            allow(Message).to receive(:buffer)
+            allow(Publisher).to receive(:buffer_messages)
               .and_raise(NoMemoryError, "failed to allocate memory")
 
             expect(logger).to receive(:fatal)

@@ -1,8 +1,11 @@
 require "rails_helper"
 
 module Outboxer
-  RSpec.describe Message do
-    describe ".published_by_ids" do
+  RSpec.describe Publisher do
+    let(:id) { 1 }
+    let(:name) { "test" }
+
+    describe ".messages_published_by_ids" do
       context "when messages are publishing" do
         let!(:messages) do
           [
@@ -11,15 +14,15 @@ module Outboxer
           ]
         end
 
-        let(:ids) { messages.map(&:id) }
+        let(:message_ids) { messages.map(&:id) }
 
         it "transitions publishing messages to published and returns serialized results" do
-          result = Message.published_by_ids(ids: ids)
+          result = Publisher.messages_published_by_ids(id: id, name: name, message_ids: message_ids)
 
           expect(result.count).to eq(2)
-          expect(result.map { |message| message[:id] }).to match_array(ids)
+          expect(result.map { |message| message[:id] }).to match_array(message_ids)
 
-          expect(Models::Message.published.pluck(:id)).to match_array(ids)
+          expect(Models::Message.published.pluck(:id)).to match_array(message_ids)
         end
       end
 
@@ -31,11 +34,11 @@ module Outboxer
           ]
         end
 
-        let(:ids) { messages.map(&:id) }
+        let(:message_ids) { messages.map(&:id) }
 
         it "does not update any messages" do
           begin
-            Message.published_by_ids(ids: ids)
+            Publisher.messages_published_by_ids(id: id, name: name, message_ids: message_ids)
           rescue ArgumentError
             # no op
           end
@@ -45,7 +48,7 @@ module Outboxer
 
         it "raises error if any message is not buffered" do
           expect do
-            Message.published_by_ids(ids: ids)
+            Publisher.messages_published_by_ids(id: id, name: name, message_ids: message_ids)
           end.to raise_error(ArgumentError, /not publishing/)
         end
       end
