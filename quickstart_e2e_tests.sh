@@ -49,14 +49,24 @@ bundle exec rails generate outboxer:install
 bundle exec rails db:migrate
 bundle exec rails generate model Event
 bundle exec rails db:migrate
-bundle exec ruby -pi -e \
-  "sub(/class Event < ApplicationRecord/, \"class Event < ApplicationRecord\\n  after_create { Outboxer::Message.queue(messageable: self) }\")" \
-  app/models/event.rb
+
+cat <<'RUBY' > app/models/event.rb
+class Event < ApplicationRecord
+  after_create { Outboxer::Message.queue(messageable: self) }
+end
+RUBY
+
+mkdir -p app/models/accountify
+cat <<'RUBY' > app/models/accountify/invoice_raised_event.rb
+module Accountify
+  class InvoiceRaisedEvent < Event; end
+end
+RUBY
 
 bundle exec ruby - <<'RUBY'
 require_relative "config/environment"
 
-event = Event.create!
+event = Accountify::InvoiceRaisedEvent.create!(created_at: Time.current)
 
 env = { "RAILS_ENV" => ENV["RAILS_ENV"] }
 publisher_cmd = File.join(Dir.pwd, "bin", "outboxer_publisher")

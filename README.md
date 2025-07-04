@@ -20,20 +20,20 @@ bundle install
 **2. Generate schema migrations, publisher script and tests**
 
 ```bash
-bin/rails g outboxer:install
+bundle exec rails g outboxer:install
 ```
 
 **3. Migrate database**
 
 ```bash
-bin/rails db:migrate
+bundle exec rails db:migrate
 ```
 
 **4. Generate event schema and model**
 
 ```bash
-bin/rails generate model Event type:string created_at:datetime --skip-timestamps
-bin/rails db:migrate
+bundle exec rails generate model Event type:string created_at:datetime --skip-timestamps
+bundle exec rails db:migrate
 ```
 
 **5. Queue outboxer message after event created**
@@ -61,7 +61,7 @@ end
 **7. Create derived event type**
 
 ```bash
-bin/rails c
+bundle exec rails c
 ```
 
 ```ruby
@@ -105,7 +105,7 @@ To integrate with Sidekiq, Bunny, Kafka and AWS SQS see the [publisher block exa
 
 To ensure you have end to end coverage:
 
-`bin/rspec spec/bin/outboxer_publisher`
+`bundle exec rspec spec/bin/outboxer_publisher`
 
 # Monitoring
 
