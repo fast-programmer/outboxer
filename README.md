@@ -4,7 +4,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/fast-programmer/outboxer/badge.svg)](https://coveralls.io/github/fast-programmer/outboxer)
 [![Join our Discord](https://img.shields.io/badge/Discord-blue?style=flat&logo=discord&logoColor=white)](https://discord.gg/x6EUehX6vU)
 
-**Outboxer** is an implementation of the [**transactional outbox pattern**](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html) for **Ruby on Rails** applications.
+**Outboxer** is an implementation of the [transactional outbox pattern](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html) for **Ruby on Rails** applications.
 
 It helps you migrate to **event-driven architecture** with at least once delivery guarantees.
 
@@ -70,18 +70,20 @@ Accountify::InvoiceRaisedEvent.create!(created_at: Time.current)
 # bin/outboxer_publisher
 
 Outboxer::Publisher.publish_messages do |publisher, messages|
-  # TODO: publish messages here
-
-  Outboxer::Message.published_by_ids(
-    ids: messages.map { |message| message[:id] },
-    publisher_id: publisher[:id],
-    publisher_name: publisher[:name])
-rescue => error
-  Outboxer::Message.failed_by_ids(
-    ids: messages.map { |message| message[:id] },
-    exception: error,
-    publisher_id: publisher[:id],
-    publisher_name: publisher[:name])
+  begin
+    # TODO: publish messages here
+  rescue => error
+    Outboxer::Message.failed_by_ids(
+      ids: messages.map { |message| message[:id] },
+      exception: error,
+      publisher_id: publisher[:id],
+      publisher_name: publisher[:name])
+  else
+    Outboxer::Message.published_by_ids(
+      ids: messages.map { |message| message[:id] },
+      publisher_id: publisher[:id],
+      publisher_name: publisher[:name])
+  end
 end
 ```
 

@@ -16,8 +16,8 @@ module Outboxer
 
     # Loads the database configuration from a YAML file, processes ERB,
     # and merges with CONFIG_DEFAULTS.
+    # @param pool [Integer] the connection pool size.
     # @param environment [String, Symbol] the environment name to load configuration for.
-    # @param concurrency [Integer] the number of connections in the pool.
     # @param path [String] the path to the database configuration file.
     # @return [Hash] the database configuration with symbolized keys.
     # @note Extra connections are added to the pool to cover for internal threads like main

@@ -335,9 +335,8 @@ module Outboxer
     # Creates a new thread that manages heartbeat checks, providing system metrics and
     # handling the first signal in the queue.
     # @param id [Integer] The ID of the publisher.
-    # @param heartbeat [Float] The interval in seconds between heartbeats.
-    # @param tick [Float] The base interval in seconds for sleeping during the loop.
-    # @param signal_read [IO] An IO object for reading signals.
+    # @param heartbeat_interval [Float] The interval in seconds between heartbeats.
+    # @param tick_interval [Float] The base interval in seconds for sleeping during the loop.
     # @param logger [Logger] A logger for logging heartbeat and system status.
     # @param time [Time] Current time context.
     # @param process [Process] The process module for accessing system metrics.

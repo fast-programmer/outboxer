@@ -7,8 +7,6 @@ module Outboxer
 
     # Queues a new message.
     # @param messageable [Object, nil] the object associated with the message.
-    # @param messageable_type [String, nil] type of the polymorphic messageable model
-    # @param messageable_id [Integer, nil] ID of the polymorphic messageable model
     # @param time [Time] time context for setting timestamps.
     # @return [Hash] a hash with message details including IDs and timestamps.
     def queue(messageable:, time: ::Time)
