@@ -590,10 +590,10 @@ module Outboxer
 
       logger.info "Outboxer terminating"
 
-      publishing_concurrency.times { queue.push(nil) }
       logger.info "#{Thread.current.name} pushed #{publishing_concurrency} nils to queue"
 
       buffering_threads.each(&:join)
+      publishing_concurrency.times { queue.push(nil) }
       publishing_threads.each(&:join)
       heartbeat_thread.join
       sweeper_thread.join
