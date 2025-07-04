@@ -623,8 +623,7 @@ module Outboxer
 
           while !terminating?
             begin
-              buffered_messages = Message.buffer(
-                publisher_id: id, publisher_name: name, limit: batch_size)
+              buffered_messages = buffer_messages(id: id, name: name, limit: batch_size)
 
               if buffered_messages.any?
                 queue.push(buffered_messages)
@@ -661,16 +660,13 @@ module Outboxer
           Thread.current.name = "publishing-#{index + 1}"
 
           while (messages = queue.pop)
-
-            # logger.info "#{Thread.current.name} popped from queue and size is now #{queue.size}"
-
             begin
               message_ids = messages.map { |message| message[:id] }
 
-              publishing_messages = Message.publishing_by_ids(
-                ids: message_ids, publisher_id: id, publisher_name: name)
+              messages_publishing = messages_publishing_by_ids(
+                id: id, name: name, message_ids: message_ids)
 
-              block.call({ id: id, name: name }, publishing_messages)
+              block.call({ id: id, name: name }, messages_publishing)
             rescue StandardError => error
               logger.error(
                 "#{error.class}: #{error.message}\n" \
@@ -730,6 +726,189 @@ module Outboxer
               "#{error.backtrace.join("\n")}")
 
             terminate(id: id)
+          end
+        end
+      end
+    end
+
+    # Marks queued messages as buffered.
+    #
+    # @param id [Integer] the ID of the publisher.
+    # @param name [String] the name of the publisher.
+    # @param limit [Integer] the number of messages to buffer.
+    # @param time [Time] current time context used to update timestamps.
+    # @return [Array<Hash>] details of buffered messages.
+    def buffer_messages(id:, name:, limit: 1, time: ::Time)
+      current_utc_time = time.now.utc
+      messages = []
+
+      ActiveRecord::Base.connection_pool.with_connection do
+        ActiveRecord::Base.transaction do
+          messages = Models::Message
+            .where(status: Message::Status::QUEUED)
+            .order(updated_at: :asc)
+            .limit(limit)
+            .lock("FOR UPDATE SKIP LOCKED")
+            .pluck(:id, :messageable_type, :messageable_id)
+
+          message_ids = messages.map(&:first)
+
+          updated_rows = Models::Message
+            .where(id: message_ids, status: Message::Status::QUEUED)
+            .update_all(
+              status: Message::Status::BUFFERED,
+              updated_at: current_utc_time,
+              buffered_at: current_utc_time,
+              publisher_id: id,
+              publisher_name: name)
+
+          raise ArgumentError, "Some messages not buffered" if updated_rows != message_ids.size
+        end
+      end
+
+      messages.map do |(message_id, messageable_type, messageable_id)|
+        Message.serialize(
+          id: message_id,
+          status: Message::Status::BUFFERED,
+          messageable_type: messageable_type,
+          messageable_id: messageable_id,
+          updated_at: current_utc_time)
+      end
+    end
+
+    # Marks buffered messages as publishing.
+    #
+    # @param id [Integer] the publisher ID.
+    # @param name [String] the publisher name.
+    # @param message_ids [Array<Integer>] message IDs to mark as publishing.
+    # @param time [Time] a time-like object (e.g. Time) for consistent UTC timestamps.
+    # @return [Array<Hash>] serialized messages with updated publishing status.
+    # @raise [ArgumentError] if any given message is not in buffered state.
+    def messages_publishing_by_ids(id:, name:, message_ids:, time: ::Time)
+      ActiveRecord::Base.connection_pool.with_connection do
+        ActiveRecord::Base.transaction do
+          messages = Models::Message
+            .where(status: Message::Status::BUFFERED, id: message_ids)
+            .lock("FOR UPDATE")
+            .to_a
+
+          raise ArgumentError, "Some messages not buffered" if messages.size != message_ids.size
+
+          current_utc_time = time.now.utc
+
+          Models::Message
+            .where(status: Message::Status::BUFFERED, id: message_ids)
+            .update_all(
+              status: Status::PUBLISHING,
+              updated_at: current_utc_time,
+              publishing_at: current_utc_time,
+              publisher_id: id,
+              publisher_name: name)
+
+          messages.map do |message|
+            Message.serialize(
+              id: message.id,
+              status: Status::PUBLISHING,
+              messageable_type: message.messageable_type,
+              messageable_id: message.messageable_id,
+              updated_at: current_utc_time,
+              publisher_id: id,
+              publisher_name: name)
+          end
+        end
+      end
+    end
+
+    # Marks publishing messages as published.
+    #
+    # @param id [Integer] the publisher ID.
+    # @param name [String] the publisher name.
+    # @param message_ids [Array<Integer>] message IDs to mark as published.
+    # @param time [Time] a time-like object used to determine the current UTC timestamp.
+    # @return [Array<Hash>] serialized messages with updated published status.
+    # @raise [ArgumentError] if any given message is not in publishing state.
+    def messages_published_by_ids(id:, name:, message_ids:, time: ::Time)
+      ActiveRecord::Base.connection_pool.with_connection do
+        ActiveRecord::Base.transaction do
+          messages = Models::Message
+            .where(status: Status::PUBLISHING, id: message_ids)
+            .lock("FOR UPDATE")
+            .to_a
+
+          raise ArgumentError, "Some messages not publishing" if messages.size != message_ids.size
+
+          current_utc_time = time.now.utc
+
+          Models::Message
+            .where(status: Status::PUBLISHING, id: message_ids)
+            .update_all(
+              status: Message::Status::PUBLISHED,
+              updated_at: current_utc_time,
+              published_at: current_utc_time,
+              publisher_id: id,
+              publisher_name: name)
+
+          messages.map do |message|
+            Message.serialize(
+              id: message.id,
+              status: Message::Status::PUBLISHED,
+              messageable_type: message.messageable_type,
+              messageable_id: message.messageable_id,
+              updated_at: current_utc_time,
+              publisher_id: id,
+              publisher_name: name)
+          end
+        end
+      end
+    end
+
+    # Marks publishing messages as failed and logs the exception details.
+    #
+    # @param id [Integer] the publisher ID.
+    # @param name [String] the publisher name.
+    # @param message_ids [Array<Integer>] message IDs to mark as failed.
+    # @param exception [Exception] the exception that caused the failure.
+    # @param time [Time] a time-like object used to determine the current UTC timestamp.
+    # @return [Array<Hash>] serialized messages with updated failed status.
+    # @raise [ArgumentError] if any given message is not in publishing state.
+    def messages_failed_by_ids(id:, name:, message_ids:, exception:, time: ::Time)
+      ActiveRecord::Base.connection_pool.with_connection do
+        ActiveRecord::Base.transaction do
+          messages = Models::Message
+            .where(status: Message::Status::PUBLISHING, id: message_ids)
+            .lock("FOR UPDATE")
+            .to_a
+
+          raise ArgumentError, "Some messages not publishing" if messages.size != message_ids.size
+
+          current_utc_time = time.now.utc
+
+          Models::Message
+            .where(status: Message::Status::PUBLISHING, id: message_ids)
+            .update_all(
+              status: Message::Status::FAILED,
+              updated_at: current_utc_time,
+              failed_at: current_utc_time,
+              publisher_id: id,
+              publisher_name: name)
+
+          messages.each do |message|
+            outboxer_exception = message.exceptions.create!(
+              class_name: exception.class.name,
+              message_text: exception.message)
+
+            exception.backtrace.each_with_index do |frame, index|
+              outboxer_exception.frames.create!(index: index, text: frame)
+            end
+          end
+
+          messages.map do |message|
+            Message.serialize(
+              id: message.id,
+              status: Message::Status::FAILED,
+              messageable_type: message.messageable_type,
+              messageable_id: message.messageable_id,
+              updated_at: current_utc_time)
           end
         end
       end

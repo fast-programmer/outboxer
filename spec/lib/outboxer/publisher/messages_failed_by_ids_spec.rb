@@ -1,8 +1,11 @@
 require "rails_helper"
 
 module Outboxer
-  RSpec.describe Message do
-    describe ".failed_by_ids" do
+  RSpec.describe Publisher do
+    let(:id) { 1 }
+    let(:name) { "test" }
+
+    describe ".messages_failed_by_ids" do
       context "when messages are publishing" do
         let!(:messages) do
           [
@@ -11,7 +14,7 @@ module Outboxer
           ]
         end
 
-        let(:ids) { messages.map(&:id) }
+        let(:message_ids) { messages.map(&:id) }
 
         let(:exception) do
           def raise_exception
@@ -24,12 +27,13 @@ module Outboxer
         end
 
         it "transitions publishing messages to failed and stores exception frames" do
-          result = Message.failed_by_ids(ids: ids, exception: exception)
+          result = Publisher.messages_failed_by_ids(
+            id: id, name: name, message_ids: message_ids, exception: exception)
 
           expect(result.count).to eq(2)
-          expect(result.map { |message| message[:id] }).to match_array(ids)
+          expect(result.map { |message| message[:id] }).to match_array(message_ids)
 
-          expect(Models::Message.failed.pluck(:id)).to match_array(ids)
+          expect(Models::Message.failed.pluck(:id)).to match_array(message_ids)
         end
       end
 
@@ -41,7 +45,7 @@ module Outboxer
           ]
         end
 
-        let(:ids) { messages.map(&:id) }
+        let(:message_ids) { messages.map(&:id) }
 
         let(:exception) do
           def raise_exception
@@ -55,7 +59,8 @@ module Outboxer
 
         it "does not update any messages" do
           begin
-            Message.publishing_by_ids(ids: ids)
+            Publisher.messages_publishing_by_ids(
+              id: id, name: name, message_ids: message_ids)
           rescue ArgumentError
             # no op
           end
@@ -65,7 +70,8 @@ module Outboxer
 
         it "raises error" do
           expect do
-            Message.failed_by_ids(ids: ids, exception: exception)
+            Publisher.messages_failed_by_ids(
+              id: id, name: name, message_ids: message_ids, exception: exception)
           end.to raise_error(ArgumentError, /not publishing/)
         end
       end
