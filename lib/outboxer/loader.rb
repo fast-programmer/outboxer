@@ -22,27 +22,27 @@ module Outboxer
       parser = OptionParser.new do |opts|
         opts.banner = "Usage: outboxer_load [options]"
 
-        opts.on("-e", "--environment ENV", "Environment (default: development)") do |v|
+        opts.on("--environment ENV", "Environment (default: development)") do |v|
           options[:environment] = v
         end
 
-        opts.on("-b", "--batch-size SIZE", Integer, "Batch size (default: 1000)") do |v|
+        opts.on("--batch-size SIZE", Integer, "Batch size (default: 1000)") do |v|
           options[:batch_size] = v
         end
 
-        opts.on("-c", "--concurrency COUNT", Integer, "Concurrency (default: 5)") do |v|
+        opts.on("--concurrency COUNT", Integer, "Concurrency (default: 5)") do |v|
           options[:concurrency] = v
         end
 
-        opts.on("-s", "--size SIZE", Integer, "Number of messages to load") do |v|
+        opts.on("--size SIZE", Integer, "Number of messages to load") do |v|
           options[:size] = v
         end
 
-        opts.on("-t", "--tick-interval SECONDS", Float, "Tick interval in seconds (default: 1)") do |v|
+        opts.on("--tick-interval SECONDS", Float, "Tick interval in seconds (default: 1)") do |v|
           options[:tick_interval] = v
         end
 
-        opts.on("-h", "--help", "Show this help message") do
+        opts.on("--help", "Show this help message") do
           puts opts
           exit
         end

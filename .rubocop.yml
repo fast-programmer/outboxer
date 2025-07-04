@@ -23,10 +23,13 @@ Style/StringLiterals:
 Style/StringLiteralsInInterpolation:
   Enabled: true
   EnforcedStyle: double_quotes
+Style/RescueStandardError:
+  Enabled: false
 Layout/LineLength:
   Max: 100
   Exclude:
     - 'bin/outboxer_publisher'
+    - 'bin/outboxer_load'
 Layout/ArgumentAlignment:
   EnforcedStyle: with_fixed_indentation
 Style/Documentation:
@@ -235,6 +238,8 @@ Style/QuotedSymbols: # new in 1.16
   Enabled: true
 Style/RedundantArgument: # new in 1.4
   Enabled: true
+Style/RedundantBegin:
+  Enabled: false
 Style/RedundantArrayConstructor: # new in 1.52
   Enabled: true
 Style/RedundantConstantBase: # new in 1.40

@@ -37,7 +37,8 @@ module Outboxer
             .to eq({ publishing_concurrency: 7 })
         end
 
-        it "parses the tick interval flag" do expect(
+        it "parses the tick interval flag" do
+          expect(
             Publisher.parse_cli_options(["--tick-interval", "0.5"])
           ).to eq({ tick_interval: 0.5 })
         end
@@ -89,9 +90,9 @@ module Outboxer
 
         it "parses the help flag, prints help and exits" do
           expect do
-              Publisher.parse_cli_options(["--help"])
-            end.to output(
-              /Usage: outboxer_publisher \[options\]/).to_stdout.and raise_error(SystemExit)
+            Publisher.parse_cli_options(["--help"])
+          end.to output(
+            /Usage: outboxer_publisher \[options\]/).to_stdout.and raise_error(SystemExit)
         end
       end
     end

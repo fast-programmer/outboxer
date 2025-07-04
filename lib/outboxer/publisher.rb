@@ -35,7 +35,8 @@ module Outboxer
           options[:buffering_concurrency] = v
         end
 
-        opts.on("--publishing-concurrency N", Integer, "Number of threads to publish messages") do |v|
+        opts.on("--publishing-concurrency N", Integer,
+          "Number of threads to publish messages") do |v|
           options[:publishing_concurrency] = v
         end
 
