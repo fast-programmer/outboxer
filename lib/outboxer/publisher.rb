@@ -19,15 +19,15 @@ module Outboxer
       parser = ::OptionParser.new do |opts|
         opts.banner = "Usage: outboxer_publisher [options]"
 
-        opts.on("-e", "--environment ENV", "Application environment") do |v|
+        opts.on("--environment ENV", "Application environment") do |v|
           options[:environment] = v
         end
 
-        opts.on("-B", "--batch-size SIZE", Integer, "Batch size") do |v|
+        opts.on("--batch-size SIZE", Integer, "Batch size") do |v|
           options[:batch_size] = v
         end
 
-        opts.on("-b", "--buffer-size SIZE", Integer, "Buffer size") do |v|
+        opts.on("--buffer-size SIZE", Integer, "Buffer size") do |v|
           options[:buffer_size] = v
         end
 
@@ -39,44 +39,44 @@ module Outboxer
           options[:publishing_concurrency] = v
         end
 
-        opts.on("-t", "--tick-interval SECS", Float, "Tick interval in seconds") do |v|
+        opts.on("--tick-interval SECS", Float, "Tick interval in seconds") do |v|
           options[:tick_interval] = v
         end
 
-        opts.on("-p", "--poll-interval SECS", Float, "Poll interval in seconds") do |v|
+        opts.on("--poll-interval SECS", Float, "Poll interval in seconds") do |v|
           options[:poll_interval] = v
         end
 
-        opts.on("-a", "--heartbeat-interval SECS", Float, "Heartbeat interval in seconds") do |v|
+        opts.on("--heartbeat-interval SECS", Float, "Heartbeat interval in seconds") do |v|
           options[:heartbeat_interval] = v
         end
 
-        opts.on("-s", "--sweep-interval SECS", Float, "Sweep interval in seconds") do |v|
+        opts.on("--sweep-interval SECS", Float, "Sweep interval in seconds") do |v|
           options[:sweep_interval] = v
         end
 
-        opts.on("-r", "--sweep-retention SECS", Float, "Sweep retention in seconds") do |v|
+        opts.on("--sweep-retention SECS", Float, "Sweep retention in seconds") do |v|
           options[:sweep_retention] = v
         end
 
-        opts.on("-w", "--sweep-batch-size SIZE", Integer, "Sweep batch size") do |v|
+        opts.on("--sweep-batch-size SIZE", Integer, "Sweep batch size") do |v|
           options[:sweep_batch_size] = v
         end
 
-        opts.on("-l", "--log-level LEVEL", Integer, "Log level") do |v|
+        opts.on("--log-level LEVEL", Integer, "Log level") do |v|
           options[:log_level] = v
         end
 
-        opts.on("-C", "--config PATH", "Path to YAML config file") do |v|
+        opts.on("--config PATH", "Path to YAML config file") do |v|
           options[:config] = v
         end
 
-        opts.on("-V", "--version", "Print version and exit") do
+        opts.on("--version", "Print version and exit") do
           puts "Outboxer version #{Outboxer::VERSION}"
           exit
         end
 
-        opts.on("-h", "--help", "Show this help message") do
+        opts.on("--help", "Show this help message") do
           puts opts
           exit
         end
@@ -590,10 +590,11 @@ module Outboxer
 
       logger.info "Outboxer terminating"
 
+      buffering_threads.each(&:join)
+
+      publishing_concurrency.times { queue.push(nil) }
       logger.info "#{Thread.current.name} pushed #{publishing_concurrency} nils to queue"
 
-      buffering_threads.each(&:join)
-      publishing_concurrency.times { queue.push(nil) }
       publishing_threads.each(&:join)
       heartbeat_thread.join
       sweeper_thread.join

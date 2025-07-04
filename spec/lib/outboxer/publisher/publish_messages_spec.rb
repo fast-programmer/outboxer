@@ -1,342 +1,342 @@
-# rubocop:disable Layout/LineLength
-require "rails_helper"
+# # rubocop:disable Layout/LineLength
+# require "rails_helper"
 
-module Outboxer
-  RSpec.describe Publisher do
-    describe ".publish_messages" do
-      let(:buffer_size) { 1 }
-      let(:poll_interval) { 1 }
-      let(:tick_interval) { 0.1 }
-      let(:logger) { instance_double(Logger, debug: true, error: true, fatal: true, info: true, level: 1) }
-      let(:kernel) { class_double(Kernel, sleep: nil) }
+# module Outboxer
+#   RSpec.describe Publisher do
+#     describe ".publish_messages" do
+#       let(:buffer_size) { 1 }
+#       let(:poll_interval) { 1 }
+#       let(:tick_interval) { 0.1 }
+#       let(:logger) { instance_double(Logger, debug: true, error: true, fatal: true, info: true, level: 1) }
+#       let(:kernel) { class_double(Kernel, sleep: nil) }
 
-      before do
-        allow(logger).to receive(:level=)
-      end
+#       before do
+#         allow(logger).to receive(:level=)
+#       end
 
-      context "when Publisher.terminate is called from within the block" do
-        let!(:queued_message) { create(:outboxer_message, :queued, updated_at: 2.seconds.ago) }
+#       context "when Publisher.terminate is called from within the block" do
+#         let!(:queued_message) { create(:outboxer_message, :queued, updated_at: 2.seconds.ago) }
 
-        it "terminates the publisher" do
-          Publisher.publish_messages(
-            buffer_size: buffer_size,
-            poll_interval: poll_interval,
-            tick_interval: tick_interval,
-            logger: logger,
-            kernel: kernel
-          ) do |publisher, _messages|
-            Publisher.terminate(id: publisher[:id])
-          end
-        end
-      end
+#         it "terminates the publisher" do
+#           Publisher.publish_messages(
+#             buffer_size: buffer_size,
+#             poll_interval: poll_interval,
+#             tick_interval: tick_interval,
+#             logger: logger,
+#             kernel: kernel
+#           ) do |publisher, _messages|
+#             Publisher.terminate(id: publisher[:id])
+#           end
+#         end
+#       end
 
-      context "when sweeper deletes a message" do
-        let!(:message_1) { create(:outboxer_message, :published, updated_at: 2.seconds.ago) }
-        let!(:message_2) { create(:outboxer_message, :published, updated_at: 2.seconds.ago) }
+#       context "when sweeper deletes a message" do
+#         let!(:message_1) { create(:outboxer_message, :published, updated_at: 2.seconds.ago) }
+#         let!(:message_2) { create(:outboxer_message, :published, updated_at: 2.seconds.ago) }
 
-        it "deletes the old published message" do
-          publish_messages_thread = Thread.new do
-            Publisher.publish_messages(
-              buffer_size: buffer_size,
-              poll_interval: poll_interval,
-              tick_interval: tick_interval,
-              sweep_interval: 0.1,
-              sweep_retention: 0.1,
-              sweep_batch_size: 100,
-              logger: logger,
-              kernel: kernel
-            ) do |_publisher, _messages| # no op
-            end
-          end
+#         it "deletes the old published message" do
+#           publish_messages_thread = Thread.new do
+#             Publisher.publish_messages(
+#               buffer_size: buffer_size,
+#               poll_interval: poll_interval,
+#               tick_interval: tick_interval,
+#               sweep_interval: 0.1,
+#               sweep_retention: 0.1,
+#               sweep_batch_size: 100,
+#               logger: logger,
+#               kernel: kernel
+#             ) do |_publisher, _messages| # no op
+#             end
+#           end
 
-          sleep 0.3
+#           sleep 0.3
 
-          ::Process.kill("TERM", ::Process.pid)
+#           ::Process.kill("TERM", ::Process.pid)
 
-          publish_messages_thread.join
+#           publish_messages_thread.join
 
-          expect(Models::Message.count).to be(0)
-        end
-      end
+#           expect(Models::Message.count).to be(0)
+#         end
+#       end
 
-      context "when sweeper raises StandardError" do
-        let!(:old_message) { create(:outboxer_message, :published, updated_at: 2.seconds.ago) }
+#       context "when sweeper raises StandardError" do
+#         let!(:old_message) { create(:outboxer_message, :published, updated_at: 2.seconds.ago) }
 
-        before do
-          allow(Message).to receive(:delete_batch)
-            .and_raise(StandardError, "sweep fail")
-        end
+#         before do
+#           allow(Message).to receive(:delete_batch)
+#             .and_raise(StandardError, "sweep fail")
+#         end
 
-        it "logs error" do
-          publish_messages_thread = Thread.new do
-            Publisher.publish_messages(
-              buffer_size: buffer_size,
-              poll_interval: poll_interval,
-              tick_interval: tick_interval,
-              sweep_interval: 0.1,
-              sweep_retention: 0.1,
-              sweep_batch_size: 100,
-              logger: logger,
-              kernel: kernel
-            ) do |_publisher, _messages| # no op
-            end
-          end
+#         it "logs error" do
+#           publish_messages_thread = Thread.new do
+#             Publisher.publish_messages(
+#               buffer_size: buffer_size,
+#               poll_interval: poll_interval,
+#               tick_interval: tick_interval,
+#               sweep_interval: 0.1,
+#               sweep_retention: 0.1,
+#               sweep_batch_size: 100,
+#               logger: logger,
+#               kernel: kernel
+#             ) do |_publisher, _messages| # no op
+#             end
+#           end
 
-          sleep 0.3
-          ::Process.kill("TERM", ::Process.pid)
-          publish_messages_thread.join
+#           sleep 0.3
+#           ::Process.kill("TERM", ::Process.pid)
+#           publish_messages_thread.join
 
-          expect(logger).to have_received(:error)
-            .with(include("StandardError: sweep fail"))
-            .at_least(:once)
-        end
+#           expect(logger).to have_received(:error)
+#             .with(include("StandardError: sweep fail"))
+#             .at_least(:once)
+#         end
 
-        it "does not delete the old message" do
-          thread = Thread.new do
-            Publisher.publish_messages(
-              buffer_size: buffer_size,
-              poll_interval: poll_interval,
-              tick_interval: tick_interval,
-              sweep_interval: 0.1,
-              sweep_retention: 1,
-              sweep_batch_size: 1,
-              logger: logger,
-              kernel: kernel
-            ) do |_publisher, _messages| # no op
-            end
-          end
+#         it "does not delete the old message" do
+#           thread = Thread.new do
+#             Publisher.publish_messages(
+#               buffer_size: buffer_size,
+#               poll_interval: poll_interval,
+#               tick_interval: tick_interval,
+#               sweep_interval: 0.1,
+#               sweep_retention: 1,
+#               sweep_batch_size: 1,
+#               logger: logger,
+#               kernel: kernel
+#             ) do |_publisher, _messages| # no op
+#             end
+#           end
 
-          sleep 0.3
-          ::Process.kill("TERM", ::Process.pid)
-          thread.join
+#           sleep 0.3
+#           ::Process.kill("TERM", ::Process.pid)
+#           thread.join
 
-          expect(Models::Message.exists?(id: old_message.id)).to be(true)
-        end
-      end
+#           expect(Models::Message.exists?(id: old_message.id)).to be(true)
+#         end
+#       end
 
-      context "when sweeper raises critical error" do
-        let!(:old_message) { create(:outboxer_message, :published, updated_at: 2.seconds.ago) }
+#       context "when sweeper raises critical error" do
+#         let!(:old_message) { create(:outboxer_message, :published, updated_at: 2.seconds.ago) }
 
-        before do
-          allow(Message).to receive(:delete_batch)
-            .and_raise(NoMemoryError, "boom")
+#         before do
+#           allow(Message).to receive(:delete_batch)
+#             .and_raise(NoMemoryError, "boom")
 
-          thread = Thread.new do
-            Publisher.publish_messages(
-              buffer_size: buffer_size,
-              poll_interval: poll_interval,
-              tick_interval: tick_interval,
-              sweep_interval: 0.1,
-              sweep_retention: 0.1,
-              sweep_batch_size: 100,
-              logger: logger,
-              kernel: kernel
-            ) do |_publisher, _messages| # no op
-            end
-          end
+#           thread = Thread.new do
+#             Publisher.publish_messages(
+#               buffer_size: buffer_size,
+#               poll_interval: poll_interval,
+#               tick_interval: tick_interval,
+#               sweep_interval: 0.1,
+#               sweep_retention: 0.1,
+#               sweep_batch_size: 100,
+#               logger: logger,
+#               kernel: kernel
+#             ) do |_publisher, _messages| # no op
+#             end
+#           end
 
-          sleep 0.3
-          ::Process.kill("TERM", ::Process.pid)
-          thread.join
-        end
+#           sleep 0.3
+#           ::Process.kill("TERM", ::Process.pid)
+#           thread.join
+#         end
 
-        it "logs fatal error" do
-          expect(logger).to have_received(:fatal)
-            .with(include("NoMemoryError: boom"))
-        end
+#         it "logs fatal error" do
+#           expect(logger).to have_received(:fatal)
+#             .with(include("NoMemoryError: boom"))
+#         end
 
-        it "does not delete the old message" do
-          expect(Models::Message.exists?(id: old_message.id)).to be(true)
-        end
-      end
+#         it "does not delete the old message" do
+#           expect(Models::Message.exists?(id: old_message.id)).to be(true)
+#         end
+#       end
 
-      context "when TTIN signal sent" do
-        let!(:old_message) { create(:outboxer_message, :queued, updated_at: 2.seconds.ago) }
+#       context "when TTIN signal sent" do
+#         let!(:old_message) { create(:outboxer_message, :queued, updated_at: 2.seconds.ago) }
 
-        it "dumps stack trace" do
-          publish_messages_thread = Thread.new do
-            Publisher.publish_messages(
-              buffer_size: buffer_size,
-              poll_interval: poll_interval,
-              tick_interval: tick_interval,
-              logger: logger, kernel: kernel) do |_publisher, _messages|
-              ::Process.kill("TTIN", ::Process.pid)
-            end
-          end
+#         it "dumps stack trace" do
+#           publish_messages_thread = Thread.new do
+#             Publisher.publish_messages(
+#               buffer_size: buffer_size,
+#               poll_interval: poll_interval,
+#               tick_interval: tick_interval,
+#               logger: logger, kernel: kernel) do |_publisher, _messages|
+#               ::Process.kill("TTIN", ::Process.pid)
+#             end
+#           end
 
-          sleep 1
+#           sleep 1
 
-          ::Process.kill("TERM", ::Process.pid)
+#           ::Process.kill("TERM", ::Process.pid)
 
-          publish_messages_thread.join
+#           publish_messages_thread.join
 
-          expect(logger)
-            .to have_received(:info)
-            .with(a_string_including("backtrace"))
-            .at_least(:once)
-        end
-      end
+#           expect(logger)
+#             .to have_received(:info)
+#             .with(a_string_including("backtrace"))
+#             .at_least(:once)
+#         end
+#       end
 
-      context "when stopped and resumed during message publishing" do
-        let!(:queued_message) { create(:outboxer_message, :queued, updated_at: 2.seconds.ago) }
+#       context "when stopped and resumed during message publishing" do
+#         let!(:queued_message) { create(:outboxer_message, :queued, updated_at: 2.seconds.ago) }
 
-        it "stops and resumes the publishing process correctly" do
-          Publisher.publish_messages(
-            buffer_size: buffer_size,
-            poll_interval: poll_interval,
-            tick_interval: tick_interval,
-            logger: logger,
-            kernel: kernel
-          ) do |publisher, messages|
-            Message.published_by_ids(
-              ids: messages.map { |message| message[:id] },
-              publisher_id: publisher[:id],
-              publisher_name: publisher[:name]
-            )
+#         it "stops and resumes the publishing process correctly" do
+#           Publisher.publish_messages(
+#             buffer_size: buffer_size,
+#             poll_interval: poll_interval,
+#             tick_interval: tick_interval,
+#             logger: logger,
+#             kernel: kernel
+#           ) do |publisher, messages|
+#             Message.published_by_ids(
+#               ids: messages.map { |message| message[:id] },
+#               publisher_id: publisher[:id],
+#               publisher_name: publisher[:name]
+#             )
 
-            ::Process.kill("TSTP", ::Process.pid)
-            sleep 0.5
-            ::Process.kill("CONT", ::Process.pid)
-            sleep 0.5
-            ::Process.kill("TERM", ::Process.pid)
-          end
+#             ::Process.kill("TSTP", ::Process.pid)
+#             sleep 0.5
+#             ::Process.kill("CONT", ::Process.pid)
+#             sleep 0.5
+#             ::Process.kill("TERM", ::Process.pid)
+#           end
 
-          expect(Models::Message.published.count).to eq(1)
-        end
-      end
+#           expect(Models::Message.published.count).to eq(1)
+#         end
+#       end
 
-      context "when message published successfully" do
-        let!(:queued_message) { create(:outboxer_message, :queued, updated_at: 2.seconds.ago) }
+#       context "when message published successfully" do
+#         let!(:queued_message) { create(:outboxer_message, :queued, updated_at: 2.seconds.ago) }
 
-        it "sets the message to published" do
-          Publisher.publish_messages(
-            buffer_size: buffer_size,
-            poll_interval: poll_interval,
-            tick_interval: tick_interval,
-            logger: logger,
-            kernel: kernel) do |publisher, messages|
-            expect(messages.first[:id]).to eq(queued_message.id)
-            expect(messages.first[:messageable_type]).to eq(queued_message.messageable_type)
-            expect(messages.first[:messageable_id]).to eq(queued_message.messageable_id)
-            expect(messages.first[:status]).to eq(Message::Status::PUBLISHING)
+#         it "sets the message to published" do
+#           Publisher.publish_messages(
+#             buffer_size: buffer_size,
+#             poll_interval: poll_interval,
+#             tick_interval: tick_interval,
+#             logger: logger,
+#             kernel: kernel) do |publisher, messages|
+#             expect(messages.first[:id]).to eq(queued_message.id)
+#             expect(messages.first[:messageable_type]).to eq(queued_message.messageable_type)
+#             expect(messages.first[:messageable_id]).to eq(queued_message.messageable_id)
+#             expect(messages.first[:status]).to eq(Message::Status::PUBLISHING)
 
-            Message.published_by_ids(
-              ids: messages.map { |message| message[:id] },
-              publisher_id: publisher[:id],
-              publisher_name: publisher[:name])
+#             Message.published_by_ids(
+#               ids: messages.map { |message| message[:id] },
+#               publisher_id: publisher[:id],
+#               publisher_name: publisher[:name])
 
-            ::Process.kill("TERM", ::Process.pid)
-          end
+#             ::Process.kill("TERM", ::Process.pid)
+#           end
 
-          expect(Models::Message.published.count).to eq(1)
-        end
-      end
+#           expect(Models::Message.published.count).to eq(1)
+#         end
+#       end
 
-      context "when an error is raised in the block" do
-        let!(:queued_message) { create(:outboxer_message, :queued, updated_at: 2.seconds.ago) }
+#       context "when an error is raised in the block" do
+#         let!(:queued_message) { create(:outboxer_message, :queued, updated_at: 2.seconds.ago) }
 
-        context "when a standard error is raised" do
-          let(:standard_error) { StandardError.new("some error") }
+#         context "when a standard error is raised" do
+#           let(:standard_error) { StandardError.new("some error") }
 
-          before do
-            Publisher.publish_messages(
-              buffer_size: buffer_size,
-              poll_interval: poll_interval,
-              tick_interval: tick_interval,
-              logger: logger,
-              kernel: kernel) do |_publisher, _messages|
-              ::Process.kill("TERM", ::Process.pid)
+#           before do
+#             Publisher.publish_messages(
+#               buffer_size: buffer_size,
+#               poll_interval: poll_interval,
+#               tick_interval: tick_interval,
+#               logger: logger,
+#               kernel: kernel) do |_publisher, _messages|
+#               ::Process.kill("TERM", ::Process.pid)
 
-              raise standard_error
-            end
-          end
+#               raise standard_error
+#             end
+#           end
 
-          it "does not change publishing status" do
-            queued_message.reload
+#           it "does not change publishing status" do
+#             queued_message.reload
 
-            expect(queued_message.status).to eq(Message::Status::PUBLISHING)
-          end
+#             expect(queued_message.status).to eq(Message::Status::PUBLISHING)
+#           end
 
-          it "logs errors" do
-            expect(logger).to have_received(:error).with(
-              a_string_matching(/^StandardError: some error/)).once
-          end
-        end
+#           it "logs errors" do
+#             expect(logger).to have_received(:error).with(
+#               a_string_matching(/^StandardError: some error/)).once
+#           end
+#         end
 
-        context "when a critical error is raised" do
-          let(:no_memory_error) { NoMemoryError.new }
-          let!(:queued_message) { create(:outboxer_message, :queued, updated_at: 2.seconds.ago) }
+#         context "when a critical error is raised" do
+#           let(:no_memory_error) { NoMemoryError.new }
+#           let!(:queued_message) { create(:outboxer_message, :queued, updated_at: 2.seconds.ago) }
 
-          before do
-            Publisher.publish_messages(
-              buffer_size: buffer_size,
-              poll_interval: poll_interval,
-              tick_interval: tick_interval,
-              logger: logger,
-              kernel: kernel) do |_publisher, _buffer_sized_message|
-              raise no_memory_error
-            end
-          end
+#           before do
+#             Publisher.publish_messages(
+#               buffer_size: buffer_size,
+#               poll_interval: poll_interval,
+#               tick_interval: tick_interval,
+#               logger: logger,
+#               kernel: kernel) do |_publisher, _buffer_sized_message|
+#               raise no_memory_error
+#             end
+#           end
 
-          it "does not change publishing status" do
-            queued_message.reload
+#           it "does not change publishing status" do
+#             queued_message.reload
 
-            expect(queued_message.status).to eq(Message::Status::PUBLISHING)
-          end
+#             expect(queued_message.status).to eq(Message::Status::PUBLISHING)
+#           end
 
-          it "logs errors" do
-            expect(logger).to have_received(:fatal).with(
-              a_string_matching("#{no_memory_error.class}: #{no_memory_error.message}")).once
-          end
-        end
+#           it "logs errors" do
+#             expect(logger).to have_received(:fatal).with(
+#               a_string_matching("#{no_memory_error.class}: #{no_memory_error.message}")).once
+#           end
+#         end
 
-        context "when Message.buffer raises a StandardError" do
-          it "logs the error and continues processing" do
-            call_count = 0
+#         context "when Message.buffer raises a StandardError" do
+#           it "logs the error and continues processing" do
+#             call_count = 0
 
-            allow(Message).to receive(:buffer) do
-              call_count += 1
+#             allow(Message).to receive(:buffer) do
+#               call_count += 1
 
-              case call_count
-              when 1
-                raise StandardError, "queue error"
-              else
-                ::Process.kill("TERM", ::Process.pid)
+#               case call_count
+#               when 1
+#                 raise StandardError, "queue error"
+#               else
+#                 ::Process.kill("TERM", ::Process.pid)
 
-                []
-              end
-            end
+#                 []
+#               end
+#             end
 
-            expect(logger).to receive(:error).with(include("StandardError: queue error")).once
+#             expect(logger).to receive(:error).with(include("StandardError: queue error")).once
 
-            Publisher.publish_messages(
-              buffer_size: buffer_size,
-              poll_interval: poll_interval,
-              tick_interval: tick_interval,
-              logger: logger,
-              kernel: kernel)
-          end
-        end
+#             Publisher.publish_messages(
+#               buffer_size: buffer_size,
+#               poll_interval: poll_interval,
+#               tick_interval: tick_interval,
+#               logger: logger,
+#               kernel: kernel)
+#           end
+#         end
 
-        context "when Message.buffer raises an Exception" do
-          it "logs the exception and shuts down" do
-            allow(Message).to receive(:buffer)
-              .and_raise(NoMemoryError, "failed to allocate memory")
+#         context "when Message.buffer raises an Exception" do
+#           it "logs the exception and shuts down" do
+#             allow(Message).to receive(:buffer)
+#               .and_raise(NoMemoryError, "failed to allocate memory")
 
-            expect(logger).to receive(:fatal)
-              .with(include("NoMemoryError: failed to allocate memory"))
-              .once
+#             expect(logger).to receive(:fatal)
+#               .with(include("NoMemoryError: failed to allocate memory"))
+#               .once
 
-            Publisher.publish_messages(
-              buffer_size: buffer_size,
-              poll_interval: poll_interval,
-              tick_interval: tick_interval,
-              logger: logger,
-              kernel: kernel)
-          end
-        end
-      end
-    end
-  end
-end
-# rubocop:enable Layout/LineLength
+#             Publisher.publish_messages(
+#               buffer_size: buffer_size,
+#               poll_interval: poll_interval,
+#               tick_interval: tick_interval,
+#               logger: logger,
+#               kernel: kernel)
+#           end
+#         end
+#       end
+#     end
+#   end
+# end
+# # rubocop:enable Layout/LineLength

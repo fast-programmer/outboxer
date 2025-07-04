@@ -35,7 +35,7 @@ module Outboxer
           expect(config).to include(
             adapter: "postgresql",
             database: "override_db",
-            pool: 6)
+            pool: 3)
         end
       end
 
@@ -65,7 +65,7 @@ module Outboxer
             username: "outboxer_developer",
             password: "outboxer_password",
             database: "outboxer_development",
-            pool: 6
+            pool: 3
           )
         end
       end

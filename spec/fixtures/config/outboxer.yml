@@ -1,16 +1,19 @@
 ---
-:batch_size: 1000
-:buffer_size: 10
-:buffering_concurrency: 1
-:publishing_concurrency: 1
-:tick_interval: 0.1
-:poll_interval: 5.0
-:heartbeat_interval: 5.0
-:sweep_interval: 60
-:sweep_retention: 60
-:sweep_batch_size: 100
-:log_level: 1
+:batch_size: 999
+:buffer_size: 9
+:buffering_concurrency: 2
+:publishing_concurrency: 2
+:tick_interval: 0.2
+:poll_interval: 3.0
+:heartbeat_interval: 2.0
+:sweep_interval: 30
+:sweep_retention: 30
+:sweep_batch_size: 50
+:log_level: 0
 development:
-  :concurrency: 2
+  :buffering_concurrency: 3
+  :publishing_concurrency: 3
 test:
+  :buffering_concurrency: 4
+  :publishing_concurrency: 4
   :concurrency: <%= ENV['RAILS_MAX_THREADS'] %>
