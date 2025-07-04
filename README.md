@@ -50,7 +50,6 @@ end
 
 **6. Derive event type**
 
-
 ```ruby
 # app/models/accountify/invoice_raised_event.rb
 
