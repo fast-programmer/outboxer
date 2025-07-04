@@ -553,17 +553,19 @@ module Outboxer
         sweep_retention: sweep_retention,
         sweep_batch_size: sweep_batch_size)
 
-      buffering_threads = create_buffering_threads(
-        id: publisher[:id], name: name,
-        concurrency: buffering_concurrency,
-        queue: queue,
-        batch_size: batch_size,
-        poll_interval: poll_interval, tick_interval: tick_interval,
-        logger: logger, process: process, kernel: kernel)
+      buffering_threads = Array.new(buffering_concurrency) do |index|
+        create_buffering_thread(
+          id: publisher[:id], name: name,
+          index: index, queue: queue, batch_size: batch_size,
+          poll_interval: poll_interval, tick_interval: tick_interval,
+          logger: logger, process: process, kernel: kernel)
+      end
 
-      publishing_threads = create_publishing_threads(
-        id: publisher[:id], name: name, queue: queue, concurrency: publishing_concurrency,
-        logger: logger, &block)
+      publishing_threads = Array.new(publishing_concurrency) do |index|
+        create_publishing_thread(
+          id: publisher[:id], name: name, index: index, queue: queue,
+          logger: logger, &block)
+      end
 
       heartbeat_thread = create_heartbeat_thread(
         id: publisher[:id], heartbeat_interval: heartbeat_interval, tick_interval: tick_interval,
@@ -607,81 +609,77 @@ module Outboxer
       buffering_concurrency + publishing_concurrency + 3 # (main + heartbeat + sweeper)
     end
 
+    # Creates thread to buffer messages.
     # @param id [Integer] The ID of the publisher.
     # @param name [String] The name of the publisher.
+    # @param index [Integer] The index of the thread.
     # @param queue [Queue] A sized queue to hold buffered messages.
-    # @param concurrency [Integer] The number of concurrent threads.
     # @param batch_size [Integer] The number of messages to buffer per batch.
     # @param logger [Logger] Logger instance for logging errors or diagnostics.
     # @return [Array<Thread>] An array of started buffering threads.
-    def create_buffering_threads(id:, name:, concurrency:, queue:, batch_size:,
-                                 poll_interval:, tick_interval:, logger:,
-                                 process:, kernel:)
-      Array.new(concurrency) do |index|
-        Thread.new do
-          Thread.current.name = "buffering-#{index + 1}"
+    def create_buffering_thread(id:, name:, index:, queue:, batch_size:,
+                                poll_interval:, tick_interval:, logger:,
+                                process:, kernel:)
+      Thread.new do
+        Thread.current.name = "buffering-#{index + 1}"
 
-          while !terminating?
-            begin
-              buffered_messages = buffer_messages(id: id, name: name, limit: batch_size)
+        while !terminating?
+          begin
+            buffered_messages = buffer_messages(id: id, name: name, limit: batch_size)
 
-              if buffered_messages.any?
-                queue.push(buffered_messages)
-              else
-                Publisher.sleep(
-                  poll_interval, tick_interval: tick_interval, process: process, kernel: kernel)
-              end
-            rescue StandardError => error
-              logger.error("#{error.class}: #{error.message}\n#{error.backtrace.join("\n")}")
-            rescue Exception => error
-              logger.fatal("#{error.class}: #{error.message}\n#{error.backtrace.join("\n")}")
-
-              terminate(id: id)
+            if buffered_messages.any?
+              queue.push(buffered_messages)
+            else
+              Publisher.sleep(
+                poll_interval, tick_interval: tick_interval, process: process, kernel: kernel)
             end
-          end
+          rescue StandardError => error
+            logger.error("#{error.class}: #{error.message}\n#{error.backtrace.join("\n")}")
+          rescue Exception => error
+            logger.fatal("#{error.class}: #{error.message}\n#{error.backtrace.join("\n")}")
 
-          logger.info "#{Thread.current.name} shutting down"
+            terminate(id: id)
+          end
         end
+
+        logger.info "#{Thread.current.name} shutting down"
       end
     end
 
-    # Creates and manages threads dedicated to publishing operations.
+    # Creates thread to publish messages.
     # @param id [Integer] The ID of the publisher.
     # @param name [String] The name of the publisher.
+    # @param index [Integer] The index of the thread.
     # @param queue [Queue] The queue to manage publishing messages.
-    # @param concurrency [Integer] The number of concurrent threads.
     # @param logger [Logger] The logger to use for logging operations.
     # @return [Array<Thread>] An array of threads managing publishing.
     # @yieldparam message [Hash] A message being processed.
-    def create_publishing_threads(id:, name:, queue:, concurrency:,
-                                  logger:, &block)
-      Array.new(concurrency) do |index|
-        Thread.new do
-          Thread.current.name = "publishing-#{index + 1}"
+    def create_publishing_thread(id:, name:, queue:, index:, logger:, &block)
+      Thread.new do
+        Thread.current.name = "publishing-#{index + 1}"
 
-          while (messages = queue.pop)
-            begin
-              message_ids = messages.map { |message| message[:id] }
+        while (messages = queue.pop)
+          begin
+            message_ids = messages.map { |message| message[:id] }
 
-              messages_publishing = messages_publishing_by_ids(
-                id: id, name: name, message_ids: message_ids)
+            messages_publishing = messages_publishing_by_ids(
+              id: id, name: name, message_ids: message_ids)
 
-              block.call({ id: id, name: name }, messages_publishing)
-            rescue StandardError => error
-              logger.error(
-                "#{error.class}: #{error.message}\n" \
-                "#{error.backtrace.join("\n")}")
-            rescue ::Exception => error
-              logger.fatal(
-                "#{error.class}: #{error.message}\n" \
-                "#{error.backtrace.join("\n")}")
+            block.call({ id: id, name: name }, messages_publishing)
+          rescue StandardError => error
+            logger.error(
+              "#{error.class}: #{error.message}\n" \
+              "#{error.backtrace.join("\n")}")
+          rescue ::Exception => error
+            logger.fatal(
+              "#{error.class}: #{error.message}\n" \
+              "#{error.backtrace.join("\n")}")
 
-              terminate(id: id)
-            end
+            terminate(id: id)
           end
-
-          logger.info "#{Thread.current.name} shutting down"
         end
+
+        logger.info "#{Thread.current.name} shutting down"
       end
     end
 
