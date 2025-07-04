@@ -36,17 +36,7 @@ bin/rails generate model Event type:string created_at:datetime --skip-timestamps
 bin/rails db:migrate
 ```
 
-**5. Define new event type**
-
-```ruby
-# app/models/accountify/invoice_raised_event.rb
-
-module Accountify
-  class InvoiceRaisedEvent < Event; end
-end
-```
-
-**6. Queue outboxer message after event created**
+**5. Queue outboxer message after event created**
 
 ```ruby
 # app/models/event.rb
@@ -58,7 +48,18 @@ class Event < ApplicationRecord
 end
 ```
 
-**7. Create new event**
+**6. Derive event type**
+
+
+```ruby
+# app/models/accountify/invoice_raised_event.rb
+
+module Accountify
+  class InvoiceRaisedEvent < Event; end
+end
+```
+
+**7. Create derived event type**
 
 ```bash
 bin/rails c
