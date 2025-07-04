@@ -593,9 +593,8 @@ module Outboxer
       buffering_threads.each(&:join)
 
       publishing_concurrency.times { queue.push(nil) }
-      logger.info "#{Thread.current.name} pushed #{publishing_concurrency} nils to queue"
-
       publishing_threads.each(&:join)
+
       heartbeat_thread.join
       sweeper_thread.join
 
