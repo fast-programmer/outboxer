@@ -8,7 +8,7 @@ module Outboxer
       let(:poll_interval) { 1 }
       let(:tick_interval) { 0.1 }
       let(:logger) { instance_double(Logger, debug: true, error: true, fatal: true, info: true, level: 1) }
-      let(:kernel) { class_double(Kernel, sleep: nil) }
+      let(:kernel) { Kernel }
 
       before do
         allow(logger).to receive(:level=)
