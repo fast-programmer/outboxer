@@ -42,7 +42,7 @@ environment = ENV["APP_ENV"] || "development"
 
 logger = Outboxer::Logger.new($stdout, level: log_level)
 
-db_config = Outboxer::Database.config(environment: environment, concurrency: 1)
+db_config = Outboxer::Database.config(environment: environment, pool: 1)
 Outboxer::Database.connect(config: db_config, logger: logger)
 
 reader, writer = IO.pipe

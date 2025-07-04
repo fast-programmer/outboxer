@@ -6,121 +6,91 @@ module Outboxer
       context "when no options are passed" do
         let(:argv) { [] }
 
-        it "parses correctly" do
+        it "returns empty hash" do
           expect(Publisher.parse_cli_options(argv)).to eq({})
         end
       end
 
-      context "when parsing the concurrency option" do
-        it "parses short and long flags" do
-          expect(Publisher.parse_cli_options(["-c", "5"])).to eq({ concurrency: 5 })
-          expect(Publisher.parse_cli_options(["--concurrency", "5"])).to eq({ concurrency: 5 })
+      context "when options are passed" do
+        context "when parsing the environment option" do
+          it "parses the environment flag" do
+            expect(Publisher.parse_cli_options(["--environment", "staging"]))
+              .to eq({ environment: "staging" })
+          end
         end
-      end
 
-      context "when parsing the environment option" do
-        it "parses short and long flags" do
-          expect(Publisher.parse_cli_options(["-e", "staging"])).to eq({ environment: "staging" })
-          expect(
-            Publisher.parse_cli_options(["--environment", "staging"])
-          ).to eq({ environment: "staging" })
+        it "parses the batch size flag" do
+          expect(Publisher.parse_cli_options(["--batch-size", "100"])).to eq({ batch_size: 100 })
         end
-      end
 
-      context "when parsing the buffer size option" do
-        it "parses short and long flags" do
-          expect(Publisher.parse_cli_options(["-b", "100"])).to eq({ buffer_size: 100 })
+        it "parses the buffer size flag" do
           expect(Publisher.parse_cli_options(["--buffer-size", "100"])).to eq({ buffer_size: 100 })
         end
-      end
 
-      context "when parsing the tick interval option" do
-        it "parses short and long flags" do
-          expect(Publisher.parse_cli_options(["-t", "0.5"])).to eq({ tick_interval: 0.5 })
+        it "parses buffering concurrency flag" do
+          expect(Publisher.parse_cli_options(["--buffering-concurrency", "8"]))
+            .to eq({ buffering_concurrency: 8 })
+        end
+
+        it "parses publishing concurrency flag" do
+          expect(Publisher.parse_cli_options(["--publishing-concurrency", "7"]))
+            .to eq({ publishing_concurrency: 7 })
+        end
+
+        it "parses the tick interval flag" do
           expect(
             Publisher.parse_cli_options(["--tick-interval", "0.5"])
           ).to eq({ tick_interval: 0.5 })
         end
-      end
 
-      context "when parsing the poll interval option" do
-        it "parses short and long flags" do
-          expect(Publisher.parse_cli_options(["-p", "30"])).to eq({ poll_interval: 30 })
+        it "parses the poll interval flag" do
           expect(
             Publisher.parse_cli_options(["--poll-interval", "30"])
           ).to eq({ poll_interval: 30 })
         end
-      end
 
-      context "when parsing the heartbeat interval option" do
-        it "parses short and long flags" do
-          expect(Publisher.parse_cli_options(["-a", "10"])).to eq({ heartbeat_interval: 10 })
+        it "parses the heartbeat interval flag" do
           expect(
             Publisher.parse_cli_options(["--heartbeat-interval", "10"])
           ).to eq({ heartbeat_interval: 10 })
         end
-      end
 
-      context "when parsing the sweep interval option" do
-        it "parses short and long flags" do
-          expect(Publisher.parse_cli_options(["-s", "10"])).to eq({ sweep_interval: 10 })
+        it "parses the sweep interval flag" do
           expect(
             Publisher.parse_cli_options(["--sweep-interval", "10"])
           ).to eq({ sweep_interval: 10 })
         end
-      end
 
-      context "when parsing the sweep retention option" do
-        it "parses short and long flags" do
-          expect(Publisher.parse_cli_options(["-r", "10"])).to eq({ sweep_retention: 10 })
+        it "parses the sweep retention flag" do
           expect(
             Publisher.parse_cli_options(["--sweep-retention", "10"])
           ).to eq({ sweep_retention: 10 })
         end
-      end
 
-      context "when parsing the sweep batch size option" do
-        it "parses short and long flags" do
-          expect(Publisher.parse_cli_options(["-w", "10"])).to eq({ sweep_batch_size: 10 })
+        it "parses the sweep batch size flag" do
           expect(
             Publisher.parse_cli_options(["--sweep-batch_size", "10"])
           ).to eq({ sweep_batch_size: 10 })
         end
-      end
 
-      context "when parsing the config file path option" do
-        it "parses short and long flags" do
-          expect(
-            Publisher.parse_cli_options(["-C", "config/path.yml"])
-          ).to eq({ config: "config/path.yml" })
+        it "parses the config file flag" do
           expect(
             Publisher.parse_cli_options(["--config", "config/path.yml"])
           ).to eq({ config: "config/path.yml" })
         end
-      end
 
-      context "when parsing the log level option" do
-        it "parses short and long flags" do
-          expect(Publisher.parse_cli_options(["-l", "0"])).to eq({ log_level: 0 })
+        it "parses the log level flag" do
           expect(Publisher.parse_cli_options(["--log-level", "0"])).to eq({ log_level: 0 })
         end
-      end
 
-      context "when the version option is used" do
-        let(:argv) { ["-V"] }
-
-        it "prints version and exits" do
-          expect { Publisher.parse_cli_options(argv) }
+        it "parses the version flag, prints version and exits" do
+          expect { Publisher.parse_cli_options(["--version"]) }
             .to output(/Outboxer version/).to_stdout.and raise_error(SystemExit)
         end
-      end
 
-      context "when the help option is used" do
-        let(:argv) { ["-h"] }
-
-        it "prints help and exits" do
+        it "parses the help flag, prints help and exits" do
           expect do
-            Publisher.parse_cli_options(argv)
+            Publisher.parse_cli_options(["--help"])
           end.to output(
             /Usage: outboxer_publisher \[options\]/).to_stdout.and raise_error(SystemExit)
         end

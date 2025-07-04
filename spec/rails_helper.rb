@@ -1,7 +1,11 @@
 require "simplecov"
 require "coveralls"
 
-SimpleCov.formatter = Coveralls::SimpleCov::Formatter
+SimpleCov.formatters = SimpleCov::Formatter::MultiFormatter.new([
+  SimpleCov::Formatter::HTMLFormatter,
+  Coveralls::SimpleCov::Formatter
+])
+
 SimpleCov.start
 
 require "spec_helper"
@@ -17,7 +21,7 @@ RSpec.configure do |config|
   config.include FactoryBot::Syntax::Methods
 
   config.before(:all) do
-    db_config = Outboxer::Database.config(environment: "test", concurrency: 2)
+    db_config = Outboxer::Database.config(environment: "test", pool: 2)
     Outboxer::Database.connect(config: db_config, logger: nil)
     DatabaseCleaner.strategy = :truncation
   end

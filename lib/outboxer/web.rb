@@ -22,7 +22,7 @@ require "uri"
 
 environment = ENV["APP_ENV"] || ENV["RAILS_ENV"] || "development"
 
-config = Outboxer::Database.config(environment: environment, concurrency: 5)
+config = Outboxer::Database.config(environment: environment, pool: 1)
 Outboxer::Database.connect(config: config)
 
 module Outboxer

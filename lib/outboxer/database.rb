@@ -9,21 +9,20 @@ module Outboxer
 
     CONFIG_DEFAULTS = {
       environment: "development",
-      concurrency: 1,
+      buffering_concurrency: 1,
+      publishing_concurrency: 1,
       path: "config/database.yml"
     }
 
     # Loads the database configuration from a YAML file, processes ERB,
     # and merges with CONFIG_DEFAULTS.
+    # @param pool [Integer] the connection pool size.
     # @param environment [String, Symbol] the environment name to load configuration for.
-    # @param concurrency [Integer] the number of connections in the pool.
     # @param path [String] the path to the database configuration file.
     # @return [Hash] the database configuration with symbolized keys.
     # @note Extra connections are added to the pool to cover for internal threads like main
     #   and the heartbeat thread.
-    def config(environment: CONFIG_DEFAULTS[:environment],
-               concurrency: CONFIG_DEFAULTS[:concurrency],
-               path: CONFIG_DEFAULTS[:path])
+    def config(pool:, environment: CONFIG_DEFAULTS[:environment], path: CONFIG_DEFAULTS[:path])
       path_expanded = ::File.expand_path(path)
       text = File.read(path_expanded)
       erb = ERB.new(text, trim_mode: "-")
@@ -32,7 +31,7 @@ module Outboxer
       yaml = YAML.safe_load(erb_result, permitted_classes: [Symbol], aliases: true)
       yaml.deep_symbolize_keys!
       yaml = yaml[environment.to_sym] || {}
-      yaml[:pool] = concurrency + 3 # workers + (main + heartbeat + sweeper)
+      yaml[:pool] = pool
 
       yaml
     rescue Errno::ENOENT

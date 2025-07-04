@@ -30,12 +30,12 @@ module Outboxer
         end
 
         it "returns correct config" do
-          config = Database.config(environment: :test, concurrency: 3, path: tmp_path)
+          config = Database.config(environment: :test, pool: 3, path: tmp_path)
 
           expect(config).to include(
             adapter: "postgresql",
             database: "override_db",
-            pool: 6)
+            pool: 3)
         end
       end
 
@@ -48,7 +48,7 @@ module Outboxer
 
         it "returns an empty hash" do
           missing_path = File.join(tmp_dir, "missing_database_override.yml")
-          config = Database.config(environment: :test, concurrency: 2, path: missing_path)
+          config = Database.config(environment: :test, pool: 2, path: missing_path)
 
           expect(config).to eq({})
         end
@@ -56,7 +56,7 @@ module Outboxer
 
       context "when no path is specified" do
         it "uses the default path" do
-          config = Database.config(environment: :development, concurrency: 3)
+          config = Database.config(environment: :development, pool: 3)
 
           expect(config).to include(
             adapter: a_string_matching(/postgresql|mysql2/),
@@ -65,7 +65,7 @@ module Outboxer
             username: "outboxer_developer",
             password: "outboxer_password",
             database: "outboxer_development",
-            pool: 6
+            pool: 3
           )
         end
       end
