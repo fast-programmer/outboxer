@@ -16,11 +16,8 @@ module Outboxer
 
         let(:message_ids) { messages.map(&:id) }
 
-        it "transitions publishing messages to published and returns serialized results" do
-          result = Publisher.messages_published_by_ids(id: id, name: name, message_ids: message_ids)
-
-          expect(result.count).to eq(2)
-          expect(result.map { |message| message[:id] }).to match_array(message_ids)
+        it "transitions publishing messages to published" do
+          Publisher.messages_published_by_ids(id: id, name: name, message_ids: message_ids)
 
           expect(Models::Message.published.pluck(:id)).to match_array(message_ids)
         end

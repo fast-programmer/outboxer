@@ -278,3 +278,5 @@ Style/SymbolArray:
   Enabled: false
 Style/YAMLFileRead: # new in 1.53
   Enabled: true
+Style/IfUnlessModifier:
+  Enabled: false
