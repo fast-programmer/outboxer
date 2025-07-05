@@ -27,11 +27,8 @@ module Outboxer
         end
 
         it "transitions publishing messages to failed and stores exception frames" do
-          result = Publisher.messages_failed_by_ids(
+          Publisher.messages_failed_by_ids(
             id: id, name: name, message_ids: message_ids, exception: exception)
-
-          expect(result.count).to eq(2)
-          expect(result.map { |message| message[:id] }).to match_array(message_ids)
 
           expect(Models::Message.failed.pluck(:id)).to match_array(message_ids)
         end

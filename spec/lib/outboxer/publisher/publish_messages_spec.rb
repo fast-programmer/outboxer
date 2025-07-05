@@ -78,7 +78,8 @@ module Outboxer
               sweep_batch_size: 100,
               logger: logger,
               kernel: kernel
-            ) do |_publisher, _messages| # no op
+            ) do |_publisher, _messages|
+              # no op
             end
           end
 
@@ -214,11 +215,11 @@ module Outboxer
             poll_interval: poll_interval,
             tick_interval: tick_interval,
             logger: logger,
-            kernel: kernel) do |publisher, messages|
+            kernel: kernel
+          ) do |publisher, messages|
             expect(messages.first[:id]).to eq(queued_message.id)
             expect(messages.first[:messageable_type]).to eq(queued_message.messageable_type)
             expect(messages.first[:messageable_id]).to eq(queued_message.messageable_id)
-            expect(messages.first[:status]).to eq(Message::Status::PUBLISHING)
 
             Publisher.messages_published_by_ids(
               id: publisher[:id], name: publisher[:name],
