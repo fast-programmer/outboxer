@@ -284,7 +284,7 @@ module Outboxer
               tick_interval: tick_interval,
               logger: logger,
               kernel: kernel
-            ) do |_publisher, _buffer_sized_message|
+            ) do |_publisher, _message_batch|
               raise no_memory_error
             end
           end
