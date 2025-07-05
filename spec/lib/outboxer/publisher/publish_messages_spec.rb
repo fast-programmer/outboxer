@@ -24,7 +24,7 @@ module Outboxer
             tick_interval: tick_interval,
             logger: logger,
             kernel: kernel
-          ) do |publisher, _messages|
+          ) do |publisher, _message_batch|
             Publisher.terminate(id: publisher[:id])
           end
         end
@@ -45,7 +45,8 @@ module Outboxer
               sweep_batch_size: 100,
               logger: logger,
               kernel: kernel
-            ) do |_publisher, _messages| # no op
+            ) do |_publisher, _message_batch|
+              # no op
             end
           end
 
@@ -78,7 +79,7 @@ module Outboxer
               sweep_batch_size: 100,
               logger: logger,
               kernel: kernel
-            ) do |_publisher, _messages|
+            ) do |_publisher, _message_batch|
               # no op
             end
           end
@@ -103,7 +104,8 @@ module Outboxer
               sweep_batch_size: 1,
               logger: logger,
               kernel: kernel
-            ) do |_publisher, _messages| # no op
+            ) do |_publisher, _message_batch|
+              # no op
             end
           end
 
@@ -132,7 +134,8 @@ module Outboxer
               sweep_batch_size: 100,
               logger: logger,
               kernel: kernel
-            ) do |_publisher, _messages| # no op
+            ) do |_publisher, _message_batch|
+              # no op
             end
           end
 
@@ -160,7 +163,8 @@ module Outboxer
               buffer_size: buffer_size,
               poll_interval: poll_interval,
               tick_interval: tick_interval,
-              logger: logger, kernel: kernel) do |_publisher, _messages|
+              logger: logger, kernel: kernel
+            ) do |_publisher, _message_batch|
               ::Process.kill("TTIN", ::Process.pid)
             end
           end
@@ -188,11 +192,11 @@ module Outboxer
             tick_interval: tick_interval,
             logger: logger,
             kernel: kernel
-          ) do |publisher, messages|
+          ) do |publisher, message_batch|
             Publisher.messages_published_by_ids(
               id: publisher[:id],
               name: publisher[:name],
-              message_ids: messages.map { |message| message[:id] }
+              message_ids: message_batch[:message_ids]
             )
 
             ::Process.kill("TSTP", ::Process.pid)
@@ -216,14 +220,19 @@ module Outboxer
             tick_interval: tick_interval,
             logger: logger,
             kernel: kernel
-          ) do |publisher, messages|
-            expect(messages.first[:id]).to eq(queued_message.id)
-            expect(messages.first[:messageable_type]).to eq(queued_message.messageable_type)
-            expect(messages.first[:messageable_id]).to eq(queued_message.messageable_id)
+          ) do |publisher, message_batch|
+            expect(message_batch[:messages].first[:id])
+              .to eq(queued_message.id)
+
+            expect(message_batch[:messages].first[:messageable_type])
+              .to eq(queued_message.messageable_type)
+
+            expect(message_batch[:messages].first[:messageable_id])
+              .to eq(queued_message.messageable_id)
 
             Publisher.messages_published_by_ids(
               id: publisher[:id], name: publisher[:name],
-              message_ids: messages.map { |message| message[:id] })
+              message_ids: message_batch[:message_ids])
 
             ::Process.kill("TERM", ::Process.pid)
           end
@@ -244,7 +253,8 @@ module Outboxer
               poll_interval: poll_interval,
               tick_interval: tick_interval,
               logger: logger,
-              kernel: kernel) do |_publisher, _messages|
+              kernel: kernel
+            ) do |_publisher, _message_batch|
               ::Process.kill("TERM", ::Process.pid)
 
               raise standard_error
@@ -273,7 +283,8 @@ module Outboxer
               poll_interval: poll_interval,
               tick_interval: tick_interval,
               logger: logger,
-              kernel: kernel) do |_publisher, _buffer_sized_message|
+              kernel: kernel
+            ) do |_publisher, _message_batch|
               raise no_memory_error
             end
           end

@@ -653,7 +653,10 @@ module Outboxer
     # @param queue [Queue] The queue to manage publishing messages.
     # @param logger [Logger] The logger to use for logging operations.
     # @return [Thread] the created publishing thread
-    # @yieldparam message [Hash] A message being processed.
+    # @yieldparam publisher [Hash] Publisher info, e.g.,
+    #   { id: Integer, name: String }.
+    # @yieldparam message_batch [Hash] Message batch, e.g.,
+    #   { message_ids: Array<Integer>, messages: Array<Hash> }.
     def create_publishing_thread(id:, name:, queue:, index:, logger:, &block)
       Thread.new do
         Thread.current.name = "publishing-#{index + 1}"
@@ -664,7 +667,9 @@ module Outboxer
 
             messages_publishing_by_ids(id: id, name: name, message_ids: message_ids)
 
-            block.call({ id: id, name: name }, messages)
+            block.call(
+              { id: id, name: name },
+              { messages: messages, message_ids: message_ids })
           rescue StandardError => error
             logger.error(
               "#{error.class}: #{error.message}\n" \
