@@ -746,10 +746,9 @@ module Outboxer
             .order(updated_at: :asc)
             .limit(limit)
             .lock("FOR UPDATE SKIP LOCKED")
-            .select(:id, :messageable_type, :messageable_id)
-            .to_a
+            .pluck(:id, :messageable_type, :messageable_id)
 
-          message_ids = messages.map(&:id)
+          message_ids = messages.map(&:first)
 
           updated_rows = Models::Message
             .where(id: message_ids, status: Message::Status::QUEUED)
@@ -766,11 +765,11 @@ module Outboxer
         end
       end
 
-      messages.map do |message|
+      messages.map do |message_id, messageable_type, messageable_id|
         {
-          id: message.id,
-          messageable_type: message.messageable_type,
-          messageable_id: message.messageable_id
+          id: message_id,
+          messageable_type: messageable_type,
+          messageable_id: messageable_id
         }
       end
     end
@@ -789,8 +788,7 @@ module Outboxer
           messages = Models::Message
             .where(status: Message::Status::BUFFERED, id: message_ids)
             .lock("FOR UPDATE")
-            .select(:id)
-            .to_a
+            .pluck(:id)
 
           if messages.size != message_ids.size
             raise ArgumentError, "Some messages not buffered"
@@ -826,8 +824,7 @@ module Outboxer
           messages = Models::Message
             .where(status: Status::PUBLISHING, id: message_ids)
             .lock("FOR UPDATE")
-            .select(:id)
-            .to_a
+            .pluck(:id)
 
           if messages.size != message_ids.size
             raise ArgumentError, "Some messages not publishing"
