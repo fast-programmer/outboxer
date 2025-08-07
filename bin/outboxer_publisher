@@ -10,19 +10,15 @@ config = Outboxer::Publisher.config(environment: environment, path: config_path)
 options = Outboxer::Publisher::PUBLISH_MESSAGES_DEFAULTS.merge(config.merge(cli_options))
 logger = Outboxer::Logger.new($stdout, level: options[:log_level])
 
-connection_pool_size = Outboxer::Publisher.connection_pool_size(
-  buffering_concurrency: options[:buffering_concurrency],
-  publishing_concurrency: options[:publishing_concurrency])
+database_config = Outboxer::Database.config(
+  environment: environment, pool: Outboxer::Publisher.pool(concurrency: options[:concurrency]))
 
-database_config = Outboxer::Database.config(environment: environment, pool: connection_pool_size)
 Outboxer::Database.connect(config: database_config, logger: logger)
 
 begin
   Outboxer::Publisher.publish_messages(
     batch_size: options[:batch_size],
-    buffer_size: options[:buffer_size],
-    buffering_concurrency: options[:buffering_concurrency],
-    publishing_concurrency: options[:publishing_concurrency],
+    concurrency: options[:concurrency],
     tick_interval: options[:tick_interval],
     poll_interval: options[:poll_interval],
     heartbeat_interval: options[:heartbeat_interval],
@@ -30,17 +26,24 @@ begin
     sweep_retention: options[:sweep_retention],
     sweep_batch_size: options[:sweep_batch_size],
     logger: logger
-  ) do |publisher, message_batch|
+  ) do |publisher, messages|
     begin
       # TODO: publish messages here
     rescue => error
-      Outboxer::Publisher.messages_failed_by_ids(
+      logger.error(
+        "Error raised during publishing " \
+        "publisher_id=#{publisher[:id]} " \
+        "message_ids=#{messages.map { |message| message[:id] }.join(",")}\n" \
+        "#{error.class}: #{error.message}\n" \
+        "#{error.backtrace.join("\n")}")
+
+      Outboxer::Publisher.update_messages_by_ids(
         id: publisher[:id], name: publisher[:name],
-        message_ids: message_batch[:message_ids], exception: error)
+        failed_message_ids: messages.map { | message| message[:id] })
     else
-      Outboxer::Publisher.messages_published_by_ids(
+      Outboxer::Publisher.update_messages_by_ids(
         id: publisher[:id], name: publisher[:name],
-        message_ids: message_batch[:message_ids])
+        published_message_ids: messages.map { | message| message[:id] })
     end
   end
 ensure

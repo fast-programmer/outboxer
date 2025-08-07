@@ -28,8 +28,8 @@ module Outboxer
         end
 
         it "parses buffering concurrency flag" do
-          expect(Publisher.parse_cli_options(["--buffering-concurrency", "8"]))
-            .to eq({ buffering_concurrency: 8 })
+          expect(Publisher.parse_cli_options(["--concurrency", "8"]))
+            .to eq({ concurrency: 8 })
         end
 
         it "parses publishing concurrency flag" do

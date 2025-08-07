@@ -1,0 +1,56 @@
+#!/usr/bin/env ruby
+
+require "bundler/setup"
+require "outboxer"
+require "aws-sdk-sqs"
+
+cli_options = Outboxer::Publisher.parse_cli_options(ARGV)
+environment = cli_options.delete(:environment) || ENV["APP_ENV"] || ENV["RAILS_ENV"] || "development"
+options = Outboxer::Publisher::PUBLISH_MESSAGES_DEFAULTS.merge(cli_options)
+logger = Outboxer::Logger.new($stdout, level: options[:log_level])
+
+database_config = Outboxer::Database.config(
+  environment: environment,
+  pool: Outboxer::Publisher.pool(concurrency: options[:concurrency]))
+
+Outboxer::Database.connect(config: database_config, logger: logger)
+
+sqs_client = Aws::SQS::Client.new(region: ENV.fetch("AWS_REGION", "us-east-1"))
+sqs_queue_url = ENV.fetch("SQS_QUEUE_URL")
+
+begin
+  Outboxer::Publisher.publish_messages(batch_size: 10) do |publisher, messages|
+    begin
+      result = sqs_client.send_message_batch(
+        queue_url: sqs_queue_url,
+        entries: messages.map do |message|
+          {
+            id: message[:id].to_s,
+            message_body: {
+              messageable_type: message[:messageable_type],
+              messageable_id: message[:messageable_id]
+            }.to_json
+          }
+        end)
+    rescue => error
+      logger.error(
+        "Aws::SQS::Client#send_message_batch failed for publisher_id=#{publisher[:id]} " \
+        "message_ids=#{messages.map { |message| message[:id] }.join(",")}\n" \
+        "#{error.class}: #{error.message}\n" \
+        "#{error.backtrace.join("\n")}")
+
+      Outboxer::Publisher.update_messages_by_ids(
+        publisher_id: publisher[:id],
+        publisher_name: publisher[:name],
+        failed_message_ids: messages.map { |message| message[:id] })
+    else
+      Outboxer::Publisher.update_messages_by_ids(
+        publisher_id: publisher[:id],
+        publisher_name: publisher[:name],
+        published_message_ids: result.successful.map { |entry| entry.id.to_i },
+        failed_message_ids: result.failed.map { |entry| entry.id.to_i })
+    end
+  end
+ensure
+  Outboxer::Database.disconnect(logger: logger)
+end
