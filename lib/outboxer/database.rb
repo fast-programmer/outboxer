@@ -9,8 +9,7 @@ module Outboxer
 
     CONFIG_DEFAULTS = {
       environment: "development",
-      buffering_concurrency: 1,
-      publishing_concurrency: 1,
+      concurrency: 1,
       path: "config/database.yml"
     }
 

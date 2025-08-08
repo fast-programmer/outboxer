@@ -1,0 +1,75 @@
+#!/usr/bin/env ruby
+
+require "bundler/setup"
+require "outboxer"
+require "bunny"
+require "json"
+
+cli_options = Outboxer::Publisher.parse_cli_options(ARGV)
+environment = cli_options.delete(:environment) ||
+              ENV["APP_ENV"] || ENV["RAILS_ENV"] || "development"
+options = Outboxer::Publisher::PUBLISH_MESSAGES_DEFAULTS.merge(cli_options)
+
+database_config = Outboxer::Database.config(
+  environment: environment,
+  pool: Outboxer::Publisher.pool(concurrency: options[:concurrency]))
+
+Outboxer::Database.connect(config: database_config)
+
+bunny = Bunny.new(
+  ENV.fetch("RABBITMQ_URL"),
+  automatically_recover: true,
+  heartbeat: 10)
+
+bunny.start
+channel = bunny.create_channel
+channel.confirm_select
+exchange = channel.direct(ENV.fetch("BUNNY_EXCHANGE"), durable: true)
+routing_key = ENV.fetch("BUNNY_ROUTING_KEY", "")
+
+begin
+  Outboxer::Publisher.publish_messages(
+    batch_size: 1, concurrency: options[:concurrency]) do |publisher, messages|
+    begin
+      exchange.publish(
+        {
+          messageable_type: message[:messageable_type],
+          messageable_id: message[:messageable_id]
+        }.to_json,
+        routing_key: routing_key,
+        persistent: true,
+        message_id: [messages][0][:id].to_s)
+
+      if channel.wait_for_confirms
+        Outboxer::Publisher.update_messages(
+          id: publisher[:id], published_message_ids: [message[:id]])
+      else
+        Outboxer::Publisher.update_messages(
+          id: publisher[:id],
+          published_message_ids: [message[:id]],
+          failed_messages: [{
+            id: messages[0][:id],
+            exception: { message_text: "RabbitMQ did not confirm message delivery" }
+          }])
+      end
+    rescue => error
+      Outboxer::Publisher.update_messages(
+        id: publisher[:id],
+        failed_messages: [
+          {
+            id: message[:id],
+            exception: {
+              class_name: error.class.name,
+              message_text: error.message,
+              backtrace: error.backtrace
+            }
+          }
+        ])
+    end
+  end
+ensure
+  channel.close
+  bunny.close
+
+  Outboxer::Database.disconnect
+end

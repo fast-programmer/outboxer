@@ -1,8 +1,7 @@
 ---
 :batch_size: 999
 :buffer_size: 9
-:buffering_concurrency: 2
-:publishing_concurrency: 2
+:concurrency: 2
 :tick_interval: 0.2
 :poll_interval: 3.0
 :heartbeat_interval: 2.0
@@ -11,9 +10,6 @@
 :sweep_batch_size: 50
 :log_level: 0
 development:
-  :buffering_concurrency: 3
-  :publishing_concurrency: 3
+  :concurrency: 3
 test:
-  :buffering_concurrency: 4
-  :publishing_concurrency: 4
   :concurrency: <%= ENV['RAILS_MAX_THREADS'] %>

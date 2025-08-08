@@ -2,33 +2,39 @@
 
 require "bundler/setup"
 require "outboxer"
+require "kafka"
 
 cli_options = Outboxer::Publisher.parse_cli_options(ARGV)
 environment = cli_options.delete(:environment) ||
               ENV["APP_ENV"] || ENV["RAILS_ENV"] || "development"
 options = Outboxer::Publisher::PUBLISH_MESSAGES_DEFAULTS.merge(cli_options)
-logger = Outboxer::Logger.new($stdout, level: options[:log_level])
 
 database_config = Outboxer::Database.config(
   environment: environment,
   pool: Outboxer::Publisher.pool(concurrency: options[:concurrency]))
 
-Outboxer::Database.connect(config: database_config, logger: logger)
+Outboxer::Database.connect(config: database_config)
+
+kafka = Kafka.new(
+  seed_brokers: ENV.fetch("KAFKA_BROKERS").split(","),
+  client_id: "outboxer")
+
+producer = kafka.producer(required_acks: :all)
 
 begin
-  Outboxer::Publisher.publish_messages(
-    batch_size: options[:batch_size],
-    concurrency: options[:concurrency],
-    tick_interval: options[:tick_interval],
-    poll_interval: options[:poll_interval],
-    heartbeat_interval: options[:heartbeat_interval],
-    sweep_interval: options[:sweep_interval],
-    sweep_retention: options[:sweep_retention],
-    sweep_batch_size: options[:sweep_batch_size],
-    logger: logger
-  ) do |publisher, messages|
+  Outboxer::Publisher.publish_messages(batch_size: 100) do |publisher, messages|
     begin
-      # TODO: publish messages here
+      messages.each do |message|
+        producer.produce(
+          {
+            messageable_type: message[:messageable_type],
+            messageable_id: message[:messageable_id]
+          }.to_json,
+          topic: ENV.fetch("KAFKA_TOPIC"),
+          key: message[:id].to_s)
+      end
+
+      producer.deliver_messages
     rescue => error
       Outboxer::Publisher.update_messages(
         id: publisher[:id],
@@ -38,7 +44,7 @@ begin
             exception: {
               class_name: error.class.name,
               message_text: error.message,
-              backtrace: error.backtrace.join("\n")
+              backtrace: error.backtrace
             }
           }
         end)
@@ -49,5 +55,7 @@ begin
     end
   end
 ensure
-  Outboxer::Database.disconnect(logger: logger)
+  producer.shutdown
+
+  Outboxer::Database.disconnect
 end

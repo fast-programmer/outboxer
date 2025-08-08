@@ -27,9 +27,6 @@ Style/RescueStandardError:
   Enabled: false
 Layout/LineLength:
   Max: 100
-  Exclude:
-    - 'bin/outboxer_publisher'
-    - 'bin/outboxer_load'
 Layout/ArgumentAlignment:
   EnforcedStyle: with_fixed_indentation
 Style/Documentation:
