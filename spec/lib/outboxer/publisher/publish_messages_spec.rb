@@ -193,10 +193,9 @@ module Outboxer
             logger: logger,
             kernel: kernel
           ) do |publisher, messages|
-            Publisher.messages_published_by_ids(
+            Publisher.update_messages(
               id: publisher[:id],
-              name: publisher[:name],
-              message_ids: messages.map { |message| message[:id] }
+              published_message_ids: messages.map { |message| message[:id] }
             )
 
             ::Process.kill("TSTP", ::Process.pid)
@@ -230,9 +229,9 @@ module Outboxer
             expect(messages.first[:messageable_id])
               .to eq(queued_message.messageable_id)
 
-            Publisher.messages_published_by_ids(
-              id: publisher[:id], name: publisher[:name],
-              message_ids: messages.map { |message| message[:id] })
+            Publisher.update_messages(
+              id: publisher[:id],
+              published_message_ids: messages.map { |message| message[:id] })
 
             ::Process.kill("TERM", ::Process.pid)
           end
