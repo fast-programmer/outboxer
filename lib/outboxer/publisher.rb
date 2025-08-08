@@ -740,29 +740,6 @@ module Outboxer
 
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          if published_message_ids.any?
-            messages = Models::Message
-              .where(id: published_message_ids, status: Message::Status::PUBLISHING)
-              .lock("FOR UPDATE")
-              .pluck(:id)
-
-            if messages.size != published_message_ids.size
-              raise ArgumentError, "Some messages publishing not locked for update"
-            end
-
-            updated_rows = Models::Message
-              .where(status: Status::PUBLISHING, id: published_message_ids)
-              .update_all(
-                status: Message::Status::PUBLISHED,
-                updated_at: current_utc_time,
-                published_at: current_utc_time,
-                publisher_id: id)
-
-            if updated_rows != published_message_ids.size
-              raise ArgumentError, "Some messages publishing not updated to published"
-            end
-          end
-
           failed_messages.each do |failed_message|
             message = Models::Message
               .lock("FOR UPDATE")
@@ -778,6 +755,34 @@ module Outboxer
             (failed_message[:exception][:backtrace] || []).each_with_index do |frame, index|
               exception.frames.create!(index: index, text: frame)
             end
+          end
+
+          if published_message_ids.any?
+            locked_message_ids = Models::Message
+              .where(id: published_message_ids, status: Message::Status::PUBLISHING)
+              .lock("FOR UPDATE")
+              .pluck(:id)
+
+            if locked_message_ids.size != published_message_ids.size
+              raise ArgumentError, "Some messages publishing not locked for update"
+            end
+
+            Models::Frame
+              .joins(:exception)
+              .where(exception: { message_id: published_message_ids })
+              .delete_all
+
+            Models::Exception.where(message_id: published_message_ids).delete_all
+
+            deleted_rows = Models::Message.where(id: published_message_ids).delete_all
+
+            if deleted_rows != published_message_ids.size
+              raise ArgumentError, "Some messages publishing not deleted"
+            end
+
+            setting_name = "messages.published.count.historic"
+            setting = Models::Setting.lock("FOR UPDATE").find_by!(name: setting_name)
+            setting.update!(value: setting.value.to_i + published_message_ids.count)
           end
         end
       end
