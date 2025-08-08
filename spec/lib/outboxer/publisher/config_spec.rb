@@ -10,7 +10,6 @@ module Outboxer
         config = Publisher.config(environment: "test", path: path)
         expect(config).to eq({
           batch_size: 999,
-          buffer_size: 9,
           concurrency: 4,
           tick_interval: 0.2,
           poll_interval: 3.0,
@@ -25,7 +24,6 @@ module Outboxer
       it "returns root values when environment not overridden" do
         expect(Publisher.config(path: path)).to eq({
           batch_size: 999,
-          buffer_size: 9,
           concurrency: 2,
           tick_interval: 0.2,
           poll_interval: 3.0,
@@ -41,7 +39,6 @@ module Outboxer
         expect(Publisher.config(environment: "development", path: path))
           .to eq({
             batch_size: 999,
-            buffer_size: 9,
             concurrency: 3,
             tick_interval: 0.2,
             poll_interval: 3.0,

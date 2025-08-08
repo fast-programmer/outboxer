@@ -32,6 +32,7 @@ module Outboxer
 
           expect(result.count).to eq(2)
           expect(result.map { |message| message[:id] }).to match_array(message_ids)
+
           expect(Models::Message.failed.pluck(:id)).to match_array(message_ids)
         end
       end

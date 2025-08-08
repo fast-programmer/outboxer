@@ -599,9 +599,7 @@ module Outboxer
               # message_ids = messages.map { |message| message[:id] }
               # messages_publishing_by_ids(id: id, name: name, message_ids: message_ids)
 
-              block.call(
-                { id: id, name: name },
-                { messages: messages })
+              block.call({ id: id, name: name }, messages)
             else
               Publisher.sleep(
                 poll_interval,

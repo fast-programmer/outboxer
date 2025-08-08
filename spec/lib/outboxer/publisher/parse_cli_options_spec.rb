@@ -23,18 +23,9 @@ module Outboxer
           expect(Publisher.parse_cli_options(["--batch-size", "100"])).to eq({ batch_size: 100 })
         end
 
-        it "parses the buffer size flag" do
-          expect(Publisher.parse_cli_options(["--buffer-size", "100"])).to eq({ buffer_size: 100 })
-        end
-
-        it "parses buffering concurrency flag" do
+        it "parses concurrency flag" do
           expect(Publisher.parse_cli_options(["--concurrency", "8"]))
             .to eq({ concurrency: 8 })
-        end
-
-        it "parses publishing concurrency flag" do
-          expect(Publisher.parse_cli_options(["--publishing-concurrency", "7"]))
-            .to eq({ publishing_concurrency: 7 })
         end
 
         it "parses the tick interval flag" do

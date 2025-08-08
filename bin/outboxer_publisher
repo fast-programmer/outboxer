@@ -1,0 +1,52 @@
+#!/usr/bin/env ruby
+
+require "bundler/setup"
+require "outboxer"
+
+cli_options = Outboxer::Publisher.parse_cli_options(ARGV)
+environment = cli_options.delete(:environment) || ENV["APP_ENV"] || ENV["RAILS_ENV"] || "development"
+options = Outboxer::Publisher::PUBLISH_MESSAGES_DEFAULTS.merge(cli_options)
+logger = Outboxer::Logger.new($stdout, level: options[:log_level])
+
+database_config = Outboxer::Database.config(
+  environment: environment,
+  pool: Outboxer::Publisher.pool(concurrency: options[:concurrency]))
+
+Outboxer::Database.connect(config: database_config, logger: logger)
+
+begin
+  Outboxer::Publisher.publish_messages(
+    batch_size: options[:batch_size],
+    concurrency: options[:concurrency],
+    tick_interval: options[:tick_interval],
+    poll_interval: options[:poll_interval],
+    heartbeat_interval: options[:heartbeat_interval],
+    sweep_interval: options[:sweep_interval],
+    sweep_retention: options[:sweep_retention],
+    sweep_batch_size: options[:sweep_batch_size],
+    logger: logger
+  ) do |publisher, messages|
+    begin
+      # TODO: publish messages here
+    rescue => error
+      Outboxer::Publisher.update_messages(
+        id: publisher[:id],
+        failed_messages: messages.map do |message|
+          {
+            id: message[:id],
+            exception: {
+              class_name: error.class.name,
+              message_text: error.message,
+              backtrace: error.backtrace.join("\n")
+            }
+          }
+        end)
+    else
+      Outboxer::Publisher.update_messages(
+        id: publisher[:id],
+        published_message_ids: messages.map { |message| message[:id] })
+    end
+  end
+ensure
+  Outboxer::Database.disconnect(logger: logger)
+end

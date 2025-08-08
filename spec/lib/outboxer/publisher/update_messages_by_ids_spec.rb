@@ -28,8 +28,7 @@ module Outboxer
           Publisher.update_messages(
             id: id,
             published_message_ids: [message_to_mark_published.id],
-            failed_messages: failed_messages,
-          )
+            failed_messages: failed_messages)
         end
 
         it "marks the published message as published" do
