@@ -321,7 +321,7 @@ module Outboxer
             expect(logger).to receive(:error).with(include("StandardError: queue error")).once
 
             Publisher.publish_messages(
-              batch_size: batch_size,
+              batch_size: 2,
               poll_interval: poll_interval,
               tick_interval: tick_interval,
               logger: logger,

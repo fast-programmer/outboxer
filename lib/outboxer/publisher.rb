@@ -574,17 +574,19 @@ module Outboxer
       concurrency + 3 # (main + heartbeat + sweeper)
     end
 
-    # Creates thread to publish messages.
-    # @param id [Integer] The ID of the publisher.
-    # @param name [String] The name of the publisher.
-    # @param index [Integer] The index of the thread.
-    # @param batch_size [Integer] The message batch size.
-    # @param logger [Logger] The logger to use for logging operations.
-    # @return [Thread] the created publishing thread
-    # @yieldparam publisher [Hash] Publisher info, e.g.,
-    #   { id: Integer, name: String }.
-    # @yieldparam message_batch [Hash] Message batch, e.g.,
-    #   { message_ids: Array<Integer>, messages: Array<Hash> }.
+    # @param id [Integer] Publisher id.
+    # @param name [String] Publisher name.
+    # @param batch_size [Integer] Max number of messages per batch.
+    # @param index [Integer] Zero-based thread index (used for thread name).
+    # @param poll_interval [Numeric] Seconds to wait when no messages found.
+    # @param tick_interval [Numeric] Seconds between signal checks during sleep.
+    # @param logger [Logger] Logger used for info/error/fatal messages.
+    # @param process [Object] Process-like object passed to `Publisher.sleep`.
+    # @param kernel [Object] Kernel object passed to `Publisher.sleep`.
+    # @yieldparam publisher [Hash{Symbol=>Integer,String}] Publisher details,
+    #   e.g., `{ id: Integer, name: String }`.
+    # @yieldparam messages [Array<Hash>] Batch of messages to publish.
+    # @return [Thread] The created publishing thread.
     def create_publisher_thread(id:, name:, batch_size:, index:,
                                 poll_interval:, tick_interval:,
                                 logger:, process:, kernel:, &block)
@@ -593,25 +595,24 @@ module Outboxer
           Thread.current.name = "publisher-#{index + 1}"
 
           while !terminating?
-            messages = buffer_messages(id: id, name: name, limit: batch_size)
+            begin
+              messages = buffer_messages(id: id, name: name, limit: batch_size)
 
-            if messages.any?
-              # message_ids = messages.map { |message| message[:id] }
-              # messages_publishing_by_ids(id: id, name: name, message_ids: message_ids)
-
-              block.call({ id: id, name: name }, messages)
-            else
-              Publisher.sleep(
-                poll_interval,
-                tick_interval: tick_interval,
-                process: process,
-                kernel: kernel)
+              if messages.any?
+                block.call({ id: id, name: name }, messages)
+              else
+                Publisher.sleep(
+                  poll_interval,
+                  tick_interval: tick_interval,
+                  process: process,
+                  kernel: kernel)
+              end
+            rescue StandardError => error
+              logger.error(
+                "#{error.class}: #{error.message}\n" \
+                "#{error.backtrace.join("\n")}")
             end
           end
-        rescue StandardError => error
-          logger.error(
-            "#{error.class}: #{error.message}\n" \
-            "#{error.backtrace.join("\n")}")
         rescue ::Exception => error
           logger.fatal(
             "#{error.class}: #{error.message}\n" \
