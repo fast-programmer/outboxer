@@ -756,8 +756,7 @@ module Outboxer
 
     # Updates messages as published or failed.
     #
-    # @param publisher_id [Integer]
-    # @param publisher_name [String]
+    # @param id [Integer]
     # @param published_message_ids [Array<Integer>]
     # @param failed_messages [Array<Hash>] Array of failed message hashes:
     #   [
@@ -769,11 +768,11 @@ module Outboxer
     #         backtrace: Array<String>
     #       }
     #     }
-    #   ]    # @param time [Time]
+    #   ]
+    # @param time [Time]
     # @return [nil]
-    def update_messages_by_ids(publisher_id:, publisher_name:,
-                               published_message_ids: [], failed_messages: [],
-                               time: ::Time)
+    def update_messages(id:, published_message_ids: [], failed_messages: [],
+                        time: ::Time)
       current_utc_time = time.now.utc
 
       ActiveRecord::Base.connection_pool.with_connection do
@@ -794,8 +793,7 @@ module Outboxer
                 status: Message::Status::PUBLISHED,
                 updated_at: current_utc_time,
                 published_at: current_utc_time,
-                publisher_id: publisher_id,
-                publisher_name: publisher_name)
+                publisher_id: id)
 
             if updated_rows != published_message_ids.size
               raise ArgumentError, "Some messages publishing not updated to published"

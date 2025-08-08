@@ -84,17 +84,26 @@ TRANSACTION                (0.2ms)  COMMIT
 ```ruby
 # bin/outboxer_publisher
 
-Outboxer::Publisher.publish_messages do |publisher, messages|
+Outboxer::Publisher.publish_messages(batch_size: 1_000, concurrency: 10) do |publisher, messages|
   begin
     # TODO: publish messages here
-  rescue => _error
-    # TODO: log error
-
-    Outboxer::Publisher.update_messages_by_ids(
-      id: publisher[:id], failed_message_ids: messages.map { | message| message[:id] })
+  rescue => error
+    Outboxer::Publisher.update_messages(
+      id: publisher[:id],
+      failed_messages: messages.map do |message|
+        {
+          id: message[:id],
+          exception: {
+            class_name: error.class.name,
+            message_text: error.message,
+            backtrace: error.backtrace.join("\n")
+          }
+        }
+      end)
   else
-    Outboxer::Publisher.update_messages_by_ids(
-      id: publisher[:id], published_message_ids: messages.map { | message| message[:id] })
+    Outboxer::Publisher.update_messages(
+      id: publisher[:id],
+      published_message_ids: messages.map { |message| message[:id] })
   end
 end
 ```

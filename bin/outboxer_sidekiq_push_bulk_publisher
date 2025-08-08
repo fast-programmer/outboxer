@@ -4,7 +4,7 @@ Sidekiq.configure_client do |config|
   config.redis = { url: ENV.fetch("REDIS_URL", "redis://localhost:6379/0"), size: 5 }
 end
 
-Outboxer::Publisher.publish_messages(batch_size: 1_000, concurrency: 5) do |publisher, messages|
+Outboxer::Publisher.publish_messages(batch_size: 1_000, concurrency: 10) do |publisher, messages|
   begin
     job_ids = Sidekiq::Client.push_bulk(
       messages.map do |message|

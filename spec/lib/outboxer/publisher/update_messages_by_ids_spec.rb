@@ -2,10 +2,9 @@ require "rails_helper"
 
 module Outboxer
   RSpec.describe Publisher do
-    let(:publisher_id) { 1 }
-    let(:publisher_name) { "test" }
+    let(:id) { 1 }
 
-    describe ".update_messages_by_ids" do
+    describe ".update_messages" do
       context "when messages transition from publishing" do
         let!(:message_to_mark_failed) { create(:outboxer_message, :publishing) }
         let!(:message_to_mark_published) { create(:outboxer_message, :publishing) }
@@ -26,12 +25,10 @@ module Outboxer
         end
 
         before do
-          Publisher.update_messages_by_ids(
-            publisher_id: publisher_id,
-            publisher_name: publisher_name,
+          Publisher.update_messages(
+            id: id,
             published_message_ids: [message_to_mark_published.id],
             failed_messages: failed_messages,
-            time: Time
           )
         end
 
@@ -69,9 +66,8 @@ module Outboxer
         let!(:message_to_mark_failed) { create(:outboxer_message, :publishing) }
 
         it "creates exception without frames" do
-          Publisher.update_messages_by_ids(
-            publisher_id: publisher_id,
-            publisher_name: publisher_name,
+          Publisher.update_messages(
+            id: id,
             failed_messages: [{
               id: message_to_mark_failed.id,
               exception: { class_name: "RuntimeError", message_text: "oops" }
