@@ -4,7 +4,8 @@ require "bundler/setup"
 require "outboxer"
 
 cli_options = Outboxer::Publisher.parse_cli_options(ARGV)
-environment = cli_options.delete(:environment) || ENV["APP_ENV"] || ENV["RAILS_ENV"] || "development"
+environment = cli_options.delete(:environment) ||
+              ENV["APP_ENV"] || ENV["RAILS_ENV"] || "development"
 options = Outboxer::Publisher::PUBLISH_MESSAGES_DEFAULTS.merge(cli_options)
 logger = Outboxer::Logger.new($stdout, level: options[:log_level])
 

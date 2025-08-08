@@ -1,4 +1,17 @@
+#!/usr/bin/env ruby
+
 require "sidekiq"
+
+cli_options = Outboxer::Publisher.parse_cli_options(ARGV)
+environment = cli_options.delete(:environment) ||
+              ENV["APP_ENV"] || ENV["RAILS_ENV"] || "development"
+options = Outboxer::Publisher::PUBLISH_MESSAGES_DEFAULTS.merge(cli_options)
+
+database_config = Outboxer::Database.config(
+  environment: environment,
+  pool: Outboxer::Publisher.pool(concurrency: options[:concurrency]))
+
+Outboxer::Database.connect(config: database_config)
 
 Sidekiq.configure_client do |config|
   config.redis = { url: ENV.fetch("REDIS_URL", "redis://localhost:6379/0"), size: 5 }

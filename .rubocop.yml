@@ -26,7 +26,7 @@ Style/StringLiteralsInInterpolation:
 Style/RescueStandardError:
   Enabled: false
 Layout/LineLength:
-  Max: 101
+  Max: 100
 Layout/ArgumentAlignment:
   EnforcedStyle: with_fixed_indentation
 Style/Documentation:
