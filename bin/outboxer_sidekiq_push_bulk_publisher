@@ -1,54 +1,44 @@
-#!/usr/bin/env ruby
-
-require "bundler/setup"
-require "outboxer"
 require "sidekiq"
 
-cli_options = Outboxer::Publisher.parse_cli_options(ARGV)
-environment = cli_options.delete(:environment) || ENV["APP_ENV"] || ENV["RAILS_ENV"] || "development"
-options = Outboxer::Publisher::PUBLISH_MESSAGES_DEFAULTS.merge(cli_options)
-logger = Outboxer::Logger.new($stdout, level: options[:log_level])
+Sidekiq.configure_client do |config|
+  config.redis = { url: ENV.fetch("REDIS_URL", "redis://localhost:6379/0"), size: 5 }
+end
 
-database_config = Outboxer::Database.config(
-  environment: environment, pool: Outboxer::Publisher.pool(concurrency: options[:concurrency]))
-
-Outboxer::Database.connect(config: database_config, logger: logger)
-
-begin
-  Outboxer::Publisher.publish_messages(batch_size: 1_000) do |publisher, messages|
-    begin
-      job_ids = Sidekiq::Client.push_bulk(
-        messages.map do |message|
-          {
-            "class" => message[:messageable_type].sub(/Event$/, "Job"),
-            "args" => [message[:messageable_id]]
+Outboxer::Publisher.publish_messages(batch_size: 1_000, concurrency: 5) do |publisher, messages|
+  begin
+    job_ids = Sidekiq::Client.push_bulk(
+      messages.map do |message|
+        {
+          "class" => message[:messageable_type].to_s.sub(/Event$/, "Job"),
+          "args" => [message[:messageable_id]]
+        }
+      end)
+  rescue => error
+    Outboxer::Publisher.update_messages(
+      id: publisher[:id],
+      failed_messages: messages.map do |message|
+        {
+          id: message[:id],
+          exception: {
+            class_name: error.class.name,
+            message_text: error.message,
+            backtrace: error.backtrace.join("\n")
           }
-        end)
-    rescue => error
-      logger.error(
-        "Sidekiq::Client#push_bulk failed for publisher_id=#{publisher[:id]} " \
-        "message_ids=#{messages.map { |message| message[:id] }.join(",")}\n" \
-        "#{error.class}: #{error.message}\n" \
-        "#{error.backtrace.join("\n")}")
+        }
+      end)
+  else
+    published_messages, failed_messages = messages.zip(job_ids).partition { |_, job_id| job_id }
 
-      Outboxer::Publisher.update_messages_by_ids(
-        publisher_id: publisher[:id],
-        publisher_name: publisher[:name],
-        failed_message_ids: messages.map { |message| message[:id] })
-    else
-      Outboxer::Publisher.update_messages_by_ids(
-        publisher_id: publisher[:id],
-        publisher_name: publisher[:name],
-        published_message_ids: messages
-          .zip(job_ids)
-          .select { |_, job_id| job_id }
-          .map { |message, _| message[:id] },
-        failed_message_ids: messages
-          .zip(job_ids)
-          .reject { |_, job_id| job_id }
-          .map { |message, _| message[:id] })
-    end
+    Outboxer::Publisher.update_messages(
+      id: publisher[:id],
+      published_message_ids: published_messages.map { |message, _| message[:id] },
+      failed_messages: failed_messages.map do |message, _|
+        {
+          id: message[:id],
+          exception: {
+            message_text: "Job not enqueued (blocked by client middleware)"
+          }
+        }
+      end)
   end
-ensure
-  Outboxer::Database.disconnect(logger: logger)
 end

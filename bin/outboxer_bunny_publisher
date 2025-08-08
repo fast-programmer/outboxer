@@ -6,15 +6,15 @@ require "bunny"
 require "json"
 
 cli_options = Outboxer::Publisher.parse_cli_options(ARGV)
-environment = cli_options.delete(:environment) || ENV["APP_ENV"] || ENV["RAILS_ENV"] || "development"
+environment = cli_options.delete(:environment) ||
+              ENV["APP_ENV"] || ENV["RAILS_ENV"] || "development"
 options = Outboxer::Publisher::PUBLISH_MESSAGES_DEFAULTS.merge(cli_options)
-logger = Outboxer::Logger.new($stdout, level: options[:log_level])
 
 database_config = Outboxer::Database.config(
   environment: environment,
   pool: Outboxer::Publisher.pool(concurrency: options[:concurrency]))
 
-Outboxer::Database.connect(config: database_config, logger: logger)
+Outboxer::Database.connect(config: database_config)
 
 bunny = Bunny.new(
   ENV.fetch("RABBITMQ_URL"),
@@ -22,19 +22,14 @@ bunny = Bunny.new(
   heartbeat: 10)
 
 bunny.start
-
 channel = bunny.create_channel
 channel.confirm_select
-
-exchange_name = ENV.fetch("BUNNY_EXCHANGE")
+exchange = channel.direct(ENV.fetch("BUNNY_EXCHANGE"), durable: true)
 routing_key = ENV.fetch("BUNNY_ROUTING_KEY", "")
 
-exchange = channel.direct(exchange_name, durable: true)
-
 begin
-  Outboxer::Publisher.publish_messages(concurrency: 25, batch_size: 1) do |publisher, messages|
-    message = messages.first
-
+  Outboxer::Publisher.publish_messages(
+    batch_size: 1, concurrency: options[:concurrency]) do |publisher, messages|
     begin
       exchange.publish(
         {
@@ -43,31 +38,38 @@ begin
         }.to_json,
         routing_key: routing_key,
         persistent: true,
-        message_id: message[:id].to_s)
+        message_id: [messages][0][:id].to_s)
 
-      unless channel.wait_for_confirms
-        raise "RabbitMQ did not confirm message delivery"
+      if channel.wait_for_confirms
+        Outboxer::Publisher.update_messages(
+          id: publisher[:id], published_message_ids: [message[:id]])
+      else
+        Outboxer::Publisher.update_messages(
+          id: publisher[:id],
+          published_message_ids: [message[:id]],
+          failed_messages: [{
+            id: messages[0][:id],
+            exception: { message_text: "RabbitMQ did not confirm message delivery" }
+          }])
       end
-
-      Outboxer::Publisher.update_messages_by_ids(
-        publisher_id: publisher[:id],
-        publisher_name: publisher[:name],
-        published_message_ids: [message[:id]])
     rescue => error
-      logger.error(
-        "Bunny::Exchange#publish failed for publisher_id=#{publisher[:id]} " \
-        "message_id=#{message[:id]}\n" \
-        "#{error.class}: #{error.message}\n" \
-        "#{error.backtrace.join("\n")}")
-
-      Outboxer::Publisher.update_messages_by_ids(
-        publisher_id: publisher[:id],
-        publisher_name: publisher[:name],
-        failed_message_ids: [message[:id]])
+      Outboxer::Publisher.update_messages(
+        id: publisher[:id],
+        failed_messages: [
+          {
+            id: message[:id],
+            exception: {
+              class_name: error.class.name,
+              message_text: error.message,
+              backtrace: error.backtrace
+            }
+          }
+        ])
     end
   end
 ensure
-  channel.close if channel.open?
-  bunny.close if bunny.open?
-  Outboxer::Database.disconnect(logger: logger)
+  channel.close
+  bunny.close
+
+  Outboxer::Database.disconnect
 end

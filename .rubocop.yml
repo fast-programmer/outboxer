@@ -26,10 +26,7 @@ Style/StringLiteralsInInterpolation:
 Style/RescueStandardError:
   Enabled: false
 Layout/LineLength:
-  Max: 100
-  Exclude:
-    - 'bin/outboxer_publisher'
-    - 'bin/outboxer_load'
+  Max: 101
 Layout/ArgumentAlignment:
   EnforcedStyle: with_fixed_indentation
 Style/Documentation:

@@ -756,14 +756,23 @@ module Outboxer
 
     # Updates messages as published or failed.
     #
-    # @param publisher_id [Integer] ID of the publisher performing the update.
-    # @param publisher_name [String] Name of the publisher performing the update.
-    # @param published_message_ids [Array<Integer>] IDs of successfully published messages.
-    # @param failed_message_ids [Array<Integer>] IDs of failed messages.
-    # @param time [Time] A time-like object for consistent UTC timestamps.
+    # @param publisher_id [Integer]
+    # @param publisher_name [String]
+    # @param published_message_ids [Array<Integer>]
+    # @param failed_messages [Array<Hash>] Array of failed message hashes:
+    #   [
+    #     {
+    #       id: Integer,
+    #       exception: {
+    #         class_name: String,
+    #         message_text: String,
+    #         backtrace: Array<String>
+    #       }
+    #     }
+    #   ]    # @param time [Time]
     # @return [nil]
     def update_messages_by_ids(publisher_id:, publisher_name:,
-                               published_message_ids: [], failed_message_ids: [],
+                               published_message_ids: [], failed_messages: [],
                                time: ::Time)
       current_utc_time = time.now.utc
 
@@ -793,27 +802,20 @@ module Outboxer
             end
           end
 
-          if failed_message_ids.any?
-            messages = Models::Message
-              .where(id: failed_message_ids, status: Message::Status::PUBLISHING)
+          failed_messages.each do |failed_message|
+            message = Models::Message
               .lock("FOR UPDATE")
-              .pluck(:id)
+              .find_by!(id: failed_message[:id], status: Message::Status::PUBLISHING)
 
-            if messages.size != failed_message_ids.size
-              raise ArgumentError, "Some messages publishing not locked for update"
-            end
+            message.update!(status: Message::Status::FAILED, updated_at: current_utc_time)
 
-            updated_rows = Models::Message
-              .where(status: Status::PUBLISHING, id: failed_message_ids)
-              .update_all(
-                status: Message::Status::FAILED,
-                updated_at: current_utc_time,
-                failed_at: current_utc_time,
-                publisher_id: publisher_id,
-                publisher_name: publisher_name)
+            exception = message.exceptions.create!(
+              class_name: failed_message[:exception][:class_name],
+              message_text: failed_message[:exception][:message_text],
+              created_at: current_utc_time)
 
-            if updated_rows != failed_message_ids.size
-              raise ArgumentError, "Some messages publishing not updated to failed"
+            (failed_message[:exception][:backtrace] || []).each_with_index do |frame, index|
+              exception.frames.create!(index: index, text: frame)
             end
           end
         end

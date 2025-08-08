@@ -7,16 +7,16 @@ require "kafka"
 cli_options = Outboxer::Publisher.parse_cli_options(ARGV)
 environment = cli_options.delete(:environment) || ENV["APP_ENV"] || ENV["RAILS_ENV"] || "development"
 options = Outboxer::Publisher::PUBLISH_MESSAGES_DEFAULTS.merge(cli_options)
-logger = Outboxer::Logger.new($stdout, level: options[:log_level])
 
 database_config = Outboxer::Database.config(
   environment: environment,
   pool: Outboxer::Publisher.pool(concurrency: options[:concurrency]))
 
-Outboxer::Database.connect(config: database_config, logger: logger)
+Outboxer::Database.connect(config: database_config)
 
 kafka = Kafka.new(
-  seed_brokers: ENV.fetch("KAFKA_BROKERS").split(","), client_id: "outboxer")
+  seed_brokers: ENV.fetch("KAFKA_BROKERS").split(","),
+  client_id: "outboxer")
 
 producer = kafka.producer(required_acks: :all)
 
@@ -35,25 +35,26 @@ begin
 
       producer.deliver_messages
     rescue => error
-      logger.error(
-        "Kafka::Producer#deliver_messages failed for publisher_id=#{publisher[:id]} " \
-        "message_ids=#{messages.map { |message| message[:id] }.join(",")}\n" \
-        "#{error.class}: #{error.message}\n" \
-        "#{error.backtrace.join("\n")}")
-
-      Outboxer::Publisher.update_messages_by_ids(
-        publisher_id: publisher[:id],
-        publisher_name: publisher[:name],
-        failed_message_ids: messages.map { |message| message[:id] })
+      Outboxer::Publisher.update_messages(
+        id: publisher[:id],
+        failed_messages: messages.map do |message|
+          {
+            id: message[:id],
+            exception: {
+              class_name: error.class.name,
+              message_text: error.message,
+              backtrace: error.backtrace
+            }
+          }
+        end)
     else
-      Outboxer::Publisher.update_messages_by_ids(
-        publisher_id: publisher[:id],
-        publisher_name: publisher[:name],
+      Outboxer::Publisher.update_messages(
+        id: publisher[:id],
         published_message_ids: messages.map { |message| message[:id] })
     end
   end
 ensure
   producer.shutdown
 
-  Outboxer::Database.disconnect(logger: logger)
+  Outboxer::Database.disconnect
 end
