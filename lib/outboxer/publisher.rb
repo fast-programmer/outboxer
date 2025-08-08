@@ -717,42 +717,6 @@ module Outboxer
       end
     end
 
-    # Marks buffered messages as publishing.
-    #
-    # @param id [Integer] the publisher ID.
-    # @param name [String] the publisher name.
-    # @param message_ids [Array<Integer>] message IDs to mark as publishing.
-    # @param time [Time] a time-like object (e.g. Time) for consistent UTC timestamps.
-    # @return [nil]
-    # @raise [ArgumentError] if any given message is not in buffered state.
-    def messages_publishing_by_ids(id:, name:, message_ids:, time: ::Time)
-      ActiveRecord::Base.connection_pool.with_connection do
-        ActiveRecord::Base.transaction do
-          messages = Models::Message
-            .where(status: Message::Status::BUFFERED, id: message_ids)
-            .lock("FOR UPDATE")
-            .pluck(:id)
-
-          if messages.size != message_ids.size
-            raise ArgumentError, "Some messages not buffered"
-          end
-
-          current_utc_time = time.now.utc
-
-          Models::Message
-            .where(status: Message::Status::BUFFERED, id: message_ids)
-            .update_all(
-              status: Status::PUBLISHING,
-              updated_at: current_utc_time,
-              publishing_at: current_utc_time,
-              publisher_id: id,
-              publisher_name: name)
-        end
-      end
-
-      nil
-    end
-
     # Updates messages as published or failed.
     #
     # @param id [Integer]
@@ -813,90 +777,6 @@ module Outboxer
 
             (failed_message[:exception][:backtrace] || []).each_with_index do |frame, index|
               exception.frames.create!(index: index, text: frame)
-            end
-          end
-        end
-      end
-
-      nil
-    end
-
-    # Marks publishing messages as published.
-    #
-    # @param id [Integer] the publisher ID.
-    # @param name [String] the publisher name.
-    # @param message_ids [Array<Integer>] message IDs to mark as published.
-    # @param time [Time] a time-like object used to determine the current UTC timestamp.
-    # @return [nil]
-    # @raise [ArgumentError] if any given message is not in publishing state.
-    def messages_published_by_ids(id:, name:, message_ids:, time: ::Time)
-      ActiveRecord::Base.connection_pool.with_connection do
-        ActiveRecord::Base.transaction do
-          messages = Models::Message
-            .where(status: Status::PUBLISHING, id: message_ids)
-            .lock("FOR UPDATE")
-            .pluck(:id)
-
-          if messages.size != message_ids.size
-            raise ArgumentError, "Some messages not publishing"
-          end
-
-          current_utc_time = time.now.utc
-
-          Models::Message
-            .where(status: Status::PUBLISHING, id: message_ids)
-            .update_all(
-              status: Message::Status::PUBLISHED,
-              updated_at: current_utc_time,
-              published_at: current_utc_time,
-              publisher_id: id,
-              publisher_name: name)
-        end
-      end
-
-      nil
-    end
-
-    # Marks publishing messages as failed and logs the exception details.
-    #
-    # @param id [Integer] the publisher ID.
-    # @param name [String] the publisher name.
-    # @param message_ids [Array<Integer>] message IDs to mark as failed.
-    # @param exception [Exception] the exception that caused the failure.
-    # @param time [Time] a time-like object used to determine the current UTC timestamp.
-    # @return [nil]
-    # @raise [ArgumentError] if any given message is not in publishing state.
-    def messages_failed_by_ids(id:, name:, message_ids:, exception:, time: ::Time)
-      ActiveRecord::Base.connection_pool.with_connection do
-        ActiveRecord::Base.transaction do
-          messages = Models::Message
-            .where(status: Message::Status::PUBLISHING, id: message_ids)
-            .lock("FOR UPDATE")
-            .select(:id)
-            .to_a
-
-          if messages.size != message_ids.size
-            raise ArgumentError, "Some messages not publishing"
-          end
-
-          current_utc_time = time.now.utc
-
-          Models::Message
-            .where(status: Message::Status::PUBLISHING, id: message_ids)
-            .update_all(
-              status: Message::Status::FAILED,
-              updated_at: current_utc_time,
-              failed_at: current_utc_time,
-              publisher_id: id,
-              publisher_name: name)
-
-          messages.each do |message|
-            outboxer_exception = message.exceptions.create!(
-              class_name: exception.class.name,
-              message_text: exception.message)
-
-            exception.backtrace.each_with_index do |frame, index|
-              outboxer_exception.frames.create!(index: index, text: frame)
             end
           end
         end
