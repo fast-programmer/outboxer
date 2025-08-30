@@ -75,33 +75,6 @@ module Outboxer
       options
     end
 
-    CONFIG_DEFAULTS = {
-      path: "config/outboxer.yml",
-      enviroment: "development"
-    }
-
-    # Loads and processes the YAML configuration for the publisher.
-    # @param environment [String] The application environment.
-    # @param path [String] The path to the configuration file.
-    # @return [Hash] The processed configuration data with environment-specific overrides.
-    def config(
-      environment: CONFIG_DEFAULTS[:environment],
-      path: CONFIG_DEFAULTS[:path]
-    )
-      path_expanded = ::File.expand_path(path)
-      text = File.read(path_expanded)
-      erb = ERB.new(text, trim_mode: "-")
-      erb.filename = path_expanded
-      erb_result = erb.result
-
-      yaml = YAML.safe_load(erb_result, permitted_classes: [Symbol], aliases: true)
-      yaml.deep_symbolize_keys!
-      yaml_override = yaml.fetch(environment&.to_sym, {}).slice(*PUBLISH_MESSAGE_DEFAULTS.keys)
-      yaml.slice(*PUBLISH_MESSAGE_DEFAULTS.keys).merge(yaml_override)
-    rescue Errno::ENOENT
-      {}
-    end
-
     # Retrieves publisher data by ID including associated signals.
     # @param id [Integer] The ID of the publisher to find.
     # @return [Hash] Detailed information about the publisher including its signals.
