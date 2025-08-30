@@ -84,12 +84,12 @@ TRANSACTION                (0.2ms)  COMMIT
 ```ruby
 # bin/outboxer_publisher
 
-Outboxer::Publisher.publish_message(concurrency: 10) do |publisher, message|
-  # TODO: publish messages here
+Outboxer::Publisher.publish_message do |publisher, message|
+  # TODO: publish message here
 end
 ```
 
-To integrate with Sidekiq, Bunny, Kafka and AWS SQS see the [publisher block examples](https://github.com/fast-programmer/outboxer/wiki/Outboxer-publisher-block-examples).
+To integrate with Active Cable, Sidekiq, Bunny, Kafka, AWS SQS and others, see the [publisher integration guide](https://github.com/fast-programmer/outboxer/wiki/Publisher-Integration-guide).
 
 # Testing
 
