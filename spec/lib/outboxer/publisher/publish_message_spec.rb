@@ -3,8 +3,7 @@ require "rails_helper"
 
 module Outboxer
   RSpec.describe Publisher do
-    describe ".publish_messages" do
-      let(:batch_size) { 1 }
+    describe ".publish_message" do
       let(:poll_interval) { 1 }
       let(:tick_interval) { 0.1 }
       let(:logger) { instance_double(Logger, debug: true, error: true, fatal: true, info: true, level: 1) }
@@ -18,13 +17,12 @@ module Outboxer
         let!(:queued_message) { create(:outboxer_message, :queued, updated_at: 2.seconds.ago) }
 
         it "terminates the publisher" do
-          Publisher.publish_messages(
-            batch_size: batch_size,
+          Publisher.publish_message(
             poll_interval: poll_interval,
             tick_interval: tick_interval,
             logger: logger,
             kernel: kernel
-          ) do |publisher, _messages|
+          ) do |publisher, _message|
             Publisher.terminate(id: publisher[:id])
           end
         end
@@ -36,8 +34,7 @@ module Outboxer
 
         it "deletes the old published message" do
           publish_messages_thread = Thread.new do
-            Publisher.publish_messages(
-              batch_size: batch_size,
+            Publisher.publish_message(
               poll_interval: poll_interval,
               tick_interval: tick_interval,
               sweep_interval: 0.1,
@@ -45,7 +42,7 @@ module Outboxer
               sweep_batch_size: 100,
               logger: logger,
               kernel: kernel
-            ) do |_publisher, messages|
+            ) do |_publisher, _message|
               # no op
             end
           end
@@ -70,8 +67,7 @@ module Outboxer
 
         it "logs error" do
           publish_messages_thread = Thread.new do
-            Publisher.publish_messages(
-              batch_size: batch_size,
+            Publisher.publish_message(
               poll_interval: poll_interval,
               tick_interval: tick_interval,
               sweep_interval: 0.1,
@@ -79,7 +75,7 @@ module Outboxer
               sweep_batch_size: 100,
               logger: logger,
               kernel: kernel
-            ) do |_publisher, messages|
+            ) do |_publisher, _message|
               # no op
             end
           end
@@ -95,8 +91,7 @@ module Outboxer
 
         it "does not delete the old message" do
           thread = Thread.new do
-            Publisher.publish_messages(
-              batch_size: batch_size,
+            Publisher.publish_message(
               poll_interval: poll_interval,
               tick_interval: tick_interval,
               sweep_interval: 0.1,
@@ -104,7 +99,7 @@ module Outboxer
               sweep_batch_size: 1,
               logger: logger,
               kernel: kernel
-            ) do |_publisher, messages|
+            ) do |_publisher, message|
               # no op
             end
           end
@@ -125,8 +120,7 @@ module Outboxer
             .and_raise(NoMemoryError, "boom")
 
           thread = Thread.new do
-            Publisher.publish_messages(
-              batch_size: batch_size,
+            Publisher.publish_message(
               poll_interval: poll_interval,
               tick_interval: tick_interval,
               sweep_interval: 0.1,
@@ -134,7 +128,7 @@ module Outboxer
               sweep_batch_size: 100,
               logger: logger,
               kernel: kernel
-            ) do |_publisher, messages|
+            ) do |_publisher, message|
               # no op
             end
           end
@@ -159,12 +153,11 @@ module Outboxer
 
         it "dumps stack trace" do
           publish_messages_thread = Thread.new do
-            Publisher.publish_messages(
-              batch_size: batch_size,
+            Publisher.publish_message(
               poll_interval: poll_interval,
               tick_interval: tick_interval,
               logger: logger, kernel: kernel
-            ) do |_publisher, _messages|
+            ) do |_publisher, _message|
               ::Process.kill("TTIN", ::Process.pid)
             end
           end
@@ -186,18 +179,12 @@ module Outboxer
         let!(:queued_message) { create(:outboxer_message, :queued, updated_at: 2.seconds.ago) }
 
         it "stops and resumes the publishing process correctly" do
-          Publisher.publish_messages(
-            batch_size: batch_size,
+          Publisher.publish_message(
             poll_interval: poll_interval,
             tick_interval: tick_interval,
             logger: logger,
             kernel: kernel
-          ) do |publisher, messages|
-            Publisher.update_messages(
-              id: publisher[:id],
-              published_message_ids: messages.map { |message| message[:id] }
-            )
-
+          ) do |_publisher, _message|
             ::Process.kill("TSTP", ::Process.pid)
             sleep 0.5
             ::Process.kill("CONT", ::Process.pid)
@@ -213,25 +200,15 @@ module Outboxer
         let!(:queued_message) { create(:outboxer_message, :queued, updated_at: 2.seconds.ago) }
 
         it "sets the message to published" do
-          Publisher.publish_messages(
-            batch_size: batch_size,
+          Publisher.publish_message(
             poll_interval: poll_interval,
             tick_interval: tick_interval,
             logger: logger,
             kernel: kernel
-          ) do |publisher, messages|
-            expect(messages.first[:id])
-              .to eq(queued_message.id)
-
-            expect(messages.first[:messageable_type])
-              .to eq(queued_message.messageable_type)
-
-            expect(messages.first[:messageable_id])
-              .to eq(queued_message.messageable_id)
-
-            Publisher.update_messages(
-              id: publisher[:id],
-              published_message_ids: messages.map { |message| message[:id] })
+          ) do |_publisher, message|
+            expect(message[:id]).to eq(queued_message.id)
+            expect(message[:messageable_type]).to eq(queued_message.messageable_type)
+            expect(message[:messageable_id]).to eq(queued_message.messageable_id)
 
             ::Process.kill("TERM", ::Process.pid)
           end
@@ -247,23 +224,22 @@ module Outboxer
           let(:standard_error) { StandardError.new("some error") }
 
           before do
-            Publisher.publish_messages(
-              batch_size: batch_size,
+            Publisher.publish_message(
               poll_interval: poll_interval,
               tick_interval: tick_interval,
               logger: logger,
               kernel: kernel
-            ) do |_publisher, _messages|
+            ) do |_publisher, _message|
               ::Process.kill("TERM", ::Process.pid)
 
               raise standard_error
             end
           end
 
-          it "does not change publishing status" do
+          it "changes publishing status to failed" do
             queued_message.reload
 
-            expect(queued_message.status).to eq(Message::Status::PUBLISHING)
+            expect(queued_message.status).to eq(Message::Status::FAILED)
           end
 
           it "logs errors" do
@@ -277,21 +253,20 @@ module Outboxer
           let!(:queued_message) { create(:outboxer_message, :queued, updated_at: 2.seconds.ago) }
 
           before do
-            Publisher.publish_messages(
-              batch_size: batch_size,
+            Publisher.publish_message(
               poll_interval: poll_interval,
               tick_interval: tick_interval,
               logger: logger,
               kernel: kernel
-            ) do |_publisher, _messages|
+            ) do |_publisher, _message|
               raise no_memory_error
             end
           end
 
-          it "does not change publishing status" do
+          it "changes publishing status to failed" do
             queued_message.reload
 
-            expect(queued_message.status).to eq(Message::Status::PUBLISHING)
+            expect(queued_message.status).to eq(Message::Status::FAILED)
           end
 
           it "logs errors" do
@@ -319,8 +294,7 @@ module Outboxer
 
             expect(logger).to receive(:error).with(include("StandardError: queue error")).once
 
-            Publisher.publish_messages(
-              batch_size: 2,
+            Publisher.publish_message(
               poll_interval: poll_interval,
               tick_interval: tick_interval,
               logger: logger,
@@ -339,8 +313,7 @@ module Outboxer
               .with(include("NoMemoryError: failed to allocate memory"))
               .once
 
-            Publisher.publish_messages(
-              batch_size: batch_size,
+            Publisher.publish_message(
               poll_interval: poll_interval,
               tick_interval: tick_interval,
               logger: logger,
