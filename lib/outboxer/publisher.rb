@@ -55,10 +55,6 @@ module Outboxer
           options[:log_level] = v
         end
 
-        opts.on("--config PATH", "Path to YAML config file") do |v|
-          options[:config] = v
-        end
-
         opts.on("--version", "Print version and exit") do
           puts "Outboxer version #{Outboxer::VERSION}"
           exit

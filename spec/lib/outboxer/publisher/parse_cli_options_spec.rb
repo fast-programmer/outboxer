@@ -60,12 +60,6 @@ module Outboxer
           ).to eq({ sweep_batch_size: 10 })
         end
 
-        it "parses the config file flag" do
-          expect(
-            Publisher.parse_cli_options(["--config", "config/path.yml"])
-          ).to eq({ config: "config/path.yml" })
-        end
-
         it "parses the log level flag" do
           expect(Publisher.parse_cli_options(["--log-level", "0"])).to eq({ log_level: 0 })
         end
