@@ -405,10 +405,11 @@ module Outboxer
             .lock("FOR UPDATE SKIP LOCKED")
             .pluck(:id, :status)
             .map { |message_id, message_status| { id: message_id, status: message_status } }
+
           message_ids = messages.map { |message| message[:id] }
 
-          Models::Frame.joins(:exception).where(exception: { message_id: message_ids }).delete_all
-          Models::Exception.where(message_id: message_ids).delete_all
+          # Models::Frame.joins(:exception).where(exception: { message_id: message_ids }).delete_all
+          # Models::Exception.where(message_id: message_ids).delete_all
 
           deleted_count = Models::Message.where(id: message_ids).delete_all
 

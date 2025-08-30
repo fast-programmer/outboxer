@@ -3,12 +3,12 @@
 
 require "bundler/setup"
 require "outboxer"
-require "outboxer/loader"
+require "outboxer/sweeper"
 
-cli_options = Outboxer::Loader.parse_cli_options(ARGV)
+cli_options = Outboxer::Sweeper.parse_cli_options(ARGV)
 environment = cli_options.delete(:environment) ||
               ENV["APP_ENV"] || ENV["RAILS_ENV"] || "development"
-options = Outboxer::Loader::LOAD_DEFAULTS.merge(cli_options)
+options = Outboxer::Sweeper::SWEEP_DEFAULTS.merge(cli_options)
 logger = Outboxer::Logger.new($stdout, level: Outboxer::Logger::INFO)
 
 database_config = Outboxer::Database.config(environment: environment, pool: options[:concurrency])
@@ -16,8 +16,8 @@ database_config = Outboxer::Database.config(environment: environment, pool: opti
 Outboxer::Database.connect(config: database_config, logger: logger)
 
 begin
-  Outboxer::Loader.load(
-    total_size: options[:total_size],
+  Outboxer::Sweeper.sweep(
+    retention_seconds: options[:retention_seconds],
     batch_size: options[:batch_size],
     concurrency: options[:concurrency],
     logger: logger)

@@ -6,13 +6,13 @@ require "optparse"
 require "active_support/number_helper"
 
 module Outboxer
-  module Loader
+  module Sweeper
     module_function
 
-    LOAD_DEFAULTS = {
+    SWEEP_DEFAULTS = {
       batch_size: 1_000,
       concurrency: 10,
-      total_size: 100_000,
+      retention_seconds: 60,
       tick_interval: 1
     }
 
@@ -20,7 +20,7 @@ module Outboxer
       options = {}
 
       parser = OptionParser.new do |opts|
-        opts.banner = "Usage: outboxer_load [options]"
+        opts.banner = "Usage: outboxer_sweep [options]"
 
         opts.on("--environment ENV", "Environment (default: development)") do |v|
           options[:environment] = v
@@ -34,8 +34,8 @@ module Outboxer
           options[:concurrency] = v
         end
 
-        opts.on("--total-size SIZE", Integer, "Total number of messages to load per thread") do |v|
-          options[:total_size] = v
+        opts.on("--retention-seconds SECONDS", Integer, "Retention in seconds") do |v|
+          options[:retention_seconds] = v
         end
 
         opts.on("--tick-interval SECONDS", Float, "Tick interval in seconds (default: 1)") do |v|
@@ -62,22 +62,21 @@ module Outboxer
       logger.info "[metrics] memory=#{metrics[:memory_kb]}KB cpu=#{metrics[:cpu_percent]}%"
     end
 
-    def load(batch_size: LOAD_DEFAULTS[:batch_size],
-             concurrency: LOAD_DEFAULTS[:concurrency],
-             total_size: LOAD_DEFAULTS[:total_size],
-             tick_interval: LOAD_DEFAULTS[:tick_interval],
-             logger: Outboxer::Logger.new($stdout))
-      reader, _writer = trap_signals
+    def sweep(batch_size: SWEEP_DEFAULTS[:batch_size],
+              concurrency: SWEEP_DEFAULTS[:concurrency],
+              retention_seconds: SWEEP_DEFAULTS[:retention_seconds],
+              tick_interval: SWEEP_DEFAULTS[:tick_interval],
+              logger: Outboxer::Logger.new($stdout))
+      signal_reader, _signal_writer = trap_signals
 
-      threads = spawn_workers(concurrency, total_size, batch_size, logger)
+      threads = spawn_workers(concurrency, retention_seconds, batch_size, logger)
 
       started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
       while @status != :terminating
-        if IO.select([reader], nil, nil, tick_interval)
-          line = reader.gets&.strip
+        if signal_reader.wait_readable(tick_interval)
 
-          @status = case line
+          @status = case signal_reader.gets.chomp
                     when "INT", "TERM" then :terminating
                     else
                       @status
@@ -89,41 +88,46 @@ module Outboxer
 
       finished_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       elapsed = finished_at - started_at
-      enqueued = total_size
-      rate = (enqueued / elapsed).round(2)
-      formatted_rate = ActiveSupport::NumberHelper.number_to_delimited(rate)
 
       logger.info "[main] duration: #{elapsed.round(2)}s"
-      logger.info "[main] throughput: #{formatted_rate} messages/sec"
       logger.info "[main] done"
     end
 
     def trap_signals
       reader, writer = IO.pipe
-      %w[INT TERM TSTP CONT].each { |signal| Signal.trap(signal) { writer.puts(signal) } }
+
+      %w[INT TERM].each do |signal|
+        Signal.trap(signal) do
+          writer.puts(signal)
+        end
+      end
+
       [reader, writer]
     end
 
-    def spawn_workers(concurrency, total_size, batch_size, logger)
+    def spawn_workers(concurrency, retention_seconds, batch_size, logger)
       Array.new(concurrency) do |index|
         Thread.new do
-          remaining_size = total_size
-
-          while (@status != :terminating) && (remaining_size > 0)
+          while @status != :terminating
             begin
-              current_batch = [batch_size, remaining_size].min
-              batch = Array.new(current_batch) do
-                {
-                  messageable_type: "Event",
-                  messageable_id: SecureRandom.hex(3),
-                  status: "queued",
-                  queued_at: Time.now
-                }
+              cutoff = Time.now - retention_seconds
+
+              ActiveRecord::Base.connection_pool.with_connection do
+                ActiveRecord::Base.transaction do
+                  ids = Outboxer::Models::Message
+                    .where("updated_at <= ?", cutoff)
+                    .where(status: "published")
+                    .limit(batch_size)
+                    .pluck(:id)
+
+                  deleted_count = Outboxer::Models::Message.where(id: ids).delete_all
+                  break if deleted_count.zero?
+
+                  setting_name = "messages.published.count.historic"
+                  setting = Models::Setting.lock("FOR UPDATE").find_by!(name: setting_name)
+                  setting.update!(value: setting.value.to_i + deleted_count)
+                end
               end
-
-              Outboxer::Models::Message.insert_all(batch)
-
-              remaining_size -= current_batch
             rescue StandardError => error
               logger.error "[thread-#{index}] #{error.class}: #{error.message}"
             end

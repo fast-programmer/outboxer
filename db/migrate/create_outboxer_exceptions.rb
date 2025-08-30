@@ -7,7 +7,9 @@ class CreateOutboxerExceptions < ActiveRecord::Migration[6.1]
 
         t.datetime :created_at, null: false
 
-        t.references :message, foreign_key: { to_table: :outboxer_messages }, null: false
+        t.references :message,
+          foreign_key: { to_table: :outboxer_messages, on_delete: :cascade },
+          null: false
       end
     end
   end
