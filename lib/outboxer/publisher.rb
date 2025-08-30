@@ -23,10 +23,6 @@ module Outboxer
           options[:environment] = v
         end
 
-        opts.on("--batch-size SIZE", Integer, "Batch size") do |v|
-          options[:batch_size] = v
-        end
-
         opts.on("--concurrency N", Integer, "Number of threads to publish messages") do |v|
           options[:concurrency] = v
         end
@@ -59,10 +55,6 @@ module Outboxer
           options[:log_level] = v
         end
 
-        opts.on("--config PATH", "Path to YAML config file") do |v|
-          options[:config] = v
-        end
-
         opts.on("--version", "Print version and exit") do
           puts "Outboxer version #{Outboxer::VERSION}"
           exit
@@ -77,33 +69,6 @@ module Outboxer
       parser.parse!(args)
 
       options
-    end
-
-    CONFIG_DEFAULTS = {
-      path: "config/outboxer.yml",
-      enviroment: "development"
-    }
-
-    # Loads and processes the YAML configuration for the publisher.
-    # @param environment [String] The application environment.
-    # @param path [String] The path to the configuration file.
-    # @return [Hash] The processed configuration data with environment-specific overrides.
-    def config(
-      environment: CONFIG_DEFAULTS[:environment],
-      path: CONFIG_DEFAULTS[:path]
-    )
-      path_expanded = ::File.expand_path(path)
-      text = File.read(path_expanded)
-      erb = ERB.new(text, trim_mode: "-")
-      erb.filename = path_expanded
-      erb_result = erb.result
-
-      yaml = YAML.safe_load(erb_result, permitted_classes: [Symbol], aliases: true)
-      yaml.deep_symbolize_keys!
-      yaml_override = yaml.fetch(environment&.to_sym, {}).slice(*PUBLISH_MESSAGES_DEFAULTS.keys)
-      yaml.slice(*PUBLISH_MESSAGES_DEFAULTS.keys).merge(yaml_override)
-    rescue Errno::ENOENT
-      {}
     end
 
     # Retrieves publisher data by ID including associated signals.
@@ -165,14 +130,13 @@ module Outboxer
 
     # Creates a new publisher with specified settings and metrics.
     # @param name [String] The name of the publisher.
-    # @param batch_size [Integer] The batch size.
     # @param concurrency [Integer] The number of publishing threads.
     # @param tick_interval [Float] The tick interval in seconds.
     # @param poll_interval [Float] The poll interval in seconds.
     # @param heartbeat_interval [Float] The heartbeat interval in seconds.
     # @param time [Time] The current time context for timestamping.
     # @return [Hash] Details of the created publisher.
-    def create(name:, batch_size:, concurrency:,
+    def create(name:, concurrency:,
                tick_interval:, poll_interval:, heartbeat_interval:,
                sweep_interval:, sweep_retention:, sweep_batch_size:,
                time: ::Time)
@@ -184,7 +148,6 @@ module Outboxer
             name: name,
             status: Status::PUBLISHING,
             settings: {
-              "batch_size" => batch_size,
               "concurrency" => concurrency,
               "tick_interval" => tick_interval,
               "poll_interval" => poll_interval,
@@ -460,8 +423,7 @@ module Outboxer
       end
     end
 
-    PUBLISH_MESSAGES_DEFAULTS = {
-      batch_size: 1000,
+    PUBLISH_MESSAGE_DEFAULTS = {
       concurrency: 1,
       tick_interval: 0.1,
       poll_interval: 5.0,
@@ -474,7 +436,6 @@ module Outboxer
 
     # Publish queued messages concurrently
     # @param name [String] The name of the publisher.
-    # @param batch_size [Integer] The batch size.
     # @param concurrency [Integer] The number of publisher threads.
     # @param tick_interval [Float] The tick interval in seconds.
     # @param poll_interval [Float] The poll interval in seconds.
@@ -489,17 +450,16 @@ module Outboxer
     # @yield [publisher, messages] Yields publisher and messages to be published.
     # @yieldparam publisher [Hash] A hash with keys `:id` and `:name` representing the publisher.
     # @yieldparam messages [Array<Hash>] An array of message hashes retrieved from the buffer.
-    def publish_messages(
+    def publish_message(
       name: "#{::Socket.gethostname}:#{::Process.pid}",
-      batch_size: PUBLISH_MESSAGES_DEFAULTS[:batch_size],
-      concurrency: PUBLISH_MESSAGES_DEFAULTS[:concurrency],
-      tick_interval: PUBLISH_MESSAGES_DEFAULTS[:tick_interval],
-      poll_interval: PUBLISH_MESSAGES_DEFAULTS[:poll_interval],
-      heartbeat_interval: PUBLISH_MESSAGES_DEFAULTS[:heartbeat_interval],
-      sweep_interval: PUBLISH_MESSAGES_DEFAULTS[:sweep_interval],
-      sweep_retention: PUBLISH_MESSAGES_DEFAULTS[:sweep_retention],
-      sweep_batch_size: PUBLISH_MESSAGES_DEFAULTS[:sweep_batch_size],
-      logger: Logger.new($stdout, level: PUBLISH_MESSAGES_DEFAULTS[:log_level]),
+      concurrency: PUBLISH_MESSAGE_DEFAULTS[:concurrency],
+      tick_interval: PUBLISH_MESSAGE_DEFAULTS[:tick_interval],
+      poll_interval: PUBLISH_MESSAGE_DEFAULTS[:poll_interval],
+      heartbeat_interval: PUBLISH_MESSAGE_DEFAULTS[:heartbeat_interval],
+      sweep_interval: PUBLISH_MESSAGE_DEFAULTS[:sweep_interval],
+      sweep_retention: PUBLISH_MESSAGE_DEFAULTS[:sweep_retention],
+      sweep_batch_size: PUBLISH_MESSAGE_DEFAULTS[:sweep_batch_size],
+      logger: Logger.new($stdout, level: PUBLISH_MESSAGE_DEFAULTS[:log_level]),
       time: ::Time, process: ::Process, kernel: ::Kernel,
       &block
     )
@@ -507,7 +467,6 @@ module Outboxer
         "(#{RUBY_RELEASE_DATE} revision #{RUBY_REVISION[0, 10]}) [#{RUBY_PLATFORM}]"
 
       logger.info "Outboxer config " \
-        "batch_size=#{batch_size}, " \
         "concurrency=#{concurrency}, " \
         "tick_interval=#{tick_interval} " \
         "poll_interval=#{poll_interval}, " \
@@ -520,9 +479,10 @@ module Outboxer
       Setting.create_all
 
       publisher = create(
-        name: name, batch_size: batch_size,
+        name: name,
         concurrency: concurrency,
-        tick_interval: tick_interval, poll_interval: poll_interval,
+        tick_interval: tick_interval,
+        poll_interval: poll_interval,
         heartbeat_interval: heartbeat_interval,
         sweep_interval: sweep_interval,
         sweep_retention: sweep_retention,
@@ -545,7 +505,7 @@ module Outboxer
 
       publisher_threads = Array.new(concurrency) do |index|
         create_publisher_thread(
-          id: publisher[:id], name: name, index: index, batch_size: batch_size,
+          id: publisher[:id], name: name, index: index,
           poll_interval: poll_interval, tick_interval: tick_interval,
           logger: logger, process: process, kernel: kernel, &block)
       end
@@ -576,7 +536,6 @@ module Outboxer
 
     # @param id [Integer] Publisher id.
     # @param name [String] Publisher name.
-    # @param batch_size [Integer] Max number of messages per batch.
     # @param index [Integer] Zero-based thread index (used for thread name).
     # @param poll_interval [Numeric] Seconds to wait when no messages found.
     # @param tick_interval [Numeric] Seconds between signal checks during sleep.
@@ -587,7 +546,7 @@ module Outboxer
     #   e.g., `{ id: Integer, name: String }`.
     # @yieldparam messages [Array<Hash>] Batch of messages to publish.
     # @return [Thread] The created publishing thread.
-    def create_publisher_thread(id:, name:, batch_size:, index:,
+    def create_publisher_thread(id:, name:, index:,
                                 poll_interval:, tick_interval:,
                                 logger:, process:, kernel:, &block)
       Thread.new do
@@ -595,22 +554,65 @@ module Outboxer
           Thread.current.name = "publisher-#{index + 1}"
 
           while !terminating?
-            begin
-              messages = buffer_messages(id: id, name: name, limit: batch_size)
+            messages = []
 
-              if messages.any?
-                block.call({ id: id, name: name }, messages)
-              else
-                Publisher.sleep(
-                  poll_interval,
-                  tick_interval: tick_interval,
-                  process: process,
-                  kernel: kernel)
-              end
+            begin
+              messages = buffer_messages(id: id, name: name, limit: 1)
             rescue StandardError => error
               logger.error(
                 "#{error.class}: #{error.message}\n" \
                 "#{error.backtrace.join("\n")}")
+            end
+
+            if messages.any?
+              begin
+                block.call({ id: id, name: name }, messages[0])
+              rescue StandardError => error
+                logger.error(
+                  "#{error.class}: #{error.message}\n" \
+                  "#{error.backtrace.join("\n")}")
+
+                Publisher.update_messages(
+                  id: id,
+                  failed_messages: [
+                    {
+                      id: messages[0][:id],
+                      exception: {
+                        class_name: error.class.name,
+                        message_text: error.message,
+                        backtrace: error.backtrace
+                      }
+                    }
+                  ])
+              rescue ::Exception => error
+                logger.fatal(
+                  "#{error.class}: #{error.message}\n" \
+                  "#{error.backtrace.join("\n")}")
+
+                Publisher.update_messages(
+                  id: id,
+                  failed_messages: [
+                    {
+                      id: messages[0][:id],
+                      exception: {
+                        class_name: error.class.name,
+                        message_text: error.message,
+                        backtrace: error.backtrace
+                      }
+                    }
+                  ])
+
+                terminate(id: id)
+              else
+                Outboxer::Publisher.update_messages(
+                  id: id, published_message_ids: [messages[0][:id]])
+              end
+            else
+              Publisher.sleep(
+                poll_interval,
+                tick_interval: tick_interval,
+                process: process,
+                kernel: kernel)
             end
           end
         rescue ::Exception => error

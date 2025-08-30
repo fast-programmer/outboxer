@@ -5,7 +5,7 @@ require "sidekiq"
 cli_options = Outboxer::Publisher.parse_cli_options(ARGV)
 environment = cli_options.delete(:environment) ||
               ENV["APP_ENV"] || ENV["RAILS_ENV"] || "development"
-options = Outboxer::Publisher::PUBLISH_MESSAGES_DEFAULTS.merge(cli_options)
+options = Outboxer::Publisher::PUBLISH_MESSAGE_DEFAULTS.merge(cli_options)
 
 database_config = Outboxer::Database.config(
   environment: environment,

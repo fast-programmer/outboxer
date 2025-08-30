@@ -19,10 +19,6 @@ module Outboxer
           end
         end
 
-        it "parses the batch size flag" do
-          expect(Publisher.parse_cli_options(["--batch-size", "100"])).to eq({ batch_size: 100 })
-        end
-
         it "parses concurrency flag" do
           expect(Publisher.parse_cli_options(["--concurrency", "8"]))
             .to eq({ concurrency: 8 })
@@ -62,12 +58,6 @@ module Outboxer
           expect(
             Publisher.parse_cli_options(["--sweep-batch_size", "10"])
           ).to eq({ sweep_batch_size: 10 })
-        end
-
-        it "parses the config file flag" do
-          expect(
-            Publisher.parse_cli_options(["--config", "config/path.yml"])
-          ).to eq({ config: "config/path.yml" })
         end
 
         it "parses the log level flag" do
