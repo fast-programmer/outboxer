@@ -492,16 +492,16 @@ module Outboxer
         id: publisher[:id], heartbeat_interval: heartbeat_interval, tick_interval: tick_interval,
         logger: logger, time: time, process: process, kernel: kernel)
 
-      sweeper_thread = create_sweeper_thread(
-        id: publisher[:id],
-        sweep_interval: sweep_interval,
-        sweep_retention: sweep_retention,
-        sweep_batch_size: sweep_batch_size,
-        tick_interval: tick_interval,
-        logger: logger,
-        time: time,
-        process: process,
-        kernel: kernel)
+      # sweeper_thread = create_sweeper_thread(
+      #   id: publisher[:id],
+      #   sweep_interval: sweep_interval,
+      #   sweep_retention: sweep_retention,
+      #   sweep_batch_size: sweep_batch_size,
+      #   tick_interval: tick_interval,
+      #   logger: logger,
+      #   time: time,
+      #   process: process,
+      #   kernel: kernel)
 
       publisher_threads = Array.new(concurrency) do |index|
         create_publisher_thread(
@@ -523,7 +523,7 @@ module Outboxer
       publisher_threads.each(&:join)
 
       heartbeat_thread.join
-      sweeper_thread.join
+      # sweeper_thread.join
 
       delete(id: publisher[:id])
 
@@ -786,5 +786,78 @@ module Outboxer
 
       nil
     end
+
+    # # Updates messages as published or failed.
+    # #
+    # # @param id [Integer]
+    # # @param published_message_ids [Array<Integer>]
+    # # @param failed_messages [Array<Hash>] Array of failed message hashes:
+    # #   [
+    # #     {
+    # #       id: Integer,
+    # #       exception: {
+    # #         class_name: String,
+    # #         message_text: String,
+    # #         backtrace: Array<String>
+    # #       }
+    # #     }
+    # #   ]
+    # # @param time [Time]
+    # # @return [nil]
+    # def update_messages(id:, published_message_ids: [], failed_messages: [],
+    #                     time: ::Time)
+    #   current_utc_time = time.now.utc
+
+    #   ActiveRecord::Base.connection_pool.with_connection do
+    #     ActiveRecord::Base.transaction do
+    #       failed_messages.each do |failed_message|
+    #         message = Models::Message
+    #           .lock("FOR UPDATE")
+    #           .find_by!(id: failed_message[:id], status: Message::Status::PUBLISHING)
+
+    #         message.update!(status: Message::Status::FAILED, updated_at: current_utc_time)
+
+    #         exception = message.exceptions.create!(
+    #           class_name: failed_message[:exception][:class_name],
+    #           message_text: failed_message[:exception][:message_text],
+    #           created_at: current_utc_time)
+
+    #         (failed_message[:exception][:backtrace] || []).each_with_index do |frame, index|
+    #           exception.frames.create!(index: index, text: frame)
+    #         end
+    #       end
+
+    #       if published_message_ids.any?
+    #         locked_message_ids = Models::Message
+    #           .where(id: published_message_ids, status: Message::Status::PUBLISHING)
+    #           .lock("FOR UPDATE")
+    #           .pluck(:id)
+
+    #         if locked_message_ids.size != published_message_ids.size
+    #           raise ArgumentError, "Some messages publishing not locked for update"
+    #         end
+
+    #         # Models::Frame
+    #         #   .joins(:exception)
+    #         #   .where(exception: { message_id: published_message_ids })
+    #         #   .delete_all
+
+    #         # Models::Exception.where(message_id: published_message_ids).delete_all
+
+    #         deleted_rows = Models::Message.where(id: published_message_ids).delete_all
+
+    #         if deleted_rows != published_message_ids.size
+    #           raise ArgumentError, "Some messages publishing not deleted"
+    #         end
+
+    #         setting_name = "messages.published.count.historic"
+    #         setting = Models::Setting.lock("FOR UPDATE").find_by!(name: setting_name)
+    #         setting.update!(value: setting.value.to_i + published_message_ids.count)
+    #       end
+    #     end
+    #   end
+
+    #   nil
+    # end
   end
 end
