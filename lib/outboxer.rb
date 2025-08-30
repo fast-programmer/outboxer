@@ -13,6 +13,8 @@ require_relative "outboxer/models/message"
 require_relative "outboxer/models/publisher"
 require_relative "outboxer/models/signal"
 
+require_relative "outboxer/models/counter"
+
 require_relative "outboxer/database"
 require_relative "outboxer/setting"
 require_relative "outboxer/message"

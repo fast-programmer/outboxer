@@ -166,6 +166,15 @@ module Outboxer
             created_at: current_utc_time,
             updated_at: current_utc_time)
 
+          Models::Counter.insert_all(
+            [
+              { name: "messages.published.count", publisher_id: nil, thread_id: nil,
+                value: 0, created_at: current_utc_time, updated_at: current_utc_time },
+              { name: "messages.published.count", publisher_id: publisher.id, thread_id: nil,
+                value: 0, created_at: current_utc_time, updated_at: current_utc_time }
+            ],
+            unique_by: [:name, :publisher_id, :thread_id])
+
           @status = Status::PUBLISHING
 
           {
@@ -183,10 +192,39 @@ module Outboxer
 
     # Deletes a publisher by ID, including all associated signals.
     # @param id [Integer] The ID of the publisher to delete.
-    def delete(id:)
+    def delete(id:, time: Time)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
+          current_utc_time = time.now.utc
+
           publisher = Models::Publisher.lock.find_by!(id: id)
+
+          global_counter = Models::Counter
+            .lock("FOR UPDATE")
+            .where(name: "messages.published.count", publisher_id: nil, thread_id: nil)
+            .first!
+
+          publisher_counter = Models::Counter
+            .lock("FOR UPDATE")
+            .where(name: "messages.published.count", publisher_id: id, thread_id: nil)
+            .first!
+
+          thread_counters = Models::Counter.lock("FOR UPDATE")
+            .where(name: "messages.published.count", publisher_id: id)
+            .where.not(thread_id: nil)
+            .to_a
+
+          thread_counters_ids = thread_counters.map(&:id)
+          thread_counters_value_sum = thread_counters.sum(&:value)
+
+          global_counter.update!(
+            value: global_counter.value + thread_counters_value_sum,
+            updated_at: current_utc_time)
+
+          publisher_counter.delete
+
+          Models::Counter.where(id: thread_counters_ids).delete_all
+
           publisher.signals.destroy_all
           publisher.destroy!
         rescue ActiveRecord::RecordNotFound
@@ -318,26 +356,57 @@ module Outboxer
                   signal.destroy
                 end
 
-                throughput = Models::Message
-                  .where(status: Message::Status::PUBLISHED)
-                  .where(publisher_id: id)
-                  .where("published_at >= ?", 1.second.ago)
-                  .count
+                current_utc_time = time.now.utc
 
-                last_published_message = Models::Message
-                  .where(status: Message::Status::PUBLISHED)
+                global_counter = Models::Counter
+                  .lock("FOR UPDATE")
+                  .where(name: "messages.published.count", publisher_id: nil, thread_id: nil)
+                  .first!
+
+                publisher_counter = Models::Counter
+                  .lock("FOR UPDATE")
+                  .where(name: "messages.published.count", publisher_id: id, thread_id: nil)
+                  .first!
+
+                thread_counters = Models::Counter.lock("FOR UPDATE")
+                  .where(name: "messages.published.count", publisher_id: id)
+                  .where.not(thread_id: nil)
+                  .to_a
+
+                thread_counters_value_sum = thread_counters.sum(&:value)
+
+                global_counter.update!(
+                  value: global_counter.value + thread_counters_value_sum,
+                  updated_at: current_utc_time)
+
+                publisher_counter.value = publisher_counter.value + thread_counters_value_sum
+                publisher_counter.updated_at = current_utc_time
+
+                elapsed = publisher_counter.updated_at - publisher_counter.updated_at_was
+                throughput = (
+                  (publisher_counter.value - publisher_counter.value_was) / elapsed
+                ).round
+
+                publisher_counter.save!
+
+                Models::Counter
+                  .where(id: thread_counters.map(&:id))
+                  .update_all(["value = 0, updated_at = ?", current_utc_time])
+
+                last_queued_message = Models::Message
+                  .where(status: Message::Status::QUEUED)
                   .where(publisher_id: id)
                   .order(published_at: :desc)
                   .first
 
-                latency = if last_published_message.nil?
+                latency = if last_queued_message.nil?
                             0
                           else
-                            (Time.now.utc - last_published_message.published_at).to_i
+                            (current_utc_time - last_queued_message.queued_at).to_i
                           end
 
                 publisher.update!(
-                  updated_at: time.now.utc,
+                  updated_at: current_utc_time,
                   metrics: {
                     throughput: throughput,
                     latency: latency,
@@ -507,7 +576,7 @@ module Outboxer
         create_publisher_thread(
           id: publisher[:id], name: name, index: index,
           poll_interval: poll_interval, tick_interval: tick_interval,
-          logger: logger, process: process, kernel: kernel, &block)
+          logger: logger, time: time, process: process, kernel: kernel, &block)
       end
 
       signal_read, _signal_write = trap_signals
@@ -525,7 +594,7 @@ module Outboxer
       heartbeat_thread.join
       sweeper_thread.join
 
-      delete(id: publisher[:id])
+      delete(id: publisher[:id], time: time)
 
       logger.info "Outboxer terminated"
     end
@@ -540,6 +609,7 @@ module Outboxer
     # @param poll_interval [Numeric] Seconds to wait when no messages found.
     # @param tick_interval [Numeric] Seconds between signal checks during sleep.
     # @param logger [Logger] Logger used for info/error/fatal messages.
+    # @param time [Time] Module used for fetching current UTC time.
     # @param process [Object] Process-like object passed to `Publisher.sleep`.
     # @param kernel [Object] Kernel object passed to `Publisher.sleep`.
     # @yieldparam publisher [Hash{Symbol=>Integer,String}] Publisher details,
@@ -548,10 +618,26 @@ module Outboxer
     # @return [Thread] The created publishing thread.
     def create_publisher_thread(id:, name:, index:,
                                 poll_interval:, tick_interval:,
-                                logger:, process:, kernel:, &block)
+                                logger:, time:, process:, kernel:, &block)
       Thread.new do
         begin
           Thread.current.name = "publisher-#{index + 1}"
+
+          current_utc_time = time.now.utc
+
+          ActiveRecord::Base.connection_pool.with_connection do
+            Models::Counter.insert_all(
+              [
+                { name: "messages.published.count",
+                  publisher_id: id,
+                  thread_id: Thread.current.object_id,
+                  value: 0,
+                  created_at: current_utc_time,
+                  updated_at: current_utc_time }
+              ],
+              unique_by: [:name, :publisher_id, :thread_id]
+            )
+          end
 
           while !terminating?
             messages = []
@@ -752,17 +838,40 @@ module Outboxer
               raise ArgumentError, "Some messages publishing not locked for update"
             end
 
-            updated_rows = Models::Message
-              .where(status: Status::PUBLISHING, id: published_message_ids)
-              .update_all(
-                status: Message::Status::PUBLISHED,
-                updated_at: current_utc_time,
-                published_at: current_utc_time,
-                publisher_id: id)
+            # updated_rows = Models::Message
+            #   .where(status: Status::PUBLISHING, id: published_message_ids)
+            #   .update_all(
+            #     status: Message::Status::PUBLISHED,
+            #     updated_at: current_utc_time,
+            #     published_at: current_utc_time,
+            #     publisher_id: id)
 
-            if updated_rows != published_message_ids.size
-              raise ArgumentError, "Some messages publishing not updated to published"
+            # if updated_rows != published_message_ids.size
+            #   raise ArgumentError, "Some messages publishing not updated to published"
+            # end
+
+            Models::Frame
+              .joins(:exception)
+              .where(exception: { message_id: published_message_ids })
+              .delete_all
+
+            Models::Exception.where(message_id: published_message_ids).delete_all
+
+            deleted_rows = Models::Message.where(id: published_message_ids).delete_all
+
+            if deleted_rows != published_message_ids.size
+              raise ArgumentError, "Some messages publishing not deleted"
             end
+
+            Models::Counter
+              .where(
+                publisher_id: id,
+                thread_id: Thread.current.object_id,
+                name: "messages.published.count")
+              .update_all([
+                "value = value + ?, updated_at = ?",
+                published_message_ids.count, time.now.utc
+              ])
           end
 
           failed_messages.each do |failed_message|
