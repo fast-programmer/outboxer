@@ -25,7 +25,6 @@ module Outboxer
         )
 
         partition = message.id % PARTITION_COUNT
-        # message.update_columns(partition: partition)
 
         Models::MessageCounts.insert_all(
           [{ status: Status::QUEUED, partition: partition, value: 0,
