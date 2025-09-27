@@ -6,28 +6,6 @@ module Outboxer
     STATUSES = Models::Message::STATUSES
     Status = Models::Message::Status
 
-    # # Queues a new message.
-    # # @param messageable [Object, nil] the object associated with the message.
-    # # @param time [Time] time context for setting timestamps.
-    # # @return [Hash] a hash with message details including IDs and timestamps.
-    # def queue(messageable:, time: ::Time)
-    #   current_utc_time = time.now.utc
-
-    #   message = Models::Message.create!(
-    #     status: Message::Status::QUEUED,
-    #     messageable_id: messageable.id,
-    #     messageable_type: messageable.class.name,
-    #     updated_at: current_utc_time,
-    #     queued_at: current_utc_time)
-
-    #   serialize(
-    #     id: message.id,
-    #     status: message.status,
-    #     messageable_type: message.messageable_type,
-    #     messageable_id: message.messageable_id,
-    #     updated_at: message.updated_at)
-    # end
-
     PARTITION_COUNT = Integer(ENV.fetch("OUTBOXER_MESSAGE_PARTITION_COUNT", 64))
 
     # Queues a new message.
