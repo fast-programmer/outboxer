@@ -3,6 +3,7 @@ module Outboxer
   module Message
     module_function
 
+    STATUSES = Models::Message::STATUSES
     Status = Models::Message::Status
 
     # Queues a new message.
