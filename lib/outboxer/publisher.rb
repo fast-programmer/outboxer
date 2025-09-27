@@ -707,6 +707,24 @@ module Outboxer
           if updated_rows != message_ids.size
             raise ArgumentError, "Some messages not buffered"
           end
+
+          message_status_and_partition_counts = messages.map { |_, _, _, partition| partition }.tally
+
+          seed_payload = message_status_and_partition_counts.keys.map do |partition|
+            { status: Status::PUBLISHING, partition: partition, value: 0,
+              created_at: now, updated_at: now }
+          end
+
+          Models::MessageCount.insert_all(
+            seed_payload,
+            unique_by: :idx_outboxer_counts_status_partition,
+            record_timestamps: false
+          ) unless seed_payload.empty?
+
+          partition_counts.each do |partition, n|
+            Models::MessageCount.where(status: Status::PUBLISHING, partition: partition)
+              .update_all(["value = value + ?, updated_at = NOW()", n])
+          end
         end
       end
 
