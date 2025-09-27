@@ -6,26 +6,68 @@ module Outboxer
     STATUSES = Models::Message::STATUSES
     Status = Models::Message::Status
 
+    # # Queues a new message.
+    # # @param messageable [Object, nil] the object associated with the message.
+    # # @param time [Time] time context for setting timestamps.
+    # # @return [Hash] a hash with message details including IDs and timestamps.
+    # def queue(messageable:, time: ::Time)
+    #   current_utc_time = time.now.utc
+
+    #   message = Models::Message.create!(
+    #     status: Message::Status::QUEUED,
+    #     messageable_id: messageable.id,
+    #     messageable_type: messageable.class.name,
+    #     updated_at: current_utc_time,
+    #     queued_at: current_utc_time)
+
+    #   serialize(
+    #     id: message.id,
+    #     status: message.status,
+    #     messageable_type: message.messageable_type,
+    #     messageable_id: message.messageable_id,
+    #     updated_at: message.updated_at)
+    # end
+
+    PARTITION_COUNT = Integer(ENV.fetch("OUTBOXER_MESSAGE_PARTITION_COUNT", 64))
+
     # Queues a new message.
     # @param messageable [Object, nil] the object associated with the message.
     # @param time [Time] time context for setting timestamps.
     # @return [Hash] a hash with message details including IDs and timestamps.
     def queue(messageable:, time: ::Time)
-      current_utc_time = time.now.utc
+      now = time.now.utc
 
-      message = Models::Message.create!(
-        status: Message::Status::QUEUED,
-        messageable_id: messageable.id,
-        messageable_type: messageable.class.name,
-        updated_at: current_utc_time,
-        queued_at: current_utc_time)
+      ActiveRecord::Base.transaction do
+        message = Models::Message.create!(
+          status: Status::QUEUED,
+          messageable_id: messageable.id,
+          messageable_type: messageable.class.name,
+          queued_at: now,
+          updated_at: now
+        )
 
-      serialize(
-        id: message.id,
-        status: message.status,
-        messageable_type: message.messageable_type,
-        messageable_id: message.messageable_id,
-        updated_at: message.updated_at)
+        partition = message.id % PARTITION_COUNT
+        # message.update_columns(partition: partition)
+
+        Models::MessageCounts.insert_all(
+          [{ status: Status::QUEUED, partition: partition, value: 0,
+             created_at: now, updated_at: now }],
+          unique_by: :idx_outboxer_counts_status_partition,
+          record_timestamps: false
+        )
+
+        Models::MessageCounts
+          .where(status: Status::QUEUED, partition: partition)
+          .update_all(["value = value + ?, updated_at = NOW()", 1])
+
+        {
+          id: message.id,
+          status: message.status,
+          messageable_type: message.messageable_type,
+          messageable_id: message.messageable_id,
+          updated_at: message.updated_at
+        }
+      end
     end
 
     # Serializes message attributes into a hash.
