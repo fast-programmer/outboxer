@@ -708,21 +708,23 @@ module Outboxer
             raise ArgumentError, "Some messages not buffered"
           end
 
-          message_status_and_partition_counts = messages.map { |_, _, _, partition| partition }.tally
+          partition_counts = messages
+            .map { |message_id, _, _| message_id % Message::PARTITION_COUNT }
+            .tally
 
-          seed_payload = message_status_and_partition_counts.keys.map do |partition|
+          seed_payload = partition_counts.keys.map do |partition|
             { status: Status::PUBLISHING, partition: partition, value: 0,
-              created_at: now, updated_at: now }
+              created_at: current_utc_time, updated_at: current_utc_time }
           end
 
-          Models::MessageCount.insert_all(
+          Models::MessageCounts.insert_all(
             seed_payload,
             unique_by: :idx_outboxer_counts_status_partition,
             record_timestamps: false
           ) unless seed_payload.empty?
 
           partition_counts.each do |partition, n|
-            Models::MessageCount.where(status: Status::PUBLISHING, partition: partition)
+            Models::MessageCounts.where(status: Status::PUBLISHING, partition: partition)
               .update_all(["value = value + ?, updated_at = NOW()", n])
           end
         end
@@ -754,50 +756,83 @@ module Outboxer
     #   ]
     # @param time [Time]
     # @return [nil]
-    def update_messages(id:, published_message_ids: [], failed_messages: [],
-                        time: ::Time)
-      current_utc_time = time.now.utc
+    def update_messages(id:, published_message_ids: [], failed_messages: [], time: ::Time)
+      now = time.now.utc
 
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
+          published_partition_counts = {}
+          failed_partition_counts     = {}
+
           if published_message_ids.any?
             messages = Models::Message
-              .where(id: published_message_ids, status: Message::Status::PUBLISHING)
+              .where(id: published_message_ids, status: Status::PUBLISHING)
               .lock("FOR UPDATE")
               .pluck(:id)
 
-            if messages.size != published_message_ids.size
-              raise ArgumentError, "Some messages publishing not locked for update"
-            end
+            raise ArgumentError, "Some messages publishing not locked for update" if messages.size != published_message_ids.size
 
             updated_rows = Models::Message
               .where(status: Status::PUBLISHING, id: published_message_ids)
               .update_all(
                 status: Message::Status::PUBLISHED,
-                updated_at: current_utc_time,
-                published_at: current_utc_time,
-                publisher_id: id)
+                updated_at: now,
+                published_at: now,
+                publisher_id: id
+              )
 
-            if updated_rows != published_message_ids.size
-              raise ArgumentError, "Some messages publishing not updated to published"
-            end
+            raise ArgumentError, "Some messages publishing not updated to published" if updated_rows != published_message_ids.size
+
+            published_partition_counts = messages.map { |mid| mid % Message::PARTITION_COUNT }.tally
           end
 
           failed_messages.each do |failed_message|
             message = Models::Message
               .lock("FOR UPDATE")
-              .find_by!(id: failed_message[:id], status: Message::Status::PUBLISHING)
+              .find_by!(id: failed_message[:id], status: Status::PUBLISHING)
 
-            message.update!(status: Message::Status::FAILED, updated_at: current_utc_time)
+            message.update!(status: Message::Status::FAILED, updated_at: now)
 
             exception = message.exceptions.create!(
-              class_name: failed_message[:exception][:class_name],
-              message_text: failed_message[:exception][:message_text],
-              created_at: current_utc_time)
+              class_name:   failed_message.dig(:exception, :class_name),
+              message_text: failed_message.dig(:exception, :message_text),
+              created_at:   now
+            )
 
-            (failed_message[:exception][:backtrace] || []).each_with_index do |frame, index|
-              exception.frames.create!(index: index, text: frame)
+            (failed_message.dig(:exception, :backtrace) || []).each_with_index do |frame, idx|
+              exception.frames.create!(index: idx, text: frame)
             end
+
+            part = message.id % Message::PARTITION_COUNT
+            failed_partition_counts[part] = failed_partition_counts.fetch(part, 0) + 1
+          end
+
+          seed_payload = []
+          seed_payload.concat(published_partition_counts.keys.map { |p|
+            { status: Message::Status::PUBLISHED,  partition: p, value: 0, created_at: now, updated_at: now }
+          })
+          seed_payload.concat(failed_partition_counts.keys.map { |p|
+            { status: Message::Status::FAILED,     partition: p, value: 0, created_at: now, updated_at: now }
+          })
+
+          Models::MessageCounts.insert_all(
+            seed_payload,
+            unique_by: :idx_outboxer_counts_status_partition,
+            record_timestamps: false
+          ) unless seed_payload.empty?
+
+          published_partition_counts.each do |partition, n|
+            Models::MessageCounts.where(status: Status::PUBLISHING, partition: partition)
+                                .update_all(["value = value - ?, updated_at = NOW()", n])
+            Models::MessageCounts.where(status: Message::Status::PUBLISHED, partition: partition)
+                                .update_all(["value = value + ?, updated_at = NOW()", n])
+          end
+
+          failed_partition_counts.each do |partition, n|
+            Models::MessageCounts.where(status: Status::PUBLISHING, partition: partition)
+                                .update_all(["value = value - ?, updated_at = NOW()", n])
+            Models::MessageCounts.where(status: Message::Status::FAILED, partition: partition)
+                                .update_all(["value = value + ?, updated_at = NOW()", n])
           end
         end
       end
