@@ -505,7 +505,7 @@ module Outboxer
 
       publisher_threads = Array.new(concurrency) do |index|
         create_publisher_thread(
-          id: publisher[:id], name: name, index: index,
+          id: publisher[:id], index: index,
           poll_interval: poll_interval, tick_interval: tick_interval,
           logger: logger, process: process, kernel: kernel, &block)
       end
@@ -546,68 +546,20 @@ module Outboxer
     #   e.g., `{ id: Integer, name: String }`.
     # @yieldparam messages [Array<Hash>] Batch of messages to publish.
     # @return [Thread] The created publishing thread.
-    def create_publisher_thread(id:, name:, index:,
+    def create_publisher_thread(id:, index:,
                                 poll_interval:, tick_interval:,
                                 logger:, process:, kernel:, &block)
       Thread.new do
         begin
           Thread.current.name = "publisher-#{index + 1}"
+          Thread.current.report_on_exception = true
 
           while !terminating?
-            messages = []
-
-            begin
-              messages = buffer_messages(id: id, name: name, limit: 1)
-            rescue StandardError => error
-              logger.error(
-                "#{error.class}: #{error.message}\n" \
-                "#{error.backtrace.join("\n")}")
+            published_message = Message.publish(logger: logger) do |message|
+              block.call message
             end
 
-            if messages.any?
-              begin
-                block.call({ id: id, name: name }, messages[0])
-              rescue StandardError => error
-                logger.error(
-                  "#{error.class}: #{error.message}\n" \
-                  "#{error.backtrace.join("\n")}")
-
-                Publisher.update_messages(
-                  id: id,
-                  failed_messages: [
-                    {
-                      id: messages[0][:id],
-                      exception: {
-                        class_name: error.class.name,
-                        message_text: error.message,
-                        backtrace: error.backtrace
-                      }
-                    }
-                  ])
-              rescue ::Exception => error
-                logger.fatal(
-                  "#{error.class}: #{error.message}\n" \
-                  "#{error.backtrace.join("\n")}")
-
-                Publisher.update_messages(
-                  id: id,
-                  failed_messages: [
-                    {
-                      id: messages[0][:id],
-                      exception: {
-                        class_name: error.class.name,
-                        message_text: error.message,
-                        backtrace: error.backtrace
-                      }
-                    }
-                  ])
-
-                terminate(id: id)
-              else
-                Outboxer::Publisher.update_messages(
-                  id: id, published_message_ids: [messages[0][:id]])
-              end
-            else
+            if published_message.nil?
               Publisher.sleep(
                 poll_interval,
                 tick_interval: tick_interval,

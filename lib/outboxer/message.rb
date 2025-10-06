@@ -50,8 +50,9 @@ module Outboxer
             "Outboxer message publishing failed id=#{message[:id]} " \
               "messageable_type=#{message[:messageable_type]} " \
               "messageable_id=#{message[:messageable_id]} " \
-              "error_class=#{error.class} error_message=#{error.message.inspect} " \
-              "duration_ms=#{((time.now.utc - publishing_started_at) * 1000).to_i}")
+              "duration_ms=#{((time.now.utc - publishing_started_at) * 1000).to_i}" \
+              "#{error.class}: #{error.message}\n" \
+              "#{error.backtrace.join("\n")}")
         rescue Exception => error
           publishing_failed(id: message[:id], error: error, time: time)
 
@@ -59,8 +60,9 @@ module Outboxer
             "Outboxer message publishing failed id=#{message[:id]} " \
               "messageable_type=#{message[:messageable_type]} " \
               "messageable_id=#{message[:messageable_id]} " \
-              "error_class=#{error.class} error_message=#{error.message.inspect} " \
-              "duration_ms=#{((time.now.utc - publishing_started_at) * 1000).to_i}")
+              "duration_ms=#{((time.now.utc - publishing_started_at) * 1000).to_i}" \
+              "#{error.class}: #{error.message}\n" \
+              "#{error.backtrace.join("\n")}")
 
           raise
         else
@@ -73,7 +75,11 @@ module Outboxer
               "duration_ms=#{((time.now.utc - publishing_started_at) * 1000).to_i}")
         end
 
-        { id: message[:id] }
+        {
+          id: message[:id],
+          messageable_type: message[:messageable_type],
+          messageable_id: message[:messageable_id]
+        }
       end
     end
 
@@ -97,7 +103,11 @@ module Outboxer
               updated_at: current_utc_time,
               publishing_at: current_utc_time)
 
-            { id: message.id }
+            {
+              id: message[:id],
+              messageable_type: message[:messageable_type],
+              messageable_id: message[:messageable_id]
+            }
           end
         end
       end
@@ -118,7 +128,7 @@ module Outboxer
             status: Status::PUBLISHED,
             updated_at: current_utc_time, published_at: current_utc_time)
 
-          { id: message.id }
+          nil
         end
       end
     end
@@ -147,7 +157,7 @@ module Outboxer
             end
           end
 
-          { id: message.id }
+          nil
         end
       end
     end

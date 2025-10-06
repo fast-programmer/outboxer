@@ -23,7 +23,11 @@ module Outboxer
             end
 
             expect(yielded_id).to eq(queued_message.id)
-            expect(result).to eq({ id: queued_message.id })
+            expect(result).to eq({
+              id: queued_message.id,
+              messageable_type: queued_message.messageable_type,
+              messageable_id: queued_message.messageable_id
+            })
             expect(queued_message.reload.status)
               .to eq(Models::Message::Status::PUBLISHED)
           end
@@ -33,7 +37,11 @@ module Outboxer
               raise StandardError, "temporary failure"
             end
 
-            expect(result).to eq({ id: queued_message.id })
+            expect(result).to eq({
+              id: queued_message.id,
+              messageable_type: queued_message.messageable_type,
+              messageable_id: queued_message.messageable_id
+            })
             expect(queued_message.reload.status)
               .to eq(Models::Message::Status::FAILED)
           end
