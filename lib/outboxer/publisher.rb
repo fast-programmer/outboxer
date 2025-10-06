@@ -505,7 +505,7 @@ module Outboxer
 
       publisher_threads = Array.new(concurrency) do |index|
         create_publisher_thread(
-          id: publisher[:id], name: name, index: index,
+          id: publisher[:id], index: index,
           poll_interval: poll_interval, tick_interval: tick_interval,
           logger: logger, process: process, kernel: kernel, &block)
       end
@@ -535,7 +535,6 @@ module Outboxer
     end
 
     # @param id [Integer] Publisher id.
-    # @param name [String] Publisher name.
     # @param index [Integer] Zero-based thread index (used for thread name).
     # @param poll_interval [Numeric] Seconds to wait when no messages found.
     # @param tick_interval [Numeric] Seconds between signal checks during sleep.
@@ -546,73 +545,31 @@ module Outboxer
     #   e.g., `{ id: Integer, name: String }`.
     # @yieldparam messages [Array<Hash>] Batch of messages to publish.
     # @return [Thread] The created publishing thread.
-    def create_publisher_thread(id:, name:, index:,
+    def create_publisher_thread(id:, index:,
                                 poll_interval:, tick_interval:,
                                 logger:, process:, kernel:, &block)
       Thread.new do
         begin
           Thread.current.name = "publisher-#{index + 1}"
+          # Thread.current.report_on_exception = true
 
           while !terminating?
-            messages = []
-
             begin
-              messages = buffer_messages(id: id, name: name, limit: 1)
+              published_message = Message.publish(logger: logger) do |message|
+                block.call({ id: id }, message)
+              end
             rescue StandardError => error
               logger.error(
                 "#{error.class}: #{error.message}\n" \
                 "#{error.backtrace.join("\n")}")
-            end
-
-            if messages.any?
-              begin
-                block.call({ id: id, name: name }, messages[0])
-              rescue StandardError => error
-                logger.error(
-                  "#{error.class}: #{error.message}\n" \
-                  "#{error.backtrace.join("\n")}")
-
-                Publisher.update_messages(
-                  id: id,
-                  failed_messages: [
-                    {
-                      id: messages[0][:id],
-                      exception: {
-                        class_name: error.class.name,
-                        message_text: error.message,
-                        backtrace: error.backtrace
-                      }
-                    }
-                  ])
-              rescue ::Exception => error
-                logger.fatal(
-                  "#{error.class}: #{error.message}\n" \
-                  "#{error.backtrace.join("\n")}")
-
-                Publisher.update_messages(
-                  id: id,
-                  failed_messages: [
-                    {
-                      id: messages[0][:id],
-                      exception: {
-                        class_name: error.class.name,
-                        message_text: error.message,
-                        backtrace: error.backtrace
-                      }
-                    }
-                  ])
-
-                terminate(id: id)
-              else
-                Outboxer::Publisher.update_messages(
-                  id: id, published_message_ids: [messages[0][:id]])
-              end
             else
-              Publisher.sleep(
-                poll_interval,
-                tick_interval: tick_interval,
-                process: process,
-                kernel: kernel)
+              if published_message.nil?
+                Publisher.sleep(
+                  poll_interval,
+                  tick_interval: tick_interval,
+                  process: process,
+                  kernel: kernel)
+              end
             end
           end
         rescue ::Exception => error
@@ -671,120 +628,6 @@ module Outboxer
           end
         end
       end
-    end
-
-    # Marks queued messages as buffered.
-    #
-    # @param id [Integer] the ID of the publisher.
-    # @param name [String] the name of the publisher.
-    # @param limit [Integer] the number of messages to buffer.
-    # @param time [Time] current time context used to update timestamps.
-    # @return [Array<Hash>] buffered messages.
-    def buffer_messages(id:, name:, limit: 1, time: ::Time)
-      current_utc_time = time.now.utc
-      messages = []
-
-      ActiveRecord::Base.connection_pool.with_connection do
-        ActiveRecord::Base.transaction do
-          messages = Models::Message
-            .where(status: Message::Status::QUEUED)
-            .order(updated_at: :asc)
-            .limit(limit)
-            .lock("FOR UPDATE SKIP LOCKED")
-            .pluck(:id, :messageable_type, :messageable_id)
-
-          message_ids = messages.map(&:first)
-
-          updated_rows = Models::Message
-            .where(id: message_ids, status: Message::Status::QUEUED)
-            .update_all(
-              status: Message::Status::PUBLISHING,
-              updated_at: current_utc_time,
-              buffered_at: current_utc_time,
-              publisher_id: id,
-              publisher_name: name)
-
-          if updated_rows != message_ids.size
-            raise ArgumentError, "Some messages not buffered"
-          end
-        end
-      end
-
-      messages.map do |message_id, messageable_type, messageable_id|
-        {
-          id: message_id,
-          messageable_type: messageable_type,
-          messageable_id: messageable_id
-        }
-      end
-    end
-
-    # Updates messages as published or failed.
-    #
-    # @param id [Integer]
-    # @param published_message_ids [Array<Integer>]
-    # @param failed_messages [Array<Hash>] Array of failed message hashes:
-    #   [
-    #     {
-    #       id: Integer,
-    #       exception: {
-    #         class_name: String,
-    #         message_text: String,
-    #         backtrace: Array<String>
-    #       }
-    #     }
-    #   ]
-    # @param time [Time]
-    # @return [nil]
-    def update_messages(id:, published_message_ids: [], failed_messages: [],
-                        time: ::Time)
-      current_utc_time = time.now.utc
-
-      ActiveRecord::Base.connection_pool.with_connection do
-        ActiveRecord::Base.transaction do
-          if published_message_ids.any?
-            messages = Models::Message
-              .where(id: published_message_ids, status: Message::Status::PUBLISHING)
-              .lock("FOR UPDATE")
-              .pluck(:id)
-
-            if messages.size != published_message_ids.size
-              raise ArgumentError, "Some messages publishing not locked for update"
-            end
-
-            updated_rows = Models::Message
-              .where(status: Status::PUBLISHING, id: published_message_ids)
-              .update_all(
-                status: Message::Status::PUBLISHED,
-                updated_at: current_utc_time,
-                published_at: current_utc_time,
-                publisher_id: id)
-
-            if updated_rows != published_message_ids.size
-              raise ArgumentError, "Some messages publishing not updated to published"
-            end
-          end
-
-          failed_messages.each do |failed_message|
-            message = Models::Message
-              .lock("FOR UPDATE")
-              .find_by!(id: failed_message[:id], status: Message::Status::PUBLISHING)
-
-            message.update!(status: Message::Status::FAILED, updated_at: current_utc_time)
-
-            exception = message.exceptions.create!(
-              class_name: failed_message[:exception][:class_name],
-              message_text: failed_message[:exception][:message_text],
-              created_at: current_utc_time)
-
-            (failed_message[:exception][:backtrace] || []).each_with_index do |frame, index|
-              exception.frames.create!(index: index, text: frame)
-            end
-          end
-        end
-      end
-
-      nil
     end
   end
 end

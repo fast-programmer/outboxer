@@ -271,15 +271,15 @@ module Outboxer
 
           it "logs errors" do
             expect(logger).to have_received(:fatal).with(
-              a_string_matching("#{no_memory_error.class}: #{no_memory_error.message}")).once
+              a_string_matching("#{no_memory_error.class}: #{no_memory_error.message}")).twice
           end
         end
 
-        context "when buffer_messages raises a StandardError" do
+        context "when Message.publishing raises a StandardError" do
           it "logs the error and continues processing" do
             call_count = 0
 
-            allow(Publisher).to receive(:buffer_messages) do
+            allow(Message).to receive(:publishing) do
               call_count += 1
 
               case call_count
@@ -288,7 +288,7 @@ module Outboxer
               else
                 ::Process.kill("TERM", ::Process.pid)
 
-                []
+                nil
               end
             end
 
@@ -304,9 +304,9 @@ module Outboxer
           end
         end
 
-        context "when buffer_messages raises an Exception" do
+        context "when Message.publishing raises an Exception" do
           it "logs the exception and shuts down" do
-            allow(Publisher).to receive(:buffer_messages)
+            allow(Message).to receive(:publishing)
               .and_raise(NoMemoryError, "failed to allocate memory")
 
             expect(logger).to receive(:fatal)
