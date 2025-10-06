@@ -5,6 +5,8 @@ module Outboxer
 
     Status = Models::Message::Status
 
+    class Error < StandardError; end
+
     # Queues a new message.
     # @param messageable [Object, nil] the object associated with the message.
     # @param time [Time] time context for setting timestamps.
@@ -28,19 +30,50 @@ module Outboxer
     end
 
     def publish(logger: nil, time: ::Time)
+      publishing_started_at = time.now.utc
       message = publishing(time: time)
-      return nil if message.nil?
 
-      begin
-        yield message
-      rescue StandardError => error
-        publishing_failed(id: message[:id], error: error, logger: logger, time: time)
-      rescue Exception => error
-        publishing_failed(id: message[:id], error: error, logger: logger, time: time)
-
-        raise
+      if message.nil?
+        nil
       else
-        published(id: message[:id], logger: logger, time: time)
+        logger&.info(
+          "Outboxer message publishing id=#{message[:id]}" \
+            "messageable_type=#{message[:messageable_type]} " \
+            "messageable_id=#{message[:messageable_id]}")
+
+        begin
+          yield message
+        rescue StandardError => error
+          publishing_failed(id: message[:id], error: error, time: time)
+
+          logger&.error(
+            "Outboxer message publishing failed id=#{message[:id]} " \
+              "messageable_type=#{message[:messageable_type]} " \
+              "messageable_id=#{message[:messageable_id]} " \
+              "error_class=#{error.class} error_message=#{error.message.inspect} " \
+              "duration_ms=#{((time.now.utc - publishing_started_at) * 1000).to_i}")
+        rescue Exception => error
+          publishing_failed(id: message[:id], error: error, time: time)
+
+          logger&.fatal(
+            "Outboxer message publishing failed id=#{message[:id]} " \
+              "messageable_type=#{message[:messageable_type]} " \
+              "messageable_id=#{message[:messageable_id]} " \
+              "error_class=#{error.class} error_message=#{error.message.inspect} " \
+              "duration_ms=#{((time.now.utc - publishing_started_at) * 1000).to_i}")
+
+          raise
+        else
+          published(id: message[:id], time: time)
+
+          logger&.info(
+            "Outboxer message published id=#{message[:id]} " \
+              "messageable_type=#{message[:messageable_type]} " \
+              "messageable_id=#{message[:messageable_id]} " \
+              "duration_ms=#{((time.now.utc - publishing_started_at) * 1000).to_i}")
+        end
+
+        { id: message[:id] }
       end
     end
 
@@ -56,25 +89,29 @@ module Outboxer
             .lock("FOR UPDATE SKIP LOCKED")
             .first
 
-          message&.update!(
-            status: Status::PUBLISHING,
-            updated_at: current_utc_time,
-            publishing_at: current_utc_time)
+          if message.nil?
+            nil
+          else
+            message.update!(
+              status: Status::PUBLISHING,
+              updated_at: current_utc_time,
+              publishing_at: current_utc_time)
 
-          message.nil? ? nil : { id: message.id }
+            { id: message.id }
+          end
         end
       end
     end
 
-    def published(id:, logger: nil, time: ::Time)
+    def published(id:, time: ::Time)
       current_utc_time = time.now.utc
 
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           message = Models::Message.lock.find_by!(id: id)
 
-          if message.status != Models::Message::Statuses::PUBLISHING
-            raise "Status must be publishing"
+          if message.status != Models::Message::Status::PUBLISHING
+            raise Error, "Status must be publishing"
           end
 
           message.update!(
@@ -86,15 +123,15 @@ module Outboxer
       end
     end
 
-    def publishing_failed(id:, error: nil, logger: nil, time: ::Time)
+    def publishing_failed(id:, error: nil, time: ::Time)
       current_utc_time = time.now.utc
 
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           message = Models::Message.lock.find_by!(id: id)
 
-          if message.status != Models::Message::Statuses::PUBLISHING
-            raise "Status must be publishing"
+          if message.status != Models::Message::Status::PUBLISHING
+            raise Error, "Status must be publishing"
           end
 
           message.update!(
