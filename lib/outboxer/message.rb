@@ -29,6 +29,30 @@ module Outboxer
         updated_at: message.updated_at)
     end
 
+    # Publishes the next queued message by yielding it to the caller’s block.
+    #
+    # Transitions the selected message from **queued** → **publishing**,
+    # yields it for processing, then marks it **published** on success or **failed** on error.
+    #
+    # - Logs informational, error, or fatal output if a logger is provided.
+    # - Rescues `StandardError` (marks failed, logs as error) and continues.
+    # - Rescues `Exception` (marks failed, logs as fatal) and re-raises.
+    # - Returns the message hash with its identifiers, or `nil` if no queued message exists.
+    #
+    # @param logger [#info, #error, #fatal, nil] optional logger for lifecycle logging
+    # @param time [Time, #now] a time source; must respond to `now`
+    # @yield [message] yields the message hash for publishing
+    # @yieldparam message [Hash] the message data with:
+    #   - `:id` [Integer]
+    #   - `:messageable_type` [String]
+    #   - `:messageable_id` [Integer, String]
+    # @yieldreturn [Object] the result of the block, ignored by this method
+    # @return [Hash, nil] the yielded message hash or `nil` if no queued message was found
+    # @raise [Exception] re-raises any non-StandardError exceptions after marking failed
+    # @example
+    #   Outboxer::Message.publish(logger: logger) do |message|
+    #     TODO: # publish message to broker
+    #   end
     def publish(logger: nil, time: ::Time)
       publishing_started_at = time.now.utc
       message = Message.publishing(time: time)
@@ -73,6 +97,22 @@ module Outboxer
       end
     end
 
+    # Selects and locks the next available message in **queued** status
+    # and transitions it to **publishing**.
+    #
+    # Uses `FOR UPDATE SKIP LOCKED` to safely publish one message from the queue
+    # across concurrent processes. Updates `publishing_at` and `updated_at`
+    # to the current UTC time before returning.
+    #
+    # @param time [Time, #now] a time source; must respond to `now`
+    # @return [Hash, nil] a hash with:
+    #   - `:id` [Integer]
+    #   - `:messageable_type` [String]
+    #   - `:messageable_id` [Integer, String]
+    #   or `nil` if no queued message was available
+    # @note Runs inside a database transaction and uses the ActiveRecord connection pool.
+    # @example
+    #   message = Outboxer::Message.publishing(time: Time)
     def publishing(time: ::Time)
       current_utc_time = time.now.utc
 
@@ -104,6 +144,19 @@ module Outboxer
       end
     end
 
+    # Marks a message in **publishing** status as **published**.
+    #
+    # Ensures that the message is currently in the **publishing** state
+    # before transitioning. Updates `published_at` and `updated_at`
+    # to the current UTC time.
+    #
+    # @param id [Integer] the ID of the message to mark as published
+    # @param time [Time, #now] a time source; must respond to `now`
+    # @return [nil]
+    # @raise [Outboxer::Message::Error] if the message is not in publishing state
+    # @note Executes within a transaction using a `SELECT ... FOR UPDATE` lock.
+    # @example
+    #   Outboxer::Message.published(id: message[:id], time: Time)
     def published(id:, time: ::Time)
       current_utc_time = time.now.utc
 
@@ -124,6 +177,20 @@ module Outboxer
       end
     end
 
+    # Marks a message in **publishing** status as **failed** and records the exception details.
+    #
+    # Sets `failed_at` and `updated_at` to the current UTC time,
+    # persists the error’s class, message, and backtrace (if present).
+    # Ensures the message is currently in **publishing** state before updating.
+    #
+    # @param id [Integer] the ID of the message to mark as failed
+    # @param error [Exception, nil] optional error to persist (class name, message text, backtrace)
+    # @param time [Time, #now] a time source; must respond to `now`
+    # @return [nil]
+    # @raise [Outboxer::Message::Error] if the message is not in publishing state
+    # @note Runs inside a transaction and uses `SELECT ... FOR UPDATE` locking.
+    # @example
+    #   Outboxer::Message.publishing_failed(id: message[:id], time: Time)
     def publishing_failed(id:, error: nil, time: ::Time)
       current_utc_time = time.now.utc
 

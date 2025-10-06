@@ -535,7 +535,6 @@ module Outboxer
     end
 
     # @param id [Integer] Publisher id.
-    # @param name [String] Publisher name.
     # @param index [Integer] Zero-based thread index (used for thread name).
     # @param poll_interval [Numeric] Seconds to wait when no messages found.
     # @param tick_interval [Numeric] Seconds between signal checks during sleep.
