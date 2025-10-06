@@ -27,6 +27,94 @@ module Outboxer
         updated_at: message.updated_at)
     end
 
+    def publish(logger: nil, time: ::Time)
+      message = publishing(time: time)
+      return nil if message.nil?
+
+      begin
+        yield message
+      rescue StandardError => error
+        publishing_failed(id: message[:id], error: error, logger: logger, time: time)
+      rescue Exception => error
+        publishing_failed(id: message[:id], error: error, logger: logger, time: time)
+
+        raise
+      else
+        published(id: message[:id], logger: logger, time: time)
+      end
+    end
+
+    def publishing(time: ::Time)
+      current_utc_time = time.now.utc
+
+      ActiveRecord::Base.connection_pool.with_connection do
+        ActiveRecord::Base.transaction do
+          message = Models::Message
+            .where(status: Status::QUEUED)
+            .order(:id)
+            .limit(1)
+            .lock("FOR UPDATE SKIP LOCKED")
+            .first
+
+          message&.update!(
+            status: Status::PUBLISHING,
+            updated_at: current_utc_time,
+            publishing_at: current_utc_time)
+
+          message.nil? ? nil : { id: message.id }
+        end
+      end
+    end
+
+    def published(id:, logger: nil, time: ::Time)
+      current_utc_time = time.now.utc
+
+      ActiveRecord::Base.connection_pool.with_connection do
+        ActiveRecord::Base.transaction do
+          message = Models::Message.lock.find_by!(id: id)
+
+          if message.status != Models::Message::Statuses::PUBLISHING
+            raise "Status must be publishing"
+          end
+
+          message.update!(
+            status: Status::PUBLISHED,
+            updated_at: current_utc_time, published_at: current_utc_time)
+
+          { id: message.id }
+        end
+      end
+    end
+
+    def publishing_failed(id:, error: nil, logger: nil, time: ::Time)
+      current_utc_time = time.now.utc
+
+      ActiveRecord::Base.connection_pool.with_connection do
+        ActiveRecord::Base.transaction do
+          message = Models::Message.lock.find_by!(id: id)
+
+          if message.status != Models::Message::Statuses::PUBLISHING
+            raise "Status must be publishing"
+          end
+
+          message.update!(
+            status: Status::FAILED,
+            updated_at: current_utc_time, failed_at: current_utc_time)
+
+          if error
+            exception = message.exceptions.create!(
+              class_name: error.class.name, message_text: error.message)
+
+            Array(error.backtrace).each_with_index do |backtrace_line, index|
+              exception.frames.create!(index: index, text: backtrace_line)
+            end
+          end
+
+          { id: message.id }
+        end
+      end
+    end
+
     # Serializes message attributes into a hash.
     #
     # @param id [Integer] message ID.
