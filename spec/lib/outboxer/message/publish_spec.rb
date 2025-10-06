@@ -49,7 +49,7 @@ module Outboxer
           it "marks failed and re-raises on fatal Exception" do
             expect do
               Message.publish do |_message|
-                raise Exception, "fatal crash"
+                raise Exception, "fatal crash" # rubocop:disable Lint/RaiseException
               end
             end.to raise_error(Exception, "fatal crash")
 
@@ -84,7 +84,7 @@ module Outboxer
           end
 
           it "logs the 'publishing' line" do
-            Message.publish(logger: logger) { |_message| }
+            Message.publish(logger: logger) { |_message| } # rubocop:disable Lint/EmptyBlock
 
             expect(logger).to have_received(:info).with(
               a_string_matching(/Outboxer message publishing id=\d+/)
@@ -104,7 +104,7 @@ module Outboxer
           it "logs 'fatal' on fatal Exception and re-raises" do
             expect do
               Message.publish(logger: logger) do |_message|
-                raise Exception, "fatal crash"
+                raise Exception, "fatal crash" # rubocop:disable Lint/RaiseException
               end
             end.to raise_error(Exception, "fatal crash")
 
