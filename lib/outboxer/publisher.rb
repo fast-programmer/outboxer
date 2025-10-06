@@ -552,19 +552,25 @@ module Outboxer
       Thread.new do
         begin
           Thread.current.name = "publisher-#{index + 1}"
-          Thread.current.report_on_exception = true
+          # Thread.current.report_on_exception = true
 
           while !terminating?
-            published_message = Message.publish(logger: logger) do |message|
-              block.call message
-            end
-
-            if published_message.nil?
-              Publisher.sleep(
-                poll_interval,
-                tick_interval: tick_interval,
-                process: process,
-                kernel: kernel)
+            begin
+              published_message = Message.publish(logger: logger) do |message|
+                block.call({ id: id }, message)
+              end
+            rescue StandardError => error
+              logger.error(
+                "#{error.class}: #{error.message}\n" \
+                "#{error.backtrace.join("\n")}")
+            else
+              if published_message.nil?
+                Publisher.sleep(
+                  poll_interval,
+                  tick_interval: tick_interval,
+                  process: process,
+                  kernel: kernel)
+              end
             end
           end
         rescue ::Exception => error
