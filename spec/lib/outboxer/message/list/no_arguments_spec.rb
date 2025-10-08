@@ -28,7 +28,7 @@ module Outboxer
       end
 
       let!(:message_3) do
-        create(:outboxer_message, :buffered,
+        create(:outboxer_message, :queued,
           messageable_type: "Event",
           messageable_id: "3",
           updated_at: 3.minutes.ago,
@@ -66,7 +66,6 @@ module Outboxer
                 messageable_id: message_1.messageable_id,
                 updated_at: message_1.updated_at,
                 queued_at: message_1.queued_at,
-                buffered_at: message_1.buffered_at,
                 publishing_at: message_1.publishing_at,
                 published_at: message_1.published_at,
                 failed_at: message_1.failed_at,
@@ -81,7 +80,6 @@ module Outboxer
                 messageable_id: message_2.messageable_id,
                 updated_at: message_2.updated_at,
                 queued_at: message_2.queued_at,
-                buffered_at: message_2.buffered_at,
                 publishing_at: message_2.publishing_at,
                 published_at: message_2.published_at,
                 failed_at: message_2.failed_at,
@@ -96,7 +94,6 @@ module Outboxer
                 messageable_id: message_3.messageable_id,
                 updated_at: message_3.updated_at,
                 queued_at: message_3.queued_at,
-                buffered_at: message_3.buffered_at,
                 publishing_at: message_3.publishing_at,
                 published_at: message_3.published_at,
                 failed_at: message_3.failed_at,
@@ -111,7 +108,6 @@ module Outboxer
                 messageable_id: message_4.messageable_id,
                 updated_at: message_4.updated_at,
                 queued_at: message_4.queued_at,
-                buffered_at: message_4.buffered_at,
                 publishing_at: message_4.publishing_at,
                 published_at: message_4.published_at,
                 failed_at: message_4.failed_at,
@@ -126,7 +122,6 @@ module Outboxer
                 messageable_id: message_5.messageable_id,
                 updated_at: message_5.updated_at,
                 queued_at: message_5.queued_at,
-                buffered_at: message_5.buffered_at,
                 publishing_at: message_5.publishing_at,
                 published_at: message_5.published_at,
                 failed_at: message_5.failed_at,

@@ -25,14 +25,6 @@ module Outboxer
           create(:outboxer_message, :queued, updated_at: 5.minutes.ago)
         end
 
-        let!(:oldest_buffered_message) do
-          create(:outboxer_message, :buffered, updated_at: 20.minutes.ago)
-        end
-
-        let!(:newest_buffered_message) do
-          create(:outboxer_message, :buffered, updated_at: 4.minutes.ago)
-        end
-
         let!(:oldest_publishing_message) do
           create(:outboxer_message, :publishing, updated_at: 25.minutes.ago)
         end
@@ -62,16 +54,11 @@ module Outboxer
 
           expect(metrics).to eq(
             all: {
-              count: { current: 10 }
+              count: { current: 8 }
             },
             queued: {
               count: { current: 2 },
               latency: (current_utc_time - oldest_queued_message.updated_at.utc).to_i,
-              throughput: 0
-            },
-            buffered: {
-              count: { current: 2 },
-              latency: (current_utc_time - oldest_buffered_message.updated_at.utc).to_i,
               throughput: 0
             },
             publishing: {
@@ -99,7 +86,6 @@ module Outboxer
           expect(metrics).to eq(
             all: { count: { current: 0 } },
             queued: { count: { current: 0 }, latency: 0, throughput: 0 },
-            buffered: { count: { current: 0 }, latency: 0, throughput: 0 },
             publishing: { count: { current: 0 }, latency: 0, throughput: 0 },
             published: { count: { historic: 0, current: 0, total: 0 }, latency: 0, throughput: 0 },
             failed: { count: { historic: 0, current: 0, total: 0 }, latency: 0, throughput: 0 })
@@ -113,7 +99,6 @@ module Outboxer
           expect(metrics).to eq(
             all: { count: { current: 0 } },
             queued: { count: { current: 0 }, latency: 0, throughput: 0 },
-            buffered: { count: { current: 0 }, latency: 0, throughput: 0 },
             publishing: { count: { current: 0 }, latency: 0, throughput: 0 },
             published: { count: { historic: 0, current: 0, total: 0 }, latency: 0, throughput: 0 },
             failed: { count: { historic: 0, current: 0, total: 0 }, latency: 0, throughput: 0 })

@@ -17,7 +17,7 @@ module Outboxer
       end
 
       let!(:message_1) { create(:outboxer_message, :queued) }
-      let!(:message_2) { create(:outboxer_message, :buffered) }
+      let!(:message_2) { create(:outboxer_message, :queued) }
 
       let!(:message_3) { create(:outboxer_message, :failed) }
       let!(:exception_1) { create(:outboxer_exception, message: message_3) }
@@ -52,18 +52,6 @@ module Outboxer
           failed_count_historic_setting.reload
 
           expect(failed_count_historic_setting.value).to eq("22")
-        end
-      end
-
-      context "when status is buffered" do
-        before do
-          Message.delete_all(status: Message::Status::BUFFERED, batch_size: 1)
-        end
-
-        it "deletes queued messages" do
-          expect(Models::Message.all.pluck(:id)).to match_array([
-            message_1.id, message_3.id, message_4.id, message_5.id, message_6.id, message_7.id
-          ])
         end
       end
 

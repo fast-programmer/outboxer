@@ -5,7 +5,6 @@ module Outboxer
 
       module Status
         QUEUED = "queued"
-        BUFFERED = "buffered"
         PUBLISHING = "publishing"
         PUBLISHED = "published"
         FAILED = "failed"
@@ -13,7 +12,6 @@ module Outboxer
 
       STATUSES = [
         Status::QUEUED,
-        Status::BUFFERED,
         Status::PUBLISHING,
         Status::PUBLISHED,
         Status::FAILED
@@ -32,9 +30,6 @@ module Outboxer
       # @!attribute [rw] queued_at
       #   @return [DateTime] The date and time when the message was queued.
 
-      # @!attribute [rw] buffered_at
-      #   @return [DateTime] The date and time when the message was buffered.
-
       # @!attribute [rw] publishing_at
       #   @return [DateTime] The date and time when the message began publishing.
 
@@ -50,7 +45,6 @@ module Outboxer
       validates :status, inclusion: { in: STATUSES }, length: { maximum: 255 }
 
       scope :queued, -> { where(status: Status::QUEUED) }
-      scope :buffered, -> { where(status: Status::BUFFERED) }
       scope :publishing, -> { where(status: Status::PUBLISHING) }
       scope :published, -> { where(status: Status::PUBLISHED) }
       scope :failed, -> { where(status: Status::FAILED) }

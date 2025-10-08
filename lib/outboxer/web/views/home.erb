@@ -118,7 +118,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <% ['queued', 'buffered', 'publishing', 'published', 'failed'].each do |status| %>
+                        <% ['queued', 'publishing', 'published', 'failed'].each do |status| %>
                             <tr>
                                 <td class="text-capitalize">
                                     <a class="custom-link" href="<%= outboxer_path("/messages?status=#{status}") %>">

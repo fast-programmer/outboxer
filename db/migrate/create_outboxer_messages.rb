@@ -9,7 +9,6 @@ class CreateOutboxerMessages < ActiveRecord::Migration[6.1]
       t.datetime :updated_at, precision: 6, null: false
 
       t.datetime :queued_at, precision: 6, null: false
-      t.datetime :buffered_at, precision: 6
       t.datetime :publishing_at, precision: 6
       t.datetime :published_at, precision: 6
       t.datetime :failed_at, precision: 6
