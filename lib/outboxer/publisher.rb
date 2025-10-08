@@ -12,7 +12,7 @@ module Outboxer
     # Parses command line arguments to configure the publisher.
     # @param args [Array<String>] The arguments passed via the command line.
     # @return [Hash] The parsed options including configuration path, environment,
-    # buffer size, batch_size, and intervals.
+    # batch_size, and intervals.
     def self.parse_cli_options(args)
       options = {}
 
@@ -505,7 +505,7 @@ module Outboxer
 
       publisher_threads = Array.new(concurrency) do |index|
         create_publisher_thread(
-          id: publisher[:id], name: name, index: index,
+          id: publisher[:id], index: index,
           poll_interval: poll_interval, tick_interval: tick_interval,
           logger: logger, process: process, kernel: kernel, &block)
       end
@@ -535,7 +535,6 @@ module Outboxer
     end
 
     # @param id [Integer] Publisher id.
-    # @param name [String] Publisher name.
     # @param index [Integer] Zero-based thread index (used for thread name).
     # @param poll_interval [Numeric] Seconds to wait when no messages found.
     # @param tick_interval [Numeric] Seconds between signal checks during sleep.
@@ -546,73 +545,31 @@ module Outboxer
     #   e.g., `{ id: Integer, name: String }`.
     # @yieldparam messages [Array<Hash>] Batch of messages to publish.
     # @return [Thread] The created publishing thread.
-    def create_publisher_thread(id:, name:, index:,
+    def create_publisher_thread(id:, index:,
                                 poll_interval:, tick_interval:,
                                 logger:, process:, kernel:, &block)
       Thread.new do
         begin
           Thread.current.name = "publisher-#{index + 1}"
+          # Thread.current.report_on_exception = true
 
           while !terminating?
-            messages = []
-
             begin
-              messages = buffer_messages(id: id, name: name, limit: 1)
+              published_message = Message.publish(logger: logger) do |message|
+                block.call({ id: id }, message)
+              end
             rescue StandardError => error
               logger.error(
                 "#{error.class}: #{error.message}\n" \
                 "#{error.backtrace.join("\n")}")
-            end
-
-            if messages.any?
-              begin
-                block.call({ id: id, name: name }, messages[0])
-              rescue StandardError => error
-                logger.error(
-                  "#{error.class}: #{error.message}\n" \
-                  "#{error.backtrace.join("\n")}")
-
-                Publisher.update_messages(
-                  id: id,
-                  failed_messages: [
-                    {
-                      id: messages[0][:id],
-                      exception: {
-                        class_name: error.class.name,
-                        message_text: error.message,
-                        backtrace: error.backtrace
-                      }
-                    }
-                  ])
-              rescue ::Exception => error
-                logger.fatal(
-                  "#{error.class}: #{error.message}\n" \
-                  "#{error.backtrace.join("\n")}")
-
-                Publisher.update_messages(
-                  id: id,
-                  failed_messages: [
-                    {
-                      id: messages[0][:id],
-                      exception: {
-                        class_name: error.class.name,
-                        message_text: error.message,
-                        backtrace: error.backtrace
-                      }
-                    }
-                  ])
-
-                terminate(id: id)
-              else
-                Outboxer::Publisher.update_messages(
-                  id: id, published_message_ids: [messages[0][:id]])
-              end
             else
-              Publisher.sleep(
-                poll_interval,
-                tick_interval: tick_interval,
-                process: process,
-                kernel: kernel)
+              if published_message.nil?
+                Publisher.sleep(
+                  poll_interval,
+                  tick_interval: tick_interval,
+                  process: process,
+                  kernel: kernel)
+              end
             end
           end
         rescue ::Exception => error
@@ -671,173 +628,6 @@ module Outboxer
           end
         end
       end
-    end
-
-    # Marks queued messages as buffered.
-    #
-    # @param id [Integer] the ID of the publisher.
-    # @param name [String] the name of the publisher.
-    # @param limit [Integer] the number of messages to buffer.
-    # @param time [Time] current time context used to update timestamps.
-    # @return [Array<Hash>] buffered messages.
-    def buffer_messages(id:, name:, limit: 1, time: ::Time)
-      current_utc_time = time.now.utc
-      messages = []
-
-      ActiveRecord::Base.connection_pool.with_connection do
-        ActiveRecord::Base.transaction do
-          messages = Models::Message
-            .where(status: Message::Status::QUEUED)
-            .order(updated_at: :asc)
-            .limit(limit)
-            .lock("FOR UPDATE SKIP LOCKED")
-            .pluck(:id, :messageable_type, :messageable_id)
-
-          message_ids = messages.map(&:first)
-
-          updated_rows = Models::Message
-            .where(id: message_ids, status: Message::Status::QUEUED)
-            .update_all(
-              status: Message::Status::PUBLISHING,
-              updated_at: current_utc_time,
-              buffered_at: current_utc_time,
-              publisher_id: id,
-              publisher_name: name)
-
-          if updated_rows != message_ids.size
-            raise ArgumentError, "Some messages not buffered"
-          end
-
-          partition_counts = messages
-            .map { |message_id, _, _| message_id % Message::PARTITION_COUNT }
-            .tally
-
-          seed_payload = partition_counts.keys.map do |partition|
-            { status: Status::PUBLISHING, partition: partition, value: 0,
-              created_at: current_utc_time, updated_at: current_utc_time }
-          end
-
-          Models::MessageCounts.insert_all(
-            seed_payload,
-            unique_by: :idx_outboxer_counts_status_partition,
-            record_timestamps: false
-          ) unless seed_payload.empty?
-
-          partition_counts.each do |partition, n|
-            Models::MessageCounts.where(status: Status::PUBLISHING, partition: partition)
-              .update_all(["value = value + ?, updated_at = NOW()", n])
-          end
-        end
-      end
-
-      messages.map do |message_id, messageable_type, messageable_id|
-        {
-          id: message_id,
-          messageable_type: messageable_type,
-          messageable_id: messageable_id
-        }
-      end
-    end
-
-    # Updates messages as published or failed.
-    #
-    # @param id [Integer]
-    # @param published_message_ids [Array<Integer>]
-    # @param failed_messages [Array<Hash>] Array of failed message hashes:
-    #   [
-    #     {
-    #       id: Integer,
-    #       exception: {
-    #         class_name: String,
-    #         message_text: String,
-    #         backtrace: Array<String>
-    #       }
-    #     }
-    #   ]
-    # @param time [Time]
-    # @return [nil]
-    def update_messages(id:, published_message_ids: [], failed_messages: [], time: ::Time)
-      now = time.now.utc
-
-      ActiveRecord::Base.connection_pool.with_connection do
-        ActiveRecord::Base.transaction do
-          published_partition_counts = {}
-          failed_partition_counts     = {}
-
-          if published_message_ids.any?
-            messages = Models::Message
-              .where(id: published_message_ids, status: Status::PUBLISHING)
-              .lock("FOR UPDATE")
-              .pluck(:id)
-
-            raise ArgumentError, "Some messages publishing not locked for update" if messages.size != published_message_ids.size
-
-            updated_rows = Models::Message
-              .where(status: Status::PUBLISHING, id: published_message_ids)
-              .update_all(
-                status: Message::Status::PUBLISHED,
-                updated_at: now,
-                published_at: now,
-                publisher_id: id
-              )
-
-            raise ArgumentError, "Some messages publishing not updated to published" if updated_rows != published_message_ids.size
-
-            published_partition_counts = messages.map { |mid| mid % Message::PARTITION_COUNT }.tally
-          end
-
-          failed_messages.each do |failed_message|
-            message = Models::Message
-              .lock("FOR UPDATE")
-              .find_by!(id: failed_message[:id], status: Status::PUBLISHING)
-
-            message.update!(status: Message::Status::FAILED, updated_at: now)
-
-            exception = message.exceptions.create!(
-              class_name:   failed_message.dig(:exception, :class_name),
-              message_text: failed_message.dig(:exception, :message_text),
-              created_at:   now
-            )
-
-            (failed_message.dig(:exception, :backtrace) || []).each_with_index do |frame, idx|
-              exception.frames.create!(index: idx, text: frame)
-            end
-
-            part = message.id % Message::PARTITION_COUNT
-            failed_partition_counts[part] = failed_partition_counts.fetch(part, 0) + 1
-          end
-
-          seed_payload = []
-          seed_payload.concat(published_partition_counts.keys.map { |p|
-            { status: Message::Status::PUBLISHED,  partition: p, value: 0, created_at: now, updated_at: now }
-          })
-          seed_payload.concat(failed_partition_counts.keys.map { |p|
-            { status: Message::Status::FAILED,     partition: p, value: 0, created_at: now, updated_at: now }
-          })
-
-          Models::MessageCounts.insert_all(
-            seed_payload,
-            unique_by: :idx_outboxer_counts_status_partition,
-            record_timestamps: false
-          ) unless seed_payload.empty?
-
-          published_partition_counts.each do |partition, n|
-            Models::MessageCounts.where(status: Status::PUBLISHING, partition: partition)
-                                .update_all(["value = value - ?, updated_at = NOW()", n])
-            Models::MessageCounts.where(status: Message::Status::PUBLISHED, partition: partition)
-                                .update_all(["value = value + ?, updated_at = NOW()", n])
-          end
-
-          failed_partition_counts.each do |partition, n|
-            Models::MessageCounts.where(status: Status::PUBLISHING, partition: partition)
-                                .update_all(["value = value - ?, updated_at = NOW()", n])
-            Models::MessageCounts.where(status: Message::Status::FAILED, partition: partition)
-                                .update_all(["value = value + ?, updated_at = NOW()", n])
-          end
-        end
-      end
-
-      nil
     end
   end
 end

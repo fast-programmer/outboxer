@@ -9,7 +9,8 @@ require_relative "outboxer/models/setting"
 require_relative "outboxer/models/frame"
 require_relative "outboxer/models/exception"
 require_relative "outboxer/models/message"
-require_relative "outboxer/models/message_counts"
+require_relative "outboxer/models/message_count"
+require_relative "outboxer/models/message_total"
 
 require_relative "outboxer/models/publisher"
 require_relative "outboxer/models/signal"
@@ -17,7 +18,6 @@ require_relative "outboxer/models/signal"
 require_relative "outboxer/database"
 require_relative "outboxer/setting"
 require_relative "outboxer/message"
-require_relative "outboxer/message_counts"
 require_relative "outboxer/publisher"
 
 module Outboxer

@@ -1,0 +1,17 @@
+class CreateOutboxerMessageTotals < ActiveRecord::Migration[7.1]
+  def up
+    create_table :outboxer_message_totals do |t|
+      t.text    :status,    null: false
+      t.integer :partition, null: false
+      t.bigint  :value,     null: false, default: 0
+      t.timestamps
+    end
+
+    add_index :outboxer_message_totals, [:status, :partition],
+      unique: true, name: :idx_outboxer_totals_status_partition
+  end
+
+  def down
+    drop_table :outboxer_message_totals if table_exists?(:outboxer_message_totals)
+  end
+end

@@ -9,7 +9,6 @@ module Outboxer
             name: "server-09:67000",
             status: Publisher::Status::PUBLISHING,
             settings: {
-              "buffer_size" => 1000,
               "concurrency" => 2,
               "tick_interval" => 0.1,
               "poll_interval" => 5.0,
@@ -46,7 +45,6 @@ module Outboxer
           expect(publishers[0][:name]).to eq(publisher.name)
           expect(publishers[0][:status]).to eq("publishing")
           expect(publishers[0][:settings]).to eq({
-            "buffer_size" => 1000,
             "concurrency" => 2,
             "tick_interval" => 0.1,
             "poll_interval" => 5.0,

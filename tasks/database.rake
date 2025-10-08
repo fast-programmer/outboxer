@@ -37,6 +37,9 @@ namespace :outboxer do
       require_relative "../db/migrate/create_outboxer_message_counts"
       CreateOutboxerMessageCounts.new.up
 
+      require_relative "../db/migrate/create_outboxer_message_totals"
+      CreateOutboxerMessageTotals.new.up
+
       require_relative "../db/migrate/create_outboxer_exceptions"
       CreateOutboxerExceptions.new.up
 

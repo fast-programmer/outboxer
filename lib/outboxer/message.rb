@@ -1,5 +1,5 @@
 module Outboxer
-  # Message lifecycle management including queuing, buffering, and publishing of messages.
+  # Message lifecycle management including queuing and publishing of messages.
   module Message
     module_function
 
@@ -7,6 +7,7 @@ module Outboxer
     Status = Models::Message::Status
 
     PARTITION_COUNT = Integer(ENV.fetch("OUTBOXER_MESSAGE_PARTITION_COUNT", 64))
+    class Error < StandardError; end
 
     # Queues a new message.
     # @param messageable [Object, nil] the object associated with the message.
@@ -21,19 +22,27 @@ module Outboxer
           messageable_id: messageable.id,
           messageable_type: messageable.class.name,
           queued_at: now,
-          updated_at: now
-        )
+          updated_at: now)
 
         partition = message.id % PARTITION_COUNT
 
-        Models::MessageCounts.insert_all(
+        Models::MessageCount.insert_all(
           [{ status: Status::QUEUED, partition: partition, value: 0,
              created_at: now, updated_at: now }],
           unique_by: :idx_outboxer_counts_status_partition,
-          record_timestamps: false
-        )
+          record_timestamps: false)
 
-        Models::MessageCounts
+        Models::MessageCount
+          .where(status: Status::QUEUED, partition: partition)
+          .update_all(["value = value + ?, updated_at = NOW()", 1])
+
+        Models::MessageTotal.insert_all(
+          [{ status: Status::QUEUED, partition: partition, value: 0,
+             created_at: now, updated_at: now }],
+          unique_by: :idx_outboxer_totals_status_partition,
+          record_timestamps: false)
+
+        Models::MessageTotal
           .where(status: Status::QUEUED, partition: partition)
           .update_all(["value = value + ?, updated_at = NOW()", 1])
 
@@ -47,6 +56,275 @@ module Outboxer
       end
     end
 
+    # Publishes the next queued message by yielding it to the caller’s block.
+    #
+    # Transitions the selected message from **queued** → **publishing**,
+    # yields it for processing, then marks it **published** on success or **failed** on error.
+    #
+    # - Logs informational, error, or fatal output if a logger is provided.
+    # - Rescues `StandardError` (marks failed, logs as error) and continues.
+    # - Rescues `Exception` (marks failed, logs as fatal) and re-raises.
+    # - Returns the message hash with its identifiers, or `nil` if no queued message exists.
+    #
+    # @param logger [#info, #error, #fatal, nil] optional logger for lifecycle logging
+    # @param time [Time, #now] a time source; must respond to `now`
+    # @yield [message] yields the message hash for publishing
+    # @yieldparam message [Hash] the message data with:
+    #   - `:id` [Integer]
+    #   - `:messageable_type` [String]
+    #   - `:messageable_id` [Integer, String]
+    # @yieldreturn [Object] the result of the block, ignored by this method
+    # @return [Hash, nil] the yielded message hash or `nil` if no queued message was found
+    # @raise [Exception] re-raises any non-StandardError exceptions after marking failed
+    # @example
+    #   Outboxer::Message.publish(logger: logger) do |message|
+    #     TODO: # publish message to broker
+    #   end
+    def publish(logger: nil, time: ::Time)
+      publishing_started_at = time.now.utc
+      message = Message.publishing(time: time)
+
+      if message.nil?
+        nil
+      else
+        logger&.info(
+          "Outboxer message publishing id=#{message[:id]} " \
+            "messageable_type=#{message[:messageable_type]} " \
+            "messageable_id=#{message[:messageable_id]}")
+
+        begin
+          yield message
+        rescue StandardError => error
+          publishing_failed(id: message[:id], error: error, time: time)
+
+          logger&.error(
+            "Outboxer message publishing failed id=#{message[:id]} " \
+              "duration_ms=#{((time.now.utc - publishing_started_at) * 1000).to_i}\n" \
+              "#{error.class}: #{error.message}\n" \
+              "#{error.backtrace.join("\n")}")
+        rescue Exception => error
+          publishing_failed(id: message[:id], error: error, time: time)
+
+          logger&.fatal(
+            "Outboxer message publishing failed id=#{message[:id]} " \
+              "duration_ms=#{((time.now.utc - publishing_started_at) * 1000).to_i}\n" \
+              "#{error.class}: #{error.message}\n" \
+              "#{error.backtrace.join("\n")}")
+
+          raise
+        else
+          published(id: message[:id], time: time)
+
+          logger&.info(
+            "Outboxer message published id=#{message[:id]} " \
+              "duration_ms=#{((time.now.utc - publishing_started_at) * 1000).to_i}")
+        end
+
+        message
+      end
+    end
+
+    # Selects and locks the next available message in **queued** status
+    # and transitions it to **publishing**.
+    #
+    # Uses `FOR UPDATE SKIP LOCKED` to safely publish one message from the queue
+    # across concurrent processes. Updates `publishing_at` and `updated_at`
+    # to the current UTC time before returning.
+    #
+    # @param time [Time, #now] a time source; must respond to `now`
+    # @return [Hash, nil] a hash with:
+    #   - `:id` [Integer]
+    #   - `:messageable_type` [String]
+    #   - `:messageable_id` [Integer, String]
+    #   or `nil` if no queued message was available
+    # @note Runs inside a database transaction and uses the ActiveRecord connection pool.
+    # @example
+    #   message = Outboxer::Message.publishing(time: Time)
+    def publishing(time: ::Time)
+      current_utc_time = time.now.utc
+
+      ActiveRecord::Base.connection_pool.with_connection do
+        ActiveRecord::Base.transaction do
+          message = Models::Message
+            .select(:id, :messageable_type, :messageable_id)
+            .where(status: Status::QUEUED)
+            .order(:id)
+            .limit(1)
+            .lock("FOR UPDATE SKIP LOCKED")
+            .first
+
+          if message.nil?
+            nil
+          else
+            message.update!(
+              status: Status::PUBLISHING,
+              updated_at: current_utc_time,
+              publishing_at: current_utc_time)
+
+            partition = message.id % PARTITION_COUNT
+
+            Models::MessageCount
+              .where(status: Status::QUEUED, partition: partition)
+              .update_all(["value = value - ?, updated_at = ?", 1, current_utc_time])
+
+            Models::MessageCount.insert_all(
+              [{ status: Status::PUBLISHING, partition: partition, value: 0,
+                created_at: current_utc_time, updated_at: current_utc_time }],
+              unique_by: :idx_outboxer_counts_status_partition,
+              record_timestamps: false)
+
+            Models::MessageCount
+              .where(status: Status::PUBLISHING, partition: partition)
+              .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
+
+            Models::MessageTotal.insert_all(
+              [{ status: Status::PUBLISHING, partition: partition, value: 0,
+                created_at: current_utc_time, updated_at: current_utc_time }],
+              unique_by: :idx_outboxer_totals_status_partition,
+              record_timestamps: false)
+
+            Models::MessageTotal
+              .where(status: Status::PUBLISHING, partition: partition)
+              .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
+
+            {
+              id: message[:id],
+              messageable_type: message[:messageable_type],
+              messageable_id: message[:messageable_id]
+            }
+          end
+        end
+      end
+    end
+
+    # Marks a message in **publishing** status as **published**.
+    #
+    # Ensures that the message is currently in the **publishing** state
+    # before transitioning. Updates `published_at` and `updated_at`
+    # to the current UTC time.
+    #
+    # @param id [Integer] the ID of the message to mark as published
+    # @param time [Time, #now] a time source; must respond to `now`
+    # @return [nil]
+    # @raise [Outboxer::Message::Error] if the message is not in publishing state
+    # @note Executes within a transaction using a `SELECT ... FOR UPDATE` lock.
+    # @example
+    #   Outboxer::Message.published(id: message[:id], time: Time)
+    def published(id:, time: ::Time)
+      current_utc_time = time.now.utc
+
+      ActiveRecord::Base.connection_pool.with_connection do
+        ActiveRecord::Base.transaction do
+          message = Models::Message.lock.find_by!(id: id)
+
+          if message.status != Models::Message::Status::PUBLISHING
+            raise Error, "Status must be publishing"
+          end
+
+          message.update!(
+            status: Status::PUBLISHED,
+            updated_at: current_utc_time, published_at: current_utc_time)
+
+          partition = message.id % PARTITION_COUNT
+
+          Models::MessageCount
+            .where(status: Status::PUBLISHING, partition: partition)
+            .update_all(["value = value - ?, updated_at = ?", 1, current_utc_time])
+
+          Models::MessageCount.insert_all(
+            [{ status: Status::PUBLISHED, partition: partition, value: 0,
+              created_at: current_utc_time, updated_at: current_utc_time }],
+            unique_by: :idx_outboxer_counts_status_partition,
+            record_timestamps: false)
+
+          Models::MessageCount
+            .where(status: Status::PUBLISHED, partition: partition)
+            .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
+
+          Models::MessageTotal.insert_all(
+            [{ status: Status::PUBLISHED, partition: partition, value: 0,
+              created_at: current_utc_time, updated_at: current_utc_time }],
+            unique_by: :idx_outboxer_totals_status_partition,
+            record_timestamps: false)
+
+          Models::MessageTotal
+            .where(status: Status::PUBLISHED, partition: partition)
+            .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
+
+          nil
+        end
+      end
+    end
+
+    # Marks a message in **publishing** status as **failed** and records the exception details.
+    #
+    # Sets `failed_at` and `updated_at` to the current UTC time,
+    # persists the error’s class, message, and backtrace (if present).
+    # Ensures the message is currently in **publishing** state before updating.
+    #
+    # @param id [Integer] the ID of the message to mark as failed
+    # @param error [Exception, nil] optional error to persist (class name, message text, backtrace)
+    # @param time [Time, #now] a time source; must respond to `now`
+    # @return [nil]
+    # @raise [Outboxer::Message::Error] if the message is not in publishing state
+    # @note Runs inside a transaction and uses `SELECT ... FOR UPDATE` locking.
+    # @example
+    #   Outboxer::Message.publishing_failed(id: message[:id], time: Time)
+    def publishing_failed(id:, error: nil, time: ::Time)
+      current_utc_time = time.now.utc
+
+      ActiveRecord::Base.connection_pool.with_connection do
+        ActiveRecord::Base.transaction do
+          message = Models::Message.lock.find_by!(id: id)
+
+          if message.status != Models::Message::Status::PUBLISHING
+            raise Error, "Status must be publishing"
+          end
+
+          message.update!(
+            status: Status::FAILED,
+            updated_at: current_utc_time, failed_at: current_utc_time)
+
+          if error
+            exception = message.exceptions.create!(
+              class_name: error.class.name, message_text: error.message)
+
+            Array(error.backtrace).each_with_index do |backtrace_line, index|
+              exception.frames.create!(index: index, text: backtrace_line)
+            end
+          end
+
+          partition = message.id % PARTITION_COUNT
+
+          Models::MessageCount
+            .where(status: Status::PUBLISHING, partition: partition)
+            .update_all(["value = value - ?, updated_at = ?", 1, current_utc_time])
+
+          Models::MessageCount.insert_all(
+            [{ status: Status::FAILED, partition: partition, value: 0,
+              created_at: current_utc_time, updated_at: current_utc_time }],
+            unique_by: :idx_outboxer_counts_status_partition,
+            record_timestamps: false)
+
+          Models::MessageCount
+            .where(status: Status::FAILED, partition: partition)
+            .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
+
+          Models::MessageTotal.insert_all(
+            [{ status: Status::FAILED, partition: partition, value: 0,
+              created_at: current_utc_time, updated_at: current_utc_time }],
+            unique_by: :idx_outboxer_totals_status_partition,
+            record_timestamps: false)
+
+          Models::MessageTotal
+            .where(status: Status::FAILED, partition: partition)
+            .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
+
+          nil
+        end
+      end
+    end
+
     # Serializes message attributes into a hash.
     #
     # @param id [Integer] message ID.
@@ -55,7 +333,6 @@ module Outboxer
     # @param messageable_id [String] ID of the messageable entity.
     # @param updated_at [Time] the timestamp of last update.
     # @param queued_at [Time, nil] optional timestamp when message was queued.
-    # @param buffered_at [Time, nil] optional timestamp when message was buffered.
     # @param publishing_at [Time, nil] optional timestamp when message was marked publishing.
     # @param published_at [Time, nil] optional timestamp when message was marked published.
     # @param failed_at [Time, nil] optional timestamp when message was marked failed.
@@ -63,8 +340,7 @@ module Outboxer
     # @param publisher_name [String, nil] optional publisher name.
     # @return [Hash] serialized message details.
     def serialize(id:, status:, messageable_type:, messageable_id:, updated_at:,
-                  queued_at: nil, buffered_at: nil,
-                  publishing_at: nil, published_at: nil, failed_at: nil,
+                  queued_at: nil, publishing_at: nil, published_at: nil, failed_at: nil,
                   publisher_id: nil, publisher_name: nil)
       {
         id: id,
@@ -73,7 +349,6 @@ module Outboxer
         messageable_id: messageable_id,
         updated_at: updated_at,
         queued_at: queued_at,
-        buffered_at: buffered_at,
         publishing_at: publishing_at,
         published_at: published_at,
         failed_at: failed_at,
@@ -103,7 +378,6 @@ module Outboxer
             messageable_id: message.messageable_id,
             updated_at: message.updated_at.utc,
             queued_at: message.queued_at.utc,
-            buffered_at: message&.buffered_at&.utc, # TODO: is &.buffered_at necessary?
             publishing_at: message&.publishing_at&.utc,
             published_at: message&.published_at&.utc,
             failed_at: message&.failed_at&.utc,
@@ -152,7 +426,7 @@ module Outboxer
       end
     end
 
-    REQUEUE_STATUSES = [:buffered, :publishing, :failed]
+    REQUEUE_STATUSES = [:publishing, :failed]
 
     # Determines if a message in a certain status can be requeued.
     # @param status [Symbol] the status to check.
@@ -179,7 +453,6 @@ module Outboxer
             status: Message::Status::QUEUED,
             updated_at: current_utc_time,
             queued_at: current_utc_time,
-            buffered_at: nil,
             publishing_at: nil,
             published_at: nil,
             failed_at: nil,
@@ -191,7 +464,7 @@ module Outboxer
       end
     end
 
-    LIST_STATUS_OPTIONS = [nil, :queued, :buffered, :publishing, :published, :failed]
+    LIST_STATUS_OPTIONS = [nil, :queued, :publishing, :published, :failed]
     LIST_STATUS_DEFAULT = nil
 
     LIST_SORT_OPTIONS = [:id, :status, :messageable, :queued_at, :updated_at, :publisher_name]
@@ -274,7 +547,6 @@ module Outboxer
             messageable_id: message.messageable_id,
             updated_at: message.updated_at.utc.in_time_zone(time_zone),
             queued_at: message.queued_at.utc.in_time_zone(time_zone),
-            buffered_at: message&.buffered_at&.utc&.in_time_zone(time_zone),
             publishing_at: message&.publishing_at&.utc&.in_time_zone(time_zone),
             published_at: message&.published_at&.utc&.in_time_zone(time_zone),
             failed_at: message&.failed_at&.utc&.in_time_zone(time_zone),
@@ -335,7 +607,6 @@ module Outboxer
                 status: Message::Status::QUEUED,
                 updated_at: current_utc_time,
                 queued_at: current_utc_time,
-                buffered_at: nil,
                 publishing_at: nil,
                 published_at: nil,
                 failed_at: nil,
@@ -375,7 +646,6 @@ module Outboxer
               status: Message::Status::QUEUED,
               updated_at: time.now.utc,
               queued_at: current_utc_time, # TODO: confirm this
-              buffered_at: nil,
               publishing_at: nil,
               published_at: nil,
               failed_at: nil,
@@ -541,6 +811,18 @@ module Outboxer
         metrics[:failed][:count][:historic] + metrics[:failed][:count][:current]
 
       metrics
+    end
+
+    def count_by_status
+      Message::STATUSES
+        .index_with { 0 }
+        .merge(Models::MessageCount.group(:status).sum(:value).transform_keys(&:to_s))
+    end
+
+    def total_by_status
+      Message::STATUSES
+        .index_with { 0 }
+        .merge(Models::MessageTotal.group(:status).sum(:value).transform_keys(&:to_s))
     end
   end
 end

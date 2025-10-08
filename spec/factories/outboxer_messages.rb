@@ -5,7 +5,6 @@ FactoryBot.define do
 
     status { Outboxer::Message::Status::PUBLISHED }
     queued_at { 10.seconds.ago }
-    buffered_at { 9.seconds.ago }
     publishing_at { 8.seconds.ago }
     updated_at { 7.seconds.ago }
 
@@ -19,20 +18,10 @@ FactoryBot.define do
       updated_at { 10.seconds.ago }
     end
 
-    trait :buffered do
-      status { Outboxer::Message::Status::BUFFERED }
-
-      queued_at { 10.seconds.ago }
-      buffered_at { 9.second.ago }
-      publishing_at { nil }
-      updated_at { 9.second.ago }
-    end
-
     trait :publishing do
       status { Outboxer::Message::Status::PUBLISHING }
 
       queued_at { 10.seconds.ago }
-      buffered_at { 9.seconds.ago }
       publishing_at { 8.seconds.ago }
       updated_at { 8.seconds.ago }
     end
@@ -41,7 +30,6 @@ FactoryBot.define do
       status { Outboxer::Message::Status::PUBLISHED }
 
       queued_at { 10.seconds.ago }
-      buffered_at { 9.seconds.ago }
       publishing_at { 8.seconds.ago }
       updated_at { 7.seconds.ago }
     end
@@ -50,7 +38,6 @@ FactoryBot.define do
       status { Outboxer::Message::Status::FAILED }
 
       queued_at { 10.seconds.ago }
-      buffered_at { 9.seconds.ago }
       publishing_at { 8.seconds.ago }
       updated_at { 7.seconds.ago }
     end
