@@ -4,7 +4,6 @@ FactoryBot.define do
     status { Outboxer::Publisher::Status::PUBLISHING }
     settings do
       {
-        "buffer_size" => 1000,
         "concurrency" => 3,
         "tick_interval" => 0.1,
         "poll_interval" => 5.0,

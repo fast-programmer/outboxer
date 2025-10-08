@@ -31,18 +31,6 @@ module Outboxer
           expect(queued_message.status).to eq(Message::Status::QUEUED)
           expect(queued_message.updated_at).to be > updated_at
         end
-
-        it "does not delete queued message" do
-          begin
-            Publisher.update_messages(
-              id: 1, published_message_ids: [queued_message.id])
-          rescue ArgumentError
-            # ignore
-          end
-
-          expect(Models::Message.count).to eq(1)
-          expect(Models::Message.first).to eq(queued_message)
-        end
       end
     end
   end

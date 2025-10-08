@@ -19,10 +19,6 @@ module Outboxer
           end
         end
 
-        it "parses the batch size flag" do
-          expect(Publisher.parse_cli_options(["--batch-size", "100"])).to eq({ batch_size: 100 })
-        end
-
         it "parses concurrency flag" do
           expect(Publisher.parse_cli_options(["--concurrency", "8"]))
             .to eq({ concurrency: 8 })

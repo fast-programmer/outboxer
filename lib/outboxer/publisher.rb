@@ -12,7 +12,7 @@ module Outboxer
     # Parses command line arguments to configure the publisher.
     # @param args [Array<String>] The arguments passed via the command line.
     # @return [Hash] The parsed options including configuration path, environment,
-    # buffer size, batch_size, and intervals.
+    # batch_size, and intervals.
     def self.parse_cli_options(args)
       options = {}
 
@@ -21,10 +21,6 @@ module Outboxer
 
         opts.on("--environment ENV", "Application environment") do |v|
           options[:environment] = v
-        end
-
-        opts.on("--batch-size SIZE", Integer, "Batch size") do |v|
-          options[:batch_size] = v
         end
 
         opts.on("--concurrency N", Integer, "Number of threads to publish messages") do |v|
@@ -134,14 +130,13 @@ module Outboxer
 
     # Creates a new publisher with specified settings and metrics.
     # @param name [String] The name of the publisher.
-    # @param batch_size [Integer] The batch size.
     # @param concurrency [Integer] The number of publishing threads.
     # @param tick_interval [Float] The tick interval in seconds.
     # @param poll_interval [Float] The poll interval in seconds.
     # @param heartbeat_interval [Float] The heartbeat interval in seconds.
     # @param time [Time] The current time context for timestamping.
     # @return [Hash] Details of the created publisher.
-    def create(name:, batch_size:, concurrency:,
+    def create(name:, concurrency:,
                tick_interval:, poll_interval:, heartbeat_interval:,
                sweep_interval:, sweep_retention:, sweep_batch_size:,
                time: ::Time)
@@ -153,7 +148,6 @@ module Outboxer
             name: name,
             status: Status::PUBLISHING,
             settings: {
-              "batch_size" => batch_size,
               "concurrency" => concurrency,
               "tick_interval" => tick_interval,
               "poll_interval" => poll_interval,
@@ -429,8 +423,7 @@ module Outboxer
       end
     end
 
-    PUBLISH_MESSAGES_DEFAULTS = {
-      batch_size: 1000,
+    PUBLISH_MESSAGE_DEFAULTS = {
       concurrency: 1,
       tick_interval: 0.1,
       poll_interval: 5.0,
@@ -443,7 +436,6 @@ module Outboxer
 
     # Publish queued messages concurrently
     # @param name [String] The name of the publisher.
-    # @param batch_size [Integer] The batch size.
     # @param concurrency [Integer] The number of publisher threads.
     # @param tick_interval [Float] The tick interval in seconds.
     # @param poll_interval [Float] The poll interval in seconds.
@@ -458,17 +450,16 @@ module Outboxer
     # @yield [publisher, messages] Yields publisher and messages to be published.
     # @yieldparam publisher [Hash] A hash with keys `:id` and `:name` representing the publisher.
     # @yieldparam messages [Array<Hash>] An array of message hashes retrieved from the buffer.
-    def publish_messages(
+    def publish_message(
       name: "#{::Socket.gethostname}:#{::Process.pid}",
-      batch_size: PUBLISH_MESSAGES_DEFAULTS[:batch_size],
-      concurrency: PUBLISH_MESSAGES_DEFAULTS[:concurrency],
-      tick_interval: PUBLISH_MESSAGES_DEFAULTS[:tick_interval],
-      poll_interval: PUBLISH_MESSAGES_DEFAULTS[:poll_interval],
-      heartbeat_interval: PUBLISH_MESSAGES_DEFAULTS[:heartbeat_interval],
-      sweep_interval: PUBLISH_MESSAGES_DEFAULTS[:sweep_interval],
-      sweep_retention: PUBLISH_MESSAGES_DEFAULTS[:sweep_retention],
-      sweep_batch_size: PUBLISH_MESSAGES_DEFAULTS[:sweep_batch_size],
-      logger: Logger.new($stdout, level: PUBLISH_MESSAGES_DEFAULTS[:log_level]),
+      concurrency: PUBLISH_MESSAGE_DEFAULTS[:concurrency],
+      tick_interval: PUBLISH_MESSAGE_DEFAULTS[:tick_interval],
+      poll_interval: PUBLISH_MESSAGE_DEFAULTS[:poll_interval],
+      heartbeat_interval: PUBLISH_MESSAGE_DEFAULTS[:heartbeat_interval],
+      sweep_interval: PUBLISH_MESSAGE_DEFAULTS[:sweep_interval],
+      sweep_retention: PUBLISH_MESSAGE_DEFAULTS[:sweep_retention],
+      sweep_batch_size: PUBLISH_MESSAGE_DEFAULTS[:sweep_batch_size],
+      logger: Logger.new($stdout, level: PUBLISH_MESSAGE_DEFAULTS[:log_level]),
       time: ::Time, process: ::Process, kernel: ::Kernel,
       &block
     )
@@ -476,7 +467,6 @@ module Outboxer
         "(#{RUBY_RELEASE_DATE} revision #{RUBY_REVISION[0, 10]}) [#{RUBY_PLATFORM}]"
 
       logger.info "Outboxer config " \
-        "batch_size=#{batch_size}, " \
         "concurrency=#{concurrency}, " \
         "tick_interval=#{tick_interval} " \
         "poll_interval=#{poll_interval}, " \
@@ -489,9 +479,10 @@ module Outboxer
       Setting.create_all
 
       publisher = create(
-        name: name, batch_size: batch_size,
+        name: name,
         concurrency: concurrency,
-        tick_interval: tick_interval, poll_interval: poll_interval,
+        tick_interval: tick_interval,
+        poll_interval: poll_interval,
         heartbeat_interval: heartbeat_interval,
         sweep_interval: sweep_interval,
         sweep_retention: sweep_retention,
@@ -514,7 +505,7 @@ module Outboxer
 
       publisher_threads = Array.new(concurrency) do |index|
         create_publisher_thread(
-          id: publisher[:id], name: name, index: index, batch_size: batch_size,
+          id: publisher[:id], index: index,
           poll_interval: poll_interval, tick_interval: tick_interval,
           logger: logger, process: process, kernel: kernel, &block)
       end
@@ -544,8 +535,6 @@ module Outboxer
     end
 
     # @param id [Integer] Publisher id.
-    # @param name [String] Publisher name.
-    # @param batch_size [Integer] Max number of messages per batch.
     # @param index [Integer] Zero-based thread index (used for thread name).
     # @param poll_interval [Numeric] Seconds to wait when no messages found.
     # @param tick_interval [Numeric] Seconds between signal checks during sleep.
@@ -556,30 +545,31 @@ module Outboxer
     #   e.g., `{ id: Integer, name: String }`.
     # @yieldparam messages [Array<Hash>] Batch of messages to publish.
     # @return [Thread] The created publishing thread.
-    def create_publisher_thread(id:, name:, batch_size:, index:,
+    def create_publisher_thread(id:, index:,
                                 poll_interval:, tick_interval:,
                                 logger:, process:, kernel:, &block)
       Thread.new do
         begin
           Thread.current.name = "publisher-#{index + 1}"
+          # Thread.current.report_on_exception = true
 
           while !terminating?
             begin
-              messages = buffer_messages(id: id, name: name, limit: batch_size)
-
-              if messages.any?
-                block.call({ id: id, name: name }, messages)
-              else
+              published_message = Message.publish(logger: logger) do |message|
+                block.call({ id: id }, message)
+              end
+            rescue StandardError => error
+              logger.error(
+                "#{error.class}: #{error.message}\n" \
+                "#{error.backtrace.join("\n")}")
+            else
+              if published_message.nil?
                 Publisher.sleep(
                   poll_interval,
                   tick_interval: tick_interval,
                   process: process,
                   kernel: kernel)
               end
-            rescue StandardError => error
-              logger.error(
-                "#{error.class}: #{error.message}\n" \
-                "#{error.backtrace.join("\n")}")
             end
           end
         rescue ::Exception => error
@@ -638,120 +628,6 @@ module Outboxer
           end
         end
       end
-    end
-
-    # Marks queued messages as buffered.
-    #
-    # @param id [Integer] the ID of the publisher.
-    # @param name [String] the name of the publisher.
-    # @param limit [Integer] the number of messages to buffer.
-    # @param time [Time] current time context used to update timestamps.
-    # @return [Array<Hash>] buffered messages.
-    def buffer_messages(id:, name:, limit: 1, time: ::Time)
-      current_utc_time = time.now.utc
-      messages = []
-
-      ActiveRecord::Base.connection_pool.with_connection do
-        ActiveRecord::Base.transaction do
-          messages = Models::Message
-            .where(status: Message::Status::QUEUED)
-            .order(updated_at: :asc)
-            .limit(limit)
-            .lock("FOR UPDATE SKIP LOCKED")
-            .pluck(:id, :messageable_type, :messageable_id)
-
-          message_ids = messages.map(&:first)
-
-          updated_rows = Models::Message
-            .where(id: message_ids, status: Message::Status::QUEUED)
-            .update_all(
-              status: Message::Status::PUBLISHING,
-              updated_at: current_utc_time,
-              buffered_at: current_utc_time,
-              publisher_id: id,
-              publisher_name: name)
-
-          if updated_rows != message_ids.size
-            raise ArgumentError, "Some messages not buffered"
-          end
-        end
-      end
-
-      messages.map do |message_id, messageable_type, messageable_id|
-        {
-          id: message_id,
-          messageable_type: messageable_type,
-          messageable_id: messageable_id
-        }
-      end
-    end
-
-    # Updates messages as published or failed.
-    #
-    # @param id [Integer]
-    # @param published_message_ids [Array<Integer>]
-    # @param failed_messages [Array<Hash>] Array of failed message hashes:
-    #   [
-    #     {
-    #       id: Integer,
-    #       exception: {
-    #         class_name: String,
-    #         message_text: String,
-    #         backtrace: Array<String>
-    #       }
-    #     }
-    #   ]
-    # @param time [Time]
-    # @return [nil]
-    def update_messages(id:, published_message_ids: [], failed_messages: [],
-                        time: ::Time)
-      current_utc_time = time.now.utc
-
-      ActiveRecord::Base.connection_pool.with_connection do
-        ActiveRecord::Base.transaction do
-          if published_message_ids.any?
-            messages = Models::Message
-              .where(id: published_message_ids, status: Message::Status::PUBLISHING)
-              .lock("FOR UPDATE")
-              .pluck(:id)
-
-            if messages.size != published_message_ids.size
-              raise ArgumentError, "Some messages publishing not locked for update"
-            end
-
-            updated_rows = Models::Message
-              .where(status: Status::PUBLISHING, id: published_message_ids)
-              .update_all(
-                status: Message::Status::PUBLISHED,
-                updated_at: current_utc_time,
-                published_at: current_utc_time,
-                publisher_id: id)
-
-            if updated_rows != published_message_ids.size
-              raise ArgumentError, "Some messages publishing not updated to published"
-            end
-          end
-
-          failed_messages.each do |failed_message|
-            message = Models::Message
-              .lock("FOR UPDATE")
-              .find_by!(id: failed_message[:id], status: Message::Status::PUBLISHING)
-
-            message.update!(status: Message::Status::FAILED, updated_at: current_utc_time)
-
-            exception = message.exceptions.create!(
-              class_name: failed_message[:exception][:class_name],
-              message_text: failed_message[:exception][:message_text],
-              created_at: current_utc_time)
-
-            (failed_message[:exception][:backtrace] || []).each_with_index do |frame, index|
-              exception.frames.create!(index: index, text: frame)
-            end
-          end
-        end
-      end
-
-      nil
     end
   end
 end

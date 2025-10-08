@@ -84,31 +84,12 @@ TRANSACTION                (0.2ms)  COMMIT
 ```ruby
 # bin/outboxer_publisher
 
-Outboxer::Publisher.publish_messages(batch_size: 1_000, concurrency: 10) do |publisher, messages|
-  begin
-    # TODO: publish messages here
-  rescue => error
-    Outboxer::Publisher.update_messages(
-      id: publisher[:id],
-      failed_messages: messages.map do |message|
-        {
-          id: message[:id],
-          exception: {
-            class_name: error.class.name,
-            message_text: error.message,
-            backtrace: error.backtrace.join("\n")
-          }
-        }
-      end)
-  else
-    Outboxer::Publisher.update_messages(
-      id: publisher[:id],
-      published_message_ids: messages.map { |message| message[:id] })
-  end
+Outboxer::Publisher.publish_message do |publisher, message|
+  # TODO: publish message here
 end
 ```
 
-To integrate with Sidekiq, Bunny, Kafka and AWS SQS see the [publisher block examples](https://github.com/fast-programmer/outboxer/wiki/Outboxer-publisher-block-examples).
+To integrate with Active Cable, Sidekiq, Bunny, Kafka, AWS SQS and others, see the [publisher integration guide](https://github.com/fast-programmer/outboxer/wiki/Publisher-Integration-guide).
 
 # Testing
 
