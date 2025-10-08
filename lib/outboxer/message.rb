@@ -1,5 +1,5 @@
 module Outboxer
-  # Message lifecycle management including queuing, buffering, and publishing of messages.
+  # Message lifecycle management including queuing and publishing of messages.
   module Message
     module_function
 
@@ -61,7 +61,7 @@ module Outboxer
         nil
       else
         logger&.info(
-          "Outboxer message publishing id=#{message[:id]}" \
+          "Outboxer message publishing id=#{message[:id]} " \
             "messageable_type=#{message[:messageable_type]} " \
             "messageable_id=#{message[:messageable_id]}")
 
