@@ -13,11 +13,6 @@ module Outboxer
         updated_at: 9.seconds.ago)
     end
 
-    let!(:message_3) do
-      create(:outboxer_message, :buffered, messageable_type: "Event", messageable_id: "3",
-        updated_at: 8.seconds.ago)
-    end
-
     let!(:message_4) do
       create(:outboxer_message, :queued, messageable_type: "Event", messageable_id: "4",
         updated_at: 7.seconds.ago)
@@ -51,16 +46,14 @@ module Outboxer
           expect(
             Message
               .list(sort: :status, order: :asc)[:messages]
-              .map { |message| message[:status] }).to eq([:buffered, :failed, :publishing, :queued,
-                                                          :queued])
+              .map { |message| message[:status] }).to eq([:failed, :publishing, :queued, :queued])
         end
 
         it "sorts messages by status in descending order" do
           expect(
             Message
               .list(sort: :status, order: :desc)[:messages]
-              .map { |message| message[:status] }).to eq([:queued, :queued, :publishing, :failed,
-                                                          :buffered])
+              .map { |message| message[:status] }).to eq([:queued, :queued, :publishing, :failed])
         end
       end
 
@@ -72,7 +65,7 @@ module Outboxer
               .map do |message|
               [message[:messageable_type],
                message[:messageable_id]]
-            end).to eq([["Event", "1"], ["Event", "2"], ["Event", "3"], ["Event", "4"],
+            end).to eq([["Event", "1"], ["Event", "2"], ["Event", "4"],
                         ["Event", "5"]])
         end
 
@@ -83,8 +76,7 @@ module Outboxer
               .map do |message|
               [message[:messageable_type],
                message[:messageable_id]]
-            end).to eq([["Event", "5"], ["Event", "4"], ["Event", "3"], ["Event", "2"],
-                        ["Event", "1"]])
+            end).to eq([["Event", "5"], ["Event", "4"], ["Event", "2"], ["Event", "1"]])
         end
       end
 
@@ -93,14 +85,14 @@ module Outboxer
           expect(
             Message
               .list(sort: :queued_at, order: :asc)[:messages]
-              .map { |message| message[:id] }).to eq([1, 2, 3, 4, 5])
+              .map { |message| message[:id] }).to eq([1, 2, 3, 4])
         end
 
         it "sorts messages by queued_at in descending order" do
           expect(
             Message
               .list(sort: :queued_at, order: :desc)[:messages]
-              .map { |message| message[:id] }).to eq([5, 4, 3, 2, 1])
+              .map { |message| message[:id] }).to eq([4, 3, 2, 1])
         end
       end
 
@@ -109,14 +101,14 @@ module Outboxer
           expect(
             Message
               .list(sort: :updated_at, order: :asc)[:messages]
-              .map { |message| message[:id] }).to eq([1, 2, 3, 4, 5])
+              .map { |message| message[:id] }).to eq([1, 2, 3, 4])
         end
 
         it "sorts messages by updated_at in descending order" do
           expect(
             Message
               .list(sort: :updated_at, order: :desc)[:messages]
-              .map { |message| message[:id] }).to eq([5, 4, 3, 2, 1])
+              .map { |message| message[:id] }).to eq([4, 3, 2, 1])
         end
       end
     end

@@ -228,7 +228,6 @@ module Outboxer
     # @param messageable_id [String] ID of the messageable entity.
     # @param updated_at [Time] the timestamp of last update.
     # @param queued_at [Time, nil] optional timestamp when message was queued.
-    # @param buffered_at [Time, nil] optional timestamp when message was buffered.
     # @param publishing_at [Time, nil] optional timestamp when message was marked publishing.
     # @param published_at [Time, nil] optional timestamp when message was marked published.
     # @param failed_at [Time, nil] optional timestamp when message was marked failed.
@@ -236,8 +235,7 @@ module Outboxer
     # @param publisher_name [String, nil] optional publisher name.
     # @return [Hash] serialized message details.
     def serialize(id:, status:, messageable_type:, messageable_id:, updated_at:,
-                  queued_at: nil, buffered_at: nil,
-                  publishing_at: nil, published_at: nil, failed_at: nil,
+                  queued_at: nil, publishing_at: nil, published_at: nil, failed_at: nil,
                   publisher_id: nil, publisher_name: nil)
       {
         id: id,
@@ -246,7 +244,6 @@ module Outboxer
         messageable_id: messageable_id,
         updated_at: updated_at,
         queued_at: queued_at,
-        buffered_at: buffered_at,
         publishing_at: publishing_at,
         published_at: published_at,
         failed_at: failed_at,
@@ -276,7 +273,6 @@ module Outboxer
             messageable_id: message.messageable_id,
             updated_at: message.updated_at.utc,
             queued_at: message.queued_at.utc,
-            buffered_at: message&.buffered_at&.utc, # TODO: is &.buffered_at necessary?
             publishing_at: message&.publishing_at&.utc,
             published_at: message&.published_at&.utc,
             failed_at: message&.failed_at&.utc,
@@ -325,7 +321,7 @@ module Outboxer
       end
     end
 
-    REQUEUE_STATUSES = [:buffered, :publishing, :failed]
+    REQUEUE_STATUSES = [:publishing, :failed]
 
     # Determines if a message in a certain status can be requeued.
     # @param status [Symbol] the status to check.
@@ -352,7 +348,6 @@ module Outboxer
             status: Message::Status::QUEUED,
             updated_at: current_utc_time,
             queued_at: current_utc_time,
-            buffered_at: nil,
             publishing_at: nil,
             published_at: nil,
             failed_at: nil,
@@ -364,7 +359,7 @@ module Outboxer
       end
     end
 
-    LIST_STATUS_OPTIONS = [nil, :queued, :buffered, :publishing, :published, :failed]
+    LIST_STATUS_OPTIONS = [nil, :queued, :publishing, :published, :failed]
     LIST_STATUS_DEFAULT = nil
 
     LIST_SORT_OPTIONS = [:id, :status, :messageable, :queued_at, :updated_at, :publisher_name]
@@ -447,7 +442,6 @@ module Outboxer
             messageable_id: message.messageable_id,
             updated_at: message.updated_at.utc.in_time_zone(time_zone),
             queued_at: message.queued_at.utc.in_time_zone(time_zone),
-            buffered_at: message&.buffered_at&.utc&.in_time_zone(time_zone),
             publishing_at: message&.publishing_at&.utc&.in_time_zone(time_zone),
             published_at: message&.published_at&.utc&.in_time_zone(time_zone),
             failed_at: message&.failed_at&.utc&.in_time_zone(time_zone),
@@ -508,7 +502,6 @@ module Outboxer
                 status: Message::Status::QUEUED,
                 updated_at: current_utc_time,
                 queued_at: current_utc_time,
-                buffered_at: nil,
                 publishing_at: nil,
                 published_at: nil,
                 failed_at: nil,
@@ -548,7 +541,6 @@ module Outboxer
               status: Message::Status::QUEUED,
               updated_at: time.now.utc,
               queued_at: current_utc_time, # TODO: confirm this
-              buffered_at: nil,
               publishing_at: nil,
               published_at: nil,
               failed_at: nil,
