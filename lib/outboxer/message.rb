@@ -755,60 +755,42 @@ module Outboxer
       end
     end
 
-    # Retrieves and calculates metrics related to message statuses, including counts and throughput.
-    # @param time [Time] current time context used for calculating metrics.
-    # @return [Hash] detailed metrics about messages across various statuses.
+    # Retrieves and calculates metrics related to message statuses, including counts and totals.
+    # Latency and throughput are placeholders (0) until partitioned metrics tables are implemented.
+    # @param time [Time] current time context for consistency.
+    # @return [Hash] detailed metrics across various message statuses.
     def metrics(time: ::Time)
       metrics = { all: { count: { current: 0 } } }
 
+      # Initialize base structure for each status
       Models::Message::STATUSES.each do |status|
-        metrics[status.to_sym] = { count: { current: 0 }, latency: 0, throughput: 0 }
+        metrics[status.to_sym] = {
+          count: { current: 0 },
+          latency: 0,
+          throughput: 0
+        }
       end
 
-      grouped_messages = nil
+      # Fast counts from partitioned counter tables
+      counts_by_status = count_by_status   # => { "queued" => n, "publishing" => n, ... }
+      totals_by_status = total_by_status   # => { "published" => n, "failed" => n, ... }
 
-      current_utc_time = time.now.utc
+      Models::Message::STATUSES.each do |status|
+        status_key = status.to_s
+        status_symbol = status.to_sym
 
-      ActiveRecord::Base.connection_pool.with_connection do
-        time_condition = ActiveRecord::Base.sanitize_sql_array([
-          "updated_at >= ?", current_utc_time - 1.second
-        ])
+        current_count = counts_by_status[status_key]
+        metrics[status_symbol][:count][:current] = current_count
+        metrics[status_symbol][:count][:total] = totals_by_status[status_key]
+        metrics[:all][:count][:current] += current_count
 
-        grouped_messages = Models::Message
-          .group(:status)
-          .select(
-            "status, COUNT(*) AS count, MIN(updated_at) AS oldest_updated_at",
-            "SUM(CASE WHEN #{time_condition} THEN 1 ELSE 0 END) AS throughput")
-          .to_a
-
-        metrics[:published][:count][:historic] = Models::Setting
-          .find_by!(name: "messages.published.count.historic").value.to_i
-
-        metrics[:failed][:count][:historic] = Models::Setting
-          .find_by!(name: "messages.failed.count.historic").value.to_i
+        # Placeholder values until latency and throughput metrics are implemented
+        metrics[status_symbol][:latency] = 0
+        metrics[status_symbol][:throughput] = 0
       end
 
-      grouped_messages.each do |grouped_message|
-        status = grouped_message.status.to_sym
-
-        metrics[status][:count][:current] = grouped_message.count
-
-        if grouped_message.oldest_updated_at
-          latency = (current_utc_time - grouped_message.oldest_updated_at.utc).to_i
-
-          metrics[status][:latency] = latency
-        end
-
-        metrics[status][:throughput] = grouped_message.throughput
-
-        metrics[:all][:count][:current] += grouped_message.count
-      end
-
-      metrics[:published][:count][:total] =
-        metrics[:published][:count][:historic] + metrics[:published][:count][:current]
-
-      metrics[:failed][:count][:total] =
-        metrics[:failed][:count][:historic] + metrics[:failed][:count][:current]
+      metrics[:published][:count][:total] = totals_by_status["published"].to_i
+      metrics[:failed][:count][:total] = totals_by_status["failed"].to_i
 
       metrics
     end
