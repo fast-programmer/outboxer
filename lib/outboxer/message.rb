@@ -169,7 +169,7 @@ module Outboxer
 
             Models::MessageCount.insert_all(
               [{ status: Status::PUBLISHING, partition: partition, value: 0,
-                created_at: current_utc_time, updated_at: current_utc_time }],
+                 created_at: current_utc_time, updated_at: current_utc_time }],
               unique_by: :idx_outboxer_counts_status_partition,
               record_timestamps: false)
 
@@ -179,7 +179,7 @@ module Outboxer
 
             Models::MessageTotal.insert_all(
               [{ status: Status::PUBLISHING, partition: partition, value: 0,
-                created_at: current_utc_time, updated_at: current_utc_time }],
+                 created_at: current_utc_time, updated_at: current_utc_time }],
               unique_by: :idx_outboxer_totals_status_partition,
               record_timestamps: false)
 
@@ -233,7 +233,7 @@ module Outboxer
 
           Models::MessageCount.insert_all(
             [{ status: Status::PUBLISHED, partition: partition, value: 0,
-              created_at: current_utc_time, updated_at: current_utc_time }],
+               created_at: current_utc_time, updated_at: current_utc_time }],
             unique_by: :idx_outboxer_counts_status_partition,
             record_timestamps: false)
 
@@ -243,7 +243,7 @@ module Outboxer
 
           Models::MessageTotal.insert_all(
             [{ status: Status::PUBLISHED, partition: partition, value: 0,
-              created_at: current_utc_time, updated_at: current_utc_time }],
+               created_at: current_utc_time, updated_at: current_utc_time }],
             unique_by: :idx_outboxer_totals_status_partition,
             record_timestamps: false)
 
@@ -302,7 +302,7 @@ module Outboxer
 
           Models::MessageCount.insert_all(
             [{ status: Status::FAILED, partition: partition, value: 0,
-              created_at: current_utc_time, updated_at: current_utc_time }],
+               created_at: current_utc_time, updated_at: current_utc_time }],
             unique_by: :idx_outboxer_counts_status_partition,
             record_timestamps: false)
 
@@ -312,7 +312,7 @@ module Outboxer
 
           Models::MessageTotal.insert_all(
             [{ status: Status::FAILED, partition: partition, value: 0,
-              created_at: current_utc_time, updated_at: current_utc_time }],
+               created_at: current_utc_time, updated_at: current_utc_time }],
             unique_by: :idx_outboxer_totals_status_partition,
             record_timestamps: false)
 
