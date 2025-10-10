@@ -8,17 +8,13 @@ module Outboxer
 
       context "when there are messages in different statuses" do
         before do
-          Models::MessageTotal.insert_all(
-            [{ status: Message::Status::PUBLISHED, partition: 1, value: 500,
-               created_at: current_utc_time, updated_at: current_utc_time }],
-            unique_by: :idx_outboxer_totals_status_partition,
-            record_timestamps: false)
+          Models::MessageTotal.create!(
+            status: Message::Status::PUBLISHED, partition: 1, value: 500,
+            created_at: current_utc_time, updated_at: current_utc_time)
 
-          Models::MessageTotal.insert_all(
-            [{ status: Message::Status::FAILED, partition: 1, value: 500,
-               created_at: current_utc_time, updated_at: current_utc_time }],
-            unique_by: :idx_outboxer_totals_status_partition,
-            record_timestamps: false)
+          Models::MessageTotal.create!(
+            status: Message::Status::FAILED, partition: 1, value: 500,
+            created_at: current_utc_time, updated_at: current_utc_time)
         end
 
         let!(:oldest_queued_message) do
