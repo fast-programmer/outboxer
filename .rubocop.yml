@@ -55,6 +55,7 @@ Layout/FirstHashElementIndentation:
 Layout/FirstArrayElementIndentation:
   EnforcedStyle: consistent
 Layout/MultilineMethodCallBraceLayout:
+  Enabled: false
   EnforcedStyle: same_line
   Exclude:
     - 'bin/outboxer_publisher'
