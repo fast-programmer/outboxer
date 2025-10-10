@@ -762,7 +762,6 @@ module Outboxer
     def metrics(*)
       metrics = { all: { count: { current: 0 } } }
 
-      # Initialize base structure for each status
       Models::Message::STATUSES.each do |status|
         metrics[status.to_sym] = {
           count: { current: 0 },
@@ -771,9 +770,8 @@ module Outboxer
         }
       end
 
-      # Fast counts from partitioned counter tables
-      counts_by_status = count_by_status   # => { "queued" => n, "publishing" => n, ... }
-      totals_by_status = total_by_status   # => { "published" => n, "failed" => n, ... }
+      counts_by_status = count_by_status
+      totals_by_status = total_by_status
 
       Models::Message::STATUSES.each do |status|
         status_key = status.to_s
@@ -784,7 +782,6 @@ module Outboxer
         metrics[status_symbol][:count][:total] = totals_by_status[status_key]
         metrics[:all][:count][:current] += current_count
 
-        # Placeholder values until latency and throughput metrics are implemented
         metrics[status_symbol][:latency] = 0
         metrics[status_symbol][:throughput] = 0
       end
