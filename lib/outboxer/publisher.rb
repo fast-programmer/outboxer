@@ -559,6 +559,8 @@ module Outboxer
                 block.call({ id: id }, message)
               end
             rescue StandardError => error
+              puts "unhandled error: #{error.message}"
+
               logger.error(
                 "#{error.class}: #{error.message}\n" \
                 "#{error.backtrace.join("\n")}")

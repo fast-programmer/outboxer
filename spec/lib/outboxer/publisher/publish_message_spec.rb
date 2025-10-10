@@ -23,7 +23,9 @@ module Outboxer
             logger: logger,
             kernel: kernel
           ) do |publisher, _message|
+            puts 'in publish_message block - calling terminate'
             Publisher.terminate(id: publisher[:id])
+            puts 'in publish_message block - called terminate'
           end
         end
       end
