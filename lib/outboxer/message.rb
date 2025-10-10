@@ -759,7 +759,7 @@ module Outboxer
     # Latency and throughput are placeholders (0) until partitioned metrics tables are implemented.
     # @param time [Time] current time context for consistency.
     # @return [Hash] detailed metrics across various message statuses.
-    def metrics(time: ::Time)
+    def metrics(*)
       metrics = { all: { count: { current: 0 } } }
 
       # Initialize base structure for each status

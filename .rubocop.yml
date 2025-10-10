@@ -228,7 +228,7 @@ Style/NumberedParametersLimit: # new in 1.22
 Style/ObjectThen: # new in 1.28
   Enabled: true
 Style/OpenStructUse: # new in 1.23
-  Enabled: true
+  Enabled: false
 Style/OperatorMethodCall: # new in 1.37
   Enabled: true
 Style/QuotedSymbols: # new in 1.16
