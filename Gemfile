@@ -8,7 +8,7 @@ gem "pg", "~> 1.5"
 gem "puma", "~> 6.5"
 gem "rack-flash3", "~> 1.0"
 gem "rackup", "~> 2.0"
-gem "sinatra", "~> 4.0"
+gem "sinatra", "~> 4.2"
 
 group :development, :test do
   gem "database_cleaner", "~> 2.0"
