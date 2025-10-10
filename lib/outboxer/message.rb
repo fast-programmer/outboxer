@@ -26,12 +26,6 @@ module Outboxer
 
         partition = message.id % PARTITION_COUNT
 
-        # Models::MessageCount.insert_all(
-        #   [{ status: Status::QUEUED, partition: partition, value: 0,
-        #      created_at: current_utc_time, updated_at: current_utc_time }],
-        #   unique_by: :idx_outboxer_counts_status_partition,
-        #   record_timestamps: false)
-
         Models::MessageCount.create_or_find_by!(
           status: Status::QUEUED, partition: partition
         ) do |message_count|
@@ -43,12 +37,6 @@ module Outboxer
         Models::MessageCount
           .where(status: Status::QUEUED, partition: partition)
           .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
-
-        # Models::MessageTotal.insert_all(
-        #   [{ status: Status::QUEUED, partition: partition, value: 0,
-        #      created_at: current_utc_time, updated_at: current_utc_time }],
-        #   unique_by: :idx_outboxer_totals_status_partition,
-        #   record_timestamps: false)
 
         Models::MessageTotal.create_or_find_by!(
           status: Status::QUEUED, partition: partition
@@ -183,12 +171,6 @@ module Outboxer
               .where(status: Status::QUEUED, partition: partition)
               .update_all(["value = value - ?, updated_at = ?", 1, current_utc_time])
 
-            # Models::MessageCount.insert_all(
-            #   [{ status: Status::PUBLISHING, partition: partition, value: 0,
-            #      created_at: current_utc_time, updated_at: current_utc_time }],
-            #   unique_by: :idx_outboxer_counts_status_partition,
-            #   record_timestamps: false)
-
             Models::MessageCount.create_or_find_by!(
               status: Status::PUBLISHING, partition: partition
             ) do |message_count|
@@ -200,12 +182,6 @@ module Outboxer
             Models::MessageCount
               .where(status: Status::PUBLISHING, partition: partition)
               .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
-
-            # Models::MessageTotal.insert_all(
-            #   [{ status: Status::PUBLISHING, partition: partition, value: 0,
-            #      created_at: current_utc_time, updated_at: current_utc_time }],
-            #   unique_by: :idx_outboxer_totals_status_partition,
-            #   record_timestamps: false)
 
             Models::MessageTotal.create_or_find_by!(
               status: Status::PUBLISHING, partition: partition
@@ -263,12 +239,6 @@ module Outboxer
             .where(status: Status::PUBLISHING, partition: partition)
             .update_all(["value = value - ?, updated_at = ?", 1, current_utc_time])
 
-          # Models::MessageCount.insert_all(
-          #   [{ status: Status::PUBLISHED, partition: partition, value: 0,
-          #      created_at: current_utc_time, updated_at: current_utc_time }],
-          #   unique_by: :idx_outboxer_counts_status_partition,
-          #   record_timestamps: false)
-
           Models::MessageCount.create_or_find_by!(
             status: Status::PUBLISHED, partition: partition
           ) do |message_count|
@@ -280,12 +250,6 @@ module Outboxer
           Models::MessageCount
             .where(status: Status::PUBLISHED, partition: partition)
             .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
-
-          # Models::MessageTotal.insert_all(
-          #   [{ status: Status::PUBLISHED, partition: partition, value: 0,
-          #     created_at: current_utc_time, updated_at: current_utc_time }],
-          #   unique_by: :idx_outboxer_totals_status_partition,
-          #   record_timestamps: false)
 
           Models::MessageTotal.create_or_find_by!(
             status: Status::PUBLISHED, partition: partition
@@ -348,12 +312,6 @@ module Outboxer
             .where(status: Status::PUBLISHING, partition: partition)
             .update_all(["value = value - ?, updated_at = ?", 1, current_utc_time])
 
-          # Models::MessageCount.insert_all(
-          #   [{ status: Status::FAILED, partition: partition, value: 0,
-          #      created_at: current_utc_time, updated_at: current_utc_time }],
-          #   unique_by: :idx_outboxer_counts_status_partition,
-          #   record_timestamps: false)
-
           Models::MessageCount.create_or_find_by!(
             status: Status::FAILED, partition: partition
           ) do |message_count|
@@ -365,12 +323,6 @@ module Outboxer
           Models::MessageCount
             .where(status: Status::FAILED, partition: partition)
             .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
-
-          # Models::MessageTotal.insert_all(
-          #   [{ status: Status::FAILED, partition: partition, value: 0,
-          #      created_at: current_utc_time, updated_at: current_utc_time }],
-          #   unique_by: :idx_outboxer_totals_status_partition,
-          #   record_timestamps: false)
 
           Models::MessageTotal.create_or_find_by!(
             status: Status::FAILED, partition: partition
