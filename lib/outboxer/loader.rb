@@ -3,6 +3,7 @@
 require "securerandom"
 require "logger"
 require "optparse"
+require "ostruct"
 require "active_support/number_helper"
 
 module Outboxer
@@ -34,7 +35,7 @@ module Outboxer
           options[:concurrency] = v
         end
 
-        opts.on("--size SIZE", Integer, "Number of messages to load") do |v|
+        opts.on("--size SIZE", Integer, "Number of messages to load (default: 1M)") do |v|
           options[:size] = v
         end
 
@@ -54,12 +55,9 @@ module Outboxer
     end
 
     def display_metrics(logger)
-      metrics = {
-        memory_kb: `ps -o rss= -p #{Process.pid}`.to_i,
-        cpu_percent: `ps -o %cpu= -p #{Process.pid}`.strip.to_f
-      }
-
-      logger.info "[metrics] memory=#{metrics[:memory_kb]}KB cpu=#{metrics[:cpu_percent]}%"
+      memory_kb = `ps -o rss= -p #{Process.pid}`.to_i
+      cpu_percent = `ps -o %cpu= -p #{Process.pid}`.strip.to_f
+      logger.info "[metrics] memory=#{memory_kb}KB cpu=#{cpu_percent}%"
     end
 
     def load(batch_size: LOAD_DEFAULTS[:batch_size],
@@ -69,7 +67,7 @@ module Outboxer
              logger: Outboxer::Logger.new($stdout))
       status = :loading
       reader, _writer = trap_signals
-      queue = SizedQueue.new(concurrency)
+      queue = Queue.new
       threads = spawn_workers(concurrency, queue, logger)
 
       enqueued = 0
@@ -84,23 +82,20 @@ module Outboxer
         when :stopped
           sleep tick_interval
         when :loading
-          batch = Array.new(batch_size) do
-            {
-              messageable_type: "Event",
-              messageable_id: SecureRandom.hex(3),
-              status: "queued",
-              queued_at: Time.current
-            }
+          messageables = Array.new(batch_size) do
+            OpenStruct.new(class: OpenStruct.new(name: "Event"), id: SecureRandom.hex(3))
           end
-          queue << batch
-          enqueued += batch.size
+
+          queue << messageables
+          enqueued += messageables.size
+
           # logger.info "[main] enqueued #{enqueued}/#{size}" if (enqueued % (batch_size * 2)).zero?
         end
 
         # display_metrics(logger)
       end
 
-      concurrency.times { queue << nil }
+      queue.close
       threads.each(&:join)
 
       finished_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
@@ -136,14 +131,18 @@ module Outboxer
     def spawn_workers(concurrency, queue, logger)
       Array.new(concurrency) do |index|
         Thread.new do
-          loop do
-            batch = queue.pop
-            break if batch.nil?
+          begin
+            while (messageables = queue.pop)
+              messageables.each do |messageable|
+                Outboxer::Message.queue(messageable: messageable)
+              rescue StandardError => error
+                logger.error "[thread-#{index}] #{error.class}: #{error.message}"
 
-            Outboxer::Models::Message.insert_all(batch)
-            # logger.info "[thread-#{index}] inserted #{batch.size}"
-          rescue StandardError => error
-            logger.error "[thread-#{index}] #{error.class}: #{error.message}"
+                sleep 1
+              end
+            end
+          rescue ClosedQueueError
+            # Queue closed and empty — exit gracefully
           end
         end
       end
