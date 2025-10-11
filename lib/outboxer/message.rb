@@ -487,25 +487,9 @@ module Outboxer
             publisher_id: publisher_id,
             publisher_name: publisher_name)
 
-          Models::MessageCount.create_or_find_by!(
-            status: Status::QUEUED, partition: partition
-          ) do |message_count|
-            message_count.value = 0
-            message_count.created_at = current_utc_time
-            message_count.updated_at = current_utc_time
-          end
-
           Models::MessageCount
             .where(status: Status::QUEUED, partition: partition)
             .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
-
-          Models::MessageTotal.create_or_find_by!(
-            status: Status::QUEUED, partition: partition
-          ) do |message_total|
-            message_total.value = 0
-            message_total.created_at = current_utc_time
-            message_total.updated_at = current_utc_time
-          end
 
           Models::MessageTotal
             .where(status: Status::QUEUED, partition: partition)
