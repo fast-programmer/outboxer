@@ -161,47 +161,44 @@ module Outboxer
     def publish(logger: nil, time: ::Time)
       publishing_started_at = time.now.utc
       message = Message.publishing(time: time)
+      return if message.nil?
 
-      if message.nil?
-        nil
-      else
-        logger&.info(
-          "Outboxer message publishing id=#{message[:id]} " \
-            "messageable_type=#{message[:messageable_type]} " \
-            "messageable_id=#{message[:messageable_id]}")
+      logger&.info(
+        "Outboxer message publishing id=#{message[:id]} " \
+          "messageable_type=#{message[:messageable_type]} " \
+          "messageable_id=#{message[:messageable_id]}")
 
-        if block_given?
-          begin
-            yield message
-          rescue StandardError => error
-            publishing_failed(id: message[:id], error: error, time: time)
+      if block_given?
+        begin
+          yield message
+        rescue StandardError => error
+          publishing_failed(id: message[:id], error: error, time: time)
 
-            logger&.error(
-              "Outboxer message publishing failed id=#{message[:id]} " \
-                "duration_ms=#{((time.now.utc - publishing_started_at) * 1000).to_i}\n" \
-                "#{error.class}: #{error.message}\n" \
-                "#{error.backtrace.join("\n")}")
-          rescue Exception => error
-            publishing_failed(id: message[:id], error: error, time: time)
+          logger&.error(
+            "Outboxer message publishing failed id=#{message[:id]} " \
+              "duration_ms=#{((time.now.utc - publishing_started_at) * 1000).to_i}\n" \
+              "#{error.class}: #{error.message}\n" \
+              "#{error.backtrace.join("\n")}")
+        rescue Exception => error
+          publishing_failed(id: message[:id], error: error, time: time)
 
-            logger&.fatal(
-              "Outboxer message publishing failed id=#{message[:id]} " \
-                "duration_ms=#{((time.now.utc - publishing_started_at) * 1000).to_i}\n" \
-                "#{error.class}: #{error.message}\n" \
-                "#{error.backtrace.join("\n")}")
+          logger&.fatal(
+            "Outboxer message publishing failed id=#{message[:id]} " \
+              "duration_ms=#{((time.now.utc - publishing_started_at) * 1000).to_i}\n" \
+              "#{error.class}: #{error.message}\n" \
+              "#{error.backtrace.join("\n")}")
 
-            raise
-          else
-            published(id: message[:id], time: time)
+          raise
+        else
+          published(id: message[:id], time: time)
 
-            logger&.info(
-              "Outboxer message published id=#{message[:id]} " \
-                "duration_ms=#{((time.now.utc - publishing_started_at) * 1000).to_i}")
-          end
+          logger&.info(
+            "Outboxer message published id=#{message[:id]} " \
+              "duration_ms=#{((time.now.utc - publishing_started_at) * 1000).to_i}")
         end
-
-        message
       end
+
+      message
     end
 
     # Selects and locks the next available message in **queued** status
