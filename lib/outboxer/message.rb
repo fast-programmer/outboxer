@@ -7,18 +7,19 @@ module Outboxer
     Status = Models::Message::Status
 
     class Error < StandardError; end
-    class MissingSeed < Error; end
+    class MissingPartition < Error; end
 
     PARTITION_COUNT = Integer(ENV.fetch("OUTBOXER_MESSAGE_PARTITION_COUNT", 64))
     PARTITIONS = (0...PARTITION_COUNT)
 
-    # Seeds counts and totals for all partitions.
+    # Seed partitions.
+    #
     # This method is idempotent and can be safely re-run.
     #
     # @param logger [#info, #error, #fatal, nil] optional logger
     # @param time [Time] time source for created_at / updated_at.
     # @return [Integer] number of rows ensured per table.
-    def seed(logger: nil, time: ::Time)
+    def seed_partitions(logger: nil, time: ::Time)
       current_utc_time = time.now.utc
 
       [Models::MessageCount, Models::MessageTotal].each do |model|
@@ -33,7 +34,7 @@ module Outboxer
         end
       end
 
-      logger&.info "Seeded #{PARTITIONS.size} message partitions"
+      logger&.info "Seeded #{PARTITIONS.size} partitions"
 
       nil
     end
@@ -73,7 +74,7 @@ module Outboxer
     #   - `:messageable_type` [String]
     #   - `:messageable_id` [Integer, String]
     #   - `:updated_at` [Time]
-    # @raise [Outboxer::Message::MissingSeed] when counter rows are absent and `attempt` > 1.
+    # @raise [Outboxer::Message::MissingPartition] when partition seed absent and `attempt` > 1.
     # @raise [Outboxer::Message::Error] on other failures during queuing.
     # @example Using an object
     #   Outboxer::Message.queue(messageable: event)
@@ -113,7 +114,7 @@ module Outboxer
           .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
 
         if updated_count.zero? || updated_total.zero?
-          raise MissingSeed, "Missing seed"
+          raise MissingPartition, "Missing partition"
         end
 
         {
@@ -124,9 +125,9 @@ module Outboxer
           updated_at: message.updated_at
         }
       end
-    rescue MissingSeed
+    rescue MissingPartition
       if attempt == 1
-        Message.seed(time: time, logger: logger)
+        Message.seed_partitions(time: time, logger: logger)
 
         Message.queue(
           messageable: messageable,
