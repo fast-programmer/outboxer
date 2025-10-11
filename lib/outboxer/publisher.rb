@@ -562,6 +562,12 @@ module Outboxer
               logger.error(
                 "#{error.class}: #{error.message}\n" \
                 "#{error.backtrace.join("\n")}")
+
+              Publisher.sleep(
+                poll_interval,
+                tick_interval: tick_interval,
+                process: process,
+                kernel: kernel)
             else
               if published_message.nil?
                 Publisher.sleep(

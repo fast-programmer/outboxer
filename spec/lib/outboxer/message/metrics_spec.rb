@@ -8,72 +8,92 @@ module Outboxer
 
       context "when there are messages in different statuses" do
         before do
-          Models::Setting
-            .find_by!(name: "messages.published.count.historic")
-            .update!(value: "500")
+          Models::MessageTotal.create!(
+            status: Message::Status::PUBLISHED, partition: 1, value: 500,
+            created_at: current_utc_time, updated_at: current_utc_time)
 
-          Models::Setting
-            .find_by!(name: "messages.failed.count.historic")
-            .update!(value: "500")
+          Models::MessageTotal.create!(
+            status: Message::Status::FAILED, partition: 1, value: 500,
+            created_at: current_utc_time, updated_at: current_utc_time)
         end
 
         let!(:oldest_queued_message) do
-          create(:outboxer_message, :queued, updated_at: 15.minutes.ago)
+          Message.queue(messageable: OpenStruct.new(id: "1", type: "Blah"))
         end
 
         let!(:newest_queued_message) do
-          create(:outboxer_message, :queued, updated_at: 5.minutes.ago)
+          Message.queue(messageable: OpenStruct.new(id: "2", type: "Blah"))
         end
 
         let!(:oldest_publishing_message) do
-          create(:outboxer_message, :publishing, updated_at: 25.minutes.ago)
+          message = Message.queue(messageable: OpenStruct.new(id: "3", type: "Blah"))
+          Message.publishing
+          message
         end
 
         let!(:newest_publishing_message) do
-          create(:outboxer_message, :publishing, updated_at: 3.minutes.ago)
+          message = Message.queue(messageable: OpenStruct.new(id: "4", type: "Blah"))
+          Message.publishing
+          message
         end
 
         let!(:oldest_published_message) do
-          create(:outboxer_message, :published, updated_at: 30.minutes.ago)
+          message = Message.queue(messageable: OpenStruct.new(id: "5", type: "Blah"))
+          Message.publish do |_message|
+            # do nothing
+          end
+          message
         end
 
         let!(:newest_published_message) do
-          create(:outboxer_message, :published, updated_at: 4.minutes.ago)
+          message = Message.queue(messageable: OpenStruct.new(id: "6", type: "Blah"))
+          Message.publish do |_message|
+            # do nothing
+          end
+          message
         end
 
         let!(:oldest_failed_message) do
-          create(:outboxer_message, :failed, updated_at: 35.minutes.ago)
+          message = Message.queue(messageable: OpenStruct.new(id: "7", type: "Blah"))
+          Message.publish do |_message|
+            raise "error"
+          end
+          message
         end
 
         let!(:newest_failed_message) do
-          create(:outboxer_message, :failed, updated_at: 10.minutes.ago)
+          message = Message.queue(messageable: OpenStruct.new(id: "8", type: "Blah"))
+          Message.publish do |_message|
+            raise "error"
+          end
+          message
         end
 
         it "returns correct settings" do
-          metrics = Message.metrics(time: time)
+          metrics = Message.metrics
 
           expect(metrics).to eq(
             all: {
               count: { current: 8 }
             },
             queued: {
-              count: { current: 2 },
-              latency: (current_utc_time - oldest_queued_message.updated_at.utc).to_i,
+              count: { current: 2, total: 8 },
+              latency: 0,
               throughput: 0
             },
             publishing: {
-              count: { current: 2 },
-              latency: (current_utc_time - oldest_publishing_message.updated_at.utc).to_i,
+              count: { current: 2, total: 6 },
+              latency: 0,
               throughput: 0
             },
             published: {
-              count: { historic: 500, current: 2, total: 502 },
-              latency: (current_utc_time - oldest_published_message.updated_at.utc).to_i,
+              count: { current: 2, total: 502 },
+              latency: 0,
               throughput: 0
             },
             failed: {
-              count: { historic: 500, current: 2, total: 502 },
-              latency: (current_utc_time - oldest_failed_message.updated_at.utc).to_i,
+              count: { current: 2, total: 502 },
+              latency: 0,
               throughput: 0
             })
         end
@@ -81,27 +101,27 @@ module Outboxer
 
       context "when there are no messages in a specific status" do
         it "returns zero count and latency for that status" do
-          metrics = Message.metrics(time: time)
+          metrics = Message.metrics
 
           expect(metrics).to eq(
             all: { count: { current: 0 } },
-            queued: { count: { current: 0 }, latency: 0, throughput: 0 },
-            publishing: { count: { current: 0 }, latency: 0, throughput: 0 },
-            published: { count: { historic: 0, current: 0, total: 0 }, latency: 0, throughput: 0 },
-            failed: { count: { historic: 0, current: 0, total: 0 }, latency: 0, throughput: 0 })
+            queued: { count: { current: 0, total: 0 }, latency: 0, throughput: 0 },
+            publishing: { count: { current: 0, total: 0 }, latency: 0, throughput: 0 },
+            published: { count: { current: 0, total: 0 }, latency: 0, throughput: 0 },
+            failed: { count: { current: 0, total: 0 }, latency: 0, throughput: 0 })
         end
       end
 
       context "when no messages exist" do
         it "returns zero count and latency for all statuses" do
-          metrics = Message.metrics(time: time)
+          metrics = Message.metrics
 
           expect(metrics).to eq(
             all: { count: { current: 0 } },
-            queued: { count: { current: 0 }, latency: 0, throughput: 0 },
-            publishing: { count: { current: 0 }, latency: 0, throughput: 0 },
-            published: { count: { historic: 0, current: 0, total: 0 }, latency: 0, throughput: 0 },
-            failed: { count: { historic: 0, current: 0, total: 0 }, latency: 0, throughput: 0 })
+            queued: { count: { current: 0, total: 0 }, latency: 0, throughput: 0 },
+            publishing: { count: { current: 0, total: 0 }, latency: 0, throughput: 0 },
+            published: { count: { current: 0, total: 0 }, latency: 0, throughput: 0 },
+            failed: { count: { current: 0, total: 0 }, latency: 0, throughput: 0 })
         end
       end
     end

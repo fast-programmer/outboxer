@@ -26,7 +26,7 @@ RSpec.describe "POST /message/:id/delete", type: :request do
 
   it "redirects with flash" do
     expect(last_response).to be_ok
-    expected_flash = URI.encode_www_form_component("success:Deleted message 1")
+    expected_flash = URI.encode_www_form_component("success:Deleted message #{message[:id]}")
     expect(last_request.url).to include("flash=#{expected_flash}")
   end
 end
