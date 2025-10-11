@@ -500,7 +500,7 @@ module Outboxer
       end
     end
 
-    LIST_STATUS_OPTIONS = [nil, :queued, :publishing, :published, :failed]
+    LIST_STATUS_OPTIONS = [nil, :queued, :publishing, :failed]
     LIST_STATUS_DEFAULT = nil
 
     LIST_SORT_OPTIONS = [:id, :status, :messageable, :queued_at, :updated_at, :publisher_name]
