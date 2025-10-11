@@ -11,7 +11,7 @@ module Outboxer
 
     # Parses command line arguments to configure the publisher.
     # @param args [Array<String>] The arguments passed via the command line.
-    # @return [Hash] The parsed options
+    # @return [Hash] The parsed options.
     def self.parse_cli_options(args)
       options = {}
 
