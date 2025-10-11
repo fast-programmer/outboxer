@@ -6,8 +6,13 @@ module Outboxer
     STATUSES = Models::Message::STATUSES
     Status = Models::Message::Status
 
-    PARTITION_COUNT = Integer(ENV.fetch("OUTBOXER_MESSAGE_PARTITION_COUNT", 64))
     class Error < StandardError; end
+
+    PARTITION_COUNT = Integer(ENV.fetch("OUTBOXER_MESSAGE_PARTITION_COUNT", 64))
+
+    def calculate_partition(id:)
+      id % PARTITION_COUNT
+    end
 
     # Queues a new message.
     # @param messageable [Object, nil] the object associated with the message.
@@ -24,7 +29,7 @@ module Outboxer
           queued_at: current_utc_time,
           updated_at: current_utc_time)
 
-        partition = message.id % PARTITION_COUNT
+        partition = calculate_partition(id: message.id)
 
         Models::MessageCount.create_or_find_by!(
           status: Status::QUEUED, partition: partition
@@ -165,7 +170,7 @@ module Outboxer
               updated_at: current_utc_time,
               publishing_at: current_utc_time)
 
-            partition = message.id % PARTITION_COUNT
+            partition = calculate_partition(id: message.id)
 
             Models::MessageCount
               .where(status: Status::QUEUED, partition: partition)
@@ -233,7 +238,7 @@ module Outboxer
             status: Status::PUBLISHED,
             updated_at: current_utc_time, published_at: current_utc_time)
 
-          partition = message.id % PARTITION_COUNT
+          partition = calculate_partition(id: message.id)
 
           Models::MessageCount
             .where(status: Status::PUBLISHING, partition: partition)
@@ -306,7 +311,7 @@ module Outboxer
             end
           end
 
-          partition = message.id % PARTITION_COUNT
+          partition = calculate_partition(id: message.id)
 
           Models::MessageCount
             .where(status: Status::PUBLISHING, partition: partition)
@@ -423,7 +428,9 @@ module Outboxer
     # Deletes a message by ID.
     # @param id [Integer] the ID of the message to delete.
     # @return [Hash] details of the deleted message.
-    def delete(id:)
+    def delete(id:, time: ::Time)
+      current_utc_time = time.now.utc
+
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           message = Models::Message.includes(exceptions: :frames).lock.find_by!(id: id)
@@ -432,10 +439,11 @@ module Outboxer
           message.exceptions.delete_all
           message.delete
 
-          setting = Models::Setting.lock("FOR UPDATE").find_by(
-            name: "messages.#{message.status}.count.historic")
+          partition = calculate_partition(id: message.id)
 
-          setting.update!(value: setting.value.to_i + 1).to_s if !setting.nil?
+          Models::MessageCount
+            .where(status: message.status, partition: partition)
+            .update_all(["value = value - ?, updated_at = ?", 1, current_utc_time])
 
           { id: id }
         end
@@ -459,11 +467,17 @@ module Outboxer
     # @return [Hash] updated message details.
     def requeue(id:, publisher_id: nil, publisher_name: nil,
                 time: ::Time)
+      current_utc_time = time.now.utc
+
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           message = Models::Message.lock.find_by!(id: id)
 
-          current_utc_time = time.now.utc
+          partition = calculate_partition(id: message.id)
+
+          Models::MessageCount
+            .where(status: message.status, partition: partition)
+            .update_all(["value = value - ?, updated_at = ?", 1, current_utc_time])
 
           message.update!(
             status: Message::Status::QUEUED,
@@ -474,6 +488,30 @@ module Outboxer
             failed_at: nil,
             publisher_id: publisher_id,
             publisher_name: publisher_name)
+
+          Models::MessageCount.create_or_find_by!(
+            status: Status::QUEUED, partition: partition
+          ) do |message_count|
+            message_count.value = 0
+            message_count.created_at = current_utc_time
+            message_count.updated_at = current_utc_time
+          end
+
+          Models::MessageCount
+            .where(status: Status::QUEUED, partition: partition)
+            .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
+
+          Models::MessageTotal.create_or_find_by!(
+            status: Status::QUEUED, partition: partition
+          ) do |message_total|
+            message_total.value = 0
+            message_total.created_at = current_utc_time
+            message_total.updated_at = current_utc_time
+          end
+
+          Models::MessageTotal
+            .where(status: Status::QUEUED, partition: partition)
+            .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
 
           { id: id }
         end
