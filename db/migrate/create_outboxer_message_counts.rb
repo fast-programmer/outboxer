@@ -1,9 +1,9 @@
 class CreateOutboxerMessageCounts < ActiveRecord::Migration[7.1]
   def up
     create_table :outboxer_message_counts do |t|
-      t.string  :status,    limit: 32, null: false
+      t.string  :status,    limit: 255, null: false
       t.integer :partition, null: false
-      t.bigint  :value,     null: false, default: 0
+      t.bigint  :value,     null: false
       t.timestamps
     end
 
