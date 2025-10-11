@@ -42,7 +42,7 @@ bundle exec rails new . \
 
 bundle install
 bundle exec rails db:create
-echo 'gem "outboxer", git: "https://github.com/fast-programmer/outboxer.git", branch: "master"' \
+echo 'gem "outboxer", git: "https://github.com/fast-programmer/outboxer.git", branch: "refactor/delete_published_outboxer_messages"' \
   >> Gemfile
 bundle install
 bundle exec rails generate outboxer:install
@@ -76,32 +76,19 @@ attempt = 1
 max_attempts = 10
 delay = 1
 
-messageable_was_published = false
+published_count = Outboxer::Message.count_by_status["published"]
 
-published_messages = Outboxer::Message.list(status: :published)[:messages]
-
-messageable_was_published = published_messages.any? do |published_message|
-    published_message[:messageable_type] == event.class.name &&
-    published_message[:messageable_id] == event.id.to_s
-end
-
-while (attempt <= max_attempts) && !messageable_was_published
-    warn "Outboxer message not published yet. Retrying (#{attempt}/#{max_attempts})..."
-    sleep delay
-    attempt += 1
-
-    published_messages = Outboxer::Message.list(status: :published)[:messages]
-
-    messageable_was_published = published_messages.any? do |published_message|
-        published_message[:messageable_type] == event.class.name &&
-        published_message[:messageable_id] == event.id.to_s
-    end
+while (attempt <= max_attempts) && published_count.zero?
+  warn "Outboxer not published yet (#{attempt}/#{max_attempts})..."
+  sleep delay
+  attempt += 1
+  published_count = Outboxer::Message.count_by_status["published"]
 end
 
 Process.kill("TERM", publisher_pid)
 Process.wait(publisher_pid)
 
-exit(messageable_was_published ? 0 : 1)
+exit(published_count.positive? ? 0 : 1)
 RUBY
 
 # TARGET_RUBY_VERSION=3.2.2 TARGET_RAILS_VERSION=7.1.5.1 TARGET_DATABASE_ADAPTER=postgresql ./quickstart_e2e_tests.sh

@@ -192,7 +192,7 @@ module Outboxer
             ::Process.kill("TERM", ::Process.pid)
           end
 
-          expect(Models::Message.published.count).to eq(1)
+          expect(Models::Message.published.count).to eq(0)
         end
       end
 
@@ -213,7 +213,7 @@ module Outboxer
             ::Process.kill("TERM", ::Process.pid)
           end
 
-          expect(Models::Message.published.count).to eq(1)
+          expect(Models::Message.published.count).to eq(0)
         end
       end
 
