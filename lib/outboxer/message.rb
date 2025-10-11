@@ -12,7 +12,7 @@ module Outboxer
     PARTITION_COUNT = Integer(ENV.fetch("OUTBOXER_MESSAGE_PARTITION_COUNT", 64))
     PARTITIONS = (0...PARTITION_COUNT)
 
-    # Seeds counter and total rows for all statuses and partitions.
+    # Seeds counts and totals for all partitions.
     # This method is idempotent and can be safely re-run.
     #
     # @param logger [#info, #error, #fatal, nil] optional logger
@@ -809,9 +809,8 @@ module Outboxer
 
     # Retrieves and calculates metrics related to message statuses, including counts and totals.
     # Latency and throughput are placeholders (0) until partitioned metrics tables are implemented.
-    # @param time [Time] current time context for consistency.
     # @return [Hash] detailed metrics across various message statuses.
-    def metrics(*)
+    def metrics
       metrics = { all: { count: { current: 0 } } }
 
       Models::Message::STATUSES.each do |status|
@@ -844,12 +843,24 @@ module Outboxer
       metrics
     end
 
+    # Returns the current counts per status aggregated across all partitions.
+    #
+    # @return [Hash{String=>Integer}] map of status name (string) to current count.
+    # @example
+    #   Outboxer::Message.count_by_status
+    #   # => { "queued" => 123, "publishing" => 4, "published" => 987, "failed" => 2 }
     def count_by_status
       Message::STATUSES
         .index_with { 0 }
         .merge(Models::MessageCount.group(:status).sum(:value).transform_keys(&:to_s))
     end
 
+    # Returns the total (lifetime) counts per status aggregated across all partitions.
+    #
+    # @return [Hash{String=>Integer}] map of status name (string) to total count.
+    # @example
+    #   Outboxer::Message.total_by_status
+    #   # => { "queued" => 1200, "publishing" => 400, "published" => 100_000, "failed" => 250 }
     def total_by_status
       Message::STATUSES
         .index_with { 0 }
