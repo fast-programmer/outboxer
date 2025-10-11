@@ -3,30 +3,112 @@ module Outboxer
   module Message
     module_function
 
+    STATUSES = Models::Message::STATUSES
     Status = Models::Message::Status
 
     class Error < StandardError; end
+    class MissingSeed < Error; end
+
+    PARTITION_COUNT = Integer(ENV.fetch("OUTBOXER_MESSAGE_PARTITION_COUNT", 64))
+    PARTITIONS = (0...PARTITION_COUNT)
+
+    # Seeds counts and totals for all partitions.
+    # This method is idempotent and can be safely re-run.
+    #
+    # @param logger [#info, #error, #fatal, nil] optional logger
+    # @param time [Time] time source for created_at / updated_at.
+    # @return [Integer] number of rows ensured per table.
+    def seed(logger: nil, time: ::Time)
+      current_utc_time = time.now.utc
+
+      [Models::MessageCount, Models::MessageTotal].each do |model|
+        PARTITIONS.each do |partition|
+          STATUSES.each do |status|
+            model.create_or_find_by!(status: status, partition: partition) do |record|
+              record.value      = 0
+              record.created_at = current_utc_time
+              record.updated_at = current_utc_time
+            end
+          end
+        end
+      end
+
+      logger&.info "Seeded #{PARTITIONS.size} message partitions"
+
+      nil
+    end
+
+    # Calculates the partition number for a given message ID.
+    #
+    # @param id [Integer] the unique message ID used to determine the partition.
+    # @param partition_count [Integer] the total number of partitions to divide messages across.
+    #   Defaults to PARTITION_COUNT.
+    # @return [Integer] the partition number derived by taking the ID modulo partition_count.
+    #
+    # @example
+    #   calculate_partition(id: 12345)
+    #   # => 17
+    def calculate_partition(id:, partition_count: PARTITION_COUNT)
+      id % partition_count
+    end
 
     # Queues a new message.
     # @param messageable [Object, nil] the object associated with the message.
+    # @param attempt [Integer] call attempt counter; first call should leave as default (1).
+    # @param logger [#info, #error, #fatal, nil] optional logger
     # @param time [Time] time context for setting timestamps.
-    # @return [Hash] a hash with message details including IDs and timestamps.
-    def queue(messageable:, time: ::Time)
+    # @return [Hash] a serialized message hash with keys:
+    #   - `:id` [Integer]
+    #   - `:status` [String]
+    #   - `:messageable_type` [String]
+    #   - `:messageable_id` [Integer, String]
+    #   - `:updated_at` [Time]
+    # @raise [Outboxer::Message::MissingSeed] when counter rows are absent and `attempt` > 1.
+    # @raise [Outboxer::Message::Error] on other failures during queuing.
+    # @example Basic usage
+    #   Outboxer::Message.queue(messageable: event, time: Time)
+    def queue(messageable:, attempt: 1, logger: nil, time: ::Time)
       current_utc_time = time.now.utc
 
-      message = Models::Message.create!(
-        status: Message::Status::QUEUED,
-        messageable_id: messageable.id,
-        messageable_type: messageable.class.name,
-        updated_at: current_utc_time,
-        queued_at: current_utc_time)
+      ActiveRecord::Base.transaction do
+        message = Models::Message.create!(
+          status: Status::QUEUED,
+          messageable_id: messageable.id,
+          messageable_type: messageable.class.name,
+          queued_at: current_utc_time,
+          updated_at: current_utc_time
+        )
 
-      serialize(
-        id: message.id,
-        status: message.status,
-        messageable_type: message.messageable_type,
-        messageable_id: message.messageable_id,
-        updated_at: message.updated_at)
+        partition = calculate_partition(id: message.id)
+
+        updated_count = Models::MessageCount
+          .where(status: Status::QUEUED, partition: partition)
+          .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
+
+        updated_total = Models::MessageTotal
+          .where(status: Status::QUEUED, partition: partition)
+          .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
+
+        if updated_count.zero? || updated_total.zero?
+          raise MissingSeed, "Missing seed"
+        end
+
+        {
+          id: message.id,
+          status: message.status,
+          messageable_type: message.messageable_type,
+          messageable_id: message.messageable_id,
+          updated_at: message.updated_at
+        }
+      end
+    rescue MissingSeed
+      if attempt == 1
+        Message.seed(time: time, logger: logger)
+
+        Message.queue(messageable: messageable, attempt: attempt + 1, logger: logger, time: time)
+      else
+        raise
+      end
     end
 
     # Publishes the next queued message by yielding it to the caller’s block.
@@ -134,6 +216,20 @@ module Outboxer
               updated_at: current_utc_time,
               publishing_at: current_utc_time)
 
+            partition = calculate_partition(id: message.id)
+
+            Models::MessageCount
+              .where(status: Status::QUEUED, partition: partition)
+              .update_all(["value = value - ?, updated_at = ?", 1, current_utc_time])
+
+            Models::MessageCount
+              .where(status: Status::PUBLISHING, partition: partition)
+              .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
+
+            Models::MessageTotal
+              .where(status: Status::PUBLISHING, partition: partition)
+              .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
+
             {
               id: message[:id],
               messageable_type: message[:messageable_type],
@@ -162,15 +258,29 @@ module Outboxer
 
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          message = Models::Message.lock.find_by!(id: id)
+          message = Models::Message.includes(exceptions: :frames).lock.find_by!(id: id)
 
           if message.status != Models::Message::Status::PUBLISHING
             raise Error, "Status must be publishing"
           end
 
-          message.update!(
-            status: Status::PUBLISHED,
-            updated_at: current_utc_time, published_at: current_utc_time)
+          message.exceptions.each { |exception| exception.frames.each(&:delete) }
+          message.exceptions.delete_all
+          message.delete
+
+          partition = calculate_partition(id: message.id)
+
+          Models::MessageCount
+            .where(status: Status::PUBLISHING, partition: partition)
+            .update_all(["value = value - ?, updated_at = ?", 1, current_utc_time])
+
+          Models::MessageCount
+            .where(status: Status::PUBLISHED, partition: partition)
+            .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
+
+          Models::MessageTotal
+            .where(status: Status::PUBLISHED, partition: partition)
+            .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
 
           nil
         end
@@ -214,6 +324,20 @@ module Outboxer
               exception.frames.create!(index: index, text: backtrace_line)
             end
           end
+
+          partition = calculate_partition(id: message.id)
+
+          Models::MessageCount
+            .where(status: Status::PUBLISHING, partition: partition)
+            .update_all(["value = value - ?, updated_at = ?", 1, current_utc_time])
+
+          Models::MessageCount
+            .where(status: Status::FAILED, partition: partition)
+            .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
+
+          Models::MessageTotal
+            .where(status: Status::FAILED, partition: partition)
+            .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
 
           nil
         end
@@ -302,7 +426,9 @@ module Outboxer
     # Deletes a message by ID.
     # @param id [Integer] the ID of the message to delete.
     # @return [Hash] details of the deleted message.
-    def delete(id:)
+    def delete(id:, time: ::Time)
+      current_utc_time = time.now.utc
+
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           message = Models::Message.includes(exceptions: :frames).lock.find_by!(id: id)
@@ -311,10 +437,11 @@ module Outboxer
           message.exceptions.delete_all
           message.delete
 
-          setting = Models::Setting.lock("FOR UPDATE").find_by(
-            name: "messages.#{message.status}.count.historic")
+          partition = calculate_partition(id: message.id)
 
-          setting.update!(value: setting.value.to_i + 1).to_s if !setting.nil?
+          Models::MessageCount
+            .where(status: message.status, partition: partition)
+            .update_all(["value = value - ?, updated_at = ?", 1, current_utc_time])
 
           { id: id }
         end
@@ -338,11 +465,17 @@ module Outboxer
     # @return [Hash] updated message details.
     def requeue(id:, publisher_id: nil, publisher_name: nil,
                 time: ::Time)
+      current_utc_time = time.now.utc
+
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           message = Models::Message.lock.find_by!(id: id)
 
-          current_utc_time = time.now.utc
+          partition = calculate_partition(id: message.id)
+
+          Models::MessageCount
+            .where(status: message.status, partition: partition)
+            .update_all(["value = value - ?, updated_at = ?", 1, current_utc_time])
 
           message.update!(
             status: Message::Status::QUEUED,
@@ -354,12 +487,20 @@ module Outboxer
             publisher_id: publisher_id,
             publisher_name: publisher_name)
 
+          Models::MessageCount
+            .where(status: Status::QUEUED, partition: partition)
+            .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
+
+          Models::MessageTotal
+            .where(status: Status::QUEUED, partition: partition)
+            .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
+
           { id: id }
         end
       end
     end
 
-    LIST_STATUS_OPTIONS = [nil, :queued, :publishing, :published, :failed]
+    LIST_STATUS_OPTIONS = [nil, :queued, :publishing, :failed]
     LIST_STATUS_DEFAULT = nil
 
     LIST_SORT_OPTIONS = [:id, :status, :messageable, :queued_at, :updated_at, :publisher_name]
@@ -650,62 +791,64 @@ module Outboxer
       end
     end
 
-    # Retrieves and calculates metrics related to message statuses, including counts and throughput.
-    # @param time [Time] current time context used for calculating metrics.
-    # @return [Hash] detailed metrics about messages across various statuses.
-    def metrics(time: ::Time)
+    # Retrieves and calculates metrics related to message statuses, including counts and totals.
+    # Latency and throughput are placeholders (0) until partitioned metrics tables are implemented.
+    # @return [Hash] detailed metrics across various message statuses.
+    def metrics
       metrics = { all: { count: { current: 0 } } }
 
       Models::Message::STATUSES.each do |status|
-        metrics[status.to_sym] = { count: { current: 0 }, latency: 0, throughput: 0 }
+        metrics[status.to_sym] = {
+          count: { current: 0 },
+          latency: 0,
+          throughput: 0
+        }
       end
 
-      grouped_messages = nil
+      counts_by_status = count_by_status
+      totals_by_status = total_by_status
 
-      current_utc_time = time.now.utc
+      Models::Message::STATUSES.each do |status|
+        status_key = status.to_s
+        status_symbol = status.to_sym
 
-      ActiveRecord::Base.connection_pool.with_connection do
-        time_condition = ActiveRecord::Base.sanitize_sql_array([
-          "updated_at >= ?", current_utc_time - 1.second
-        ])
+        current_count = counts_by_status[status_key]
+        metrics[status_symbol][:count][:current] = current_count
+        metrics[status_symbol][:count][:total] = totals_by_status[status_key]
+        metrics[:all][:count][:current] += current_count
 
-        grouped_messages = Models::Message
-          .group(:status)
-          .select(
-            "status, COUNT(*) AS count, MIN(updated_at) AS oldest_updated_at",
-            "SUM(CASE WHEN #{time_condition} THEN 1 ELSE 0 END) AS throughput")
-          .to_a
-
-        metrics[:published][:count][:historic] = Models::Setting
-          .find_by!(name: "messages.published.count.historic").value.to_i
-
-        metrics[:failed][:count][:historic] = Models::Setting
-          .find_by!(name: "messages.failed.count.historic").value.to_i
+        metrics[status_symbol][:latency] = 0
+        metrics[status_symbol][:throughput] = 0
       end
 
-      grouped_messages.each do |grouped_message|
-        status = grouped_message.status.to_sym
-
-        metrics[status][:count][:current] = grouped_message.count
-
-        if grouped_message.oldest_updated_at
-          latency = (current_utc_time - grouped_message.oldest_updated_at.utc).to_i
-
-          metrics[status][:latency] = latency
-        end
-
-        metrics[status][:throughput] = grouped_message.throughput
-
-        metrics[:all][:count][:current] += grouped_message.count
-      end
-
-      metrics[:published][:count][:total] =
-        metrics[:published][:count][:historic] + metrics[:published][:count][:current]
-
-      metrics[:failed][:count][:total] =
-        metrics[:failed][:count][:historic] + metrics[:failed][:count][:current]
+      metrics[:published][:count][:total] = totals_by_status["published"].to_i
+      metrics[:failed][:count][:total] = totals_by_status["failed"].to_i
 
       metrics
+    end
+
+    # Returns the current counts per status aggregated across all partitions.
+    #
+    # @return [Hash{String=>Integer}] map of status name (string) to current count.
+    # @example
+    #   Outboxer::Message.count_by_status
+    #   # => { "queued" => 123, "publishing" => 4, "published" => 987, "failed" => 2 }
+    def count_by_status
+      Message::STATUSES
+        .index_with { 0 }
+        .merge(Models::MessageCount.group(:status).sum(:value).transform_keys(&:to_s))
+    end
+
+    # Returns the total (lifetime) counts per status aggregated across all partitions.
+    #
+    # @return [Hash{String=>Integer}] map of status name (string) to total count.
+    # @example
+    #   Outboxer::Message.total_by_status
+    #   # => { "queued" => 1200, "publishing" => 400, "published" => 100_000, "failed" => 250 }
+    def total_by_status
+      Message::STATUSES
+        .index_with { 0 }
+        .merge(Models::MessageTotal.group(:status).sum(:value).transform_keys(&:to_s))
     end
   end
 end

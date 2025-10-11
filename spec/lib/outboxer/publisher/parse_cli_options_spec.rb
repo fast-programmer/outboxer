@@ -42,24 +42,6 @@ module Outboxer
           ).to eq({ heartbeat_interval: 10 })
         end
 
-        it "parses the sweep interval flag" do
-          expect(
-            Publisher.parse_cli_options(["--sweep-interval", "10"])
-          ).to eq({ sweep_interval: 10 })
-        end
-
-        it "parses the sweep retention flag" do
-          expect(
-            Publisher.parse_cli_options(["--sweep-retention", "10"])
-          ).to eq({ sweep_retention: 10 })
-        end
-
-        it "parses the sweep batch size flag" do
-          expect(
-            Publisher.parse_cli_options(["--sweep-batch_size", "10"])
-          ).to eq({ sweep_batch_size: 10 })
-        end
-
         it "parses the log level flag" do
           expect(Publisher.parse_cli_options(["--log-level", "0"])).to eq({ log_level: 0 })
         end

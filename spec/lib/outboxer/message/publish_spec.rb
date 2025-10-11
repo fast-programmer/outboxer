@@ -28,8 +28,8 @@ module Outboxer
               messageable_type: queued_message.messageable_type,
               messageable_id: queued_message.messageable_id
             })
-            expect(queued_message.reload.status)
-              .to eq(Models::Message::Status::PUBLISHED)
+
+            expect(Models::Message.published.count).to eql(0)
           end
 
           it "returns { id: ... } and marks as failed on StandardError" do
