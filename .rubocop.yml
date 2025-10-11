@@ -12,6 +12,8 @@ Metrics/PerceivedComplexity:
   Max: 25
 Style/SafeNavigationChainLength:
   Enabled: false
+Style/GuardClause:
+  Enabled: false
 Style/HashSyntax:
   EnforcedShorthandSyntax: never
 Style/RegexpLiteral:

@@ -7,18 +7,67 @@ module Outboxer
     Status = Models::Message::Status
 
     class Error < StandardError; end
+    class MissingSeed < Error; end
 
     PARTITION_COUNT = Integer(ENV.fetch("OUTBOXER_MESSAGE_PARTITION_COUNT", 64))
+    PARTITIONS = (0...PARTITION_COUNT)
 
-    def calculate_partition(id:)
-      id % PARTITION_COUNT
+    # Seeds counter and total rows for all statuses and partitions.
+    # This method is idempotent and can be safely re-run.
+    #
+    # @param logger [#info, #error, #fatal, nil] optional logger
+    # @param time [Time] time source for created_at / updated_at.
+    # @return [Integer] number of rows ensured per table.
+    def seed(logger: nil, time: ::Time)
+      current_utc_time = time.now.utc
+
+      [Models::MessageCount, Models::MessageTotal].each do |model|
+        PARTITIONS.each do |partition|
+          STATUSES.each do |status|
+            model.create_or_find_by!(status: status, partition: partition) do |record|
+              record.value      = 0
+              record.created_at = current_utc_time
+              record.updated_at = current_utc_time
+            end
+          end
+        end
+      end
+
+      logger&.info "Seeded #{PARTITIONS.size} message partitions"
+
+      nil
+    end
+
+    # Calculates the partition number for a given message ID.
+    #
+    # @param id [Integer] the unique message ID used to determine the partition.
+    # @param partition_count [Integer] the total number of partitions to divide messages across.
+    #   Defaults to PARTITION_COUNT.
+    # @return [Integer] the partition number derived by taking the ID modulo partition_count.
+    #
+    # @example
+    #   calculate_partition(id: 12345)
+    #   # => 17
+    def calculate_partition(id:, partition_count: PARTITION_COUNT)
+      id % partition_count
     end
 
     # Queues a new message.
     # @param messageable [Object, nil] the object associated with the message.
+    # @param attempt [Integer] call attempt counter; first call should leave as default (1).
+    # @param logger [#info, #error, #fatal, nil] optional logger
     # @param time [Time] time context for setting timestamps.
-    # @return [Hash] a hash with message details including IDs and timestamps.
-    def queue(messageable:, time: ::Time)
+    # @return [Hash] a serialized message hash with keys:
+    #   - `:id` [Integer]
+    #   - `:status` [String]
+    #   - `:messageable_type` [String]
+    #   - `:messageable_id` [Integer, String]
+    #   - `:updated_at` [Time]
+    # @raise [Outboxer::Message::MissingSeed] when counter rows are absent and `attempt` > 1.
+    # @raise [Outboxer::Message::Error] on other failures during queuing.
+    # @example Basic usage
+    #   Outboxer::Message.queue(messageable: event, time: Time)
+    def queue(messageable:, attempt: 1, logger: nil, time: ::Time)
       current_utc_time = time.now.utc
 
       ActiveRecord::Base.transaction do
@@ -27,33 +76,22 @@ module Outboxer
           messageable_id: messageable.id,
           messageable_type: messageable.class.name,
           queued_at: current_utc_time,
-          updated_at: current_utc_time)
+          updated_at: current_utc_time
+        )
 
         partition = calculate_partition(id: message.id)
 
-        Models::MessageCount.create_or_find_by!(
-          status: Status::QUEUED, partition: partition
-        ) do |message_count|
-          message_count.value = 0
-          message_count.created_at = current_utc_time
-          message_count.updated_at = current_utc_time
-        end
-
-        Models::MessageCount
+        updated_count = Models::MessageCount
           .where(status: Status::QUEUED, partition: partition)
           .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
 
-        Models::MessageTotal.create_or_find_by!(
-          status: Status::QUEUED, partition: partition
-        ) do |message_total|
-          message_total.value = 0
-          message_total.created_at = current_utc_time
-          message_total.updated_at = current_utc_time
-        end
-
-        Models::MessageTotal
+        updated_total = Models::MessageTotal
           .where(status: Status::QUEUED, partition: partition)
           .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
+
+        if updated_count.zero? || updated_total.zero?
+          raise MissingSeed, "Missing seed"
+        end
 
         {
           id: message.id,
@@ -62,6 +100,14 @@ module Outboxer
           messageable_id: message.messageable_id,
           updated_at: message.updated_at
         }
+      end
+    rescue MissingSeed
+      if attempt == 1
+        Message.seed(time: time, logger: logger)
+
+        Message.queue(messageable: messageable, attempt: attempt + 1, logger: logger, time: time)
+      else
+        raise
       end
     end
 
@@ -176,25 +222,9 @@ module Outboxer
               .where(status: Status::QUEUED, partition: partition)
               .update_all(["value = value - ?, updated_at = ?", 1, current_utc_time])
 
-            Models::MessageCount.create_or_find_by!(
-              status: Status::PUBLISHING, partition: partition
-            ) do |message_count|
-              message_count.value = 0
-              message_count.created_at = current_utc_time
-              message_count.updated_at = current_utc_time
-            end
-
             Models::MessageCount
               .where(status: Status::PUBLISHING, partition: partition)
               .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
-
-            Models::MessageTotal.create_or_find_by!(
-              status: Status::PUBLISHING, partition: partition
-            ) do |message_total|
-              message_total.value = 0
-              message_total.created_at = current_utc_time
-              message_total.updated_at = current_utc_time
-            end
 
             Models::MessageTotal
               .where(status: Status::PUBLISHING, partition: partition)
@@ -244,25 +274,9 @@ module Outboxer
             .where(status: Status::PUBLISHING, partition: partition)
             .update_all(["value = value - ?, updated_at = ?", 1, current_utc_time])
 
-          Models::MessageCount.create_or_find_by!(
-            status: Status::PUBLISHED, partition: partition
-          ) do |message_count|
-            message_count.value = 0
-            message_count.created_at = current_utc_time
-            message_count.updated_at = current_utc_time
-          end
-
           Models::MessageCount
             .where(status: Status::PUBLISHED, partition: partition)
             .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
-
-          Models::MessageTotal.create_or_find_by!(
-            status: Status::PUBLISHED, partition: partition
-          ) do |message_count|
-            message_count.value = 0
-            message_count.created_at = current_utc_time
-            message_count.updated_at = current_utc_time
-          end
 
           Models::MessageTotal
             .where(status: Status::PUBLISHED, partition: partition)
@@ -317,25 +331,9 @@ module Outboxer
             .where(status: Status::PUBLISHING, partition: partition)
             .update_all(["value = value - ?, updated_at = ?", 1, current_utc_time])
 
-          Models::MessageCount.create_or_find_by!(
-            status: Status::FAILED, partition: partition
-          ) do |message_count|
-            message_count.value = 0
-            message_count.created_at = current_utc_time
-            message_count.updated_at = current_utc_time
-          end
-
           Models::MessageCount
             .where(status: Status::FAILED, partition: partition)
             .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
-
-          Models::MessageTotal.create_or_find_by!(
-            status: Status::FAILED, partition: partition
-          ) do |message_count|
-            message_count.value = 0
-            message_count.created_at = current_utc_time
-            message_count.updated_at = current_utc_time
-          end
 
           Models::MessageTotal
             .where(status: Status::FAILED, partition: partition)
