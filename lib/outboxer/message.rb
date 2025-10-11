@@ -258,15 +258,15 @@ module Outboxer
 
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          message = Models::Message.lock.find_by!(id: id)
+          message = Models::Message.includes(exceptions: :frames).lock.find_by!(id: id)
 
           if message.status != Models::Message::Status::PUBLISHING
             raise Error, "Status must be publishing"
           end
 
-          message.update!(
-            status: Status::PUBLISHED,
-            updated_at: current_utc_time, published_at: current_utc_time)
+          message.exceptions.each { |exception| exception.frames.each(&:delete) }
+          message.exceptions.delete_all
+          message.delete
 
           partition = calculate_partition(id: message.id)
 
