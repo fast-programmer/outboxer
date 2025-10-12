@@ -543,10 +543,11 @@ module Outboxer
         order: params[:order],
         page: params[:page],
         per_page: params[:per_page],
-        time_zone: params[:time_zone]
-      )
+        time_zone: params[:time_zone])
 
       status = denormalised_query_params[:status]
+      raise ArgumentError, "status is required" if status.nil?
+
       requeued_count = 0
       failed_count = 0
 
