@@ -67,5 +67,43 @@ module Outboxer
       ActiveRecord::Base.connection_handler.connection_pool_list.each(&:disconnect!)
       logger&.info "Outboxer disconnected from database"
     end
+
+    # Truncates all Outboxer tables.
+    #
+    # - Runs inside a transaction for atomicity where supported.
+    # - Works across PostgreSQL and MySQL without adapter branching.
+    # - Automatically resets auto-increment / identity sequences.
+    #
+    # @param logger [#info, #warn, #error, nil] optional logger
+    # @return [void]
+    def truncate(logger: nil)
+      logger&.warn("Outboxer truncating tables...")
+
+      ActiveRecord::Base.connection_pool.with_connection do |connection|
+        ActiveRecord::Base.transaction do
+          sql = <<~SQL
+            TRUNCATE TABLE
+              outboxer_messages,
+              outboxer_message_counts,
+              outboxer_message_totals,
+              outboxer_exceptions,
+              outboxer_frames,
+              outboxer_publishers,
+              outboxer_signals
+            RESTART IDENTITY
+            CASCADE;
+          SQL
+
+          connection.execute(sql)
+        end
+      end
+
+      logger&.info("Outboxer truncated tables.")
+    rescue => error
+      logger&.error(
+        "Outboxer truncate failed: #{error.class} – #{error.message}.")
+
+      raise
+    end
   end
 end
