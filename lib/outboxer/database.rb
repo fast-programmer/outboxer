@@ -67,5 +67,48 @@ module Outboxer
       ActiveRecord::Base.connection_handler.connection_pool_list.each(&:disconnect!)
       logger&.info "Outboxer disconnected from database"
     end
+
+    # Truncates all Outboxer tables.
+    #
+    # - Runs inside a transaction for atomicity where supported.
+    # - Works across PostgreSQL and MySQL without adapter branching.
+    # - Automatically resets auto-increment / identity sequences.
+    #
+    # @param logger [#info, #warn, #error, nil] optional logger
+    # @return [void]
+    def truncate(logger: nil)
+      logger&.warn("Outboxer truncating tables...")
+
+      ActiveRecord::Base.connection_pool.with_connection do |connection|
+        if connection.adapter_name.downcase.include?("postgres")
+          connection.execute(<<~SQL)
+            TRUNCATE TABLE
+              outboxer_message_counts,
+              outboxer_message_totals,
+              outboxer_frames,
+              outboxer_exceptions,
+              outboxer_messages,
+              outboxer_signals,
+              outboxer_publishers
+            RESTART IDENTITY;
+          SQL
+        else
+          foreign_key_checks = connection.select_value("SELECT @@FOREIGN_KEY_CHECKS;").to_i
+
+          begin
+            connection.execute("SET FOREIGN_KEY_CHECKS = 0;")
+            connection.execute("TRUNCATE TABLE outboxer_message_counts;")
+            connection.execute("TRUNCATE TABLE outboxer_message_totals;")
+            connection.execute("TRUNCATE TABLE outboxer_frames;")
+            connection.execute("TRUNCATE TABLE outboxer_exceptions;")
+            connection.execute("TRUNCATE TABLE outboxer_messages;")
+            connection.execute("TRUNCATE TABLE outboxer_signals;")
+            connection.execute("TRUNCATE TABLE outboxer_publishers;")
+          ensure
+            connection.execute("SET FOREIGN_KEY_CHECKS = #{foreign_key_checks};")
+          end
+        end
+      end
+    end
   end
 end
