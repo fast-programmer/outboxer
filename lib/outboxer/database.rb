@@ -79,31 +79,30 @@ module Outboxer
     def truncate(logger: nil)
       logger&.warn("Outboxer truncating tables...")
 
-      ActiveRecord::Base.connection_pool.with_connection do |connection|
-        ActiveRecord::Base.transaction do
-          sql = <<~SQL
-            TRUNCATE TABLE
-              outboxer_messages,
-              outboxer_message_counts,
-              outboxer_message_totals,
-              outboxer_exceptions,
-              outboxer_frames,
-              outboxer_publishers,
-              outboxer_signals
-            RESTART IDENTITY
-            CASCADE;
-          SQL
-
-          connection.execute(sql)
-        end
+      if ActiveRecord::Base.connection.adapter_name.downcase.include?("postgres")
+        ActiveRecord::Base.connection.execute(<<~SQL)
+          TRUNCATE TABLE
+            outboxer_message_counts,
+            outboxer_message_totals,
+            outboxer_frames,
+            outboxer_exceptions,
+            outboxer_messages,
+            outboxer_signals,
+            outboxer_publishers
+          RESTART IDENTITY
+          CASCADE;
+        SQL
+      else
+        ActiveRecord::Base.connection.execute(<<~SQL)
+          TRUNCATE TABLE outboxer_message_counts;
+          TRUNCATE TABLE outboxer_message_totals;
+          TRUNCATE TABLE outboxer_frames;
+          TRUNCATE TABLE outboxer_exceptions;
+          TRUNCATE TABLE outboxer_messages;
+          TRUNCATE TABLE outboxer_signals;
+          TRUNCATE TABLE outboxer_publishers;
+        SQL
       end
-
-      logger&.info("Outboxer truncated tables.")
-    rescue => error
-      logger&.error(
-        "Outboxer truncate failed: #{error.class} – #{error.message}.")
-
-      raise
     end
   end
 end
