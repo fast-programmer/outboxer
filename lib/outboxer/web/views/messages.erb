@@ -11,51 +11,64 @@
                     </div>
                     <!-- Buttons aligned to right on larger screens, hidden on smallest screens -->
                     <div class="col d-none d-sm-flex justify-content-end">
-                        <form id="requeueAllForm" action="<%= outboxer_path("/messages/requeue_all") %>"
-                            method="post" class="me-2">
-                            <input type="hidden" name="action" value="requeue_all">
-                            <% normalised_query_params.each do |key, param| %>
-                                <input type="hidden" name="<%= key %>" value="<%= param %>">
-                            <% end %>
-                            <button type="submit" class="btn btn-sm btn-outline-secondary"
-                                <%= 'disabled' unless Outboxer::Message
-                                .can_requeue?(status: denormalised_query_params[:status]) %>>
-                                <i class="bi bi-arrow-clockwise"></i> Requeue All
-                            </button>
-                        </form>
-                        <form id="deleteAllForm" action="<%= outboxer_path("/messages/delete_all") %>" method="post">
-                            <input type="hidden" name="action" value="delete_all">
-                            <% normalised_query_params.each do |key, param| %>
-                                <input type="hidden" name="<%= key %>" value="<%= param %>">
-                            <% end %>
-                            <button type="submit" class="btn btn-sm btn-outline-danger">
-                                <i class="bi bi-trash"></i> Delete All
-                            </button>
-                        </form>
+                    <!-- Requeue Page -->
+                    <form action="<%= outboxer_path("/messages/update") %>" method="post" class="me-2">
+                        <% normalised_query_params.each do |key, param| %>
+                        <input type="hidden" name="<%= key %>" value="<%= param %>">
+                        <% end %>
+                        <input type="hidden" name="action" value="requeue_by_ids">
+                        <% messages.each do |message| %>
+                        <input type="hidden" name="selected_ids[]" value="<%= message[:id] %>">
+                        <% end %>
+                        <button type="submit" class="btn btn-sm btn-outline-secondary"
+                        <%= 'disabled' unless Outboxer::Message.can_requeue?(status: denormalised_query_params[:status]) %>>
+                        <i class="bi bi-arrow-clockwise"></i> Requeue Page
+                        </button>
+                    </form>
+
+                    <!-- Delete Page -->
+                    <form action="<%= outboxer_path("/messages/update") %>" method="post">
+                        <% normalised_query_params.each do |key, param| %>
+                            <input type="hidden" name="<%= key %>" value="<%= param %>">
+                        <% end %>
+                        <input type="hidden" name="action" value="delete_by_ids">
+                        <% messages.each do |message| %>
+                            <input type="hidden" name="selected_ids[]" value="<%= message[:id] %>">
+                        <% end %>
+                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-trash"></i> Delete Page
+                        </button>
+                    </form>
                     </div>
                     <!-- Buttons aligned underneath the header on the smallest screens -->
                     <div class="col-12 d-sm-none mt-2">
-                        <% if Outboxer::Message.can_requeue?(status: denormalised_query_params[:status]) %>
-                            <form id="requeueAllForm" action="<%= outboxer_path("/messages/requeue_all") %>" method="post" class="mb-2">
-                                <input type="hidden" name="action" value="requeue_all">
-                                <% normalised_query_params.each do |key, param| %>
-                                    <input type="hidden" name="<%= key %>" value="<%= param %>">
-                                <% end %>
-
-                                <button type="submit" class="btn btn-sm btn-outline-secondary w-100">
-                                    <i class="bi bi-arrow-clockwise"></i> Requeue All
-                                </button>
-                            </form>
+                    <% if Outboxer::Message.can_requeue?(status: denormalised_query_params[:status]) %>
+                        <form action="<%= outboxer_path("/messages/update") %>" method="post" class="mb-2">
+                        <% normalised_query_params.each do |key, param| %>
+                            <input type="hidden" name="<%= key %>" value="<%= param %>">
                         <% end %>
-                        <form id="deleteAllForm" action="<%= outboxer_path("/messages/delete_all") %>" method="post">
-                            <input type="hidden" name="action" value="delete_all">
-                            <% normalised_query_params.each do |key, param| %>
-                                <input type="hidden" name="<%= key %>" value="<%= param %>">
-                            <% end %>
-                            <button type="submit" class="btn btn-sm btn-outline-danger w-100">
-                                <i class="bi bi-trash"></i> Delete All
-                            </button>
+                        <input type="hidden" name="action" value="requeue_by_ids">
+                        <% messages.each do |message| %>
+                            <input type="hidden" name="selected_ids[]" value="<%= message[:id] %>">
+                        <% end %>
+                        <button type="submit" class="btn btn-sm btn-outline-secondary w-100">
+                            <i class="bi bi-arrow-clockwise"></i> Requeue Page
+                        </button>
                         </form>
+                    <% end %>
+
+                    <form action="<%= outboxer_path("/messages/update") %>" method="post">
+                        <% normalised_query_params.each do |key, param| %>
+                            <input type="hidden" name="<%= key %>" value="<%= param %>">
+                        <% end %>
+                        <input type="hidden" name="action" value="delete_by_ids">
+                        <% messages.each do |message| %>
+                            <input type="hidden" name="selected_ids[]" value="<%= message[:id] %>">
+                        <% end %>
+                        <button type="submit" class="btn btn-sm btn-outline-danger w-100">
+                            <i class="bi bi-trash"></i> Delete Page
+                        </button>
+                    </form>
                     </div>
                 </div>
             </div>
@@ -213,7 +226,7 @@
                             <% end %>
                             <label for="perPageSelect" class="me-2">Per&nbsp;page:</label>
                             <select class="form-select form-select-sm" aria-label="Per page" id="perPageSelect" name="per_page">
-                                <% [10, 100, 200, 500, 1000].each do |number| %>
+                                <% Outboxer::Message::LIST_PER_PAGE_OPTIONS.each do |number| %>
                                     <option value="<%= number %>"
                                             <%= 'selected' if denormalised_query_params[:per_page]&.to_i == number %>>
                                         <%= number %>

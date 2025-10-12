@@ -228,6 +228,44 @@ module Outboxer
       }
     end
 
+    get "" do
+      denormalised_query_params = denormalise_query_params(
+        status: params[:status],
+        sort: params[:sort],
+        order: params[:order],
+        page: params[:page],
+        per_page: params[:per_page],
+        time_zone: params[:time_zone])
+
+      normalised_query_params = normalise_query_params(
+        status: denormalised_query_params[:status],
+        sort: denormalised_query_params[:sort],
+        order: denormalised_query_params[:order],
+        page: denormalised_query_params[:page],
+        per_page: denormalised_query_params[:per_page],
+        time_zone: denormalised_query_params[:time_zone])
+
+      normalised_query_string = normalise_query_string(
+        status: denormalised_query_params[:status],
+        sort: denormalised_query_params[:sort],
+        order: denormalised_query_params[:order],
+        page: denormalised_query_params[:page],
+        per_page: denormalised_query_params[:per_page],
+        time_zone: denormalised_query_params[:time_zone])
+
+      messages_metrics = Message.metrics
+
+      publishers = Publisher.all
+
+      erb :home, locals: {
+        messages_metrics: messages_metrics,
+        denormalised_query_params: denormalised_query_params,
+        normalised_query_params: normalised_query_params,
+        normalised_query_string: normalised_query_string,
+        publishers: publishers
+      }
+    end
+
     post "/update_time_zone" do
       denormalised_query_params = denormalise_query_params(
         status: params[:status],
@@ -527,103 +565,6 @@ module Outboxer
         per_page: denormalised_query_params[:per_page],
         time_zone: denormalised_query_params[:time_zone],
         flash: flash
-      )
-
-      redirect to("/messages#{normalised_query_string}")
-    end
-
-    post "/messages/requeue_all" do
-      denormalised_query_params = denormalise_query_params(
-        status: params[:status],
-        sort: params[:sort],
-        order: params[:order],
-        page: params[:page],
-        per_page: params[:per_page],
-        time_zone: params[:time_zone])
-
-      status = denormalised_query_params[:status]
-      raise ArgumentError, "status is required" if status.nil?
-
-      requeued_count = 0
-      failed_count = 0
-
-      Outboxer::Message.each_id(status: status) do |id|
-        Outboxer::Message.requeue(id: id)
-        requeued_count += 1
-      rescue StandardError => error
-        settings.logger.error(
-          "[Outboxer::Web] Failed to requeue message id=#{id}\n" \
-          "error_class=#{error.class}\n" \
-          "error_message=#{error.message.inspect}"
-        )
-        failed_count += 1
-      end
-
-      flashes = {}
-      if requeued_count.positive?
-        flashes[:success] = "Requeued #{pluralise(requeued_count, "message")}"
-      end
-
-      if failed_count.positive?
-        flashes[:danger] = "Requeue failed for #{pluralise(failed_count, "message")}"
-      end
-
-      normalised_query_string = normalise_query_string(
-        status: denormalised_query_params[:status],
-        sort: denormalised_query_params[:sort],
-        order: denormalised_query_params[:order],
-        page: denormalised_query_params[:page],
-        per_page: denormalised_query_params[:per_page],
-        time_zone: denormalised_query_params[:time_zone],
-        flash: flashes
-      )
-
-      redirect to("/messages#{normalised_query_string}")
-    end
-
-    post "/messages/delete_all" do
-      denormalised_query_params = denormalise_query_params(
-        status: params[:status],
-        sort: params[:sort],
-        order: params[:order],
-        page: params[:page],
-        per_page: params[:per_page],
-        time_zone: params[:time_zone]
-      )
-
-      status = denormalised_query_params[:status]
-      deleted_count = 0
-      failed_count = 0
-
-      Outboxer::Message.each_id(status: status) do |id|
-        Outboxer::Message.delete(id: id)
-        deleted_count += 1
-      rescue StandardError => error
-        settings.logger.error(
-          "[Outboxer::Web] Failed to delete message id=#{id}\n" \
-          "error_class=#{error.class}\n" \
-          "error_message=#{error.message.inspect}"
-        )
-        failed_count += 1
-      end
-
-      flashes = {}
-      if deleted_count.positive?
-        flashes[:success] = "Deleted #{pluralise(deleted_count, "message")}"
-      end
-
-      if failed_count.positive?
-        flashes[:danger] = "Delete failed for #{pluralise(failed_count, "message")}"
-      end
-
-      normalised_query_string = normalise_query_string(
-        status: denormalised_query_params[:status],
-        sort: denormalised_query_params[:sort],
-        order: denormalised_query_params[:order],
-        page: denormalised_query_params[:page],
-        per_page: denormalised_query_params[:per_page],
-        time_zone: denormalised_query_params[:time_zone],
-        flash: flashes
       )
 
       redirect to("/messages#{normalised_query_string}")
