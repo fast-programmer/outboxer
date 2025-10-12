@@ -85,21 +85,23 @@ module Outboxer
             TRUNCATE TABLE
               outboxer_message_counts,
               outboxer_message_totals,
-              outboxer_messages,
-              outboxer_exceptions,
               outboxer_frames,
-              outboxer_publishers,
-              outboxer_signals
+              outboxer_exceptions,
+              outboxer_messages,
+              outboxer_signals,
+              outboxer_publishers
             RESTART IDENTITY;
           SQL
         else
+          connection.execute("SET FOREIGN_KEY_CHECKS = 0;")
           connection.execute("TRUNCATE TABLE outboxer_message_counts;")
           connection.execute("TRUNCATE TABLE outboxer_message_totals;")
-          connection.execute("TRUNCATE TABLE outboxer_messages;")
-          connection.execute("TRUNCATE TABLE outboxer_exceptions;")
           connection.execute("TRUNCATE TABLE outboxer_frames;")
-          connection.execute("TRUNCATE TABLE outboxer_publishers;")
+          connection.execute("TRUNCATE TABLE outboxer_exceptions;")
+          connection.execute("TRUNCATE TABLE outboxer_messages;")
           connection.execute("TRUNCATE TABLE outboxer_signals;")
+          connection.execute("TRUNCATE TABLE outboxer_publishers;")
+          connection.execute("SET FOREIGN_KEY_CHECKS = 1;")
         end
       end
     end
