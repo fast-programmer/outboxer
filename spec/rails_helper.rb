@@ -40,7 +40,5 @@ RSpec.configure do |config|
            ActiveRecord::StatementInvalid
       # Optionally log these errors or handle them as needed
     end
-
-    Outboxer::Setting.create_all
   end
 end
