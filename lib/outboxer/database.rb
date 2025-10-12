@@ -92,15 +92,13 @@ module Outboxer
           RESTART IDENTITY;
         SQL
       else
-        ActiveRecord::Base.connection.execute(<<~SQL)
-          TRUNCATE TABLE outboxer_message_counts;
-          TRUNCATE TABLE outboxer_message_totals;
-          TRUNCATE TABLE outboxer_frames;
-          TRUNCATE TABLE outboxer_exceptions;
-          TRUNCATE TABLE outboxer_messages;
-          TRUNCATE TABLE outboxer_signals;
-          TRUNCATE TABLE outboxer_publishers;
-        SQL
+        ActiveRecord::Base.connection.execute("TRUNCATE TABLE outboxer_message_counts;")
+        ActiveRecord::Base.connection.execute("TRUNCATE TABLE outboxer_message_totals;")
+        ActiveRecord::Base.connection.execute("TRUNCATE TABLE outboxer_frames;")
+        ActiveRecord::Base.connection.execute("TRUNCATE TABLE outboxer_exceptions;")
+        ActiveRecord::Base.connection.execute("TRUNCATE TABLE outboxer_messages;")
+        ActiveRecord::Base.connection.execute("TRUNCATE TABLE outboxer_signals;")
+        ActiveRecord::Base.connection.execute("TRUNCATE TABLE outboxer_publishers;")
       end
     end
   end
