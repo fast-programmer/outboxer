@@ -519,11 +519,11 @@ module Outboxer
         end
 
         if requeued_message_count.positive?
-          flash[:success] = "Requeued #{pluralise(requeued_message_count, 'message')}"
+          flash[:success] = "Requeued #{pluralise(requeued_message_count, "message")}"
         end
 
         if failed_message_count.positive?
-          flash[:danger] = "Requeue failed for #{pluralise(failed_message_count, 'message')}"
+          flash[:danger] = "Requeue failed for #{pluralise(failed_message_count, "message")}"
         end
 
       when "delete_by_ids"
@@ -546,11 +546,11 @@ module Outboxer
         end
 
         if deleted_message_count.positive?
-          flash[:success] = "Deleted #{pluralise(deleted_message_count, 'message')}"
+          flash[:success] = "Deleted #{pluralise(deleted_message_count, "message")}"
         end
 
         if failed_message_count.positive?
-          flash[:danger] = "Delete failed for #{pluralise(failed_message_count, 'message')}"
+          flash[:danger] = "Delete failed for #{pluralise(failed_message_count, "message")}"
         end
 
       else
