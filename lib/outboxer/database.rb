@@ -93,15 +93,20 @@ module Outboxer
             RESTART IDENTITY;
           SQL
         else
-          connection.execute("SET FOREIGN_KEY_CHECKS = 0;")
-          connection.execute("TRUNCATE TABLE outboxer_message_counts;")
-          connection.execute("TRUNCATE TABLE outboxer_message_totals;")
-          connection.execute("TRUNCATE TABLE outboxer_frames;")
-          connection.execute("TRUNCATE TABLE outboxer_exceptions;")
-          connection.execute("TRUNCATE TABLE outboxer_messages;")
-          connection.execute("TRUNCATE TABLE outboxer_signals;")
-          connection.execute("TRUNCATE TABLE outboxer_publishers;")
-          connection.execute("SET FOREIGN_KEY_CHECKS = 1;")
+          foreign_key_checks = connection.select_value("SELECT @@FOREIGN_KEY_CHECKS;").to_i
+
+          begin
+            connection.execute("SET FOREIGN_KEY_CHECKS = 0;")
+            connection.execute("TRUNCATE TABLE outboxer_message_counts;")
+            connection.execute("TRUNCATE TABLE outboxer_message_totals;")
+            connection.execute("TRUNCATE TABLE outboxer_frames;")
+            connection.execute("TRUNCATE TABLE outboxer_exceptions;")
+            connection.execute("TRUNCATE TABLE outboxer_messages;")
+            connection.execute("TRUNCATE TABLE outboxer_signals;")
+            connection.execute("TRUNCATE TABLE outboxer_publishers;")
+          ensure
+            connection.execute("SET FOREIGN_KEY_CHECKS = #{foreign_key_checks};")
+          end
         end
       end
     end
