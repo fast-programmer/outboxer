@@ -85,19 +85,27 @@
                     <div class="row justify-content-start">
                         <div class="col-auto">
                             <% normalised_query_params.each do |key, param| %>
-                                <input type="hidden" name="<%= key %>" value="<%= param %>">
+                            <input type="hidden" name="<%= key %>" value="<%= param %>">
+                            <% end %>
+
+                            <% messages.each_with_index do |message, i| %>
+                                <input type="hidden" name="selected_messages[<%= i %>][id]" value="<%= message[:id] %>">
+                                <input type="hidden" name="selected_messages[<%= i %>][lock_version]" value="<%= message[:lock_version] %>">
                             <% end %>
 
                             <!-- Requeue Selected Button -->
                             <button class="btn btn-sm btn-outline-secondary me-2" type="submit" name="action"
                                     value="requeue_by_ids" data-bs-toggle="tooltip" data-bs-placement="top"
-                                    title="Requeue selected" <%= 'disabled' unless Outboxer::Message.can_requeue?(status: denormalised_query_params[:status]) %>>
-                                <i class="bi bi-arrow-clockwise"></i> Requeue Selected
+                                    title="Requeue selected"
+                                    <%= 'disabled' unless Outboxer::Message.can_requeue?(status: denormalised_query_params[:status]) %>>
+                            <i class="bi bi-arrow-clockwise"></i> Requeue Selected
                             </button>
 
                             <!-- Delete Selected Button -->
-                            <button class="btn btn-sm btn-outline-danger" type="submit" name="action" value="delete_by_ids" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete selected">
-                                <i class="bi bi-trash"></i> Delete Selected
+                            <button class="btn btn-sm btn-outline-danger" type="submit" name="action"
+                                    value="delete_by_ids" data-bs-toggle="tooltip" data-bs-placement="top"
+                                    title="Delete selected">
+                            <i class="bi bi-trash"></i> Delete Selected
                             </button>
                         </div>
                     </div>
@@ -165,23 +173,28 @@
                                         <!-- Requeue Button Form -->
                                         <form action="<%= outboxer_path("/message/#{message[:id]}/requeue") %>" method="post">
                                             <% normalised_query_params.each do |key, param| %>
-                                                <input type="hidden" name="<%= key %>" value="<%= param %>">
+                                            <input type="hidden" name="<%= key %>" value="<%= param %>">
                                             <% end %>
-                                            <button type="submit" class="btn btn-sm btn-outline-secondary me-1 d-flex align-items-center
-                                                            justify-content-center" <%= 'disabled' unless Outboxer::Message
-                                                                                    .can_requeue?(status: denormalised_query_params[:status]) %>>
-                                                <i class="bi bi-arrow-clockwise me-1"></i>
-                                                <span>Requeue</span>
+                                            <input type="hidden" name="lock_version" value="<%= message[:lock_version] %>">
+
+                                            <button type="submit"
+                                                    class="btn btn-sm btn-outline-secondary me-1 d-flex align-items-center justify-content-center"
+                                                    <%= 'disabled' unless Outboxer::Message
+                                                        .can_requeue?(status: denormalised_query_params[:status]) %>>
+                                            <i class="bi bi-arrow-clockwise me-1"></i>
+                                            <span>Requeue</span>
                                             </button>
                                         </form>
 
                                         <!-- Delete Button Form -->
                                         <form action="<%= outboxer_path("/message/#{message[:id]}/delete") %>" method="post">
                                             <% normalised_query_params.each do |key, param| %>
-                                                <input type="hidden" name="<%= key %>" value="<%= param %>">
+                                            <input type="hidden" name="<%= key %>" value="<%= param %>">
                                             <% end %>
+                                            <input type="hidden" name="lock_version" value="<%= message[:lock_version] %>">
 
-                                            <button type="submit" class="btn btn-sm btn-outline-danger ms-1 d-flex align-items-center justify-content-center">
+                                            <button type="submit"
+                                                    class="btn btn-sm btn-outline-danger ms-1 d-flex align-items-center justify-content-center">
                                             <i class="bi bi-trash me-1"></i>
                                             <span>Delete</span>
                                             </button>
@@ -247,58 +260,76 @@
     </div>
 </div>
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const checkboxes = document.querySelectorAll('.individual-check');
-        const checkAll = document.getElementById('checkAll');
-        const bulkActionsToolbar = document.getElementById('bulkActionsToolbar');
+document.addEventListener('DOMContentLoaded', function () {
+  const checkboxes = document.querySelectorAll('.individual-check');
+  const checkAll = document.getElementById('checkAll');
+  const bulkActionsToolbar = document.getElementById('bulkActionsToolbar');
+  const bulkActionForm = document.getElementById('bulkActionForm');
 
-        function toggleBulkActionsToolbar() {
-            const anyChecked = Array.from(checkboxes).some(checkbox => checkbox.checked);
-            bulkActionsToolbar.classList.toggle('d-none', !anyChecked);
+  function toggleBulkActionsToolbar() {
+    const anyChecked = Array.from(checkboxes).some(checkbox => checkbox.checked);
+    bulkActionsToolbar.classList.toggle('d-none', !anyChecked);
+    updateSelectedMessages();
+  }
+
+  function updateSelectedMessages() {
+    // Remove previously generated hidden fields
+    bulkActionForm.querySelectorAll('input[name^="selected_messages"]').forEach(el => el.remove());
+
+    // For each checked message, add both id and lock_version fields
+    Array.from(checkboxes)
+      .filter(checkbox => checkbox.checked)
+      .forEach((checkbox, index) => {
+        const messageId = checkbox.dataset.messageId;
+        const lockVersion = checkbox.dataset.lockVersion;
+
+        if (messageId && lockVersion) {
+          const idField = document.createElement('input');
+          idField.type = 'hidden';
+          idField.name = `selected_messages[${index}][id]`;
+          idField.value = messageId;
+
+          const lockField = document.createElement('input');
+          lockField.type = 'hidden';
+          lockField.name = `selected_messages[${index}][lock_version]`;
+          lockField.value = lockVersion;
+
+          bulkActionForm.appendChild(idField);
+          bulkActionForm.appendChild(lockField);
         }
+      });
+  }
 
-        checkboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', toggleBulkActionsToolbar);
-        });
+  // Handle individual checkboxes
+  checkboxes.forEach(checkbox => {
+    checkbox.addEventListener('change', toggleBulkActionsToolbar);
+  });
 
-
-        if (checkAll) {
-            checkAllElement.addEventListener('change', function (e) {
-                var checkboxes = document.querySelectorAll('.individual-check');
-                for (var i = 0; i < checkboxes.length; i++) {
-                    checkboxes[i].checked = e.target.checked;
-                }
-            });
-
-            checkAll.addEventListener('change', function () {
-                toggleBulkActionsToolbar();
-            });
-        }
-
-        const deleteAllBtn = document.getElementById('deleteAllBtn');
-
-        if (deleteAllBtn) {
-            deleteAllBtn.addEventListener('click', function(e) {
-                const confirmation = confirm('Are you sure you want to delete all?');
-                if (!confirmation) {
-                    e.preventDefault();
-                    return false;
-                }
-            });
-        }
-
-        const retryAllBtn = document.getElementById('retryAllBtn');
-
-        if (retryAllBtn) {
-            retryAllBtn.addEventListener('click', function(e) {
-                const confirmation = confirm('Are you sure you want to retry all?');
-                if (!confirmation) {
-                    e.preventDefault();
-                    return false;
-                }
-            });
-        }
+  // Handle "Check All" toggle
+  if (checkAll) {
+    checkAll.addEventListener('change', function (e) {
+      checkboxes.forEach(box => (box.checked = e.target.checked));
+      toggleBulkActionsToolbar();
     });
+  }
 
-    var checkAllElement = document.getElementById('checkAll');
+  // Confirm Delete All
+  const deleteAllBtn = document.getElementById('deleteAllBtn');
+  if (deleteAllBtn) {
+    deleteAllBtn.addEventListener('click', function (e) {
+      if (!confirm('Are you sure you want to delete all?')) e.preventDefault();
+    });
+  }
+
+  // Confirm Retry All
+  const retryAllBtn = document.getElementById('retryAllBtn');
+  if (retryAllBtn) {
+    retryAllBtn.addEventListener('click', function (e) {
+      if (!confirm('Are you sure you want to retry all?')) e.preventDefault();
+    });
+  }
+
+  // Initial state
+  toggleBulkActionsToolbar();
+});
 </script>

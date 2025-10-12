@@ -407,6 +407,7 @@ module Outboxer
     # Serializes message attributes into a hash.
     #
     # @param id [Integer] message ID.
+    # @param lock_version [Integer] message lock_version.
     # @param status [String] message status.
     # @param messageable_type [String] type of the messageable entity.
     # @param messageable_id [String] ID of the messageable entity.
@@ -418,11 +419,12 @@ module Outboxer
     # @param publisher_id [Integer, nil] optional publisher ID.
     # @param publisher_name [String, nil] optional publisher name.
     # @return [Hash] serialized message details.
-    def serialize(id:, status:, messageable_type:, messageable_id:, updated_at:,
+    def serialize(id:, lock_version:, status:, messageable_type:, messageable_id:, updated_at:,
                   queued_at: nil, publishing_at: nil, published_at: nil, failed_at: nil,
                   publisher_id: nil, publisher_name: nil)
       {
         id: id,
+        lock_version: lock_version,
         status: status,
         messageable_type: messageable_type,
         messageable_id: messageable_id,
@@ -452,6 +454,7 @@ module Outboxer
 
           {
             id: message.id,
+            lock_version: message.lock_version,
             status: message.status,
             messageable_type: message.messageable_type,
             messageable_id: message.messageable_id,
@@ -534,6 +537,8 @@ module Outboxer
 
           partition = calculate_partition(id: message.id)
 
+          original_status = message.status
+
           message.update!(
             lock_version: lock_version,
             status: Message::Status::QUEUED,
@@ -546,15 +551,15 @@ module Outboxer
             publisher_name: publisher_name)
 
           Models::MessageCount
-            .where(status: message.status, partition: partition)
+            .where(status: original_status, partition: partition)
             .update_all(["value = value - ?, updated_at = ?", 1, current_utc_time])
 
           Models::MessageCount
-            .where(status: Status::QUEUED, partition: partition)
+            .where(status: message.status, partition: partition)
             .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
 
           Models::MessageTotal
-            .where(status: Status::QUEUED, partition: partition)
+            .where(status: message.status, partition: partition)
             .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
 
           { id: id }
@@ -640,6 +645,7 @@ module Outboxer
         messages: paginated_messages.map do |message|
           {
             id: message.id,
+            lock_version: message.lock_version,
             status: message.status.to_sym,
             messageable_type: message.messageable_type,
             messageable_id: message.messageable_id,
