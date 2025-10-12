@@ -682,13 +682,6 @@ module Outboxer
       }
     end
 
-    # Checks if all messages with a specific status can be requeued.
-    # @param status [Symbol] the status to check for requeue eligibility.
-    # @return [Boolean] true if messages with the given status can be requeued, false otherwise.
-    def can_requeue_all?(status:)
-      REQUEUE_STATUSES.include?(status&.to_sym)
-    end
-
     # Retrieves and calculates metrics related to message statuses, including counts and totals.
     # Latency and throughput are placeholders (0) until partitioned metrics tables are implemented.
     # @return [Hash] detailed metrics across various message statuses.
