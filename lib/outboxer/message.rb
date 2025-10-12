@@ -489,7 +489,7 @@ module Outboxer
     #   Outboxer::Message.each_id(status: :failed, older_than: Time.now.utc) do |id|
     #     Outboxer::Message.delete(id: id, time: Time)
     #   end
-    def each_id(status: nil, older_than: nil, batch_size: 1_000)
+    def each_id(status: nil, older_than: nil, batch_size: 1_000, &block)
       scope = Models::Message.all
       scope = scope.where(status: status) unless status.nil?
       scope = scope.where("updated_at < ?", older_than) if older_than
@@ -502,7 +502,7 @@ module Outboxer
 
       return enumerator unless block_given?
 
-      enumerator.each { |id| yield id }
+      enumerator.each(&block)
 
       nil
     end
