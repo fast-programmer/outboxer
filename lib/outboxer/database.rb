@@ -89,8 +89,7 @@ module Outboxer
             outboxer_messages,
             outboxer_signals,
             outboxer_publishers
-          RESTART IDENTITY
-          CASCADE;
+          RESTART IDENTITY;
         SQL
       else
         ActiveRecord::Base.connection.execute(<<~SQL)
