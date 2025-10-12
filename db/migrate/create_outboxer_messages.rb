@@ -1,6 +1,8 @@
 class CreateOutboxerMessages < ActiveRecord::Migration[6.1]
   def up
     create_table :outboxer_messages do |t|
+      t.integer :lock_version, null: false, default: 0
+
       t.string :status, limit: 255, null: false
 
       t.string :messageable_id, limit: 255, null: false

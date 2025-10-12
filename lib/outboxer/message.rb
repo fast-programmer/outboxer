@@ -119,6 +119,7 @@ module Outboxer
 
         {
           id: message.id,
+          lock_version: message.lock_version,
           status: message.status,
           messageable_type: message.messageable_type,
           messageable_id: message.messageable_id,
@@ -284,9 +285,10 @@ module Outboxer
               .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
 
             {
-              id: message[:id],
-              messageable_type: message[:messageable_type],
-              messageable_id: message[:messageable_id]
+              id: message.id,
+              lock_version: message.lock_version,
+              messageable_type: message.messageable_type,
+              messageable_id: message.messageable_id
             }
           end
         end
@@ -392,7 +394,9 @@ module Outboxer
             .where(status: Status::FAILED, partition: partition)
             .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
 
-          nil
+          {
+            lock_version: message.lock_version
+          }
         end
       end
     end
