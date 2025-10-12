@@ -13,7 +13,7 @@ module Outboxer
         let!(:exception) { create(:outboxer_exception, message: message) }
         let!(:frame) { create(:outboxer_frame, exception: exception) }
 
-        let!(:result) { Message.delete(id: message.id) }
+        let!(:result) { Message.delete(id: message.id, lock_version: message.lock_version) }
 
         it "deletes the message" do
           expect(Models::Message).not_to exist(message.id)
@@ -42,7 +42,7 @@ module Outboxer
         let!(:exception) { create(:outboxer_exception, message: message) }
         let!(:frame) { create(:outboxer_frame, exception: exception) }
 
-        let!(:result) { Message.delete(id: message.id) }
+        let!(:result) { Message.delete(id: message.id, lock_version: message.lock_version) }
 
         it "deletes the message" do
           expect(Models::Message).not_to exist(message.id)
