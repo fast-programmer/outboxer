@@ -213,7 +213,7 @@
                             <% end %>
                             <label for="perPageSelect" class="me-2">Per&nbsp;page:</label>
                             <select class="form-select form-select-sm" aria-label="Per page" id="perPageSelect" name="per_page">
-                                <% [10, 100, 200, 500, 1000].each do |number| %>
+                                <% Outboxer::Message::LIST_PER_PAGE_OPTIONS.each do |number| %>
                                     <option value="<%= number %>"
                                             <%= 'selected' if denormalised_query_params[:per_page]&.to_i == number %>>
                                         <%= number %>
