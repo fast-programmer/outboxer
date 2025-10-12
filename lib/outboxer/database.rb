@@ -79,26 +79,28 @@ module Outboxer
     def truncate(logger: nil)
       logger&.warn("Outboxer truncating tables...")
 
-      if ActiveRecord::Base.connection.adapter_name.downcase.include?("postgres")
-        ActiveRecord::Base.connection.execute(<<~SQL)
-          TRUNCATE TABLE
-            outboxer_message_counts,
-            outboxer_message_totals,
-            outboxer_frames,
-            outboxer_exceptions,
-            outboxer_messages,
-            outboxer_signals,
-            outboxer_publishers
-          RESTART IDENTITY;
-        SQL
-      else
-        ActiveRecord::Base.connection.execute("TRUNCATE TABLE outboxer_message_counts;")
-        ActiveRecord::Base.connection.execute("TRUNCATE TABLE outboxer_message_totals;")
-        ActiveRecord::Base.connection.execute("TRUNCATE TABLE outboxer_frames;")
-        ActiveRecord::Base.connection.execute("TRUNCATE TABLE outboxer_exceptions;")
-        ActiveRecord::Base.connection.execute("TRUNCATE TABLE outboxer_messages;")
-        ActiveRecord::Base.connection.execute("TRUNCATE TABLE outboxer_signals;")
-        ActiveRecord::Base.connection.execute("TRUNCATE TABLE outboxer_publishers;")
+      ActiveRecord::Base.connection_pool.with_connection do |connection|
+        if connection.adapter_name.downcase.include?("postgres")
+          connection.execute(<<~SQL)
+            TRUNCATE TABLE
+              outboxer_message_counts,
+              outboxer_message_totals,
+              outboxer_frames,
+              outboxer_exceptions,
+              outboxer_messages,
+              outboxer_signals,
+              outboxer_publishers
+            RESTART IDENTITY;
+          SQL
+        else
+          connection.execute("TRUNCATE TABLE outboxer_message_counts;")
+          connection.execute("TRUNCATE TABLE outboxer_message_totals;")
+          connection.execute("TRUNCATE TABLE outboxer_frames;")
+          connection.execute("TRUNCATE TABLE outboxer_exceptions;")
+          connection.execute("TRUNCATE TABLE outboxer_messages;")
+          connection.execute("TRUNCATE TABLE outboxer_signals;")
+          connection.execute("TRUNCATE TABLE outboxer_publishers;")
+        end
       end
     end
   end
