@@ -476,6 +476,37 @@ module Outboxer
       end
     end
 
+    # Iterates or returns an enumerator of message ids filtered by status and time.
+    #
+    # @param status [Symbol, nil] optional filter for message status; nil = all
+    # @param older_than [Time, nil] optional cutoff; only messages updated before this time
+    # @param batch_size [Integer] number of records to process per batch (default: 1000)
+    # @yield [id] yields each message id if a block is given
+    # @return [Enumerator<Integer>] enumerator of ids if no block given
+    #
+    # @example
+    #   # Delete all failed messages
+    #   Outboxer::Message.each_id(status: :failed, older_than: Time.now.utc) do |id|
+    #     Outboxer::Message.delete(id: id, time: Time)
+    #   end
+    def each_id(status: nil, older_than: nil, batch_size: 1_000, &block)
+      scope = Models::Message.all
+      scope = scope.where(status: status) unless status.nil?
+      scope = scope.where("updated_at < ?", older_than) if older_than
+
+      enumerator = Enumerator.new do |yielder|
+        scope.select(:id).in_batches(of: batch_size) do |relation|
+          relation.pluck(:id).each { |id| yielder << id }
+        end
+      end
+
+      return enumerator unless block_given?
+
+      enumerator.each(&block)
+
+      nil
+    end
+
     # Deletes a message by ID.
     # @param id [Integer] the ID of the message to delete.
     # @return [Hash] details of the deleted message.
@@ -656,192 +687,6 @@ module Outboxer
     # @return [Boolean] true if messages with the given status can be requeued, false otherwise.
     def can_requeue_all?(status:)
       REQUEUE_STATUSES.include?(status&.to_sym)
-    end
-
-    # Requeues all messages with a specific status in batches.
-    # @param status [Symbol] the status of messages to requeue.
-    # @param batch_size [Integer] number of messages to requeue in each batch.
-    # @param time [Time] current time context used to update timestamps.
-    # @param publisher_id [Integer, nil] the ID of the publisher.
-    # @param publisher_name [String, nil] the name of the publisher.
-    # @return [Hash] the count of messages that were requeued.
-    def requeue_all(status:, batch_size: 100, time: ::Time,
-                    publisher_id: nil, publisher_name: nil)
-      if !can_requeue_all?(status: status)
-        status_formatted = status.nil? ? "nil" : status
-
-        raise ArgumentError,
-          "Status #{status_formatted} must be one of #{REQUEUE_STATUSES.join(", ")}"
-      end
-
-      requeued_count = 0
-
-      loop do
-        requeued_count_batch = 0
-
-        ActiveRecord::Base.connection_pool.with_connection do
-          ActiveRecord::Base.transaction do
-            locked_ids = Models::Message
-              .where(status: status)
-              .order(updated_at: :asc)
-              .limit(batch_size)
-              .lock("FOR UPDATE SKIP LOCKED")
-              .pluck(:id)
-
-            current_utc_time = time.now.utc
-
-            requeued_count_batch = Models::Message
-              .where(id: locked_ids)
-              .update_all(
-                status: Message::Status::QUEUED,
-                updated_at: current_utc_time,
-                queued_at: current_utc_time,
-                publishing_at: nil,
-                published_at: nil,
-                failed_at: nil,
-                publisher_id: publisher_id,
-                publisher_name: publisher_name)
-
-            requeued_count += requeued_count_batch
-          end
-        end
-
-        break if requeued_count_batch < batch_size
-      end
-
-      { requeued_count: requeued_count }
-    end
-
-    # Requeues a specific set of messages by their IDs.
-    # @param ids [Array<Integer>] the IDs of messages to requeue.
-    # @param publisher_id [Integer, nil] the ID of the publisher.
-    # @param publisher_name [String, nil] the name of the publisher.
-    # @param time [Time] current time context used to update timestamps.
-    # @return [Hash] the count of messages that were requeued and the IDs of those not requeued.
-    def requeue_by_ids(ids:, publisher_id: nil, publisher_name: nil, time: Time)
-      ActiveRecord::Base.connection_pool.with_connection do
-        ActiveRecord::Base.transaction do
-          locked_ids = Models::Message
-            .where(id: ids)
-            .order(updated_at: :asc)
-            .lock("FOR UPDATE SKIP LOCKED")
-            .pluck(:id)
-
-          current_utc_time = time.now.utc
-
-          requeued_count = Models::Message
-            .where(id: locked_ids)
-            .update_all(
-              status: Message::Status::QUEUED,
-              updated_at: time.now.utc,
-              queued_at: current_utc_time, # TODO: confirm this
-              publishing_at: nil,
-              published_at: nil,
-              failed_at: nil,
-              publisher_id: publisher_id,
-              publisher_name: publisher_name)
-
-          { requeued_count: requeued_count, not_requeued_ids: ids - locked_ids }
-        end
-      end
-    end
-
-    # Deletes all messages that match certain criteria in batches.
-    # @param status [Symbol, nil] the status of messages to delete.
-    # @param batch_size [Integer] the number of messages to delete in each batch.
-    # @param older_than [Time, nil] threshold time before which messages are eligible for deletion.
-    # @return [Hash] the count of messages that were deleted.
-    def delete_all(status: nil, batch_size: 100, older_than: nil)
-      deleted_batch_count = delete_batch(
-        status: status, batch_size: batch_size, older_than: older_than)[:deleted_count]
-      deleted_count = deleted_batch_count
-
-      while deleted_batch_count == batch_size
-        deleted_batch_count = delete_batch(
-          status: status, batch_size: batch_size, older_than: older_than)[:deleted_count]
-
-        deleted_count += deleted_batch_count
-      end
-
-      { deleted_count: deleted_count }
-    end
-
-    # Deletes a batch of messages
-    # @param status [Symbol, nil] the status of messages to delete.
-    # @param batch_size [Integer] the number of messages to delete in each batch.
-    # @return [Hash] the count of messages that were deleted.
-    def delete_batch(status: nil, batch_size: 100, older_than: nil)
-      deleted_count = 0
-
-      ActiveRecord::Base.connection_pool.with_connection do
-        ActiveRecord::Base.transaction do
-          query = Models::Message.all
-          query = query.where(status: status) unless status.nil?
-          query = query.where("updated_at < ?", older_than) if older_than
-
-          messages = query.order(:updated_at)
-            .limit(batch_size)
-            .lock("FOR UPDATE SKIP LOCKED")
-            .pluck(:id, :status)
-            .map { |message_id, message_status| { id: message_id, status: message_status } }
-          message_ids = messages.map { |message| message[:id] }
-
-          Models::Frame.joins(:exception).where(exception: { message_id: message_ids }).delete_all
-          Models::Exception.where(message_id: message_ids).delete_all
-
-          deleted_count = Models::Message.where(id: message_ids).delete_all
-
-          [Message::Status::PUBLISHED, Message::Status::FAILED].each do |message_status|
-            current_messages = messages.select { |message| message[:status] == message_status }
-
-            if current_messages.any?
-              setting_name = "messages.#{message_status}.count.historic"
-              setting = Models::Setting.lock("FOR UPDATE").find_by!(name: setting_name)
-              setting.update!(value: setting.value.to_i + current_messages.count).to_s
-            end
-          end
-        end
-      end
-
-      { deleted_count: deleted_count }
-    end
-
-    # Deletes a specific set of messages by their IDs.
-    # @param ids [Array<Integer>] the IDs of messages to delete.
-    # @return [Hash] the count of messages that were deleted and the IDs of those not deleted.
-    def delete_by_ids(ids:)
-      ActiveRecord::Base.connection_pool.with_connection do
-        ActiveRecord::Base.transaction do
-          messages = Models::Message
-            .where(id: ids)
-            .lock("FOR UPDATE SKIP LOCKED")
-            .pluck(:id, :status)
-            .map { |id, status| { id: id, status: status } }
-
-          message_ids = messages.map { |message| message[:id] }
-
-          Models::Frame
-            .joins(:exception)
-            .where(exception: { message_id: message_ids })
-            .delete_all
-
-          Models::Exception.where(message_id: message_ids).delete_all
-
-          deleted_count = Models::Message.where(id: message_ids).delete_all
-
-          [Message::Status::PUBLISHED, Message::Status::FAILED].each do |status|
-            current_messages = messages.select { |message| message[:status] == status }
-
-            if current_messages.any?
-              setting_name = "messages.#{status}.count.historic"
-              setting = Models::Setting.lock("FOR UPDATE").find_by!(name: setting_name)
-              setting.update!(value: setting.value.to_i + current_messages.count).to_s
-            end
-          end
-
-          { deleted_count: deleted_count, not_deleted_ids: ids - message_ids }
-        end
-      end
     end
 
     # Retrieves and calculates metrics related to message statuses, including counts and totals.

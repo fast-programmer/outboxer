@@ -465,26 +465,50 @@ module Outboxer
 
       case params[:action]
       when "requeue_by_ids"
-        result = Message.requeue_by_ids(ids: ids)
+        requeued_count = 0
+        failed_count = 0
 
-        if result[:requeued_count] > 0
-          flash[:success] = "Requeued #{pluralise(result[:requeued_count], "message")}"
+        ids.each do |id|
+          Outboxer::Message.requeue(id: id)
+          requeued_count += 1
+        rescue StandardError => error
+          settings.logger.error(
+            "[Outboxer::Web] Failed to requeue message id=#{id}\n" \
+            "error_class=#{error.class}\n" \
+            "error_message=#{error.message.inspect}"
+          )
+          failed_count += 1
         end
 
-        if !result[:not_requeued_ids].empty?
-          flash[:danger] =
-            "Requeue failed for #{pluralise(result[:not_requeued_ids].count, "message")}"
+        if requeued_count.positive?
+          flash[:success] = "Requeued #{pluralise(requeued_count, "message")}"
+        end
+
+        if failed_count.positive?
+          flash[:danger] = "Requeue failed for #{pluralise(failed_count, "message")}"
         end
       when "delete_by_ids"
-        result = Message.delete_by_ids(ids: ids)
+        deleted_count = 0
+        failed_count = 0
 
-        if result[:deleted_count] > 0
-          flash[:success] = "Deleted #{pluralise(result[:deleted_count], "message")}"
+        ids.each do |id|
+          Outboxer::Message.delete(id: id)
+          deleted_count += 1
+        rescue StandardError => error
+          settings.logger.error(
+            "[Outboxer::Web] Failed to delete message id=#{id}\n" \
+            "error_class=#{error.class}\n" \
+            "error_message=#{error.message.inspect}"
+          )
+          failed_count += 1
         end
 
-        if !result[:not_deleted_ids].empty?
-          flash[:danger] =
-            "Delete failed for #{pluralise(result[:not_deleted_ids].count, "message")}"
+        if deleted_count.positive?
+          flash[:success] = "Deleted #{pluralise(deleted_count, "message")}"
+        end
+
+        if failed_count.positive?
+          flash[:danger] = "Delete failed for #{pluralise(failed_count, "message")}"
         end
       else
         raise "Unknown action: #{params[:action]}"
@@ -496,7 +520,8 @@ module Outboxer
         order: params[:order],
         page: params[:page],
         per_page: params[:per_page],
-        time_zone: params[:time_zone])
+        time_zone: params[:time_zone]
+      )
 
       normalised_query_string = normalise_query_string(
         status: denormalised_query_params[:status],
@@ -505,7 +530,8 @@ module Outboxer
         page: denormalised_query_params[:page],
         per_page: denormalised_query_params[:per_page],
         time_zone: denormalised_query_params[:time_zone],
-        flash: flash)
+        flash: flash
+      )
 
       redirect to("/messages#{normalised_query_string}")
     end
@@ -519,8 +545,32 @@ module Outboxer
         per_page: params[:per_page],
         time_zone: params[:time_zone])
 
-      result = Message.requeue_all(
-        status: denormalised_query_params[:status])
+      status = denormalised_query_params[:status]
+      raise ArgumentError, "status is required" if status.nil?
+
+      requeued_count = 0
+      failed_count = 0
+
+      Outboxer::Message.each_id(status: status) do |id|
+        Outboxer::Message.requeue(id: id)
+        requeued_count += 1
+      rescue StandardError => error
+        settings.logger.error(
+          "[Outboxer::Web] Failed to requeue message id=#{id}\n" \
+          "error_class=#{error.class}\n" \
+          "error_message=#{error.message.inspect}"
+        )
+        failed_count += 1
+      end
+
+      flashes = {}
+      if requeued_count.positive?
+        flashes[:success] = "Requeued #{pluralise(requeued_count, "message")}"
+      end
+
+      if failed_count.positive?
+        flashes[:danger] = "Requeue failed for #{pluralise(failed_count, "message")}"
+      end
 
       normalised_query_string = normalise_query_string(
         status: denormalised_query_params[:status],
@@ -529,7 +579,8 @@ module Outboxer
         page: denormalised_query_params[:page],
         per_page: denormalised_query_params[:per_page],
         time_zone: denormalised_query_params[:time_zone],
-        flash: { success: "Requeued #{pluralise(result[:requeued_count], "message")}" })
+        flash: flashes
+      )
 
       redirect to("/messages#{normalised_query_string}")
     end
@@ -541,10 +592,33 @@ module Outboxer
         order: params[:order],
         page: params[:page],
         per_page: params[:per_page],
-        time_zone: params[:time_zone])
+        time_zone: params[:time_zone]
+      )
 
-      result = Message.delete_all(
-        status: denormalised_query_params[:status], older_than: Time.now.utc)
+      status = denormalised_query_params[:status]
+      deleted_count = 0
+      failed_count = 0
+
+      Outboxer::Message.each_id(status: status) do |id|
+        Outboxer::Message.delete(id: id)
+        deleted_count += 1
+      rescue StandardError => error
+        settings.logger.error(
+          "[Outboxer::Web] Failed to delete message id=#{id}\n" \
+          "error_class=#{error.class}\n" \
+          "error_message=#{error.message.inspect}"
+        )
+        failed_count += 1
+      end
+
+      flashes = {}
+      if deleted_count.positive?
+        flashes[:success] = "Deleted #{pluralise(deleted_count, "message")}"
+      end
+
+      if failed_count.positive?
+        flashes[:danger] = "Delete failed for #{pluralise(failed_count, "message")}"
+      end
 
       normalised_query_string = normalise_query_string(
         status: denormalised_query_params[:status],
@@ -553,7 +627,8 @@ module Outboxer
         page: denormalised_query_params[:page],
         per_page: denormalised_query_params[:per_page],
         time_zone: denormalised_query_params[:time_zone],
-        flash: { success: "Deleted #{pluralise(result[:deleted_count], "message")}" })
+        flash: flashes
+      )
 
       redirect to("/messages#{normalised_query_string}")
     end
