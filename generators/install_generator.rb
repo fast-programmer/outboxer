@@ -14,10 +14,6 @@ module Outboxer
 
     def copy_migrations
       migration_template(
-        "db/migrate/create_outboxer_settings.rb",
-        "db/migrate/create_outboxer_settings.rb")
-
-      migration_template(
         "db/migrate/create_outboxer_messages.rb",
         "db/migrate/create_outboxer_messages.rb")
 

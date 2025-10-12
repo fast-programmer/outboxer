@@ -447,8 +447,6 @@ module Outboxer
         "heartbeat_interval=#{heartbeat_interval}, " \
         "log_level=#{logger.level}"
 
-      Setting.create_all
-
       publisher = create(
         name: name,
         concurrency: concurrency,
