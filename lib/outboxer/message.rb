@@ -476,6 +476,37 @@ module Outboxer
       end
     end
 
+    # Iterates or returns an enumerator of message ids filtered by status and time.
+    #
+    # @param status [Symbol, nil] optional filter for message status; nil = all
+    # @param older_than [Time, nil] optional cutoff; only messages updated before this time
+    # @param batch_size [Integer] number of records to process per batch (default: 1000)
+    # @yield [id] yields each message id if a block is given
+    # @return [Enumerator<Integer>] enumerator of ids if no block given
+    #
+    # @example
+    #   # Delete all failed messages
+    #   Outboxer::Message.each_id(status: :failed, older_than: Time.now.utc) do |id|
+    #     Outboxer::Message.delete(id: id, time: Time)
+    #   end
+    def each_id(status: nil, older_than: nil, batch_size: 1_000)
+      scope = Models::Message.all
+      scope = scope.where(status: status) unless status.nil?
+      scope = scope.where("updated_at < ?", older_than) if older_than
+
+      enumerator = Enumerator.new do |yielder|
+        scope.select(:id).in_batches(of: batch_size) do |relation|
+          relation.pluck(:id).each { |id| yielder << id }
+        end
+      end
+
+      return enumerator unless block_given?
+
+      enumerator.each { |id| yield id }
+
+      nil
+    end
+
     # Deletes a message by ID.
     # @param id [Integer] the ID of the message to delete.
     # @return [Hash] details of the deleted message.

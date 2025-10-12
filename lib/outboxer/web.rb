@@ -466,52 +466,50 @@ module Outboxer
       case params[:action]
       when "requeue_by_ids"
         requeued_count = 0
-        not_requeued_ids = []
+        failed_count = 0
 
         ids.each do |id|
-          begin
-            Outboxer::Message.requeue(id: id, time: ::Time)
-            requeued_count += 1
-          rescue ActiveRecord::RecordNotFound, StandardError
-            not_requeued_ids << id
-          end
+          Outboxer::Message.requeue(id: id)
+          requeued_count += 1
+        rescue StandardError => error
+          settings.logger.error(
+            "[Outboxer::Web] Failed to requeue message id=#{id}\n" \
+            "error_class=#{error.class}\n" \
+            "error_message=#{error.message.inspect}"
+          )
+          failed_count += 1
         end
 
-        result = { requeued_count: requeued_count, not_requeued_ids: not_requeued_ids }
-
-        if result[:requeued_count] > 0
-          flash[:success] = "Requeued #{pluralise(result[:requeued_count], "message")}"
+        if requeued_count.positive?
+          flash[:success] = "Requeued #{pluralise(requeued_count, "message")}"
         end
 
-        if !result[:not_requeued_ids].empty?
-          flash[:danger] =
-            "Requeue failed for #{pluralise(result[:not_requeued_ids].count, "message")}"
+        if failed_count.positive?
+          flash[:danger] = "Requeue failed for #{pluralise(failed_count, "message")}"
         end
-
       when "delete_by_ids"
         deleted_count = 0
-        not_deleted_ids = []
+        failed_count = 0
 
         ids.each do |id|
-          begin
-            Outboxer::Message.delete(id: id, time: ::Time)
-            deleted_count += 1
-          rescue ActiveRecord::RecordNotFound, StandardError
-            not_deleted_ids << id
-          end
+          Outboxer::Message.delete(id: id)
+          deleted_count += 1
+        rescue StandardError => error
+          settings.logger.error(
+            "[Outboxer::Web] Failed to delete message id=#{id}\n" \
+            "error_class=#{error.class}\n" \
+            "error_message=#{error.message.inspect}"
+          )
+          failed_count += 1
         end
 
-        result = { deleted_count: deleted_count, not_deleted_ids: not_deleted_ids }
-
-        if result[:deleted_count] > 0
-          flash[:success] = "Deleted #{pluralise(result[:deleted_count], "message")}"
+        if deleted_count.positive?
+          flash[:success] = "Deleted #{pluralise(deleted_count, "message")}"
         end
 
-        if !result[:not_deleted_ids].empty?
-          flash[:danger] =
-            "Delete failed for #{pluralise(result[:not_deleted_ids].count, "message")}"
+        if failed_count.positive?
+          flash[:danger] = "Delete failed for #{pluralise(failed_count, "message")}"
         end
-
       else
         raise "Unknown action: #{params[:action]}"
       end
@@ -522,7 +520,8 @@ module Outboxer
         order: params[:order],
         page: params[:page],
         per_page: params[:per_page],
-        time_zone: params[:time_zone])
+        time_zone: params[:time_zone]
+      )
 
       normalised_query_string = normalise_query_string(
         status: denormalised_query_params[:status],
@@ -531,7 +530,8 @@ module Outboxer
         page: denormalised_query_params[:page],
         per_page: denormalised_query_params[:per_page],
         time_zone: denormalised_query_params[:time_zone],
-        flash: flash)
+        flash: flash
+      )
 
       redirect to("/messages#{normalised_query_string}")
     end
@@ -543,31 +543,30 @@ module Outboxer
         order: params[:order],
         page: params[:page],
         per_page: params[:per_page],
-        time_zone: params[:time_zone])
+        time_zone: params[:time_zone]
+      )
 
       status = denormalised_query_params[:status]
-      raise ArgumentError, "status is required" if status.nil?
-
       requeued_count = 0
       failed_count = 0
 
-      Models::Message
-        .where(status: status)
-        .in_batches(of: 500) do |relation|
-          relation.pluck(:id).each do |id|
-            begin
-              Outboxer::Message.requeue(id: id, time: ::Time)
-              requeued_count += 1
-            rescue ActiveRecord::RecordNotFound, StandardError
-              failed_count += 1
-            end
-          end
-        end
+      Outboxer::Message.each_id(status: status) do |id|
+        Outboxer::Message.requeue(id: id)
+        requeued_count += 1
+      rescue StandardError => error
+        settings.logger.error(
+          "[Outboxer::Web] Failed to requeue message id=#{id}\n" \
+          "error_class=#{error.class}\n" \
+          "error_message=#{error.message.inspect}"
+        )
+        failed_count += 1
+      end
 
       flashes = {}
       if requeued_count.positive?
         flashes[:success] = "Requeued #{pluralise(requeued_count, "message")}"
       end
+
       if failed_count.positive?
         flashes[:danger] = "Requeue failed for #{pluralise(failed_count, "message")}"
       end
@@ -579,7 +578,8 @@ module Outboxer
         page: denormalised_query_params[:page],
         per_page: denormalised_query_params[:per_page],
         time_zone: denormalised_query_params[:time_zone],
-        flash: flashes)
+        flash: flashes
+      )
 
       redirect to("/messages#{normalised_query_string}")
     end
@@ -591,33 +591,30 @@ module Outboxer
         order: params[:order],
         page: params[:page],
         per_page: params[:per_page],
-        time_zone: params[:time_zone])
+        time_zone: params[:time_zone]
+      )
 
       status = denormalised_query_params[:status]
-      older_than = Time.now.utc
-
-      scope = Models::Message.all
-      scope = scope.where(status: status) unless status.nil?
-      scope = scope.where("updated_at < ?", older_than)
-
       deleted_count = 0
       failed_count = 0
 
-      scope.in_batches(of: 500) do |relation|
-        relation.pluck(:id).each do |id|
-          begin
-            Outboxer::Message.delete(id: id, time: ::Time)
-            deleted_count += 1
-          rescue ActiveRecord::RecordNotFound, StandardError
-            failed_count += 1
-          end
-        end
+      Outboxer::Message.each_id(status: status) do |id|
+        Outboxer::Message.delete(id: id)
+        deleted_count += 1
+      rescue StandardError => error
+        settings.logger.error(
+          "[Outboxer::Web] Failed to delete message id=#{id}\n" \
+          "error_class=#{error.class}\n" \
+          "error_message=#{error.message.inspect}"
+        )
+        failed_count += 1
       end
 
       flashes = {}
       if deleted_count.positive?
         flashes[:success] = "Deleted #{pluralise(deleted_count, "message")}"
       end
+
       if failed_count.positive?
         flashes[:danger] = "Delete failed for #{pluralise(failed_count, "message")}"
       end
@@ -629,7 +626,8 @@ module Outboxer
         page: denormalised_query_params[:page],
         per_page: denormalised_query_params[:per_page],
         time_zone: denormalised_query_params[:time_zone],
-        flash: flashes)
+        flash: flashes
+      )
 
       redirect to("/messages#{normalised_query_string}")
     end
