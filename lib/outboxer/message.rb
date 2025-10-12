@@ -595,7 +595,7 @@ module Outboxer
 
     LIST_PAGE_DEFAULT = 1
 
-    LIST_PER_PAGE_OPTIONS = [10, 100, 200, 500, 1000]
+    LIST_PER_PAGE_OPTIONS = [10, 100, 200, 500, 1_000]
     LIST_PER_PAGE_DEFAULT = 100
 
     LIST_TIME_ZONE_OPTIONS = (ActiveSupport::TimeZone.all.map(&:tzinfo).map(&:name) + ["UTC"]).sort
