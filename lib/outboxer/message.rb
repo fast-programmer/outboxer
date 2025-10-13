@@ -119,10 +119,7 @@ module Outboxer
 
         {
           id: message.id,
-          status: message.status,
-          messageable_type: message.messageable_type,
-          messageable_id: message.messageable_id,
-          updated_at: message.updated_at
+          lock_version: message.lock_version
         }
       end
     rescue MissingPartition
@@ -203,7 +200,9 @@ module Outboxer
         begin
           yield message
         rescue StandardError => error
-          publishing_failed(id: message[:id], error: error, time: time)
+          publishing_failed(
+            id: message[:id], lock_version: message[:lock_version],
+            error: error, time: time)
 
           logger&.error(
             "Outboxer message publishing failed id=#{message[:id]} " \
@@ -211,7 +210,8 @@ module Outboxer
               "#{error.class}: #{error.message}\n" \
               "#{error.backtrace.join("\n")}")
         rescue Exception => error
-          publishing_failed(id: message[:id], error: error, time: time)
+          publishing_failed(
+            id: message[:id], lock_version: message[:lock_version], error: error, time: time)
 
           logger&.fatal(
             "Outboxer message publishing failed id=#{message[:id]} " \
@@ -221,7 +221,7 @@ module Outboxer
 
           raise
         else
-          published(id: message[:id], time: time)
+          published(id: message[:id], lock_version: message[:lock_version], time: time)
 
           logger&.info(
             "Outboxer message published id=#{message[:id]} " \
@@ -254,7 +254,7 @@ module Outboxer
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           message = Models::Message
-            .select(:id, :messageable_type, :messageable_id)
+            .select(:id, :lock_version, :messageable_type, :messageable_id)
             .where(status: Status::QUEUED)
             .order(:id)
             .limit(1)
@@ -265,6 +265,7 @@ module Outboxer
             nil
           else
             message.update!(
+              lock_version: message.lock_version,
               status: Status::PUBLISHING,
               updated_at: current_utc_time,
               publishing_at: current_utc_time)
@@ -284,9 +285,10 @@ module Outboxer
               .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
 
             {
-              id: message[:id],
-              messageable_type: message[:messageable_type],
-              messageable_id: message[:messageable_id]
+              id: message.id,
+              lock_version: message.lock_version,
+              messageable_type: message.messageable_type,
+              messageable_id: message.messageable_id
             }
           end
         end
@@ -306,7 +308,7 @@ module Outboxer
     # @note Executes within a transaction using a `SELECT ... FOR UPDATE` lock.
     # @example
     #   Outboxer::Message.published(id: message[:id], time: Time)
-    def published(id:, time: ::Time)
+    def published(id:, lock_version:, time: ::Time)
       current_utc_time = time.now.utc
 
       ActiveRecord::Base.connection_pool.with_connection do
@@ -316,6 +318,8 @@ module Outboxer
           if message.status != Models::Message::Status::PUBLISHING
             raise Error, "Status must be publishing"
           end
+
+          message.update!(lock_version: lock_version, updated_at: Time.now.utc)
 
           message.exceptions.each { |exception| exception.frames.each(&:delete) }
           message.exceptions.delete_all
@@ -335,7 +339,7 @@ module Outboxer
             .where(status: Status::PUBLISHED, partition: partition)
             .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
 
-          nil
+          {}
         end
       end
     end
@@ -354,7 +358,7 @@ module Outboxer
     # @note Runs inside a transaction and uses `SELECT ... FOR UPDATE` locking.
     # @example
     #   Outboxer::Message.publishing_failed(id: message[:id], time: Time)
-    def publishing_failed(id:, error: nil, time: ::Time)
+    def publishing_failed(id:, lock_version:, error: nil, time: ::Time)
       current_utc_time = time.now.utc
 
       ActiveRecord::Base.connection_pool.with_connection do
@@ -366,6 +370,7 @@ module Outboxer
           end
 
           message.update!(
+            lock_version: lock_version,
             status: Status::FAILED,
             updated_at: current_utc_time, failed_at: current_utc_time)
 
@@ -392,7 +397,9 @@ module Outboxer
             .where(status: Status::FAILED, partition: partition)
             .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
 
-          nil
+          {
+            lock_version: message.lock_version
+          }
         end
       end
     end
@@ -400,6 +407,7 @@ module Outboxer
     # Serializes message attributes into a hash.
     #
     # @param id [Integer] message ID.
+    # @param lock_version [Integer] message lock_version.
     # @param status [String] message status.
     # @param messageable_type [String] type of the messageable entity.
     # @param messageable_id [String] ID of the messageable entity.
@@ -411,11 +419,12 @@ module Outboxer
     # @param publisher_id [Integer, nil] optional publisher ID.
     # @param publisher_name [String, nil] optional publisher name.
     # @return [Hash] serialized message details.
-    def serialize(id:, status:, messageable_type:, messageable_id:, updated_at:,
+    def serialize(id:, lock_version:, status:, messageable_type:, messageable_id:, updated_at:,
                   queued_at: nil, publishing_at: nil, published_at: nil, failed_at: nil,
                   publisher_id: nil, publisher_name: nil)
       {
         id: id,
+        lock_version: lock_version,
         status: status,
         messageable_type: messageable_type,
         messageable_id: messageable_id,
@@ -445,6 +454,7 @@ module Outboxer
 
           {
             id: message.id,
+            lock_version: message.lock_version,
             status: message.status,
             messageable_type: message.messageable_type,
             messageable_id: message.messageable_id,
@@ -479,12 +489,13 @@ module Outboxer
     # Deletes a message by ID.
     # @param id [Integer] the ID of the message to delete.
     # @return [Hash] details of the deleted message.
-    def delete(id:, time: ::Time)
+    def delete(id:, lock_version:, time: ::Time)
       current_utc_time = time.now.utc
 
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           message = Models::Message.includes(exceptions: :frames).lock.find_by!(id: id)
+          message.update!(lock_version: lock_version, updated_at: current_utc_time)
 
           message.exceptions.each { |exception| exception.frames.each(&:delete) }
           message.exceptions.delete_all
@@ -516,7 +527,7 @@ module Outboxer
     # @param publisher_name [String, nil] the name of the publisher.
     # @param time [Time] current time context used to update timestamps.
     # @return [Hash] updated message details.
-    def requeue(id:, publisher_id: nil, publisher_name: nil,
+    def requeue(id:, lock_version:, publisher_id: nil, publisher_name: nil,
                 time: ::Time)
       current_utc_time = time.now.utc
 
@@ -526,11 +537,10 @@ module Outboxer
 
           partition = calculate_partition(id: message.id)
 
-          Models::MessageCount
-            .where(status: message.status, partition: partition)
-            .update_all(["value = value - ?, updated_at = ?", 1, current_utc_time])
+          original_status = message.status
 
           message.update!(
+            lock_version: lock_version,
             status: Message::Status::QUEUED,
             updated_at: current_utc_time,
             queued_at: current_utc_time,
@@ -541,11 +551,15 @@ module Outboxer
             publisher_name: publisher_name)
 
           Models::MessageCount
-            .where(status: Status::QUEUED, partition: partition)
+            .where(status: original_status, partition: partition)
+            .update_all(["value = value - ?, updated_at = ?", 1, current_utc_time])
+
+          Models::MessageCount
+            .where(status: message.status, partition: partition)
             .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
 
           Models::MessageTotal
-            .where(status: Status::QUEUED, partition: partition)
+            .where(status: message.status, partition: partition)
             .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
 
           { id: id }
@@ -631,6 +645,7 @@ module Outboxer
         messages: paginated_messages.map do |message|
           {
             id: message.id,
+            lock_version: message.lock_version,
             status: message.status.to_sym,
             messageable_type: message.messageable_type,
             messageable_id: message.messageable_id,

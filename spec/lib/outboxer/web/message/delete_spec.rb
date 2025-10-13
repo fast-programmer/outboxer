@@ -15,7 +15,7 @@ RSpec.describe "POST /message/:id/delete", type: :request do
   before do
     header "Host", "localhost"
 
-    post "/message/#{message[:id]}/delete"
+    post "/message/#{message[:id]}/delete", { lock_version: message[:lock_version] }
 
     follow_redirect!
   end

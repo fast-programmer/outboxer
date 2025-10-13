@@ -494,56 +494,68 @@ module Outboxer
     end
 
     post "/messages/update" do
-      ids = params[:selected_ids].map(&:to_i)
       flash = {}
+
+      selected_messages = params.fetch("selected_messages", []).map do |pair|
+        id, lock_version = pair.split(":").map(&:to_i)
+        { id: id, lock_version: lock_version }
+      end
 
       case params[:action]
       when "requeue_by_ids"
-        requeued_count = 0
-        failed_count = 0
+        requeued_message_count = 0
+        failed_message_count = 0
 
-        ids.each do |id|
-          Outboxer::Message.requeue(id: id)
-          requeued_count += 1
+        selected_messages.each do |selected_message|
+          Outboxer::Message.requeue(
+            id: selected_message[:id],
+            lock_version: selected_message[:lock_version]
+          )
+          requeued_message_count += 1
         rescue StandardError => error
           settings.logger.error(
-            "[Outboxer::Web] Failed to requeue message id=#{id}\n" \
+            "[Outboxer::Web] Failed to requeue message id=#{selected_message[:id]}\n" \
             "error_class=#{error.class}\n" \
             "error_message=#{error.message.inspect}"
           )
-          failed_count += 1
+          failed_message_count += 1
         end
 
-        if requeued_count.positive?
-          flash[:success] = "Requeued #{pluralise(requeued_count, "message")}"
+        if requeued_message_count.positive?
+          flash[:success] = "Requeued #{pluralise(requeued_message_count, "message")}"
         end
 
-        if failed_count.positive?
-          flash[:danger] = "Requeue failed for #{pluralise(failed_count, "message")}"
+        if failed_message_count.positive?
+          flash[:danger] = "Requeue failed for #{pluralise(failed_message_count, "message")}"
         end
+
       when "delete_by_ids"
-        deleted_count = 0
-        failed_count = 0
+        deleted_message_count = 0
+        failed_message_count = 0
 
-        ids.each do |id|
-          Outboxer::Message.delete(id: id)
-          deleted_count += 1
+        selected_messages.each do |selected_message|
+          Outboxer::Message.delete(
+            id: selected_message[:id],
+            lock_version: selected_message[:lock_version]
+          )
+          deleted_message_count += 1
         rescue StandardError => error
           settings.logger.error(
-            "[Outboxer::Web] Failed to delete message id=#{id}\n" \
+            "[Outboxer::Web] Failed to delete message id=#{selected_message[:id]}\n" \
             "error_class=#{error.class}\n" \
             "error_message=#{error.message.inspect}"
           )
-          failed_count += 1
+          failed_message_count += 1
         end
 
-        if deleted_count.positive?
-          flash[:success] = "Deleted #{pluralise(deleted_count, "message")}"
+        if deleted_message_count.positive?
+          flash[:success] = "Deleted #{pluralise(deleted_message_count, "message")}"
         end
 
-        if failed_count.positive?
-          flash[:danger] = "Delete failed for #{pluralise(failed_count, "message")}"
+        if failed_message_count.positive?
+          flash[:danger] = "Delete failed for #{pluralise(failed_message_count, "message")}"
         end
+
       else
         raise "Unknown action: #{params[:action]}"
       end
@@ -656,7 +668,7 @@ module Outboxer
     end
 
     post "/message/:id/requeue" do
-      Message.requeue(id: params[:id])
+      Message.requeue(id: params[:id], lock_version: params[:lock_version])
 
       denormalised_query_params = denormalise_query_params(
         status: params[:status],
@@ -679,7 +691,7 @@ module Outboxer
     end
 
     post "/message/:id/delete" do
-      Message.delete(id: params[:id])
+      Message.delete(id: params[:id], lock_version: params[:lock_version])
 
       denormalised_query_params = denormalise_query_params(
         status: params[:status],

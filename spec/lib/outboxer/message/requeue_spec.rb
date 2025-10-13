@@ -6,7 +6,9 @@ module Outboxer
       context "when failed message" do
         let!(:failed_message) { create(:outboxer_message, :failed) }
 
-        let!(:queued_message) { Message.requeue(id: failed_message.id) }
+        let!(:queued_message) do
+          Message.requeue(id: failed_message.id, lock_version: failed_message.lock_version)
+        end
 
         it "returns queued message" do
           expect(queued_message[:id]).to eq(failed_message.id)
@@ -24,7 +26,7 @@ module Outboxer
         let!(:updated_at) { queued_message.updated_at }
 
         it "modifies updated_at" do
-          Message.requeue(id: queued_message.id)
+          Message.requeue(id: queued_message.id, lock_version: queued_message.lock_version)
 
           queued_message.reload
 

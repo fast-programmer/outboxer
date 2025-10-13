@@ -4,25 +4,33 @@
             <h3 class="mb-0">Message <%= message[:id] %></h3>
             <div class="card-header-buttons">
                 <!-- Requeue Form -->
-                <form action="<%= outboxer_path("/message/#{message[:id]}/requeue") %>" method="post" style="display: inline;">
-                    <% normalised_query_params.each do |key, param| %>
-                        <input type="hidden" name="<%= key %>" value="<%= param %>">
-                    <% end %>
-                    <button type="submit" class="btn btn-sm btn-outline-secondary me-2" aria-label="Requeue"
-                        <%= 'disabled' unless Outboxer::Message.can_requeue?(status: message[:status]) %>>
-                        <i class="bi bi-arrow-clockwise"></i> Requeue
-                    </button>
-                </form>
-                <!-- Delete Form -->
-                <form action="<%= outboxer_path("/message/#{message[:id]}/delete") %>" method="post" style="display: inline;"
-                    onsubmit="return confirm('Are you sure you want to delete this message?');">
+                <form action="<%= outboxer_path("/message/#{message[:id]}/requeue") %>" method="post"
+                    style="display: inline;">
+                <% normalised_query_params.each do |key, param| %>
+                    <input type="hidden" name="<%= key %>" value="<%= param %>">
+                <% end %>
+                <input type="hidden" name="lock_version" value="<%= message[:lock_version] %>">
 
-                    <% normalised_query_params.each do |key, param| %>
-                        <input type="hidden" name="<%= key %>" value="<%= param %>">
-                    <% end %>
-                    <button type="submit" class="btn btn-sm btn-outline-danger" aria-label="Delete">
-                        <i class="bi bi-trash"></i> Delete
-                    </button>
+                <button type="submit" class="btn btn-sm btn-outline-secondary me-2"
+                        aria-label="Requeue"
+                        <%= 'disabled' unless Outboxer::Message
+                                .can_requeue?(status: message[:status]) %>>
+                    <i class="bi bi-arrow-clockwise"></i> Requeue
+                </button>
+                </form>
+
+                <!-- Delete Form -->
+                <form action="<%= outboxer_path("/message/#{message[:id]}/delete") %>" method="post"
+                    style="display: inline;"
+                    onsubmit="return confirm('Are you sure you want to delete this message?');">
+                <% normalised_query_params.each do |key, param| %>
+                    <input type="hidden" name="<%= key %>" value="<%= param %>">
+                <% end %>
+                <input type="hidden" name="lock_version" value="<%= message[:lock_version] %>">
+
+                <button type="submit" class="btn btn-sm btn-outline-danger" aria-label="Delete">
+                    <i class="bi bi-trash"></i> Delete
+                </button>
                 </form>
             </div>
         </div>

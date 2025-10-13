@@ -15,7 +15,7 @@ RSpec.describe "POST /message/:id/requeue", type: :request do
   before do
     header "Host", "localhost"
 
-    post "/message/#{message[:id]}/requeue"
+    post "/message/#{message[:id]}/requeue", { lock_version: message[:lock_version] }
 
     follow_redirect!
   end

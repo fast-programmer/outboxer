@@ -14,11 +14,12 @@
                     <!-- Requeue Page -->
                     <form action="<%= outboxer_path("/messages/update") %>" method="post" class="me-2">
                         <% normalised_query_params.each do |key, param| %>
-                        <input type="hidden" name="<%= key %>" value="<%= param %>">
+                            <input type="hidden" name="<%= key %>" value="<%= param %>">
                         <% end %>
                         <input type="hidden" name="action" value="requeue_by_ids">
-                        <% messages.each do |message| %>
-                        <input type="hidden" name="selected_ids[]" value="<%= message[:id] %>">
+                        <% messages.each_with_index do |message, i| %>
+                            <input type="hidden" name="selected_messages[]"
+                                   value="<%= "#{message[:id]}:#{message[:lock_version]}" %>">
                         <% end %>
                         <button type="submit" class="btn btn-sm btn-outline-secondary"
                         <%= 'disabled' unless Outboxer::Message.can_requeue?(status: denormalised_query_params[:status]) %>>
@@ -32,14 +33,16 @@
                             <input type="hidden" name="<%= key %>" value="<%= param %>">
                         <% end %>
                         <input type="hidden" name="action" value="delete_by_ids">
-                        <% messages.each do |message| %>
-                            <input type="hidden" name="selected_ids[]" value="<%= message[:id] %>">
+                        <% messages.each_with_index do |message, i| %>
+                            <input type="hidden" name="selected_messages[]"
+                                   value="<%= "#{message[:id]}:#{message[:lock_version]}" %>">
                         <% end %>
                         <button type="submit" class="btn btn-sm btn-outline-danger">
-                            <i class="bi bi-trash"></i> Delete Page
+                        <i class="bi bi-trash"></i> Delete Page
                         </button>
                     </form>
                     </div>
+
                     <!-- Buttons aligned underneath the header on the smallest screens -->
                     <div class="col-12 d-sm-none mt-2">
                     <% if Outboxer::Message.can_requeue?(status: denormalised_query_params[:status]) %>
@@ -48,8 +51,9 @@
                             <input type="hidden" name="<%= key %>" value="<%= param %>">
                         <% end %>
                         <input type="hidden" name="action" value="requeue_by_ids">
-                        <% messages.each do |message| %>
-                            <input type="hidden" name="selected_ids[]" value="<%= message[:id] %>">
+                        <% messages.each_with_index do |message, i| %>
+                            <input type="hidden" name="selected_messages[]"
+                                   value="<%= "#{message[:id]}:#{message[:lock_version]}" %>">
                         <% end %>
                         <button type="submit" class="btn btn-sm btn-outline-secondary w-100">
                             <i class="bi bi-arrow-clockwise"></i> Requeue Page
@@ -59,14 +63,15 @@
 
                     <form action="<%= outboxer_path("/messages/update") %>" method="post">
                         <% normalised_query_params.each do |key, param| %>
-                            <input type="hidden" name="<%= key %>" value="<%= param %>">
+                        <input type="hidden" name="<%= key %>" value="<%= param %>">
                         <% end %>
                         <input type="hidden" name="action" value="delete_by_ids">
-                        <% messages.each do |message| %>
-                            <input type="hidden" name="selected_ids[]" value="<%= message[:id] %>">
+                        <% messages.each_with_index do |message, i| %>
+                            <input type="hidden" name="selected_messages[]"
+                                   value="<%= "#{message[:id]}:#{message[:lock_version]}" %>">
                         <% end %>
                         <button type="submit" class="btn btn-sm btn-outline-danger w-100">
-                            <i class="bi bi-trash"></i> Delete Page
+                        <i class="bi bi-trash"></i> Delete Page
                         </button>
                     </form>
                     </div>
@@ -75,29 +80,29 @@
         </div>
         <!-- Bulk Actions Form -->
         <form id="bulkActionForm" action="<%= outboxer_path("/messages/update") %>" method="post">
-            <div class="card-toolbar py-2 d-none" id="bulkActionsToolbar" style="border-top: 1px solid #eee; border-bottom: 1px solid #eee; background-color: #E9F5FB;">
-                <div class="container">
-                    <div class="row justify-content-start">
-                        <div class="col-auto">
-                            <% normalised_query_params.each do |key, param| %>
-                                <input type="hidden" name="<%= key %>" value="<%= param %>">
-                            <% end %>
+        <div class="card-toolbar py-2" id="bulkActionsToolbar"
+            style="border-top:1px solid #eee;border-bottom:1px solid #eee;background-color:#E9F5FB;">
+            <div class="container">
+            <div class="row justify-content-start">
+                <div class="col-auto">
+                <% normalised_query_params.each do |key, param| %>
+                    <input type="hidden" name="<%= key %>" value="<%= param %>">
+                <% end %>
 
-                            <!-- Requeue Selected Button -->
-                            <button class="btn btn-sm btn-outline-secondary me-2" type="submit" name="action"
-                                    value="requeue_by_ids" data-bs-toggle="tooltip" data-bs-placement="top"
-                                    title="Requeue selected" <%= 'disabled' unless Outboxer::Message.can_requeue?(status: denormalised_query_params[:status]) %>>
-                                <i class="bi bi-arrow-clockwise"></i> Requeue Selected
-                            </button>
+                <button class="btn btn-sm btn-outline-secondary me-2" type="submit"
+                        name="action" value="requeue_by_ids"
+                        <%= 'disabled' unless Outboxer::Message.can_requeue?(status: denormalised_query_params[:status]) %>>
+                    <i class="bi bi-arrow-clockwise"></i> Requeue Selected
+                </button>
 
-                            <!-- Delete Selected Button -->
-                            <button class="btn btn-sm btn-outline-danger" type="submit" name="action" value="delete_by_ids" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete selected">
-                                <i class="bi bi-trash"></i> Delete Selected
-                            </button>
-                        </div>
-                    </div>
+                <button class="btn btn-sm btn-outline-danger" type="submit"
+                        name="action" value="delete_by_ids">
+                    <i class="bi bi-trash"></i> Delete Selected
+                </button>
                 </div>
             </div>
+            </div>
+        </div>
         </form>
         <div class="card-body">
             <% if messages.empty? %>
@@ -126,7 +131,13 @@
                         <tbody>
                             <% messages.each do |message| %>
                                 <tr>
-                                    <td><input type="checkbox" class="individual-check" form="bulkActionForm" name="selected_ids[]" value="<%= message[:id] %>"></td>
+                                    <td>
+                                        <input type="checkbox" class="individual-check" form="bulkActionForm"
+                                               data-message-id="<%= message[:id] %>"
+                                               data-lock-version="<%= message[:lock_version] %>"
+                                               name="selected_messages[]"
+                                               value="<%= "#{message[:id]}:#{message[:lock_version]}" %>">
+                                    </td>
                                     <td scope="row">
                                         <a href="<%= outboxer_path("/message/#{message[:id]}#{normalised_query_string}") %>" class="custom-link">
                                             <%= message[:id] %>
@@ -160,23 +171,28 @@
                                         <!-- Requeue Button Form -->
                                         <form action="<%= outboxer_path("/message/#{message[:id]}/requeue") %>" method="post">
                                             <% normalised_query_params.each do |key, param| %>
-                                                <input type="hidden" name="<%= key %>" value="<%= param %>">
+                                            <input type="hidden" name="<%= key %>" value="<%= param %>">
                                             <% end %>
-                                            <button type="submit" class="btn btn-sm btn-outline-secondary me-1 d-flex align-items-center
-                                                            justify-content-center" <%= 'disabled' unless Outboxer::Message
-                                                                                    .can_requeue?(status: denormalised_query_params[:status]) %>>
-                                                <i class="bi bi-arrow-clockwise me-1"></i>
-                                                <span>Requeue</span>
+                                            <input type="hidden" name="lock_version" value="<%= message[:lock_version] %>">
+
+                                            <button type="submit"
+                                                    class="btn btn-sm btn-outline-secondary me-1 d-flex align-items-center justify-content-center"
+                                                    <%= 'disabled' unless Outboxer::Message
+                                                        .can_requeue?(status: denormalised_query_params[:status]) %>>
+                                            <i class="bi bi-arrow-clockwise me-1"></i>
+                                            <span>Requeue</span>
                                             </button>
                                         </form>
 
                                         <!-- Delete Button Form -->
                                         <form action="<%= outboxer_path("/message/#{message[:id]}/delete") %>" method="post">
                                             <% normalised_query_params.each do |key, param| %>
-                                                <input type="hidden" name="<%= key %>" value="<%= param %>">
+                                            <input type="hidden" name="<%= key %>" value="<%= param %>">
                                             <% end %>
+                                            <input type="hidden" name="lock_version" value="<%= message[:lock_version] %>">
 
-                                            <button type="submit" class="btn btn-sm btn-outline-danger ms-1 d-flex align-items-center justify-content-center">
+                                            <button type="submit"
+                                                    class="btn btn-sm btn-outline-danger ms-1 d-flex align-items-center justify-content-center">
                                             <i class="bi bi-trash me-1"></i>
                                             <span>Delete</span>
                                             </button>
@@ -242,58 +258,48 @@
     </div>
 </div>
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const checkboxes = document.querySelectorAll('.individual-check');
-        const checkAll = document.getElementById('checkAll');
-        const bulkActionsToolbar = document.getElementById('bulkActionsToolbar');
+document.addEventListener('DOMContentLoaded', function () {
+  const checkboxes = document.querySelectorAll('.individual-check');
+  const checkAll = document.getElementById('checkAll');
+  const bulkActionsToolbar = document.getElementById('bulkActionsToolbar');
 
-        function toggleBulkActionsToolbar() {
-            const anyChecked = Array.from(checkboxes).some(checkbox => checkbox.checked);
-            bulkActionsToolbar.classList.toggle('d-none', !anyChecked);
-        }
+  // Hide toolbar initially (enhancement only)
+  bulkActionsToolbar.classList.add('d-none');
 
-        checkboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', toggleBulkActionsToolbar);
-        });
+  function toggleBulkActionsToolbar() {
+    const anyChecked = Array.from(checkboxes).some(checkbox => checkbox.checked);
+    bulkActionsToolbar.classList.toggle('d-none', !anyChecked);
+  }
 
+  // Individual checkbox toggles toolbar visibility
+  checkboxes.forEach(checkbox => {
+    checkbox.addEventListener('change', toggleBulkActionsToolbar);
+  });
 
-        if (checkAll) {
-            checkAllElement.addEventListener('change', function (e) {
-                var checkboxes = document.querySelectorAll('.individual-check');
-                for (var i = 0; i < checkboxes.length; i++) {
-                    checkboxes[i].checked = e.target.checked;
-                }
-            });
-
-            checkAll.addEventListener('change', function () {
-                toggleBulkActionsToolbar();
-            });
-        }
-
-        const deleteAllBtn = document.getElementById('deleteAllBtn');
-
-        if (deleteAllBtn) {
-            deleteAllBtn.addEventListener('click', function(e) {
-                const confirmation = confirm('Are you sure you want to delete all?');
-                if (!confirmation) {
-                    e.preventDefault();
-                    return false;
-                }
-            });
-        }
-
-        const retryAllBtn = document.getElementById('retryAllBtn');
-
-        if (retryAllBtn) {
-            retryAllBtn.addEventListener('click', function(e) {
-                const confirmation = confirm('Are you sure you want to retry all?');
-                if (!confirmation) {
-                    e.preventDefault();
-                    return false;
-                }
-            });
-        }
+  // "Select All" toggle
+  if (checkAll) {
+    checkAll.addEventListener('change', function (e) {
+      checkboxes.forEach(box => (box.checked = e.target.checked));
+      toggleBulkActionsToolbar();
     });
+  }
 
-    var checkAllElement = document.getElementById('checkAll');
+  // Confirmation prompts for destructive actions
+  const deleteAllBtn = document.getElementById('deleteAllBtn');
+  if (deleteAllBtn) {
+    deleteAllBtn.addEventListener('click', function (e) {
+      if (!confirm('Are you sure you want to delete all?')) e.preventDefault();
+    });
+  }
+
+  const retryAllBtn = document.getElementById('retryAllBtn');
+  if (retryAllBtn) {
+    retryAllBtn.addEventListener('click', function (e) {
+      if (!confirm('Are you sure you want to retry all?')) e.preventDefault();
+    });
+  }
+
+  // Initial state
+  toggleBulkActionsToolbar();
+});
 </script>
