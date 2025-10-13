@@ -563,7 +563,10 @@ module Outboxer
             .where(status: message.status, partition: partition)
             .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
 
-          { id: id, lock_version: lock_version }
+          {
+            id: id,
+            lock_version: lock_version
+          }
         end
       end
     end
