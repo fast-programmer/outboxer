@@ -29,10 +29,10 @@ RSpec.describe "POST /messages/update", type: :request do
   context "when action is requeue_by_ids" do
     before do
       post "/messages/update", {
-        selected_messages: {
-          "0" => { id: message_2.id.to_s, lock_version: message_2.lock_version.to_s },
-          "1" => { id: message_3.id.to_s, lock_version: message_3.lock_version.to_s }
-        },
+        selected_messages: [
+          "#{message_2.id}:#{message_2.lock_version}",
+          "#{message_3.id}:#{message_3.lock_version}"
+        ],
         action: "requeue_by_ids",
         status: :failed,
         page: 1,
@@ -45,7 +45,7 @@ RSpec.describe "POST /messages/update", type: :request do
     end
 
     it "queues selected messages" do
-      expect(Outboxer::Models::Message.queued.pluck(:id)).to eq([
+      expect(Outboxer::Models::Message.queued.pluck(:id)).to match_array([
         message_1.id, message_2.id, message_3.id
       ])
     end
@@ -63,10 +63,10 @@ RSpec.describe "POST /messages/update", type: :request do
   context "when action is delete_by_ids" do
     before do
       post "/messages/update", {
-        selected_messages: {
-          "0" => { id: message_2.id.to_s, lock_version: message_2.lock_version.to_s },
-          "1" => { id: message_3.id.to_s, lock_version: message_3.lock_version.to_s }
-        },
+        selected_messages: [
+          "#{message_2.id}:#{message_2.lock_version}",
+          "#{message_3.id}:#{message_3.lock_version}"
+        ],
         action: "delete_by_ids",
         status: :failed,
         page: 1,
@@ -95,10 +95,10 @@ RSpec.describe "POST /messages/update", type: :request do
   context "with invalid action" do
     before do
       post "/messages/update", {
-        selected_messages: {
-          "0" => { id: message_2.id.to_s, lock_version: message_2.lock_version.to_s },
-          "1" => { id: message_3.id.to_s, lock_version: message_3.lock_version.to_s }
-        },
+        selected_messages: [
+          "#{message_2.id}:#{message_2.lock_version}",
+          "#{message_3.id}:#{message_3.lock_version}"
+        ],
         action: "invalid",
         status: :failed,
         page: 1,

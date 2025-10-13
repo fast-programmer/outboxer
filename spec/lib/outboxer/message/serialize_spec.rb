@@ -7,6 +7,7 @@ module Outboxer
         expect(
           Message.serialize(
             id: 1,
+            lock_version: 2,
             status: "publishing",
             messageable_type: "Invoice",
             messageable_id: "INV-001",
@@ -20,6 +21,7 @@ module Outboxer
         ).to eq(
           {
             id: 1,
+            lock_version: 2,
             status: "publishing",
             messageable_type: "Invoice",
             messageable_id: "INV-001",

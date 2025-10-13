@@ -61,6 +61,7 @@ module Outboxer
             messages: [
               {
                 id: message_1.id,
+                lock_version: message_1.lock_version,
                 status: message_1.status.to_sym,
                 messageable_type: message_1.messageable_type,
                 messageable_id: message_1.messageable_id,
@@ -75,6 +76,7 @@ module Outboxer
               },
               {
                 id: message_2.id,
+                lock_version: message_2.lock_version,
                 status: message_2.status.to_sym,
                 messageable_type: message_2.messageable_type,
                 messageable_id: message_2.messageable_id,
@@ -89,6 +91,7 @@ module Outboxer
               },
               {
                 id: message_3.id,
+                lock_version: message_3.lock_version,
                 status: message_3.status.to_sym,
                 messageable_type: message_3.messageable_type,
                 messageable_id: message_3.messageable_id,
@@ -103,6 +106,7 @@ module Outboxer
               },
               {
                 id: message_4.id,
+                lock_version: message_4.lock_version,
                 status: message_4.status.to_sym,
                 messageable_type: message_4.messageable_type,
                 messageable_id: message_4.messageable_id,
@@ -117,6 +121,7 @@ module Outboxer
               },
               {
                 id: message_5.id,
+                lock_version: message_5.lock_version,
                 status: message_5.status.to_sym,
                 messageable_type: message_5.messageable_type,
                 messageable_id: message_5.messageable_id,

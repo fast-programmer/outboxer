@@ -496,22 +496,25 @@ module Outboxer
     post "/messages/update" do
       flash = {}
 
-      selected_messages = params.fetch("selected_messages", {}).values
+      selected_messages = params.fetch("selected_messages", []).map do |pair|
+        id, lock_version = pair.split(":").map(&:to_i)
+        { id: id, lock_version: lock_version }
+      end
 
       case params[:action]
       when "requeue_by_ids"
         requeued_message_count = 0
         failed_message_count = 0
 
-        selected_messages.each do |message_attributes|
+        selected_messages.each do |selected_message|
           Outboxer::Message.requeue(
-            id: message_attributes["id"].to_i,
-            lock_version: message_attributes["lock_version"].to_i
+            id: selected_message[:id],
+            lock_version: selected_message[:lock_version]
           )
           requeued_message_count += 1
         rescue StandardError => error
           settings.logger.error(
-            "[Outboxer::Web] Failed to requeue message id=#{message_attributes["id"]}\n" \
+            "[Outboxer::Web] Failed to requeue message id=#{selected_message[:id]}\n" \
             "error_class=#{error.class}\n" \
             "error_message=#{error.message.inspect}"
           )
@@ -530,15 +533,15 @@ module Outboxer
         deleted_message_count = 0
         failed_message_count = 0
 
-        selected_messages.each do |message_attributes|
+        selected_messages.each do |selected_message|
           Outboxer::Message.delete(
-            id: message_attributes["id"].to_i,
-            lock_version: message_attributes["lock_version"].to_i
+            id: selected_message[:id],
+            lock_version: selected_message[:lock_version]
           )
           deleted_message_count += 1
         rescue StandardError => error
           settings.logger.error(
-            "[Outboxer::Web] Failed to delete message id=#{message_attributes["id"]}\n" \
+            "[Outboxer::Web] Failed to delete message id=#{selected_message[:id]}\n" \
             "error_class=#{error.class}\n" \
             "error_message=#{error.message.inspect}"
           )
