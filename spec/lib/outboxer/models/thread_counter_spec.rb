@@ -9,47 +9,53 @@ module Outboxer
         let(:thread_id)  { 999 }
         let(:now)        { Time.now.utc }
 
-        it "inserts a new row and returns its id" do
-          thread_counter = ThreadCounter.insert_or_increment(
+        it "inserts a new row successfully" do
+          expect do
+            ThreadCounter.insert_or_increment(
+              hostname: hostname,
+              process_id: process_id,
+              thread_id: thread_id,
+              queued_count: 1,
+              time: now
+            )
+          end.to change(ThreadCounter, :count).by(1)
+
+          row = ThreadCounter.find_by(
             hostname: hostname,
             process_id: process_id,
-            thread_id: thread_id,
-            queued_count: 1,
-            time: now
+            thread_id: thread_id
           )
 
-          expect(thread_counter).to be_a(Hash)
-          expect(thread_counter).to include(:id)
-          expect(thread_counter[:id]).to be_present
-
-          row = ThreadCounter.find(thread_counter[:id])
-          expect(row.hostname).to eq(hostname)
+          expect(row).not_to be_nil
           expect(row.queued_count).to eq(1)
         end
 
         it "increments existing counts if called again" do
-          first = ThreadCounter.insert_or_increment(
+          ThreadCounter.insert_or_increment(
             hostname: hostname,
             process_id: process_id,
             thread_id: thread_id,
             queued_count: 1
           )
 
-          second = ThreadCounter.insert_or_increment(
+          ThreadCounter.insert_or_increment(
             hostname: hostname,
             process_id: process_id,
             thread_id: thread_id,
             queued_count: 2
           )
 
-          expect(second[:id]).to eq(first[:id])
+          row = ThreadCounter.find_by(
+            hostname: hostname,
+            process_id: process_id,
+            thread_id: thread_id
+          )
 
-          row = ThreadCounter.find(second[:id])
           expect(row.queued_count).to eq(3)
         end
 
         it "updates multiple counters atomically" do
-          thread_counter = ThreadCounter.insert_or_increment(
+          ThreadCounter.insert_or_increment(
             hostname: hostname,
             process_id: process_id,
             thread_id: thread_id,
@@ -58,7 +64,12 @@ module Outboxer
             failed_count: 3
           )
 
-          row = ThreadCounter.find(thread_counter[:id])
+          row = ThreadCounter.find_by(
+            hostname: hostname,
+            process_id: process_id,
+            thread_id: thread_id
+          )
+
           expect(row.publishing_count).to eq(1)
           expect(row.published_count).to eq(2)
           expect(row.failed_count).to eq(3)

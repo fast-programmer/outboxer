@@ -27,7 +27,6 @@ module Outboxer
                     published_count  = #{table_name}.published_count  + #{published_count},
                     failed_count     = #{table_name}.failed_count     + #{failed_count},
                     updated_at       = EXCLUDED.updated_at
-                  RETURNING id
                 SQL
               else
                 <<~SQL
@@ -43,17 +42,16 @@ module Outboxer
                     published_count  = published_count  + #{published_count},
                     failed_count     = failed_count     + #{failed_count},
                     updated_at       = VALUES(updated_at)
-                  RETURNING id
                 SQL
               end
 
-        result = ActiveRecord::Base.connection.exec_query(
+        ActiveRecord::Base.connection.exec_query(
           ActiveRecord::Base.sanitize_sql_array(
             [sql, hostname, process_id, thread_id, now, now]
           )
         )
 
-        { id: result.first["id"] }
+        nil
       end
     end
   end
