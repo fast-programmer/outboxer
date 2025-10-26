@@ -3,12 +3,12 @@ module Outboxer
     class ThreadCounter < ::ActiveRecord::Base
       self.table_name = "outboxer_thread_counters"
 
-      def self.insert_or_increment(hostname: Socket.gethostname,
-                                   process_id: Process.pid,
-                                   thread_id: Thread.current.object_id,
-                                   queued_count: 0, publishing_count: 0,
-                                   published_count: 0, failed_count: 0,
-                                   time: Time.now.utc)
+      def self.insert_or_increment_by(hostname: Socket.gethostname,
+                                      process_id: Process.pid,
+                                      thread_id: Thread.current.object_id,
+                                      queued_count: 0, publishing_count: 0,
+                                      published_count: 0, failed_count: 0,
+                                      time: Time.now.utc)
         adapter = ActiveRecord::Base.connection.adapter_name.downcase
         now = time.utc
 

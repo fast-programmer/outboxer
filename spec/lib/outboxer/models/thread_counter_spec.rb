@@ -3,7 +3,7 @@ require "rails_helper"
 module Outboxer
   module Models
     RSpec.describe ThreadCounter, type: :model do
-      describe ".insert_or_increment" do
+      describe ".insert_or_increment_by" do
         let(:hostname)   { "test-host" }
         let(:process_id) { 12_345 }
         let(:thread_id)  { 999 }
@@ -11,7 +11,7 @@ module Outboxer
 
         it "inserts a new row successfully" do
           expect do
-            ThreadCounter.insert_or_increment(
+            ThreadCounter.insert_or_increment_by(
               hostname: hostname,
               process_id: process_id,
               thread_id: thread_id,
@@ -31,14 +31,14 @@ module Outboxer
         end
 
         it "increments existing counts if called again" do
-          ThreadCounter.insert_or_increment(
+          ThreadCounter.insert_or_increment_by(
             hostname: hostname,
             process_id: process_id,
             thread_id: thread_id,
             queued_count: 1
           )
 
-          ThreadCounter.insert_or_increment(
+          ThreadCounter.insert_or_increment_by(
             hostname: hostname,
             process_id: process_id,
             thread_id: thread_id,
@@ -55,7 +55,7 @@ module Outboxer
         end
 
         it "updates multiple counters atomically" do
-          ThreadCounter.insert_or_increment(
+          ThreadCounter.insert_or_increment_by(
             hostname: hostname,
             process_id: process_id,
             thread_id: thread_id,
@@ -77,7 +77,7 @@ module Outboxer
 
         it "does not create duplicate rows on repeated calls" do
           3.times do
-            ThreadCounter.insert_or_increment(
+            ThreadCounter.insert_or_increment_by(
               hostname: hostname,
               process_id: process_id,
               thread_id: thread_id,
