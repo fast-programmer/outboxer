@@ -18,7 +18,8 @@ module Outboxer
                     (hostname, process_id, thread_id,
                      queued_count, publishing_count, published_count, failed_count,
                      created_at, updated_at)
-                  VALUES (?, ?, ?, #{queued_count}, #{publishing_count}, #{published_count}, #{failed_count}, ?, ?)
+                  VALUES (?, ?, ?, #{queued_count}, #{publishing_count},
+                          #{published_count}, #{failed_count}, ?, ?)
                   ON CONFLICT (hostname, process_id, thread_id)
                   DO UPDATE SET
                     queued_count     = #{table_name}.queued_count     + #{queued_count},
@@ -34,7 +35,8 @@ module Outboxer
                     (hostname, process_id, thread_id,
                      queued_count, publishing_count, published_count, failed_count,
                      created_at, updated_at)
-                  VALUES (?, ?, ?, #{queued_count}, #{publishing_count}, #{published_count}, #{failed_count}, ?, ?)
+                  VALUES (?, ?, ?, #{queued_count}, #{publishing_count},
+                          #{published_count}, #{failed_count}, ?, ?)
                   ON DUPLICATE KEY UPDATE
                     queued_count     = queued_count     + #{queued_count},
                     publishing_count = publishing_count + #{publishing_count},
