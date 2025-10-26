@@ -16,10 +16,7 @@ class CreateOutboxerThreadCounters < ActiveRecord::Migration[6.1]
     end
 
     add_index :outboxer_thread_counters, [:hostname, :process_id, :thread_id],
-      unique: true, name: "idx_outboxer_thread_identity"
-
-    add_index :outboxer_thread_counters,
-      :updated_at, name: "idx_outboxer_thread_counters_updated_at"
+      unique: true, name: "idx_outboxer_thread_counters_identity"
   end
 
   def down
