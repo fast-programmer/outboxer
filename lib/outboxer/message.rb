@@ -53,35 +53,55 @@ module Outboxer
       id % partition_count
     end
 
-    # Queues a new message.
+    # Queues a new message and increments thread-level counters.
     #
-    # @overload queue(messageable:, attempt: 1, logger: nil, time: ::Time)
+    # @overload queue(messageable:, logger: nil, time: ::Time,
+    #                 hostname: Socket.gethostname, process_id: Process.pid,
+    #                 thread_id: Thread.current.object_id)
     #   @param messageable [Object] the associated object; must respond to `id` and `class.name`.
-    #   @param attempt [Integer] call attempt counter; first call should leave as default (1).
-    #   @param logger [#info, #error, #fatal, nil] optional logger
+    #   @param logger [#info, #error, #fatal, nil] optional logger for error reporting.
     #   @param time [Time] time context for setting timestamps.
+    #   @param hostname [String] host identifier, defaults to current system hostname.
+    #   @param process_id [Integer] process identifier, defaults to current process PID.
+    #   @param thread_id [Integer] thread identifier, defaults to current Ruby thread object ID.
     #
-    # @overload queue(messageable_type:, messageable_id:, attempt: 1, logger: nil, time: ::Time)
+    # @overload queue(messageable_type:, messageable_id:, attempt: 1, logger: nil, time: ::Time,
+    #                 hostname: Socket.gethostname, process_id: Process.pid,
+    #                 thread_id: Thread.current.object_id)
     #   @param messageable_type [String] the associated object type name.
     #   @param messageable_id [Integer, String] the associated object identifier.
     #   @param attempt [Integer] call attempt counter; first call should leave as default (1).
-    #   @param logger [#info, #error, #fatal, nil] optional logger
+    #   @param logger [#info, #error, #fatal, nil] optional logger for error reporting.
     #   @param time [Time] time context for setting timestamps.
+    #   @param hostname [String] host identifier, defaults to current system hostname.
+    #   @param process_id [Integer] process identifier, defaults to current process PID.
+    #   @param thread_id [Integer] thread identifier, defaults to current Ruby thread object ID.
     #
-    # @return [Hash] a serialized message hash with keys:
-    #   - `:id` [Integer]
-    #   - `:status` [String]
-    #   - `:messageable_type` [String]
-    #   - `:messageable_id` [Integer, String]
-    #   - `:updated_at` [Time]
-    # @raise [Outboxer::Message::MissingPartition] when partition seed absent and `attempt` > 1.
-    # @raise [Outboxer::Message::Error] on other failures during queuing.
-    # @example Using an object
+    # @return [Hash] the queued message metadata:
+    #   - `:id` [Integer] the message ID.
+    #   - `:lock_version` [Integer] optimistic lock version for the message.
+    #
+    # @raise [ArgumentError] if neither `messageable` nor (`messageable_type` and
+    #   `messageable_id`) are provided.
+    #
+    # @example Queue using an object
     #   Outboxer::Message.queue(messageable: event)
-    # @example Using explicit type and id
+    #
+    # @example Queue using explicit type and id
     #   Outboxer::Message.queue(messageable_type: "Event", messageable_id: 42)
+    #
+    # @example With explicit hostname, process_id and thread_id
+    #   Outboxer::Message.queue(
+    #     messageable: event,
+    #     hostname: "web-01",
+    #     process_id: 1234,
+    #     thread_id: 456789,
+    #     time: Time.now
+    #   )
     def queue(messageable: nil, messageable_type: nil, messageable_id: nil,
-              attempt: 1, logger: nil, time: ::Time)
+              logger: nil, time: ::Time,
+              hostname: Socket.gethostname, process_id: Process.pid,
+              thread_id: Thread.current.object_id)
       current_utc_time = time.now.utc
 
       type, id =
@@ -100,42 +120,19 @@ module Outboxer
           messageable_id: id,
           messageable_type: type,
           queued_at: current_utc_time,
-          updated_at: current_utc_time
-        )
+          updated_at: current_utc_time)
 
-        partition = calculate_partition(id: message.id)
-
-        updated_count = Models::MessageCount
-          .where(status: Status::QUEUED, partition: partition)
-          .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
-
-        updated_total = Models::MessageTotal
-          .where(status: Status::QUEUED, partition: partition)
-          .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
-
-        if updated_count.zero? || updated_total.zero?
-          raise MissingPartition, "Missing partition"
-        end
+        Models::ThreadCounter.insert_or_increment_by(
+          hostname: hostname,
+          process_id: process_id,
+          thread_id: thread_id,
+          queued_count: 1,
+          time: current_utc_time)
 
         {
           id: message.id,
           lock_version: message.lock_version
         }
-      end
-    rescue MissingPartition
-      if attempt == 1
-        Message.seed_partitions(time: time, logger: logger)
-
-        Message.queue(
-          messageable: messageable,
-          messageable_type: messageable_type,
-          messageable_id: messageable_id,
-          attempt: attempt + 1,
-          logger: logger,
-          time: time
-        )
-      else
-        raise
       end
     end
 
