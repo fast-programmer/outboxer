@@ -1,7 +1,7 @@
 module Outboxer
   module Models
-    class ThreadCounter < ::ActiveRecord::Base
-      self.table_name = "outboxer_thread_counters"
+    class Counter < ::ActiveRecord::Base
+      self.table_name = "outboxer_counters"
 
       def self.insert_or_increment_by(hostname: Socket.gethostname,
                                       process_id: Process.pid,
