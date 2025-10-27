@@ -1,9 +1,9 @@
 class CreateOutboxerCounters < ActiveRecord::Migration[6.1]
   def up
     create_table :outboxer_counters do |t|
-      t.string  :hostname, limit: 255
-      t.integer :process_id
-      t.integer :thread_id
+      t.string  :hostname, limit: 255, null: false
+      t.integer :process_id, null: false
+      t.integer :thread_id, null: false
 
       t.integer :publisher_id
 
