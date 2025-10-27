@@ -2,7 +2,7 @@ require "rails_helper"
 
 module Outboxer
   module Models
-    RSpec.describe ThreadCounter, type: :model do
+    RSpec.describe Counter, type: :model do
       describe ".insert_or_increment_by" do
         let(:hostname)   { "test-host" }
         let(:process_id) { 12_345 }
@@ -11,16 +11,16 @@ module Outboxer
 
         it "inserts a new row successfully" do
           expect do
-            ThreadCounter.insert_or_increment_by(
+            Counter.insert_or_increment_by(
               hostname: hostname,
               process_id: process_id,
               thread_id: thread_id,
               queued_count: 1,
               time: now
             )
-          end.to change(ThreadCounter, :count).by(1)
+          end.to change(Counter, :count).by(1)
 
-          row = ThreadCounter.find_by(
+          row = Counter.find_by(
             hostname: hostname,
             process_id: process_id,
             thread_id: thread_id
@@ -31,21 +31,21 @@ module Outboxer
         end
 
         it "increments existing counts if called again" do
-          ThreadCounter.insert_or_increment_by(
+          Counter.insert_or_increment_by(
             hostname: hostname,
             process_id: process_id,
             thread_id: thread_id,
             queued_count: 1
           )
 
-          ThreadCounter.insert_or_increment_by(
+          Counter.insert_or_increment_by(
             hostname: hostname,
             process_id: process_id,
             thread_id: thread_id,
             queued_count: 2
           )
 
-          row = ThreadCounter.find_by(
+          row = Counter.find_by(
             hostname: hostname,
             process_id: process_id,
             thread_id: thread_id
@@ -55,7 +55,7 @@ module Outboxer
         end
 
         it "updates multiple counters atomically" do
-          ThreadCounter.insert_or_increment_by(
+          Counter.insert_or_increment_by(
             hostname: hostname,
             process_id: process_id,
             thread_id: thread_id,
@@ -64,7 +64,7 @@ module Outboxer
             failed_count: 3
           )
 
-          row = ThreadCounter.find_by(
+          row = Counter.find_by(
             hostname: hostname,
             process_id: process_id,
             thread_id: thread_id
@@ -77,7 +77,7 @@ module Outboxer
 
         it "does not create duplicate rows on repeated calls" do
           3.times do
-            ThreadCounter.insert_or_increment_by(
+            Counter.insert_or_increment_by(
               hostname: hostname,
               process_id: process_id,
               thread_id: thread_id,
@@ -85,7 +85,7 @@ module Outboxer
             )
           end
 
-          count = ThreadCounter.where(
+          count = Counter.where(
             hostname: hostname,
             process_id: process_id,
             thread_id: thread_id
