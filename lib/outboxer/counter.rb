@@ -4,40 +4,6 @@ module Outboxer
     HISTORIC_PROCESS_ID = 0
     HISTORIC_THREAD_ID  = 0
 
-    # Returns historic counter details
-    #
-    # @return [Hash] a hash containing the historic counter:
-    #   {
-    #     queued_count: Integer,
-    #     publishing_count: Integer,
-    #     published_count: Integer,
-    #     failed_count: Integer
-    #   }
-    def self.historic
-      ActiveRecord::Base.connection_pool.with_connection do
-        ActiveRecord::Base.transaction do
-          counter = Models::Counter.lock("FOR UPDATE").find_by!(
-            hostname: HISTORIC_HOSTNAME,
-            process_id: HISTORIC_PROCESS_ID,
-            thread_id: HISTORIC_THREAD_ID)
-
-          {
-            queued_count: counter.queued_count,
-            publishing_count: counter.publishing_count,
-            published_count: counter.published_count,
-            failed_count: counter.failed_count
-          }
-        end
-      end
-    rescue ActiveRecord::RecordNotFound
-      {
-        queued_count: 0,
-        publishing_count: 0,
-        published_count: 0,
-        failed_count: 0
-      }
-    end
-
     # Rolls up thread_counters for the given publisher_id into the historic_counter,
     # then destroys rolled-up thread_counters.
     #

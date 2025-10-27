@@ -10,44 +10,6 @@ module Outboxer
 
     before { Models::Counter.delete_all }
 
-    describe ".historic" do
-      context "when historic counter exists" do
-        before do
-          Models::Counter.create!(
-            hostname: Counter::HISTORIC_HOSTNAME,
-            process_id: Counter::HISTORIC_PROCESS_ID,
-            thread_id: Counter::HISTORIC_THREAD_ID,
-            queued_count: 10, publishing_count: 20,
-            published_count: 30, failed_count: 40,
-            created_at: time_now, updated_at: time_now)
-        end
-
-        it "returns the current historic counts" do
-          result = Counter.historic
-
-          expect(result).to eq(
-            queued_count: 10,
-            publishing_count: 20,
-            published_count: 30,
-            failed_count: 40
-          )
-        end
-      end
-
-      context "when no historic counter exists" do
-        it "returns all zero counts" do
-          result = Counter.historic
-
-          expect(result).to eq(
-            queued_count: 0,
-            publishing_count: 0,
-            published_count: 0,
-            failed_count: 0
-          )
-        end
-      end
-    end
-
     describe ".rollup" do
       context "when historic counter does not exist" do
         let!(:thread_1) do
@@ -68,7 +30,7 @@ module Outboxer
             created_at: time_now, updated_at: time_now)
         end
 
-        it "creates the historic counter and rolls up all threads" do
+        it "creates the historic counter and rolls up all the thread counters" do
           result = Counter.rollup(publisher_id: publisher_a, time: time_now)
 
           expect(result).to eq(
