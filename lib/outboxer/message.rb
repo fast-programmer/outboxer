@@ -17,7 +17,6 @@ module Outboxer
     #   hostname: Socket.gethostname,
     #   process_id: Process.pid,
     #   thread_id: Thread.current.object_id,
-    #   logger: nil,
     #   time: ::Time
     # )
     #   @param messageable [Object, nil] associated object; must respond to `id` and `class.name`.
@@ -26,7 +25,6 @@ module Outboxer
     #   @param hostname [String] name of the host (defaults to `Socket.gethostname`).
     #   @param process_id [Integer] current process ID (defaults to `Process.pid`).
     #   @param thread_id [Integer] current thread ID (defaults to `Thread.current.object_id`).
-    #   @param logger [#info, #error, #fatal, nil] optional logger.
     #   @param time [Time] time context for setting timestamps.
     #
     # @return [Hash] a serialized message hash with keys:
@@ -56,7 +54,7 @@ module Outboxer
               hostname: Socket.gethostname,
               process_id: Process.pid,
               thread_id: Thread.current.object_id,
-              logger: nil, time: ::Time)
+              time: ::Time)
       current_utc_time = time.now.utc
 
       type, id =

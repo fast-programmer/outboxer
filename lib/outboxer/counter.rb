@@ -7,59 +7,66 @@ module Outboxer
     # Rolls up thread_counters for the given publisher_id into the historic_counter,
     # then destroys rolled-up thread_counters.
     #
-    # @param publisher_id [Integer] publisher to roll up
     # @param time [Time] timestamp context for updated_at
     # @return [Hash] new historic_totals after rollup
-    def self.rollup(publisher_id:, time:)
+    def self.rollup(time: Time)
+      current_utc_time = time.now.utc
+
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
+          # 1. Ensure the historic counter exists (idempotent upsert)
           Models::Counter.insert_or_increment_by(
             hostname: HISTORIC_HOSTNAME,
             process_id: HISTORIC_PROCESS_ID,
             thread_id: HISTORIC_THREAD_ID,
-            time: time
+            current_utc_time: current_utc_time
           )
 
-          historic_counter = Models::Counter.lock("FOR UPDATE").find_by!(
+          # 2. Lock *all* rows (historic + all thread counters)
+          locked_rows = Models::Counter.lock("FOR UPDATE").to_a
+
+          # 3. Identify the historic counter
+          historic = locked_rows.find do |r|
+            r.hostname == HISTORIC_HOSTNAME &&
+              r.process_id == HISTORIC_PROCESS_ID &&
+              r.thread_id == HISTORIC_THREAD_ID
+          end
+
+          # 4. Everything else is a thread counter
+          thread_counters = locked_rows - [historic]
+
+          # 5. Sum all thread counters
+          totals = thread_counters.each_with_object(
+            queued_count: 0, publishing_count: 0, published_count: 0, failed_count: 0
+          ) do |row, sum|
+            sum[:queued_count] += row.queued_count
+            sum[:publishing_count] += row.publishing_count
+            sum[:published_count] += row.published_count
+            sum[:failed_count] += row.failed_count
+          end
+
+          # 6. Update historic
+          historic.update(
+            queued_count: historic.queued_count + totals[:queued_count],
+            publishing_count: historic.publishing_count + totals[:publishing_count],
+            published_count: historic.published_count + totals[:published_count],
+            failed_count: historic.failed_count + totals[:failed_count],
+            updated_at: current_utc_time
+          )
+
+          # 7. Delete all rolled-up rows except historic
+          Models::Counter.where.not(
             hostname: HISTORIC_HOSTNAME,
             process_id: HISTORIC_PROCESS_ID,
             thread_id: HISTORIC_THREAD_ID
-          )
+          ).delete_all
 
-          thread_counters = Models::Counter.lock("FOR UPDATE")
-            .where("publisher_id = ? OR publisher_id IS NULL", publisher_id)
-            .where.not(
-              hostname: HISTORIC_HOSTNAME,
-              process_id: HISTORIC_PROCESS_ID,
-              thread_id: HISTORIC_THREAD_ID)
-
-          thread_counter_totals = Models::Counter
-            .where(id: thread_counters.select(:id))
-            .select(
-              "COALESCE(SUM(queued_count), 0) AS queued_count",
-              "COALESCE(SUM(publishing_count), 0) AS publishing_count",
-              "COALESCE(SUM(published_count), 0) AS published_count",
-              "COALESCE(SUM(failed_count), 0) AS failed_count"
-            ).take.attributes.symbolize_keys.slice(
-              :queued_count, :publishing_count, :published_count, :failed_count)
-
-          historic_counter.update!(
-            queued_count: historic_counter.queued_count + thread_counter_totals[:queued_count],
-            publishing_count: historic_counter.publishing_count +
-              thread_counter_totals[:publishing_count],
-            published_count: historic_counter.published_count +
-              thread_counter_totals[:published_count],
-            failed_count: historic_counter.failed_count + thread_counter_totals[:failed_count],
-            updated_at: time
-          )
-
-          thread_counters.destroy_all
-
+          # 8. Return the updated totals
           {
-            queued_count: historic_counter.queued_count,
-            publishing_count: historic_counter.publishing_count,
-            published_count: historic_counter.published_count,
-            failed_count: historic_counter.failed_count
+            queued_count: historic.queued_count,
+            publishing_count: historic.publishing_count,
+            published_count: historic.published_count,
+            failed_count: historic.failed_count
           }
         end
       end
