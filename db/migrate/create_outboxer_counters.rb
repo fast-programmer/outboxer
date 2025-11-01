@@ -5,8 +5,6 @@ class CreateOutboxerCounters < ActiveRecord::Migration[6.1]
       t.integer :process_id, null: false
       t.integer :thread_id, null: false
 
-      t.integer :publisher_id
-
       t.integer :queued_count,     null: false
       t.integer :publishing_count, null: false
       t.integer :published_count,  null: false

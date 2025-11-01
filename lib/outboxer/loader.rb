@@ -115,6 +115,7 @@ module Outboxer
         Thread.new do
           while Thread.main[:status] != :terminating
             messageables = queue.pop
+            break if messageables.nil?
 
             messageables.each do |messageable|
               Outboxer::Message.queue(messageable: messageable)

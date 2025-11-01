@@ -446,10 +446,19 @@ module Outboxer
       end
     end
 
-    # Deletes a message by ID.
+    # Deletes a message by id.
     # @param id [Integer] the ID of the message to delete.
+    # @param lock_version [Integer] message lock_version.
+    # @param hostname [String] name of the host (defaults to `Socket.gethostname`).
+    # @param process_id [Integer] current process ID (defaults to `Process.pid`).
+    # @param thread_id [Integer] current thread ID (defaults to `Thread.current.object_id`).
+    # @param time [Time] time context for setting timestamps.
     # @return [Hash] details of the deleted message.
-    def delete(id:, lock_version:, time: ::Time)
+    def delete(id:, lock_version:,
+               hostname: Socket.gethostname,
+               process_id: Process.pid,
+               thread_id: Thread.current.object_id,
+               time: ::Time)
       current_utc_time = time.now.utc
 
       ActiveRecord::Base.connection_pool.with_connection do
@@ -491,7 +500,11 @@ module Outboxer
     # @param publisher_name [String, nil] the name of the publisher.
     # @param time [Time] current time context used to update timestamps.
     # @return [Hash] updated message details.
-    def requeue(id:, lock_version:, publisher_id: nil, publisher_name: nil,
+    def requeue(id:, lock_version:,
+                publisher_id: nil, publisher_name: nil,
+                hostname: Socket.gethostname,
+                process_id: Process.pid,
+                thread_id: Thread.current.object_id,
                 time: ::Time)
       current_utc_time = time.now.utc
 
@@ -640,7 +653,7 @@ module Outboxer
       metrics = {
         all: {
           count: {
-            current: totals.values.sum
+            total: totals.values.sum
           }
         }
       }
@@ -652,7 +665,7 @@ module Outboxer
         failed: :failed_count
       }.each do |status, field|
         metrics[status] = {
-          count: { current: totals[field].to_i },
+          count: { total: totals[field].to_i },
           latency: 0,
           throughput: 0
         }
