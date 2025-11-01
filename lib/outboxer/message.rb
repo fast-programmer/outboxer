@@ -712,48 +712,17 @@ module Outboxer
     def count_by_status
       ActiveRecord::Base.connection_pool.with_connection do
         result = Models::Message::Count.select(
-          "COALESCE(SUM(queued), 0) AS queued",
-          "COALESCE(SUM(publishing), 0) AS publishing",
-          "COALESCE(SUM(published), 0) AS published",
-          "COALESCE(SUM(failed), 0) AS failed"
+          "COALESCE(SUM(queued), 0)      AS queued",
+          "COALESCE(SUM(publishing), 0)  AS publishing",
+          "COALESCE(SUM(published), 0)   AS published",
+          "COALESCE(SUM(failed), 0)      AS failed",
+          "COALESCE(SUM(queued + publishing + published + failed), 0) AS total"
         ).take
 
         result.attributes.symbolize_keys.slice(
-          :queued, :publishing, :published, :failed
-        )
+          :queued, :publishing, :published, :failed, :total
+        ).transform_values(&:to_i)
       end
-    end
-
-    # Retrieves and calculates metrics related to message statuses,
-    # using the unified Counter.total for all counts.
-    # Latency and throughput are placeholders (0) until time-series metrics are implemented.
-    #
-    # @return [Hash] detailed metrics across various message statuses.
-    def metrics
-      totals = count_by_status
-
-      metrics = {
-        all: {
-          count: {
-            total: totals.values.sum
-          }
-        }
-      }
-
-      {
-        queued: :queued,
-        publishing: :publishing,
-        published: :published,
-        failed: :failed
-      }.each do |status, field|
-        metrics[status] = {
-          count: { total: totals[field].to_i },
-          latency: 0,
-          throughput: 0
-        }
-      end
-
-      metrics
     end
   end
 end
