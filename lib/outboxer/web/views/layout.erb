@@ -55,7 +55,7 @@
         <div class="container-fluid">
             <a class="navbar-brand" href="<%= outboxer_path('') %>">
                 <i class="bi bi-envelope-open-fill"></i> Outboxer
-                <span class="badge bg-secondary"><%= Outboxer::Web.pretty_number(number: messages_metrics[:published][:count][:total]) %></span>
+                <span class="badge bg-secondary"><%= Outboxer::Web.pretty_number(number: messages_metrics[:published][:count][:current]) %></span>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>

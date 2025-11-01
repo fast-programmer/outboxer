@@ -81,7 +81,7 @@ module Outboxer
         Models::Counter.insert_or_increment_by(
           hostname: hostname, process_id: process_id, thread_id: thread_id,
           queued_count: 1,
-          time: current_utc_time)
+          current_utc_time: current_utc_time)
 
         {
           id: message.id,
@@ -243,7 +243,7 @@ module Outboxer
               thread_id: thread_id,
               queued_count: -1,
               publishing_count: 1,
-              time: current_utc_time
+              current_utc_time: current_utc_time
             )
 
             {
@@ -297,7 +297,7 @@ module Outboxer
             thread_id: thread_id,
             publishing_count: -1,
             published_count: 1,
-            time: current_utc_time
+            current_utc_time: current_utc_time
           )
 
           {
@@ -356,7 +356,7 @@ module Outboxer
             thread_id: thread_id,
             publishing_count: -1,
             failed_count: 1,
-            time: current_utc_time)
+            current_utc_time: current_utc_time)
 
           {
             id: message.id,
@@ -471,7 +471,7 @@ module Outboxer
             publishing_count: (message.status == Status::PUBLISHING ? -1 : 0),
             published_count: (message.status == Status::PUBLISHED ? -1 : 0),
             failed_count: (message.status == Status::FAILED ? -1 : 0),
-            time: current_utc_time)
+            current_utc_time: current_utc_time)
 
           { id: id }
         end
@@ -522,7 +522,7 @@ module Outboxer
             publishing_count: (original_status == Status::PUBLISHING ? -1 : 0),
             published_count: (original_status == Status::PUBLISHED ? -1 : 0),
             failed_count: (original_status == Status::FAILED ? -1 : 0),
-            time: current_utc_time)
+            current_utc_time: current_utc_time)
 
           {
             id: id,

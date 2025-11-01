@@ -11,10 +11,8 @@ module Outboxer
         publishing_count: 0,
         published_count: 0,
         failed_count: 0,
-        time: Time
+        current_utc_time: Time.now.utc
       )
-        current_utc_time = time.now.utc
-
         sql = if connection.adapter_name.downcase.include?("postgres")
                 <<~SQL
                   INSERT INTO #{table_name}
