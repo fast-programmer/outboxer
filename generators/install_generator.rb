@@ -18,8 +18,8 @@ module Outboxer
         "db/migrate/create_outboxer_messages.rb")
 
       migration_template(
-        "db/migrate/create_outboxer_counters.rb",
-        "db/migrate/create_outboxer_counters.rb")
+        "db/migrate/create_outboxer_message_counts.rb",
+        "db/migrate/create_outboxer_message_counts.rb")
 
       migration_template(
         "db/migrate/create_outboxer_exceptions.rb",
