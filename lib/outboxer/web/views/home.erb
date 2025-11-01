@@ -123,9 +123,9 @@
                                         <%= status %>
                                     </a>
                                 </td>
-                                <td><%= Outboxer::Web.pretty_number(number: messages_metrics[status.to_sym][:count][:total]) %></td>
-                                <td><%= Outboxer::Web.pretty_throughput(per_second: messages_metrics[status.to_sym][:throughput]) %></td>
-                                <td><%= Outboxer::Web.pretty_duration_from_seconds(seconds: messages_metrics[status.to_sym][:latency]) %></td>
+                                <td><%= Outboxer::Web.pretty_number(number: message_count_by_status[status.to_sym]) %></td>
+                                <td><%= Outboxer::Web.pretty_throughput(per_second: 0) %></td>
+                                <td><%= Outboxer::Web.pretty_duration_from_seconds(seconds: 0) %></td>
                             </tr>
                         <% end %>
                     </tbody>

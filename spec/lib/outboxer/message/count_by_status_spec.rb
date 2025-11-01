@@ -27,7 +27,7 @@ module Outboxer
 
       it "returns total counts by status" do
         expect(Message.count_by_status).to eq(
-          queued: 15, publishing: 26, published: 37, failed: 48)
+          queued: 15, publishing: 26, published: 37, failed: 48, total: 126)
       end
     end
   end

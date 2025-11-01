@@ -215,12 +215,12 @@ module Outboxer
         per_page: denormalised_query_params[:per_page],
         time_zone: denormalised_query_params[:time_zone])
 
-      messages_metrics = Message.metrics
+      message_count_by_status = Message.count_by_status
 
       publishers = Publisher.all
 
       erb :home, locals: {
-        messages_metrics: messages_metrics,
+        message_count_by_status: message_count_by_status,
         denormalised_query_params: denormalised_query_params,
         normalised_query_params: normalised_query_params,
         normalised_query_string: normalised_query_string,
@@ -253,12 +253,12 @@ module Outboxer
         per_page: denormalised_query_params[:per_page],
         time_zone: denormalised_query_params[:time_zone])
 
-      messages_metrics = Message.metrics
+      message_count_by_status = Message.count_by_status
 
       publishers = Publisher.all
 
       erb :home, locals: {
-        messages_metrics: messages_metrics,
+        message_count_by_status: message_count_by_status,
         denormalised_query_params: denormalised_query_params,
         normalised_query_params: normalised_query_params,
         normalised_query_string: normalised_query_string,
@@ -311,7 +311,7 @@ module Outboxer
         per_page: denormalised_query_params[:per_page],
         time_zone: denormalised_query_params[:time_zone])
 
-      messages_metrics = Message.metrics
+      message_count_by_status = Message.count_by_status
 
       paginated_messages = Message.list(
         status: denormalised_query_params[:status],
@@ -327,7 +327,7 @@ module Outboxer
         denormalised_query_params: denormalised_query_params)
 
       erb :messages, locals: {
-        messages_metrics: messages_metrics,
+        message_count_by_status: message_count_by_status,
         messages: paginated_messages[:messages],
         denormalised_query_params: denormalised_query_params,
         normalised_query_params: normalised_query_params,
@@ -627,7 +627,7 @@ module Outboxer
         per_page: denormalised_query_params[:per_page],
         time_zone: denormalised_query_params[:time_zone])
 
-      messages_metrics = Message.metrics
+      message_count_by_status = Message.count_by_status
 
       message = Message.find_by_id(id: params[:id])
 
@@ -638,7 +638,7 @@ module Outboxer
         denormalised_query_params: denormalised_query_params,
         normalised_query_params: normalised_query_params,
         normalised_query_string: normalised_query_string,
-        messages_metrics: messages_metrics,
+        message_count_by_status: message_count_by_status,
         message: message,
         messageable: messageable
       }
@@ -654,7 +654,7 @@ module Outboxer
         time_zone: params[:time_zone])
 
       message = Message.find_by_id(id: params[:id])
-      messages_metrics = Message.metrics
+      message_count_by_status = Message.count_by_status
 
       messageable_class = message[:messageable_type]&.safe_constantize
       messageable = messageable_class&.find_by_id(id: message[:messageable_id])
@@ -662,7 +662,7 @@ module Outboxer
       erb :messageable, locals: {
         message: message,
         messageable: messageable,
-        messages_metrics: messages_metrics,
+        message_count_by_status: message_count_by_status,
         denormalised_query_params: denormalised_query_params
       }
     end
@@ -740,10 +740,10 @@ module Outboxer
 
       publisher = Publisher.find_by_id(id: params[:id])
 
-      messages_metrics = Message.metrics
+      message_count_by_status = Message.count_by_status
 
       erb :publisher, locals: {
-        messages_metrics: messages_metrics,
+        message_count_by_status: message_count_by_status,
         denormalised_query_params: denormalised_query_params,
         normalised_query_params: normalised_query_params,
         normalised_query_string: normalised_query_string,
