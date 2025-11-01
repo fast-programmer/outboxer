@@ -11,9 +11,9 @@ module Outboxer
         publishing_count: 0,
         published_count: 0,
         failed_count: 0,
-        time: Time.now.utc
+        time: Time
       )
-        now = time.utc
+        current_utc_time = time.now.utc
 
         sql = if connection.adapter_name.downcase.include?("postgres")
                 <<~SQL
@@ -51,8 +51,8 @@ module Outboxer
             sql,
             hostname, process_id, thread_id,
             queued_count, publishing_count, published_count, failed_count,
-            now, now,
-            queued_count, publishing_count, published_count, failed_count, now
+            current_utc_time, current_utc_time,
+            queued_count, publishing_count, published_count, failed_count, current_utc_time
           ])
         )
 

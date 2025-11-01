@@ -7,7 +7,6 @@ module Outboxer
         let(:hostname)   { "test-host" }
         let(:process_id) { 12_345 }
         let(:thread_id)  { 999 }
-        let(:now)        { Time.now.utc }
 
         it "inserts a new row successfully" do
           expect do
@@ -15,8 +14,7 @@ module Outboxer
               hostname: hostname,
               process_id: process_id,
               thread_id: thread_id,
-              queued_count: 1,
-              time: now
+              queued_count: 1
             )
           end.to change(Counter, :count).by(1)
 
