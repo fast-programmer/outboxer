@@ -38,7 +38,7 @@
                                 <td><%= Outboxer::Web.time_ago_in_words(publisher[:created_at]) %> ago</td>
                                 <td><%= Outboxer::Web.time_ago_in_words(publisher[:updated_at]) %> ago</td>
                                 <td class="text-capitalize"><%= publisher[:status] %></td>
-                                <td><%= Outboxer::Web.pretty_throughput(per_second: publisher[:metrics]['throughput']) %></td>
+                                <td><%= Outboxer::Web.pretty_throughput(per_second: publisher[:metrics]['published']['throughput']) %></td>
                                 <td><%= Outboxer::Web.pretty_duration_from_seconds(seconds: publisher[:metrics]['latency']) %></td>
                                 <td><%= publisher[:metrics]['cpu'].round(0) %>%</td>
                                 <td><%= Outboxer::Web.human_readable_size(kilobytes: publisher[:metrics]['rss']) %></td>

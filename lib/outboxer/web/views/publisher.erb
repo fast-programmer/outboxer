@@ -102,7 +102,7 @@
                 <tbody>
                     <tr>
                         <th scope="row">Throughput</th>
-                        <td><%= Outboxer::Web.pretty_throughput(per_second: publisher[:metrics]['throughput']) %></td>
+                        <td><%= Outboxer::Web.pretty_throughput(per_second: publisher[:metrics]['published']['throughput']) %></td>
                     </tr>
                     <tr>
                         <th scope="row">Latency</th>
