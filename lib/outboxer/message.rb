@@ -162,6 +162,8 @@ module Outboxer
 
           logger&.error(
             "Outboxer message publishing failed id=#{message[:id]} " \
+              "messageable_type=#{message[:messageable_type]} " \
+              "messageable_id=#{message[:messageable_id]} " \
               "duration_ms=#{((time.now.utc - publishing_started_at) * 1000).to_i}\n" \
               "#{error.class}: #{error.message}\n" \
               "#{error.backtrace.join("\n")}")
@@ -173,6 +175,8 @@ module Outboxer
 
           logger&.fatal(
             "Outboxer message publishing failed id=#{message[:id]} " \
+              "messageable_type=#{message[:messageable_type]} " \
+              "messageable_id=#{message[:messageable_id]} " \
               "duration_ms=#{((time.now.utc - publishing_started_at) * 1000).to_i}\n" \
               "#{error.class}: #{error.message}\n" \
               "#{error.backtrace.join("\n")}")
@@ -185,6 +189,8 @@ module Outboxer
 
           logger&.info(
             "Outboxer message published id=#{message[:id]} " \
+              "messageable_type=#{message[:messageable_type]} " \
+              "messageable_id=#{message[:messageable_id]} " \
               "duration_ms=#{((time.now.utc - publishing_started_at) * 1000).to_i}")
         end
       end
