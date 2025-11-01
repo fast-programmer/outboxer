@@ -13,7 +13,7 @@ module Outboxer
     LOAD_DEFAULTS = {
       batch_size: 1_000,
       concurrency: 5,
-      size: 1_000_000,
+      size: 1,
       tick_interval: 1
     }
 
@@ -35,7 +35,7 @@ module Outboxer
           options[:concurrency] = v
         end
 
-        opts.on("--size SIZE", Integer, "Number of messages to load (default: 1M)") do |v|
+        opts.on("--size SIZE", Integer, "Number of messages to load (default: 1)") do |v|
           options[:size] = v
         end
 
@@ -65,8 +65,11 @@ module Outboxer
              size: LOAD_DEFAULTS[:size],
              tick_interval: LOAD_DEFAULTS[:tick_interval],
              logger: Outboxer::Logger.new($stdout))
-      status = :loading
-      reader, _writer = trap_signals
+      Thread.main[:status] = :loading
+
+      Signal.trap("INT")  { Thread.main[:status] = :terminating }
+      Signal.trap("TERM") { Thread.main[:status] = :terminating }
+
       queue = Queue.new
       threads = spawn_workers(concurrency, queue, logger)
 
@@ -74,15 +77,16 @@ module Outboxer
       started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
       while enqueued < size
-        status = read_status(reader) || status
-
-        case status
+        case Thread.main[:status]
         when :terminating
           break
         when :stopped
           sleep tick_interval
         when :loading
-          messageables = Array.new(batch_size) do
+          remaining = size - enqueued
+          count = [batch_size, remaining].min
+
+          messageables = Array.new(count) do
             OpenStruct.new(class: OpenStruct.new(name: "Event"), id: SecureRandom.hex(3))
           end
 
@@ -91,8 +95,6 @@ module Outboxer
 
           # logger.info "[main] enqueued #{enqueued}/#{size}" if (enqueued % (batch_size * 2)).zero?
         end
-
-        # display_metrics(logger)
       end
 
       queue.close
@@ -108,41 +110,16 @@ module Outboxer
       logger.info "[main] done"
     end
 
-    def trap_signals
-      reader, writer = IO.pipe
-
-      %w[INT TERM TSTP CONT].each do |signal|
-        Signal.trap(signal) { writer.puts(signal) }
-      end
-
-      [reader, writer]
-    end
-
-    def read_status(reader)
-      line = reader.ready? ? reader.gets&.strip : nil
-
-      case line
-      when "INT", "TERM" then :terminating
-      when "TSTP"        then :stopped
-      when "CONT"        then :loading
-      end
-    end
-
-    def spawn_workers(concurrency, queue, logger)
-      Array.new(concurrency) do |index|
+    def spawn_workers(concurrency, queue, _logger)
+      Array.new(concurrency) do |_index|
         Thread.new do
-          begin
-            while (messageables = queue.pop)
-              messageables.each do |messageable|
-                Outboxer::Message.queue(messageable: messageable)
-              rescue StandardError => error
-                logger.error "[thread-#{index}] #{error.class}: #{error.message}"
+          while Thread.main[:status] != :terminating
+            messageables = queue.pop
+            break if messageables.nil?
 
-                sleep 1
-              end
+            messageables.each do |messageable|
+              Outboxer::Message.queue(messageable: messageable)
             end
-          rescue ClosedQueueError
-            # Queue closed and empty — exit gracefully
           end
         end
       end

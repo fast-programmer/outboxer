@@ -3,15 +3,15 @@ require "rails_helper"
 module Outboxer
   RSpec.describe Database, type: :service do
     describe ".truncate" do
+      let!(:historic_message_count) { create(:outboxer_message_count, :historic, queued: 1) }
+      let!(:thread_message_count) { create(:outboxer_message_count, :thread, queued: 1) }
+
       before do
         message = Models::Message.create!(
           status: Models::Message::Status::QUEUED,
           messageable_type: "Event",
           messageable_id: "1",
           queued_at: Time.now.utc)
-
-        Models::MessageCount.create!(status: "queued", partition: 0, value: 1)
-        Models::MessageTotal.create!(status: "queued", partition: 0, value: 1)
 
         exception = Models::Exception.create!(message_id: message.id, message_text: "Example error")
         Models::Frame.create!(exception_id: exception.id, text: "frame", index: 0)
@@ -23,9 +23,8 @@ module Outboxer
       it "removes all records from all tables" do
         Database.truncate
 
+        expect(Models::Message::Count.count).to eq(0)
         expect(Models::Message.count).to eq(0)
-        expect(Models::MessageCount.count).to eq(0)
-        expect(Models::MessageTotal.count).to eq(0)
         expect(Models::Exception.count).to eq(0)
         expect(Models::Frame.count).to eq(0)
         expect(Models::Publisher.count).to eq(0)

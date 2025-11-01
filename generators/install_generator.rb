@@ -22,10 +22,6 @@ module Outboxer
         "db/migrate/create_outboxer_message_counts.rb")
 
       migration_template(
-        "db/migrate/create_outboxer_message_totals.rb",
-        "db/migrate/create_outboxer_message_totals.rb")
-
-      migration_template(
         "db/migrate/create_outboxer_exceptions.rb",
         "db/migrate/create_outboxer_exceptions.rb")
 

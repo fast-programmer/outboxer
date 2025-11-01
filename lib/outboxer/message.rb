@@ -7,65 +7,24 @@ module Outboxer
     Status = Models::Message::Status
 
     class Error < StandardError; end
-    class MissingPartition < Error; end
-
-    PARTITION_COUNT = Integer(ENV.fetch("OUTBOXER_MESSAGE_PARTITION_COUNT", 64))
-    PARTITIONS = (0...PARTITION_COUNT)
-
-    # Seed partitions.
-    #
-    # This method is idempotent and can be safely re-run.
-    #
-    # @param logger [#info, #error, #fatal, nil] optional logger
-    # @param time [Time] time source for created_at / updated_at.
-    # @return [Integer] number of rows ensured per table.
-    def seed_partitions(logger: nil, time: ::Time)
-      current_utc_time = time.now.utc
-
-      [Models::MessageCount, Models::MessageTotal].each do |model|
-        PARTITIONS.each do |partition|
-          STATUSES.each do |status|
-            model.create_or_find_by!(status: status, partition: partition) do |record|
-              record.value      = 0
-              record.created_at = current_utc_time
-              record.updated_at = current_utc_time
-            end
-          end
-        end
-      end
-
-      logger&.info "Seeded #{PARTITIONS.size} partitions"
-
-      nil
-    end
-
-    # Calculates the partition number for a given message ID.
-    #
-    # @param id [Integer] the unique message ID used to determine the partition.
-    # @param partition_count [Integer] the total number of partitions to divide messages across.
-    #   Defaults to PARTITION_COUNT.
-    # @return [Integer] the partition number derived by taking the ID modulo partition_count.
-    #
-    # @example
-    #   calculate_partition(id: 12345)
-    #   # => 17
-    def calculate_partition(id:, partition_count: PARTITION_COUNT)
-      id % partition_count
-    end
 
     # Queues a new message.
     #
-    # @overload queue(messageable:, attempt: 1, logger: nil, time: ::Time)
-    #   @param messageable [Object] the associated object; must respond to `id` and `class.name`.
-    #   @param attempt [Integer] call attempt counter; first call should leave as default (1).
-    #   @param logger [#info, #error, #fatal, nil] optional logger
-    #   @param time [Time] time context for setting timestamps.
-    #
-    # @overload queue(messageable_type:, messageable_id:, attempt: 1, logger: nil, time: ::Time)
-    #   @param messageable_type [String] the associated object type name.
-    #   @param messageable_id [Integer, String] the associated object identifier.
-    #   @param attempt [Integer] call attempt counter; first call should leave as default (1).
-    #   @param logger [#info, #error, #fatal, nil] optional logger
+    # @overload queue(
+    #   messageable: nil,
+    #   messageable_type: nil,
+    #   messageable_id: nil,
+    #   hostname: Socket.gethostname,
+    #   process_id: Process.pid,
+    #   thread_id: Thread.current.object_id,
+    #   time: ::Time
+    # )
+    #   @param messageable [Object, nil] associated object; must respond to `id` and `class.name`.
+    #   @param messageable_type [String, nil] the associated object type name.
+    #   @param messageable_id [Integer, String, nil] the associated object identifier.
+    #   @param hostname [String] name of the host (defaults to `Socket.gethostname`).
+    #   @param process_id [Integer] current process ID (defaults to `Process.pid`).
+    #   @param thread_id [Integer] current thread ID (defaults to `Thread.current.object_id`).
     #   @param time [Time] time context for setting timestamps.
     #
     # @return [Hash] a serialized message hash with keys:
@@ -76,12 +35,26 @@ module Outboxer
     #   - `:updated_at` [Time]
     # @raise [Outboxer::Message::MissingPartition] when partition seed absent and `attempt` > 1.
     # @raise [Outboxer::Message::Error] on other failures during queuing.
+    #
     # @example Using an object
     #   Outboxer::Message.queue(messageable: event)
+    #
     # @example Using explicit type and id
     #   Outboxer::Message.queue(messageable_type: "Event", messageable_id: 42)
+    #
+    # @example Overriding context explicitly
+    #   Outboxer::Message.queue(
+    #     messageable_type: "Event",
+    #     messageable_id: 42,
+    #     hostname: "worker1",
+    #     process_id: 1234,
+    #     thread_id: 5678
+    #   )
     def queue(messageable: nil, messageable_type: nil, messageable_id: nil,
-              attempt: 1, logger: nil, time: ::Time)
+              hostname: Socket.gethostname,
+              process_id: Process.pid,
+              thread_id: Thread.current.object_id,
+              time: ::Time)
       current_utc_time = time.now.utc
 
       type, id =
@@ -103,39 +76,14 @@ module Outboxer
           updated_at: current_utc_time
         )
 
-        partition = calculate_partition(id: message.id)
-
-        updated_count = Models::MessageCount
-          .where(status: Status::QUEUED, partition: partition)
-          .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
-
-        updated_total = Models::MessageTotal
-          .where(status: Status::QUEUED, partition: partition)
-          .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
-
-        if updated_count.zero? || updated_total.zero?
-          raise MissingPartition, "Missing partition"
-        end
+        Models::Message::Count.insert_or_increment_by(
+          hostname: hostname, process_id: process_id, thread_id: thread_id,
+          queued: 1, current_utc_time: current_utc_time)
 
         {
           id: message.id,
           lock_version: message.lock_version
         }
-      end
-    rescue MissingPartition
-      if attempt == 1
-        Message.seed_partitions(time: time, logger: logger)
-
-        Message.queue(
-          messageable: messageable,
-          messageable_type: messageable_type,
-          messageable_id: messageable_id,
-          attempt: attempt + 1,
-          logger: logger,
-          time: time
-        )
-      else
-        raise
       end
     end
 
@@ -186,9 +134,15 @@ module Outboxer
     #     Outboxer::Message.publish(logger: logger) do |message|
     #       # Publish message to a broker here
     #     end
-    def publish(logger: nil, time: ::Time)
+    def publish(hostname: Socket.gethostname,
+                process_id: Process.pid,
+                thread_id: Thread.current.object_id,
+                logger: nil, time: ::Time)
       publishing_started_at = time.now.utc
-      message = Message.publishing(time: time)
+
+      message = Message.publishing(
+        hostname: hostname, process_id: process_id, thread_id: thread_id, time: time)
+
       return if message.nil?
 
       logger&.info(
@@ -202,29 +156,41 @@ module Outboxer
         rescue StandardError => error
           publishing_failed(
             id: message[:id], lock_version: message[:lock_version],
-            error: error, time: time)
+            error: error,
+            hostname: hostname, process_id: process_id, thread_id: thread_id,
+            time: time)
 
           logger&.error(
             "Outboxer message publishing failed id=#{message[:id]} " \
+              "messageable_type=#{message[:messageable_type]} " \
+              "messageable_id=#{message[:messageable_id]} " \
               "duration_ms=#{((time.now.utc - publishing_started_at) * 1000).to_i}\n" \
               "#{error.class}: #{error.message}\n" \
               "#{error.backtrace.join("\n")}")
         rescue Exception => error
           publishing_failed(
-            id: message[:id], lock_version: message[:lock_version], error: error, time: time)
+            id: message[:id], lock_version: message[:lock_version], error: error,
+            hostname: hostname, process_id: process_id, thread_id: thread_id,
+            time: time)
 
           logger&.fatal(
             "Outboxer message publishing failed id=#{message[:id]} " \
+              "messageable_type=#{message[:messageable_type]} " \
+              "messageable_id=#{message[:messageable_id]} " \
               "duration_ms=#{((time.now.utc - publishing_started_at) * 1000).to_i}\n" \
               "#{error.class}: #{error.message}\n" \
               "#{error.backtrace.join("\n")}")
 
           raise
         else
-          published(id: message[:id], lock_version: message[:lock_version], time: time)
+          published(id: message[:id], lock_version: message[:lock_version],
+            hostname: hostname, process_id: process_id, thread_id: thread_id,
+            time: time)
 
           logger&.info(
             "Outboxer message published id=#{message[:id]} " \
+              "messageable_type=#{message[:messageable_type]} " \
+              "messageable_id=#{message[:messageable_id]} " \
               "duration_ms=#{((time.now.utc - publishing_started_at) * 1000).to_i}")
         end
       end
@@ -248,7 +214,11 @@ module Outboxer
     # @note Runs inside a database transaction and uses the ActiveRecord connection pool.
     # @example
     #   message = Outboxer::Message.publishing(time: Time)
-    def publishing(time: ::Time)
+
+    def publishing(hostname: Socket.gethostname,
+                   process_id: Process.pid,
+                   thread_id: Thread.current.object_id,
+                   time: ::Time)
       current_utc_time = time.now.utc
 
       ActiveRecord::Base.connection_pool.with_connection do
@@ -270,19 +240,12 @@ module Outboxer
               updated_at: current_utc_time,
               publishing_at: current_utc_time)
 
-            partition = calculate_partition(id: message.id)
-
-            Models::MessageCount
-              .where(status: Status::QUEUED, partition: partition)
-              .update_all(["value = value - ?, updated_at = ?", 1, current_utc_time])
-
-            Models::MessageCount
-              .where(status: Status::PUBLISHING, partition: partition)
-              .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
-
-            Models::MessageTotal
-              .where(status: Status::PUBLISHING, partition: partition)
-              .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
+            Models::Message::Count.insert_or_increment_by(
+              hostname: hostname,
+              process_id: process_id,
+              thread_id: thread_id,
+              queued: -1, publishing: 1,
+              current_utc_time: current_utc_time)
 
             {
               id: message.id,
@@ -308,7 +271,11 @@ module Outboxer
     # @note Executes within a transaction using a `SELECT ... FOR UPDATE` lock.
     # @example
     #   Outboxer::Message.published(id: message[:id], time: Time)
-    def published(id:, lock_version:, time: ::Time)
+    def published(id:, lock_version:,
+                  hostname: Socket.gethostname,
+                  process_id: Process.pid,
+                  thread_id: Thread.object_id,
+                  time: ::Time)
       current_utc_time = time.now.utc
 
       ActiveRecord::Base.connection_pool.with_connection do
@@ -325,19 +292,11 @@ module Outboxer
           message.exceptions.delete_all
           message.delete
 
-          partition = calculate_partition(id: message.id)
-
-          Models::MessageCount
-            .where(status: Status::PUBLISHING, partition: partition)
-            .update_all(["value = value - ?, updated_at = ?", 1, current_utc_time])
-
-          Models::MessageCount
-            .where(status: Status::PUBLISHED, partition: partition)
-            .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
-
-          Models::MessageTotal
-            .where(status: Status::PUBLISHED, partition: partition)
-            .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
+          Models::Message::Count.insert_or_increment_by(
+            hostname: hostname, process_id: process_id, thread_id: thread_id,
+            publishing: -1, published: 1,
+            current_utc_time: current_utc_time
+          )
 
           {
             id: message.id
@@ -360,7 +319,11 @@ module Outboxer
     # @note Runs inside a transaction and uses `SELECT ... FOR UPDATE` locking.
     # @example
     #   Outboxer::Message.publishing_failed(id: message[:id], time: Time)
-    def publishing_failed(id:, lock_version:, error: nil, time: ::Time)
+    def publishing_failed(id:, lock_version:, error: nil,
+                          hostname: Socket.gethostname,
+                          process_id: Process.pid,
+                          thread_id: Thread.object_id,
+                          time: ::Time)
       current_utc_time = time.now.utc
 
       ActiveRecord::Base.connection_pool.with_connection do
@@ -385,19 +348,10 @@ module Outboxer
             end
           end
 
-          partition = calculate_partition(id: message.id)
-
-          Models::MessageCount
-            .where(status: Status::PUBLISHING, partition: partition)
-            .update_all(["value = value - ?, updated_at = ?", 1, current_utc_time])
-
-          Models::MessageCount
-            .where(status: Status::FAILED, partition: partition)
-            .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
-
-          Models::MessageTotal
-            .where(status: Status::FAILED, partition: partition)
-            .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
+          Models::Message::Count.insert_or_increment_by(
+            hostname: hostname, process_id: process_id, thread_id: thread_id,
+            publishing: -1, failed: 1,
+            current_utc_time: current_utc_time)
 
           {
             id: message.id,
@@ -489,10 +443,19 @@ module Outboxer
       end
     end
 
-    # Deletes a message by ID.
+    # Deletes a message by id.
     # @param id [Integer] the ID of the message to delete.
+    # @param lock_version [Integer] message lock_version.
+    # @param hostname [String] name of the host (defaults to `Socket.gethostname`).
+    # @param process_id [Integer] current process ID (defaults to `Process.pid`).
+    # @param thread_id [Integer] current thread ID (defaults to `Thread.current.object_id`).
+    # @param time [Time] time context for setting timestamps.
     # @return [Hash] details of the deleted message.
-    def delete(id:, lock_version:, time: ::Time)
+    def delete(id:, lock_version:,
+               hostname: Socket.gethostname,
+               process_id: Process.pid,
+               thread_id: Thread.current.object_id,
+               time: ::Time)
       current_utc_time = time.now.utc
 
       ActiveRecord::Base.connection_pool.with_connection do
@@ -504,11 +467,13 @@ module Outboxer
           message.exceptions.delete_all
           message.delete
 
-          partition = calculate_partition(id: message.id)
-
-          Models::MessageCount
-            .where(status: message.status, partition: partition)
-            .update_all(["value = value - ?, updated_at = ?", 1, current_utc_time])
+          Models::Message::Count.insert_or_increment_by(
+            hostname: hostname, process_id: process_id, thread_id: thread_id,
+            queued: (message.status == Status::QUEUED ? -1 : 0),
+            publishing: (message.status == Status::PUBLISHING ? -1 : 0),
+            published: (message.status == Status::PUBLISHED ? -1 : 0),
+            failed: (message.status == Status::FAILED ? -1 : 0),
+            current_utc_time: current_utc_time)
 
           { id: id }
         end
@@ -530,15 +495,17 @@ module Outboxer
     # @param publisher_name [String, nil] the name of the publisher.
     # @param time [Time] current time context used to update timestamps.
     # @return [Hash] updated message details.
-    def requeue(id:, lock_version:, publisher_id: nil, publisher_name: nil,
+    def requeue(id:, lock_version:,
+                publisher_id: nil, publisher_name: nil,
+                hostname: Socket.gethostname,
+                process_id: Process.pid,
+                thread_id: Thread.current.object_id,
                 time: ::Time)
       current_utc_time = time.now.utc
 
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           message = Models::Message.lock.find_by!(id: id)
-
-          partition = calculate_partition(id: message.id)
 
           original_status = message.status
 
@@ -553,17 +520,13 @@ module Outboxer
             publisher_id: publisher_id,
             publisher_name: publisher_name)
 
-          Models::MessageCount
-            .where(status: original_status, partition: partition)
-            .update_all(["value = value - ?, updated_at = ?", 1, current_utc_time])
-
-          Models::MessageCount
-            .where(status: message.status, partition: partition)
-            .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
-
-          Models::MessageTotal
-            .where(status: message.status, partition: partition)
-            .update_all(["value = value + ?, updated_at = ?", 1, current_utc_time])
+          Models::Message::Count.insert_or_increment_by(
+            hostname: hostname, process_id: process_id, thread_id: thread_id,
+            queued: 1,
+            publishing: (original_status == Status::PUBLISHING ? -1 : 0),
+            published: (original_status == Status::PUBLISHED ? -1 : 0),
+            failed: (original_status == Status::FAILED ? -1 : 0),
+            current_utc_time: current_utc_time)
 
           {
             id: id,
@@ -672,64 +635,125 @@ module Outboxer
       }
     end
 
-    # Retrieves and calculates metrics related to message statuses, including counts and totals.
-    # Latency and throughput are placeholders (0) until partitioned metrics tables are implemented.
+    # Rolls up thread_counts into the historic_count,
+    # then destroys rolled-up thread_counts.
+    #
+    # @param time [Time] timestamp context for updated_at
+    # @return [Hash] new historic_totals after rollup
+    def rollup_counts(time: Time)
+      current_utc_time = time.now.utc
+
+      ActiveRecord::Base.connection_pool.with_connection do
+        ActiveRecord::Base.transaction do
+          # 1. Ensure the historic count exists (idempotent upsert)
+          Models::Message::Count.insert_or_increment_by(
+            hostname: Models::Message::Count::HISTORIC_HOSTNAME,
+            process_id: Models::Message::Count::HISTORIC_PROCESS_ID,
+            thread_id: Models::Message::Count::HISTORIC_THREAD_ID,
+            current_utc_time: current_utc_time
+          )
+
+          # 2. Lock *all* rows (historic count + thread counts)
+          locked_counts = Models::Message::Count.lock("FOR UPDATE").to_a
+
+          # 3. Identify the historic count
+          historic_count = locked_counts.find do |r|
+            r.hostname == Models::Message::Count::HISTORIC_HOSTNAME &&
+              r.process_id == Models::Message::Count::HISTORIC_PROCESS_ID &&
+              r.thread_id == Models::Message::Count::HISTORIC_THREAD_ID
+          end
+
+          # 4. Everything else is a thread count
+          thread_counts = locked_counts - [historic_count]
+
+          # 5. Sum all thread counts
+          totals = thread_counts.each_with_object(
+            queued: 0, publishing: 0, published: 0, failed: 0
+          ) do |row, sum|
+            sum[:queued] += row.queued
+            sum[:publishing] += row.publishing
+            sum[:published] += row.published
+            sum[:failed] += row.failed
+          end
+
+          # 6. Update historic count
+          historic_count.update!(
+            queued: historic_count.queued + totals[:queued],
+            publishing: historic_count.publishing + totals[:publishing],
+            published: historic_count.published + totals[:published],
+            failed: historic_count.failed + totals[:failed],
+            updated_at: current_utc_time
+          )
+
+          # 7. Delete all rolled-up rows except historic
+          Models::Message::Count.where.not(
+            hostname: Models::Message::Count::HISTORIC_HOSTNAME,
+            process_id: Models::Message::Count::HISTORIC_PROCESS_ID,
+            thread_id: Models::Message::Count::HISTORIC_THREAD_ID
+          ).delete_all
+
+          # 8. Return the updated totals
+          {
+            queued: historic_count.queued,
+            publishing: historic_count.publishing,
+            published: historic_count.published,
+            failed: historic_count.failed
+          }
+        end
+      end
+    end
+
+    # Returns the total (lifetime) counts per status aggregated across all threads.
+    #
+    # @return [Hash{String=>Integer}] map of status name (string) to total count.
+    # @example
+    #   Message.count_by_status
+    #   # => { :queued => 1200, publishing: 400, published: 100_000, failed: 250 }
+    def count_by_status
+      ActiveRecord::Base.connection_pool.with_connection do
+        result = Models::Message::Count.select(
+          "COALESCE(SUM(queued), 0) AS queued",
+          "COALESCE(SUM(publishing), 0) AS publishing",
+          "COALESCE(SUM(published), 0) AS published",
+          "COALESCE(SUM(failed), 0) AS failed"
+        ).take
+
+        result.attributes.symbolize_keys.slice(
+          :queued, :publishing, :published, :failed
+        )
+      end
+    end
+
+    # Retrieves and calculates metrics related to message statuses,
+    # using the unified Counter.total for all counts.
+    # Latency and throughput are placeholders (0) until time-series metrics are implemented.
+    #
     # @return [Hash] detailed metrics across various message statuses.
     def metrics
-      metrics = { all: { count: { current: 0 } } }
+      totals = count_by_status
 
-      Models::Message::STATUSES.each do |status|
-        metrics[status.to_sym] = {
-          count: { current: 0 },
+      metrics = {
+        all: {
+          count: {
+            total: totals.values.sum
+          }
+        }
+      }
+
+      {
+        queued: :queued,
+        publishing: :publishing,
+        published: :published,
+        failed: :failed
+      }.each do |status, field|
+        metrics[status] = {
+          count: { total: totals[field].to_i },
           latency: 0,
           throughput: 0
         }
       end
 
-      counts_by_status = count_by_status
-      totals_by_status = total_by_status
-
-      Models::Message::STATUSES.each do |status|
-        status_key = status.to_s
-        status_symbol = status.to_sym
-
-        current_count = counts_by_status[status_key]
-        metrics[status_symbol][:count][:current] = current_count
-        metrics[status_symbol][:count][:total] = totals_by_status[status_key]
-        metrics[:all][:count][:current] += current_count
-
-        metrics[status_symbol][:latency] = 0
-        metrics[status_symbol][:throughput] = 0
-      end
-
-      metrics[:published][:count][:total] = totals_by_status["published"].to_i
-      metrics[:failed][:count][:total] = totals_by_status["failed"].to_i
-
       metrics
-    end
-
-    # Returns the current counts per status aggregated across all partitions.
-    #
-    # @return [Hash{String=>Integer}] map of status name (string) to current count.
-    # @example
-    #   Outboxer::Message.count_by_status
-    #   # => { "queued" => 123, "publishing" => 4, "published" => 987, "failed" => 2 }
-    def count_by_status
-      Message::STATUSES
-        .index_with { 0 }
-        .merge(Models::MessageCount.group(:status).sum(:value).transform_keys(&:to_s))
-    end
-
-    # Returns the total (lifetime) counts per status aggregated across all partitions.
-    #
-    # @return [Hash{String=>Integer}] map of status name (string) to total count.
-    # @example
-    #   Outboxer::Message.total_by_status
-    #   # => { "queued" => 1200, "publishing" => 400, "published" => 100_000, "failed" => 250 }
-    def total_by_status
-      Message::STATUSES
-        .index_with { 0 }
-        .merge(Models::MessageTotal.group(:status).sum(:value).transform_keys(&:to_s))
     end
   end
 end

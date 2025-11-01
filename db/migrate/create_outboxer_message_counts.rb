@@ -1,14 +1,20 @@
-class CreateOutboxerMessageCounts < ActiveRecord::Migration[7.1]
+class CreateOutboxerMessageCounts < ActiveRecord::Migration[6.1]
   def up
     create_table :outboxer_message_counts do |t|
-      t.string  :status,    limit: 255, null: false
-      t.integer :partition, null: false
-      t.bigint  :value,     null: false
-      t.timestamps
+      t.string  :hostname, limit: 255, null: false
+      t.integer :process_id, null: false
+      t.integer :thread_id, null: false
+
+      t.integer :queued,     null: false
+      t.integer :publishing, null: false
+      t.integer :published,  null: false
+      t.integer :failed,     null: false
+
+      t.timestamps null: false
     end
 
-    add_index :outboxer_message_counts, [:status, :partition],
-      unique: true, name: :idx_outboxer_counts_status_partition
+    add_index :outboxer_message_counts, [:hostname, :process_id, :thread_id],
+      unique: true, name: "idx_outboxer_message_counts_identity"
   end
 
   def down

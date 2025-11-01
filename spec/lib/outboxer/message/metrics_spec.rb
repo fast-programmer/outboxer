@@ -7,14 +7,8 @@ module Outboxer
       let(:time) { double("Time", now: double("Time", utc: current_utc_time)) }
 
       context "when there are messages in different statuses" do
-        before do
-          Models::MessageTotal.create!(
-            status: Message::Status::PUBLISHED, partition: 1, value: 500,
-            created_at: current_utc_time, updated_at: current_utc_time)
-
-          Models::MessageTotal.create!(
-            status: Message::Status::FAILED, partition: 1, value: 500,
-            created_at: current_utc_time, updated_at: current_utc_time)
+        let!(:historic_message_count) do
+          create(:outboxer_message_count, :historic, failed: 500, published: 500)
         end
 
         let!(:oldest_queued_message) do
@@ -74,25 +68,25 @@ module Outboxer
 
           expect(metrics).to eq(
             all: {
-              count: { current: 8 }
+              count: { total: 1008 }
             },
             queued: {
-              count: { current: 2, total: 8 },
+              count: { total: 2 },
               latency: 0,
               throughput: 0
             },
             publishing: {
-              count: { current: 2, total: 6 },
+              count: { total: 2 },
               latency: 0,
               throughput: 0
             },
             published: {
-              count: { current: 2, total: 502 },
+              count: { total: 502 },
               latency: 0,
               throughput: 0
             },
             failed: {
-              count: { current: 2, total: 502 },
+              count: { total: 502 },
               latency: 0,
               throughput: 0
             })
@@ -104,11 +98,11 @@ module Outboxer
           metrics = Message.metrics
 
           expect(metrics).to eq(
-            all: { count: { current: 0 } },
-            queued: { count: { current: 0, total: 0 }, latency: 0, throughput: 0 },
-            publishing: { count: { current: 0, total: 0 }, latency: 0, throughput: 0 },
-            published: { count: { current: 0, total: 0 }, latency: 0, throughput: 0 },
-            failed: { count: { current: 0, total: 0 }, latency: 0, throughput: 0 })
+            all: { count: { total: 0 } },
+            queued: { count: { total: 0 }, latency: 0, throughput: 0 },
+            publishing: { count: { total: 0 }, latency: 0, throughput: 0 },
+            published: { count: { total: 0 }, latency: 0, throughput: 0 },
+            failed: { count: { total: 0 }, latency: 0, throughput: 0 })
         end
       end
 
@@ -117,11 +111,11 @@ module Outboxer
           metrics = Message.metrics
 
           expect(metrics).to eq(
-            all: { count: { current: 0 } },
-            queued: { count: { current: 0, total: 0 }, latency: 0, throughput: 0 },
-            publishing: { count: { current: 0, total: 0 }, latency: 0, throughput: 0 },
-            published: { count: { current: 0, total: 0 }, latency: 0, throughput: 0 },
-            failed: { count: { current: 0, total: 0 }, latency: 0, throughput: 0 })
+            all: { count: { total: 0 } },
+            queued: { count: { total: 0 }, latency: 0, throughput: 0 },
+            publishing: { count: { total: 0 }, latency: 0, throughput: 0 },
+            published: { count: { total: 0 }, latency: 0, throughput: 0 },
+            failed: { count: { total: 0 }, latency: 0, throughput: 0 })
         end
       end
     end
