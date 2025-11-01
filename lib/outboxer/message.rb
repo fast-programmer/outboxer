@@ -76,10 +76,9 @@ module Outboxer
           updated_at: current_utc_time
         )
 
-        Models::Counter.insert_or_increment_by(
+        Models::Message::Count.insert_or_increment_by(
           hostname: hostname, process_id: process_id, thread_id: thread_id,
-          queued_count: 1,
-          current_utc_time: current_utc_time)
+          queued: 1, current_utc_time: current_utc_time)
 
         {
           id: message.id,
@@ -235,14 +234,12 @@ module Outboxer
               updated_at: current_utc_time,
               publishing_at: current_utc_time)
 
-            Models::Counter.insert_or_increment_by(
+            Models::Message::Count.insert_or_increment_by(
               hostname: hostname,
               process_id: process_id,
               thread_id: thread_id,
-              queued_count: -1,
-              publishing_count: 1,
-              current_utc_time: current_utc_time
-            )
+              queued: -1, publishing: 1,
+              current_utc_time: current_utc_time)
 
             {
               id: message.id,
@@ -289,12 +286,9 @@ module Outboxer
           message.exceptions.delete_all
           message.delete
 
-          Models::Counter.insert_or_increment_by(
-            hostname: hostname,
-            process_id: process_id,
-            thread_id: thread_id,
-            publishing_count: -1,
-            published_count: 1,
+          Models::Message::Count.insert_or_increment_by(
+            hostname: hostname, process_id: process_id, thread_id: thread_id,
+            publishing: -1, published: 1,
             current_utc_time: current_utc_time
           )
 
@@ -348,12 +342,9 @@ module Outboxer
             end
           end
 
-          Models::Counter.insert_or_increment_by(
-            hostname: hostname,
-            process_id: process_id,
-            thread_id: thread_id,
-            publishing_count: -1,
-            failed_count: 1,
+          Models::Message::Count.insert_or_increment_by(
+            hostname: hostname, process_id: process_id, thread_id: thread_id,
+            publishing: -1, failed: 1,
             current_utc_time: current_utc_time)
 
           {
@@ -470,14 +461,12 @@ module Outboxer
           message.exceptions.delete_all
           message.delete
 
-          Models::Counter.insert_or_increment_by(
-            hostname: hostname,
-            process_id: process_id,
-            thread_id: thread_id,
-            queued_count: (message.status == Status::QUEUED ? -1 : 0),
-            publishing_count: (message.status == Status::PUBLISHING ? -1 : 0),
-            published_count: (message.status == Status::PUBLISHED ? -1 : 0),
-            failed_count: (message.status == Status::FAILED ? -1 : 0),
+          Models::Message::Count.insert_or_increment_by(
+            hostname: hostname, process_id: process_id, thread_id: thread_id,
+            queued: (message.status == Status::QUEUED ? -1 : 0),
+            publishing: (message.status == Status::PUBLISHING ? -1 : 0),
+            published: (message.status == Status::PUBLISHED ? -1 : 0),
+            failed: (message.status == Status::FAILED ? -1 : 0),
             current_utc_time: current_utc_time)
 
           { id: id }
@@ -525,14 +514,12 @@ module Outboxer
             publisher_id: publisher_id,
             publisher_name: publisher_name)
 
-          Models::Counter.insert_or_increment_by(
-            hostname: hostname,
-            process_id: process_id,
-            thread_id: thread_id,
-            queued_count: 1,
-            publishing_count: (original_status == Status::PUBLISHING ? -1 : 0),
-            published_count: (original_status == Status::PUBLISHED ? -1 : 0),
-            failed_count: (original_status == Status::FAILED ? -1 : 0),
+          Models::Message::Count.insert_or_increment_by(
+            hostname: hostname, process_id: process_id, thread_id: thread_id,
+            queued: 1,
+            publishing: (original_status == Status::PUBLISHING ? -1 : 0),
+            published: (original_status == Status::PUBLISHED ? -1 : 0),
+            failed: (original_status == Status::FAILED ? -1 : 0),
             current_utc_time: current_utc_time)
 
           {
@@ -737,10 +724,12 @@ module Outboxer
     #
     # @return [Hash] detailed metrics across various message statuses.
     def metrics
+      totals = count_by_status
+
       metrics = {
         all: {
           count: {
-            total: count_by_status.values.sum
+            total: totals.values.sum
           }
         }
       }

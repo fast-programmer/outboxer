@@ -28,7 +28,7 @@ module Outboxer
           )
         end
 
-        it "creates the historic counter and rolls up all thread counters" do
+        it "creates the historic message count and rolls up all thread message counts" do
           result = Message.rollup_counts(time: Time)
 
           expect(result).to eq(
@@ -89,8 +89,8 @@ module Outboxer
         end
       end
 
-      context "when no counters exist" do
-        it "creates a historic counter with zero counts" do
+      context "when no message count exists" do
+        it "creates a historic message count with zero counts" do
           result = Message.rollup_counts(time: Time)
 
           expect(result).to eq(queued: 0, publishing: 0, published: 0, failed: 0)

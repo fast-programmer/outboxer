@@ -7,8 +7,8 @@ module Outboxer
       let(:time) { double("Time", now: double("Time", utc: current_utc_time)) }
 
       context "when there are messages in different statuses" do
-        let!(:historic_counter) do
-          create(:outboxer_counter, :historic, failed_count: 500, published_count: 500)
+        let!(:historic_message_count) do
+          create(:outboxer_message_count, :historic, failed: 500, published: 500)
         end
 
         let!(:oldest_queued_message) do

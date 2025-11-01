@@ -7,8 +7,8 @@ module Outboxer
         let!(:message) { create(:outboxer_message, :failed) }
         let!(:exception) { create(:outboxer_exception, message: message) }
         let!(:frame) { create(:outboxer_frame, exception: exception) }
-        let!(:historic_counter) { create(:outboxer_counter, :historic, failed_count: 20) }
-        let!(:thread_counter) { create(:outboxer_counter, :thread, failed_count: 10) }
+        let!(:historic_message_count) { create(:outboxer_message_count, :historic, failed: 20) }
+        let!(:thread_message_count) { create(:outboxer_message_count, :thread, failed: 10) }
 
         let!(:result) { Message.delete(id: message.id, lock_version: message.lock_version) }
 
@@ -16,14 +16,14 @@ module Outboxer
           expect(Models::Message).not_to exist(message.id)
         end
 
-        it "decrements the failed count thread counter metric" do
-          thread_counter.reload
+        it "decrements the failed thread count metric" do
+          thread_message_count.reload
 
-          expect(thread_counter.failed_count).to eq(9)
+          expect(thread_message_count.failed).to eq(9)
         end
 
         it "increments the total failed count metric" do
-          expect(Counter.total[:failed_count]).to eq(29)
+          expect(Message.count_by_status[:failed]).to eq(29)
         end
 
         it "returns the message id" do
@@ -32,8 +32,8 @@ module Outboxer
       end
 
       context "when the message status is published" do
-        let!(:historic_counter) { create(:outboxer_counter, :historic, published_count: 20) }
-        let!(:thread_counter) { create(:outboxer_counter, :thread, published_count: 10) }
+        let!(:historic_message_count) { create(:outboxer_message_count, :historic, published: 20) }
+        let!(:thread_message_count) { create(:outboxer_message_count, :thread, published: 10) }
 
         let!(:message) { create(:outboxer_message, :published) }
         let!(:exception) { create(:outboxer_exception, message: message) }
@@ -45,14 +45,14 @@ module Outboxer
           expect(Models::Message).not_to exist(message.id)
         end
 
-        it "decrements the published count thread counter metric" do
-          thread_counter.reload
+        it "decrements the published count thread count metric" do
+          thread_message_count.reload
 
-          expect(thread_counter.published_count).to eq(9)
+          expect(thread_message_count.published).to eq(9)
         end
 
         it "increments the total published count metric" do
-          expect(Counter.total[:published_count]).to eq(29)
+          expect(Message.count_by_status[:published]).to eq(29)
         end
 
         it "returns the message id" do
