@@ -28,32 +28,32 @@ module Outboxer
         end
       end
 
-      # context "when TTIN signal sent" do
-      #   let!(:old_message) { create(:outboxer_message, :queued, updated_at: 2.seconds.ago) }
+      context "when TTIN signal sent" do
+        let!(:old_message) { create(:outboxer_message, :queued, updated_at: 2.seconds.ago) }
 
-      #   it "dumps stack trace" do
-      #     publish_messages_thread = Thread.new do
-      #       Publisher.publish_message(
-      #         poll_interval: poll_interval,
-      #         tick_interval: tick_interval,
-      #         logger: logger, kernel: kernel
-      #       ) do |_publisher, _message|
-      #         ::Process.kill("TTIN", ::Process.pid)
-      #       end
-      #     end
+        it "dumps stack trace" do
+          publish_messages_thread = Thread.new do
+            Publisher.publish_message(
+              poll_interval: poll_interval,
+              tick_interval: tick_interval,
+              logger: logger, kernel: kernel
+            ) do |_publisher, _message|
+              ::Process.kill("TTIN", ::Process.pid)
+            end
+          end
 
-      #     sleep 1
+          sleep 1
 
-      #     ::Process.kill("TERM", ::Process.pid)
+          ::Process.kill("TERM", ::Process.pid)
 
-      #     publish_messages_thread.join
+          publish_messages_thread.join
 
-      #     expect(logger)
-      #       .to have_received(:info)
-      #       .with(a_string_including("backtrace"))
-      #       .at_least(:once)
-      #   end
-      # end
+          expect(logger)
+            .to have_received(:info)
+            .with(a_string_including("backtrace"))
+            .at_least(:once)
+        end
+      end
 
       context "when stopped and resumed during message publishing" do
         let!(:queued_message) { create(:outboxer_message, :queued, updated_at: 2.seconds.ago) }
