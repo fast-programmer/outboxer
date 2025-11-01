@@ -76,13 +76,13 @@ attempt = 1
 max_attempts = 10
 delay = 1
 
-published_count = Outboxer::Message.count_by_status["published"]
+published_count = Outboxer::Message.count_by_status[:published]
 
 while (attempt <= max_attempts) && published_count.zero?
   warn "Outboxer not published yet (#{attempt}/#{max_attempts})..."
   sleep delay
   attempt += 1
-  published_count = Outboxer::Message.count_by_status["published"]
+  published_count = Outboxer::Message.count_by_status[:published]
 end
 
 Process.kill("TERM", publisher_pid)
