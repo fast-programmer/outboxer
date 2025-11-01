@@ -1,9 +1,5 @@
 FactoryBot.define do
   factory :outboxer_counter, class: "Outboxer::Models::Counter" do
-    hostname { Socket.gethostname }
-    process_id { Process.pid }
-    thread_id { Thread.current.object_id }
-
     queued_count     { 0 }
     publishing_count { 0 }
     published_count  { 0 }
@@ -16,6 +12,12 @@ FactoryBot.define do
       hostname   { Outboxer::Counter::HISTORIC_HOSTNAME }
       process_id { Outboxer::Counter::HISTORIC_PROCESS_ID }
       thread_id  { Outboxer::Counter::HISTORIC_THREAD_ID }
+    end
+
+    trait :thread do
+      hostname { Socket.gethostname }
+      process_id { Process.pid }
+      thread_id { Thread.current.object_id }
     end
   end
 end
