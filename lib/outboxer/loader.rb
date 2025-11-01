@@ -65,12 +65,10 @@ module Outboxer
              size: LOAD_DEFAULTS[:size],
              tick_interval: LOAD_DEFAULTS[:tick_interval],
              logger: Outboxer::Logger.new($stdout))
-      status = :loading
+      Thread.main[:status] = :loading
 
-      Signal.trap("INT")  { status = :terminating }
-      Signal.trap("TERM") { status = :terminating }
-      Signal.trap("TSTP") { status = :stopped }
-      Signal.trap("CONT") { status = :loading }
+      Signal.trap("INT")  { Thread.main[:status] = :terminating }
+      Signal.trap("TERM") { Thread.main[:status] = :terminating }
 
       queue = Queue.new
       threads = spawn_workers(concurrency, queue, logger)
@@ -79,13 +77,16 @@ module Outboxer
       started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
       while enqueued < size
-        case status
+        case Thread.main[:status]
         when :terminating
           break
         when :stopped
           sleep tick_interval
         when :loading
-          messageables = Array.new(batch_size) do
+          remaining = size - enqueued
+          count = [batch_size, remaining].min
+
+          messageables = Array.new(count) do
             OpenStruct.new(class: OpenStruct.new(name: "Event"), id: SecureRandom.hex(3))
           end
 
@@ -97,8 +98,7 @@ module Outboxer
       end
 
       queue.close
-
-      threads.each(&:kill)
+      threads.each(&:join)
 
       finished_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       elapsed = finished_at - started_at
@@ -110,16 +110,14 @@ module Outboxer
       logger.info "[main] done"
     end
 
-    def spawn_workers(concurrency, queue, logger)
-      Array.new(concurrency) do |index|
+    def spawn_workers(concurrency, queue, _logger)
+      Array.new(concurrency) do |_index|
         Thread.new do
-          while (messageables = queue.pop)
+          while Thread.main[:status] != :terminating
+            messageables = queue.pop
+
             messageables.each do |messageable|
               Outboxer::Message.queue(messageable: messageable)
-            rescue StandardError => error
-              logger.error "[thread-#{index}] #{error.class}: #{error.message}"
-
-              sleep 1
             end
           end
         end
