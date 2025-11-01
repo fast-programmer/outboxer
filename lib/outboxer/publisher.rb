@@ -274,7 +274,7 @@ module Outboxer
     # @param process [Process] The process module for accessing system metrics.
     # @param kernel [Kernel] The kernel module for sleeping operations.
     # @return [Thread] The heartbeat thread.
-    def create_heartbeat_thread(id:,
+    def create_heartbeat_thread(id:, hostname:, process_id:,
                                 heartbeat_interval:, tick_interval:,
                                 logger:, time:, process:, kernel:)
       Thread.new do
@@ -301,22 +301,46 @@ module Outboxer
                   signal.destroy
                 end
 
-                throughput = Models::Message
-                  .where(status: Message::Status::PUBLISHED)
-                  .where(publisher_id: id)
-                  .where("published_at >= ?", 1.second.ago)
-                  .count
+                row = Models::Message::Count
+                  .select(
+                    "COALESCE(SUM(outboxer_message_counts.queued), 0)     AS queued,
+                    COALESCE(SUM(outboxer_message_counts.publishing), 0) AS publishing,
+                    COALESCE(SUM(outboxer_message_counts.published), 0)  AS published,
+                    COALESCE(SUM(outboxer_message_counts.failed), 0)     AS failed,
+                    COALESCE(SUM(
+                      outboxer_message_counts.queued +
+                      outboxer_message_counts.publishing +
+                      outboxer_message_counts.published +
+                      outboxer_message_counts.failed
+                    ), 0) AS total,
+                    MAX(outboxer_message_counts.updated_at) AS last_message_updated_at"
+                  )
+                  .where(
+                    "outboxer_message_counts.hostname = ? AND
+                    outboxer_message_counts.process_id = ?",
+                    hostname, process_id
+                  )
+                  .group(
+                    "outboxer_message_counts.hostname,
+                    outboxer_message_counts.process_id"
+                  )
+                  .take
 
-                last_published_message = Models::Message
-                  .where(status: Message::Status::PUBLISHED)
-                  .where(publisher_id: id)
-                  .order(published_at: :desc)
-                  .first
+                published = row&.published.to_i
 
-                latency = if last_published_message.nil?
-                            0
+                prev_metrics = publisher.metrics.is_a?(String) ? JSON.parse(publisher.metrics) : publisher.metrics
+                last_published = prev_metrics["last_published"].to_i rescue 0
+                last_updated = Time.parse(prev_metrics["last_updated_at"].to_s) rescue (time.now.utc - heartbeat_interval)
+
+                delta_pub = published - last_published
+                delta_t = [time.now.utc - last_updated, heartbeat_interval].max
+                throughput = (delta_pub / delta_t).round(0)
+
+                last_message_updated_at = row&.last_message_updated_at
+                latency = if last_message_updated_at
+                            (time.now.utc - last_message_updated_at).round(1)
                           else
-                            (Time.now.utc - last_published_message.published_at).to_i
+                            0
                           end
 
                 publisher.update!(
@@ -429,6 +453,8 @@ module Outboxer
     # @yieldparam messages [Array<Hash>] An array of message hashes retrieved from the buffer.
     def publish_message(
       name: "#{::Socket.gethostname}:#{::Process.pid}",
+      hostname: Socket.gethostname,
+      process_id: Process.pid,
       concurrency: PUBLISH_MESSAGE_DEFAULTS[:concurrency],
       tick_interval: PUBLISH_MESSAGE_DEFAULTS[:tick_interval],
       poll_interval: PUBLISH_MESSAGE_DEFAULTS[:poll_interval],
@@ -456,6 +482,7 @@ module Outboxer
 
       heartbeat_thread = create_heartbeat_thread(
         id: publisher[:id], heartbeat_interval: heartbeat_interval, tick_interval: tick_interval,
+        hostname: hostname, process_id: process_id,
         logger: logger, time: time, process: process, kernel: kernel)
 
       publisher_threads = Array.new(concurrency) do |index|

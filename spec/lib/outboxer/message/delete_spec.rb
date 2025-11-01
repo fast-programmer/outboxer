@@ -23,7 +23,7 @@ module Outboxer
         end
 
         it "increments the total failed count metric" do
-          expect(Message.count_by_status[:failed]).to eq(29)
+          expect(Message.metrics_by_status[:failed][:count]).to eq(29)
         end
 
         it "returns the message id" do
@@ -52,7 +52,7 @@ module Outboxer
         end
 
         it "increments the total published count metric" do
-          expect(Message.count_by_status[:published]).to eq(29)
+          expect(Message.metrics_by_status[:published][:count]).to eq(29)
         end
 
         it "returns the message id" do

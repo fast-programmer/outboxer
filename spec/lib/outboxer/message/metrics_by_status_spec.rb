@@ -4,7 +4,7 @@ require "rails_helper"
 
 module Outboxer
   RSpec.describe Message do
-    describe ".count_by_status" do
+    describe ".metrics_by_status" do
       let(:current_utc_time) { Time.utc(2025, 1, 1, 0, 0, 0) }
 
       before { Models::Message::Count.delete_all }
@@ -25,9 +25,14 @@ module Outboxer
         )
       end
 
-      it "returns total counts by status" do
-        expect(Message.count_by_status).to eq(
-          queued: 15, publishing: 26, published: 37, failed: 48, total: 126)
+      it "returns metrics by status" do
+        expect(Message.metrics_by_status).to eq({
+          queued: { count: 15, latency: 0 },
+          publishing: { count: 26, latency: 0 },
+          published: { count: 37, latency: 0 },
+          failed: { count: 48, latency: 0 },
+          total: { count: 126, latency: 0 }
+        })
       end
     end
   end

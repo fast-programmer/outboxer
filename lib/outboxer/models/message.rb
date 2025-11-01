@@ -6,15 +6,15 @@ module Outboxer
       module Status
         QUEUED = "queued"
         PUBLISHING = "publishing"
-        PUBLISHED = "published"
         FAILED = "failed"
+        PUBLISHED = "published"
       end
 
       STATUSES = [
         Status::QUEUED,
         Status::PUBLISHING,
-        Status::PUBLISHED,
-        Status::FAILED
+        Status::FAILED,
+        Status::PUBLISHED
       ]
 
       # @!attribute [rw] status
@@ -46,8 +46,8 @@ module Outboxer
 
       scope :queued, -> { where(status: Status::QUEUED) }
       scope :publishing, -> { where(status: Status::PUBLISHING) }
-      scope :published, -> { where(status: Status::PUBLISHED) }
       scope :failed, -> { where(status: Status::FAILED) }
+      scope :published, -> { where(status: Status::PUBLISHED) }
 
       # @!method messageable
       #   @return [ActiveRecord::Base] Polymorphic association to an event like model.
