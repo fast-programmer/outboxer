@@ -724,5 +724,35 @@ module Outboxer
         ).transform_values(&:to_i)
       end
     end
+
+    def metrics_by_status(time: Time)
+      ActiveRecord::Base.connection_pool.with_connection do
+        ActiveRecord::Base.transaction(isolation: :repeatable_read) do
+          counts = Models::Message::Count.select(
+            "COALESCE(SUM(queued), 0)      AS queued",
+            "COALESCE(SUM(publishing), 0)  AS publishing",
+            "COALESCE(SUM(published), 0)   AS published",
+            "COALESCE(SUM(failed), 0)      AS failed",
+            "COALESCE(SUM(queued + publishing + published + failed), 0) AS total"
+          ).take
+
+          min_times = Models::Message.group(:status).minimum(:updated_at)
+          min_total = min_times.values.compact.min
+
+          now = time.now.utc
+          latencies = min_times.transform_values { |t| t ? (now - t).to_i : 0 }
+          latencies["total"] = min_total ? (now - min_total).to_i : 0
+
+          counts_hash = counts.attributes.symbolize_keys.transform_values(&:to_i)
+
+          [:queued, :publishing, :published, :failed, :total].each_with_object({}) do |status, h|
+            h[status] = {
+              count: counts_hash[status] || 0,
+              latency: latencies[status.to_s] || 0
+            }
+          end
+        end
+      end
+    end
   end
 end

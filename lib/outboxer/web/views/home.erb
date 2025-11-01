@@ -111,21 +111,19 @@
                         <tr>
                             <th scope="col">Status</th>
                             <th scope="col">Count</th>
-                            <th scope="col">Throughput</th>
                             <th scope="col">Latency</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <% ['queued', 'publishing', 'published', 'failed'].each do |status| %>
+                        <% Outboxer::Message::STATUSES.each do |status| %>
                             <tr>
                                 <td class="text-capitalize">
                                     <a class="custom-link" href="<%= outboxer_path("/messages?status=#{status}") %>">
                                         <%= status %>
                                     </a>
                                 </td>
-                                <td><%= Outboxer::Web.pretty_number(number: message_count_by_status[status.to_sym]) %></td>
-                                <td><%= Outboxer::Web.pretty_throughput(per_second: 0) %></td>
-                                <td><%= Outboxer::Web.pretty_duration_from_seconds(seconds: 0) %></td>
+                                <td><%= Outboxer::Web.pretty_number(number: message_metrics_by_status[status.to_sym][:count]) %></td>
+                                <td><%= Outboxer::Web.pretty_duration_from_seconds(seconds: message_metrics_by_status[status.to_sym][:latency]) %></td>
                             </tr>
                         <% end %>
                     </tbody>
