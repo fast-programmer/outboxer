@@ -22,18 +22,18 @@ module Outboxer
             current_utc_time: current_utc_time
           )
 
-          # 2. Lock *all* rows (historic + all thread counters)
-          locked_rows = Models::Counter.lock("FOR UPDATE").to_a
+          # 2. Lock *all* rows (historic counter + thread counters)
+          locked_counters = Models::Counter.lock("FOR UPDATE").to_a
 
           # 3. Identify the historic counter
-          historic = locked_rows.find do |r|
+          historic_counter = locked_counters.find do |r|
             r.hostname == HISTORIC_HOSTNAME &&
               r.process_id == HISTORIC_PROCESS_ID &&
               r.thread_id == HISTORIC_THREAD_ID
           end
 
           # 4. Everything else is a thread counter
-          thread_counters = locked_rows - [historic]
+          thread_counters = locked_counters - [historic_counter]
 
           # 5. Sum all thread counters
           totals = thread_counters.each_with_object(
@@ -45,12 +45,12 @@ module Outboxer
             sum[:failed_count] += row.failed_count
           end
 
-          # 6. Update historic
-          historic.update(
-            queued_count: historic.queued_count + totals[:queued_count],
-            publishing_count: historic.publishing_count + totals[:publishing_count],
-            published_count: historic.published_count + totals[:published_count],
-            failed_count: historic.failed_count + totals[:failed_count],
+          # 6. Update historic counter
+          historic_counter.update!(
+            queued_count: historic_counter.queued_count + totals[:queued_count],
+            publishing_count: historic_counter.publishing_count + totals[:publishing_count],
+            published_count: historic_counter.published_count + totals[:published_count],
+            failed_count: historic_counter.failed_count + totals[:failed_count],
             updated_at: current_utc_time
           )
 
@@ -63,10 +63,10 @@ module Outboxer
 
           # 8. Return the updated totals
           {
-            queued_count: historic.queued_count,
-            publishing_count: historic.publishing_count,
-            published_count: historic.published_count,
-            failed_count: historic.failed_count
+            queued_count: historic_counter.queued_count,
+            publishing_count: historic_counter.publishing_count,
+            published_count: historic_counter.published_count,
+            failed_count: historic_counter.failed_count
           }
         end
       end
