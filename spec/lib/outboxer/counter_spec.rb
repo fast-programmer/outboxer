@@ -3,12 +3,12 @@
 require "rails_helper"
 
 module Outboxer
-  RSpec.describe Counter do
-    let(:current_utc_time) { Time.utc(2025, 1, 1, 0, 0, 0) }
-
-    before { Models::Counter.delete_all }
-
+  RSpec.describe Message do
     describe ".rollup" do
+      let(:current_utc_time) { Time.utc(2025, 1, 1, 0, 0, 0) }
+
+      before { Models::Message::Count.delete_all }
+
       context "when historic counter does not exist" do
         let!(:thread_1) do
           Models::Counter.create!(
@@ -20,7 +20,7 @@ module Outboxer
         end
 
         let!(:thread_2) do
-          Models::Counter.create!(
+          Models::Message::Count.create!(
             hostname: "worker1.test.local", process_id: 111, thread_id: 21_002,
             queued_count: 10, publishing_count: 20,
             published_count: 30, failed_count: 40,
@@ -29,7 +29,7 @@ module Outboxer
         end
 
         it "creates the historic counter and rolls up all thread counters" do
-          result = Counter.rollup(time: Time)
+          result = Message.rollup_counts(time: Time)
 
           expect(result).to eq(
             queued_count: 11,
@@ -38,10 +38,10 @@ module Outboxer
             failed_count: 44
           )
 
-          historic = Models::Counter.find_by!(
-            hostname: Counter::HISTORIC_HOSTNAME,
-            process_id: Counter::HISTORIC_PROCESS_ID,
-            thread_id: Counter::HISTORIC_THREAD_ID
+          historic = Models::Message::Count.find_by!(
+            hostname: Models::Message::Count::HISTORIC_HOSTNAME,
+            process_id: Models::Message::Count::HISTORIC_PROCESS_ID,
+            thread_id: Models::Message::Count::HISTORIC_THREAD_ID
           )
 
           expect(historic.queued_count).to eq(11)
@@ -115,37 +115,6 @@ module Outboxer
           expect(historic.published_count).to eq(0)
           expect(historic.failed_count).to eq(0)
         end
-      end
-    end
-
-    describe ".total" do
-      before do
-        Models::Counter.create!(
-          hostname: Counter::HISTORIC_HOSTNAME,
-          process_id: Counter::HISTORIC_PROCESS_ID,
-          thread_id: Counter::HISTORIC_THREAD_ID,
-          queued_count: 10, publishing_count: 20,
-          published_count: 30, failed_count: 40,
-          created_at: current_utc_time, updated_at: current_utc_time
-        )
-
-        Models::Counter.create!(
-          hostname: "worker5.test.local", process_id: 555, thread_id: 25_001,
-          queued_count: 5, publishing_count: 6,
-          published_count: 7, failed_count: 8,
-          created_at: current_utc_time, updated_at: current_utc_time
-        )
-      end
-
-      it "returns total counts across all counters" do
-        totals = Counter.total
-
-        expect(totals).to eq(
-          queued_count: 15,
-          publishing_count: 26,
-          published_count: 37,
-          failed_count: 48
-        )
       end
     end
   end

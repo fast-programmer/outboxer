@@ -1,17 +1,17 @@
 FactoryBot.define do
-  factory :outboxer_counter, class: "Outboxer::Models::Counter" do
-    queued_count     { 0 }
-    publishing_count { 0 }
-    published_count  { 0 }
-    failed_count     { 0 }
+  factory :outboxer_message_count, class: "Outboxer::Models::Message::Counter" do
+    queued     { 0 }
+    publishing { 0 }
+    published  { 0 }
+    failed     { 0 }
 
     created_at { 10.seconds.ago }
     updated_at { 5.seconds.ago }
 
     trait :historic do
-      hostname   { Outboxer::Counter::HISTORIC_HOSTNAME }
-      process_id { Outboxer::Counter::HISTORIC_PROCESS_ID }
-      thread_id  { Outboxer::Counter::HISTORIC_THREAD_ID }
+      hostname   { Outboxer::Message::Count::HISTORIC_HOSTNAME }
+      process_id { Outboxer::Message::Count::HISTORIC_PROCESS_ID }
+      thread_id  { Outboxer::Message::Count::HISTORIC_THREAD_ID }
     end
 
     trait :thread do

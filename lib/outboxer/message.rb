@@ -642,27 +642,114 @@ module Outboxer
       }
     end
 
+    # Rolls up thread_counts into the historic_count,
+    # then destroys rolled-up thread_counts.
+    #
+    # @param time [Time] timestamp context for updated_at
+    # @return [Hash] new historic_totals after rollup
+    def rollup_counts(time: Time)
+      current_utc_time = time.now.utc
+
+      ActiveRecord::Base.connection_pool.with_connection do
+        ActiveRecord::Base.transaction do
+          # 1. Ensure the historic count exists (idempotent upsert)
+          Models::Message::Count.insert_or_increment_by(
+            hostname: Models::Message::Count::HISTORIC_HOSTNAME,
+            process_id: Models::Message::Count::HISTORIC_PROCESS_ID,
+            thread_id: Models::Message::Count::HISTORIC_THREAD_ID,
+            current_utc_time: current_utc_time
+          )
+
+          # 2. Lock *all* rows (historic count + thread counts)
+          locked_counts = Models::Message::Count.lock("FOR UPDATE").to_a
+
+          # 3. Identify the historic count
+          historic_count = locked_counts.find do |r|
+            r.hostname == Models::Message::Count::HISTORIC_HOSTNAME &&
+              r.process_id == Models::Message::Count::HISTORIC_PROCESS_ID &&
+              r.thread_id == Models::Message::Count::HISTORIC_THREAD_ID
+          end
+
+          # 4. Everything else is a thread count
+          thread_counts = locked_counts - [historic_count]
+
+          # 5. Sum all thread counts
+          totals = thread_counts.each_with_object(
+            queued: 0, publishing: 0, published: 0, failed: 0
+          ) do |row, sum|
+            sum[:queued] += row.queued
+            sum[:publishing] += row.publishing
+            sum[:published] += row.published
+            sum[:failed] += row.failed
+          end
+
+          # 6. Update historic count
+          historic_count.update!(
+            queued: historic_count.queued + totals[:queued],
+            publishing: historic_count.publishing + totals[:publishing],
+            published: historic_count.published + totals[:published],
+            failed: historic_count.failed + totals[:failed],
+            updated_at: current_utc_time
+          )
+
+          # 7. Delete all rolled-up rows except historic
+          Models::Message::Count.where.not(
+            hostname: Models::Message::Count::HISTORIC_HOSTNAME,
+            process_id: Models::Message::Count::HISTORIC_PROCESS_ID,
+            thread_id: Models::Message::Count::HISTORIC_THREAD_ID
+          ).delete_all
+
+          # 8. Return the updated totals
+          {
+            queued: historic_count.queued,
+            publishing: historic_count.publishing,
+            published: historic_count.published,
+            failed: historic_count.failed
+          }
+        end
+      end
+    end
+
+    # Returns the total (lifetime) counts per status aggregated across all threads.
+    #
+    # @return [Hash{String=>Integer}] map of status name (string) to total count.
+    # @example
+    #   Message.count_by_status
+    #   # => { :queued => 1200, publishing: 400, published: 100_000, failed: 250 }
+    def count_by_status
+      ActiveRecord::Base.connection_pool.with_connection do
+        result = Models::Message::Count.select(
+          "COALESCE(SUM(queued), 0) AS queued",
+          "COALESCE(SUM(publishing), 0) AS publishing",
+          "COALESCE(SUM(published), 0) AS published",
+          "COALESCE(SUM(failed), 0) AS failed"
+        ).take
+
+        result.attributes.symbolize_keys.slice(
+          :queued, :publishing, :published, :failed
+        )
+      end
+    end
+
     # Retrieves and calculates metrics related to message statuses,
     # using the unified Counter.total for all counts.
     # Latency and throughput are placeholders (0) until time-series metrics are implemented.
     #
     # @return [Hash] detailed metrics across various message statuses.
     def metrics
-      totals = Counter.total
-
       metrics = {
         all: {
           count: {
-            total: totals.values.sum
+            total: count_by_status.values.sum
           }
         }
       }
 
       {
-        queued: :queued_count,
-        publishing: :publishing_count,
-        published: :published_count,
-        failed: :failed_count
+        queued: :queued,
+        publishing: :publishing,
+        published: :published,
+        failed: :failed
       }.each do |status, field|
         metrics[status] = {
           count: { total: totals[field].to_i },
@@ -672,23 +759,6 @@ module Outboxer
       end
 
       metrics
-    end
-
-    # Returns the total (lifetime) counts per status aggregated across all counters.
-    #
-    # @return [Hash{String=>Integer}] map of status name (string) to total count.
-    # @example
-    #   Message.total_by_status
-    #   # => { "queued" => 1200, "publishing" => 400, "published" => 100_000, "failed" => 250 }
-    def total_by_status
-      totals = Counter.total
-
-      {
-        "queued" => totals[:queued_count],
-        "publishing" => totals[:publishing_count],
-        "published" => totals[:published_count],
-        "failed" => totals[:failed_count]
-      }
     end
   end
 end
