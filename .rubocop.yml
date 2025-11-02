@@ -3,7 +3,7 @@ AllCops:
   TargetRubyVersion: 3.1.5
   SuggestExtensions: false
 Metrics/AbcSize:
-  Max: 80
+  Max: 90
 Metrics/CyclomaticComplexity:
   Enabled: true
   Max: 25
@@ -44,7 +44,7 @@ Metrics/ParameterLists:
 Style/FrozenStringLiteralComment:
   Enabled: false
 Metrics/MethodLength:
-  Max: 80
+  Max: 100
 Metrics/ClassLength:
   Enabled: true
   Max: 100

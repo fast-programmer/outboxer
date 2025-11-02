@@ -12,7 +12,10 @@ FactoryBot.define do
     end
     metrics do
       {
-        "throughput" => 1000,
+        "queued" => { "count" => 1, "throughput" => 0 },
+        "publishing" => { "count" => 1, "throughput" => 0 },
+        "failed" => { "count" => 1, "throughput" => 0 },
+        "published" => { "count" => 1, "throughput" => 0 },
         "latency" => 0,
         "cpu" => 10.5,
         "rss" => 40.95,
