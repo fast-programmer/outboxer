@@ -140,7 +140,10 @@ module Outboxer
               "heartbeat_interval" => heartbeat_interval
             },
             metrics: {
-              "throughput" => 0,
+              "queued" => { "count" => 0, "throughput" => 0 },
+              "publishing" => { "count" => 0, "throughput" => 0 },
+              "published" => { "count" => 0, "throughput" => 0 },
+              "failed" => { "count" => 0, "throughput" => 0 },
               "latency" => 0,
               "cpu" => 0,
               "rss " => 0,
@@ -274,7 +277,7 @@ module Outboxer
     # @param process [Process] The process module for accessing system metrics.
     # @param kernel [Kernel] The kernel module for sleeping operations.
     # @return [Thread] The heartbeat thread.
-    def create_heartbeat_thread(id:,
+    def create_heartbeat_thread(id:, hostname:, process_id:,
                                 heartbeat_interval:, tick_interval:,
                                 logger:, time:, process:, kernel:)
       Thread.new do
@@ -301,33 +304,68 @@ module Outboxer
                   signal.destroy
                 end
 
-                throughput = Models::Message
-                  .where(status: Message::Status::PUBLISHED)
-                  .where(publisher_id: id)
-                  .where("published_at >= ?", 1.second.ago)
-                  .count
+                current_utc_time = time.now.utc
 
-                last_published_message = Models::Message
-                  .where(status: Message::Status::PUBLISHED)
-                  .where(publisher_id: id)
-                  .order(published_at: :desc)
-                  .first
+                previous_metrics = publisher.metrics
+                last_updated_at = publisher.updated_at
+                time_delta = [current_utc_time - last_updated_at, heartbeat_interval].max
 
-                latency = if last_published_message.nil?
-                            0
-                          else
-                            (Time.now.utc - last_published_message.published_at).to_i
-                          end
+                publisher_message_count = Models::Message::Count
+                  .select(
+                    "COALESCE(SUM(queued), 0) AS queued,
+                     COALESCE(SUM(publishing), 0) AS publishing,
+                     COALESCE(SUM(published), 0) AS published,
+                     COALESCE(SUM(failed), 0) AS failed,
+                     MAX(updated_at) AS last_updated_at"
+                  )
+                  .where(hostname: hostname, process_id: process_id)
+                  .group(:hostname, :process_id)
+                  .take
+
+                current_counts = {
+                  "queued" => publisher_message_count&.queued || 0,
+                  "publishing" => publisher_message_count&.publishing || 0,
+                  "published" => publisher_message_count&.published || 0,
+                  "failed" => publisher_message_count&.failed || 0
+                }
+
+                throughput_by_status =
+                  current_counts.each_with_object({}) do |(status, count), h|
+                    prev = previous_metrics[status]["count"] || 0
+                    h[status] = ((count - prev) / time_delta).round(0)
+                  end
+
+                latency = 0
+
+                if !publisher_message_count.nil?
+                  latency = (current_utc_time - publisher_message_count.last_updated_at).round(0)
+                end
 
                 publisher.update!(
-                  updated_at: time.now.utc,
+                  updated_at: current_utc_time,
                   metrics: {
-                    throughput: throughput,
-                    latency: latency,
-                    cpu: cpu,
-                    rss: rss,
-                    rtt: rtt
-                  })
+                    "queued" => {
+                      "count" => current_counts["queued"],
+                      "throughput" => throughput_by_status["queued"]
+                    },
+                    "publishing" => {
+                      "count" => current_counts["publishing"],
+                      "throughput" => throughput_by_status["publishing"]
+                    },
+                    "published" => {
+                      "count" => current_counts["published"],
+                      "throughput" => throughput_by_status["published"]
+                    },
+                    "failed" => {
+                      "count" => current_counts["failed"],
+                      "throughput" => throughput_by_status["failed"]
+                    },
+                    "latency" => latency,
+                    "cpu" => cpu,
+                    "rss" => rss,
+                    "rtt" => rtt
+                  }
+                )
               end
             end
 
@@ -429,6 +467,8 @@ module Outboxer
     # @yieldparam messages [Array<Hash>] An array of message hashes retrieved from the buffer.
     def publish_message(
       name: "#{::Socket.gethostname}:#{::Process.pid}",
+      hostname: Socket.gethostname,
+      process_id: Process.pid,
       concurrency: PUBLISH_MESSAGE_DEFAULTS[:concurrency],
       tick_interval: PUBLISH_MESSAGE_DEFAULTS[:tick_interval],
       poll_interval: PUBLISH_MESSAGE_DEFAULTS[:poll_interval],
@@ -456,6 +496,7 @@ module Outboxer
 
       heartbeat_thread = create_heartbeat_thread(
         id: publisher[:id], heartbeat_interval: heartbeat_interval, tick_interval: tick_interval,
+        hostname: hostname, process_id: process_id,
         logger: logger, time: time, process: process, kernel: kernel)
 
       publisher_threads = Array.new(concurrency) do |index|
