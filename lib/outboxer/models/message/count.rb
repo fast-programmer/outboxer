@@ -18,47 +18,76 @@ module Outboxer
           failed: 0,
           current_utc_time: Time.now.utc
         )
-          sql = if connection.adapter_name.downcase.include?("postgres")
-                  <<~SQL
-                    INSERT INTO #{table_name}
-                      (hostname, process_id, thread_id,
-                      queued, publishing, published, failed,
-                      created_at, updated_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    ON CONFLICT (hostname, process_id, thread_id)
-                    DO UPDATE SET
-                      queued     = #{table_name}.queued     + ?,
-                      publishing = #{table_name}.publishing + ?,
-                      published  = #{table_name}.published  + ?,
-                      failed     = #{table_name}.failed     + ?,
-                      updated_at       = ?
-                  SQL
-                else
-                  <<~SQL
-                    INSERT INTO #{table_name}
-                      (hostname, process_id, thread_id,
-                      queued, publishing, published, failed,
-                      created_at, updated_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    ON DUPLICATE KEY UPDATE
-                      queued     = queued     + ?,
-                      publishing = publishing + ?,
-                      published  = published  + ?,
-                      failed     = failed     + ?,
-                      updated_at       = ?
-                  SQL
-                end
+          deltas = {
+            queued: queued,
+            publishing: publishing,
+            published: published,
+            failed: failed
+          }.reject { |_k, v| v == 0 }
 
-          connection.exec_query(
-            sanitize_sql_array([
-              sql,
-              hostname, process_id, thread_id,
-              queued, publishing, published, failed,
-              current_utc_time, current_utc_time,
-              queued, publishing, published, failed, current_utc_time
-            ])
+          table = table_name
+          adapter = connection.adapter_name.downcase
+          is_postgres = adapter.include?("postgres")
+
+          cols = %i[hostname process_id thread_id queued publishing published failed created_at updated_at]
+          placeholders = (["?"] * cols.size).join(", ")
+
+          conflict_clause = is_postgres ?
+            "ON CONFLICT (hostname, process_id, thread_id)" :
+            "ON DUPLICATE KEY"
+
+          updates = deltas.map do |k, v|
+            op = v.positive? ? "+" : "-"
+            if is_postgres
+              # e.g. "queued = outboxer_message_counts.queued + 2"
+              "#{k} = #{table}.#{k} #{op} #{v.abs}"
+            else
+              # e.g. "queued = queued + 2"
+              "#{k} = #{k} #{op} #{v.abs}"
+            end
+          end
+
+          updates << (
+            is_postgres ?
+              # e.g. "updated_at = EXCLUDED.updated_at"
+              "updated_at = EXCLUDED.updated_at" :
+              # e.g. "updated_at = VALUES(updated_at)"
+              "updated_at = VALUES(updated_at)"
           )
 
+          sql = <<~SQL
+            INSERT INTO #{table}
+              (#{cols.join(", ")})
+            VALUES (#{placeholders})
+            #{conflict_clause}
+            DO UPDATE SET #{updates.join(", ")}
+          SQL
+          # Example (PostgreSQL):
+          # INSERT INTO outboxer_message_counts
+          #   (hostname, process_id, thread_id, queued, publishing, published, failed, created_at, updated_at)
+          # VALUES ('test', 111, 123, 1, 0, 0, 0, '2025-11-10 06:32:00', '2025-11-10 06:32:00')
+          # ON CONFLICT (hostname, process_id, thread_id)
+          # DO UPDATE SET queued = outboxer_message_counts.queued + 1, updated_at = EXCLUDED.updated_at
+          #
+          # Example (MySQL):
+          # INSERT INTO outboxer_message_counts
+          #   (hostname, process_id, thread_id, queued, publishing, published, failed, created_at, updated_at)
+          # VALUES ('test', 111, 123, 1, 0, 0, 0, '2025-11-10 06:32:00', '2025-11-10 06:32:00')
+          # ON DUPLICATE KEY UPDATE queued = queued + 1, updated_at = VALUES(updated_at)
+
+          values = [
+            hostname,
+            process_id,
+            thread_id,
+            queued,
+            publishing,
+            published,
+            failed,
+            current_utc_time,
+            current_utc_time
+          ]
+
+          connection.exec_query(sanitize_sql_array([sql, *values]))
           nil
         end
       end
