@@ -314,12 +314,12 @@ module Outboxer
                 last_updated_at = publisher.updated_at
                 time_delta = [current_utc_time - last_updated_at, heartbeat_interval].max
 
-                publisher_message_count = Models::Message::Count
+                publisher_message_counter = Models::Message::Counter
                   .select(
-                    "COALESCE(SUM(queued), 0) AS queued,
-                     COALESCE(SUM(publishing), 0) AS publishing,
-                     COALESCE(SUM(published), 0) AS published,
-                     COALESCE(SUM(failed), 0) AS failed,
+                    "COALESCE(SUM(queued_count), 0) AS queued_count,
+                     COALESCE(SUM(publishing_count), 0) AS publishing_count,
+                     COALESCE(SUM(published_count), 0) AS published_count,
+                     COALESCE(SUM(failed_count), 0) AS failed_count,
                      MAX(updated_at) AS last_updated_at"
                   )
                   .where(hostname: hostname, process_id: process_id)
@@ -327,10 +327,10 @@ module Outboxer
                   .take
 
                 current_counts = {
-                  "queued" => publisher_message_count&.queued || 0,
-                  "publishing" => publisher_message_count&.publishing || 0,
-                  "published" => publisher_message_count&.published || 0,
-                  "failed" => publisher_message_count&.failed || 0
+                  "queued" => publisher_message_counter&.queued_count || 0,
+                  "publishing" => publisher_message_counter&.publishing_count || 0,
+                  "published" => publisher_message_counter&.published_count || 0,
+                  "failed" => publisher_message_counter&.failed_count || 0
                 }
 
                 throughput_by_status =
@@ -341,8 +341,8 @@ module Outboxer
 
                 latency = 0
 
-                if !publisher_message_count.nil?
-                  latency = (current_utc_time - publisher_message_count.last_updated_at).round(0)
+                if !publisher_message_counter.nil?
+                  latency = (current_utc_time - publisher_message_counter.last_updated_at).round(0)
                 end
 
                 publisher.update!(
