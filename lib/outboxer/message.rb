@@ -255,47 +255,51 @@ module Outboxer
               .pluck(:id, :lock_version, :messageable_type, :messageable_id)
               .first
 
-          Models::Message
-            .where(id: id)
-            .update_all([
-              "lock_version = lock_version + 1, status = ?, updated_at = ?, publishing_at = ?",
-              Status::PUBLISHING, current_utc_time, current_utc_time
-            ])
-
-          counter_exists = Models::Message::Counter
-            .where(hostname: hostname, process_id: process_id, thread_id: thread_id)
-            .lock("FOR UPDATE")
-            .exists?
-
-          if counter_exists
-            Models::Message::Counter
-              .where(hostname: hostname, process_id: process_id, thread_id: thread_id)
+          if !id.nil?
+            Models::Message
+              .where(id: id)
               .update_all([
-                "queued_count = queued_count - 1, publishing_count = publishing_count + 1, " \
-                "publishing_count_last_updated_at = ?, updated_at = ?",
-                current_utc_time, current_utc_time
+                "lock_version = lock_version + 1, status = ?, updated_at = ?, publishing_at = ?",
+                Status::PUBLISHING, current_utc_time, current_utc_time
               ])
-          else
-            Models::Message::Counter.insert_all([{
-              hostname: hostname,
-              process_id: process_id,
-              thread_id: thread_id,
-              queued_count: 0,
-              publishing_count: 1,
-              published_count: 0,
-              failed_count: 0,
-              publishing_count_last_updated_at: current_utc_time,
-              created_at: current_utc_time,
-              updated_at: current_utc_time
-            }])
-          end
 
-          {
-            id: id,
-            lock_version: lock_version + 1,
-            messageable_type: messageable_type,
-            messageable_id: messageable_id
-          }
+            counter_exists = Models::Message::Counter
+              .where(hostname: hostname, process_id: process_id, thread_id: thread_id)
+              .lock("FOR UPDATE")
+              .exists?
+
+            if counter_exists
+              Models::Message::Counter
+                .where(hostname: hostname, process_id: process_id, thread_id: thread_id)
+                .update_all([
+                  "queued_count = queued_count - 1, publishing_count = publishing_count + 1, " \
+                  "publishing_count_last_updated_at = ?, updated_at = ?",
+                  current_utc_time, current_utc_time
+                ])
+            else
+              Models::Message::Counter.insert_all([{
+                hostname: hostname,
+                process_id: process_id,
+                thread_id: thread_id,
+                queued_count: 0,
+                publishing_count: 1,
+                published_count: 0,
+                failed_count: 0,
+                publishing_count_last_updated_at: current_utc_time,
+                created_at: current_utc_time,
+                updated_at: current_utc_time
+              }])
+            end
+
+            {
+              id: id,
+              lock_version: lock_version + 1,
+              messageable_type: messageable_type,
+              messageable_id: messageable_id
+            }
+          else
+            nil
+          end
         end
       rescue ActiveRecord::RecordNotUnique, ActiveRecord::RecordNotFound
         publishing(
