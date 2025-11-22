@@ -281,7 +281,7 @@ module Outboxer
                 hostname: hostname,
                 process_id: process_id,
                 thread_id: thread_id,
-                queued_count: 0,
+                queued_count: -1,
                 publishing_count: 1,
                 published_count: 0,
                 failed_count: 0,
@@ -343,6 +343,11 @@ module Outboxer
             raise Error, "Status must be publishing"
           end
 
+          exception_ids = Models::Exception.where(message_id: id).pluck(:id)
+          Models::Frame.where(exception_id: exception_ids).delete_all
+          Models::Exception.where(message_id: id).delete_all
+          Models::Message.where(id: id).delete_all
+
           counter_row = Models::Message::Counter
             .where(hostname: hostname, process_id: process_id, thread_id: thread_id)
             .lock("FOR UPDATE")
@@ -354,7 +359,7 @@ module Outboxer
               .where(hostname: hostname, process_id: process_id, thread_id: thread_id)
               .update_all([
                 "publishing_count = publishing_count - 1, " \
-                "published_count  = published_count  + 1, " \
+                "published_count = published_count + 1, " \
                 "published_count_last_updated_at = ?, " \
                 "updated_at = ?",
                 current_utc_time,
@@ -366,7 +371,7 @@ module Outboxer
               process_id: process_id,
               thread_id: thread_id,
               queued_count: 0,
-              publishing_count: 0,
+              publishing_count: -1,
               published_count: 1,
               failed_count: 0,
               published_count_last_updated_at: current_utc_time,
