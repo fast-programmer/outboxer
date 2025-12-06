@@ -824,9 +824,9 @@ module Outboxer
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           # 1. Ensure the historic counter exists (idempotent upsert)
-          Models::Message::Counter.insert_all(
-            [
-              {
+          begin
+            ActiveRecord::Base.transaction(requires_new: true) do
+              Models::Message::Counter.create!(
                 hostname: Models::Message::Counter::HISTORIC_HOSTNAME,
                 process_id: Models::Message::Counter::HISTORIC_PROCESS_ID,
                 thread_id: Models::Message::Counter::HISTORIC_THREAD_ID,
@@ -835,11 +835,11 @@ module Outboxer
                 published_count: 0,
                 failed_count: 0,
                 created_at: current_utc_time,
-                updated_at: current_utc_time
-              }
-            ],
-            unique_by: :idx_outboxer_message_counters_identity
-          )
+                updated_at: current_utc_time)
+            end
+          rescue ActiveRecord::RecordNotUnique
+            # no op
+          end
 
           # 2. Lock *all* rows (historic counter + thread counters)
           locked_counters = Models::Message::Counter.lock("FOR UPDATE").to_a
