@@ -8,10 +8,10 @@ module Outboxer
         let!(:exception) { create(:outboxer_exception, message: message) }
         let!(:frame) { create(:outboxer_frame, exception: exception) }
         let!(:historic_message_count) do
-          create(:outboxer_message_counter, :historic, failed_count: 20)
+          create(:outboxer_thread, :historic, failed_count: 20)
         end
         let!(:thread_message_count) do
-          create(:outboxer_message_counter, :thread, failed_count: 10)
+          create(:outboxer_thread, :thread, failed_count: 10)
         end
 
         let!(:result) { Message.delete(id: message.id, lock_version: message.lock_version) }
@@ -37,10 +37,10 @@ module Outboxer
 
       context "when the message status is published" do
         let!(:historic_message_count) do
-          create(:outboxer_message_counter, :historic, published_count: 20)
+          create(:outboxer_thread, :historic, published_count: 20)
         end
         let!(:thread_message_count) do
-          create(:outboxer_message_counter, :thread, published_count: 10)
+          create(:outboxer_thread, :thread, published_count: 10)
         end
 
         let!(:message) { create(:outboxer_message, :published) }

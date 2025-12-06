@@ -8,7 +8,7 @@ require_relative "outboxer/logger"
 require_relative "outboxer/models/frame"
 require_relative "outboxer/models/exception"
 require_relative "outboxer/models/message"
-require_relative "outboxer/models/message/counter"
+require_relative "outboxer/models/thread"
 
 require_relative "outboxer/models/publisher"
 require_relative "outboxer/models/signal"

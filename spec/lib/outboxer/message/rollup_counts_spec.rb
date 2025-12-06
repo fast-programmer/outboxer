@@ -5,11 +5,11 @@ module Outboxer
     describe ".rollup_counts" do
       let(:current_utc_time) { Time.utc(2025, 1, 1, 0, 0, 0) }
 
-      before { Models::Message::Counter.delete_all }
+      before { Models::Thread.delete_all }
 
       context "when historic count does not exist" do
         let!(:thread_1) do
-          Models::Message::Counter.create!(
+          Models::Thread.create!(
             hostname: "worker1.test.local", process_id: 111, thread_id: 21_001,
             queued_count: 1, publishing_count: 2,
             published_count: 3, failed_count: 4,
@@ -18,7 +18,7 @@ module Outboxer
         end
 
         let!(:thread_2) do
-          Models::Message::Counter.create!(
+          Models::Thread.create!(
             hostname: "worker1.test.local", process_id: 111, thread_id: 21_002,
             queued_count: 10, publishing_count: 20,
             published_count: 30, failed_count: 40,
@@ -36,37 +36,37 @@ module Outboxer
             failed_count: 44
           )
 
-          historic_counter = Models::Message::Counter.find_by!(
-            hostname: Models::Message::Counter::HISTORIC_HOSTNAME,
-            process_id: Models::Message::Counter::HISTORIC_PROCESS_ID,
-            thread_id: Models::Message::Counter::HISTORIC_THREAD_ID
+          historic_thread = Models::Thread.find_by!(
+            hostname: Models::Thread::HISTORIC_HOSTNAME,
+            process_id: Models::Thread::HISTORIC_PROCESS_ID,
+            thread_id: Models::Thread::HISTORIC_THREAD_ID
           )
 
-          expect(historic_counter.queued_count).to eq(11)
-          expect(historic_counter.publishing_count).to eq(22)
-          expect(historic_counter.published_count).to eq(33)
-          expect(historic_counter.failed_count).to eq(44)
+          expect(historic_thread.queued_count).to eq(11)
+          expect(historic_thread.publishing_count).to eq(22)
+          expect(historic_thread.published_count).to eq(33)
+          expect(historic_thread.failed_count).to eq(44)
 
           expect(
-            Models::Message::Counter.where.not(
-              hostname: Models::Message::Counter::HISTORIC_HOSTNAME)
+            Models::Thread.where.not(
+              hostname: Models::Thread::HISTORIC_HOSTNAME)
           ).to be_empty
         end
       end
 
       context "when historic count already exists" do
         let!(:historic_count) do
-          Models::Message::Counter.create!(
-            hostname: Models::Message::Counter::HISTORIC_HOSTNAME,
-            process_id: Models::Message::Counter::HISTORIC_PROCESS_ID,
-            thread_id: Models::Message::Counter::HISTORIC_THREAD_ID,
+          Models::Thread.create!(
+            hostname: Models::Thread::HISTORIC_HOSTNAME,
+            process_id: Models::Thread::HISTORIC_PROCESS_ID,
+            thread_id: Models::Thread::HISTORIC_THREAD_ID,
             queued_count: 100, publishing_count: 200, published_count: 300, failed_count: 400,
             created_at: current_utc_time, updated_at: current_utc_time
           )
         end
 
         let!(:thread_count) do
-          Models::Message::Counter.create!(
+          Models::Thread.create!(
             hostname: "worker2.test.local", process_id: 222, thread_id: 22_001,
             queued_count: 1, publishing_count: 1, published_count: 1, failed_count: 1,
             created_at: current_utc_time, updated_at: current_utc_time
@@ -96,16 +96,16 @@ module Outboxer
             queued_count: 0, publishing_count: 0, published_count: 0, failed_count: 0
           )
 
-          historic_counter = Models::Message::Counter.find_by!(
-            hostname: Models::Message::Counter::HISTORIC_HOSTNAME,
-            process_id: Models::Message::Counter::HISTORIC_PROCESS_ID,
-            thread_id: Models::Message::Counter::HISTORIC_THREAD_ID
+          historic_thread = Models::Thread.find_by!(
+            hostname: Models::Thread::HISTORIC_HOSTNAME,
+            process_id: Models::Thread::HISTORIC_PROCESS_ID,
+            thread_id: Models::Thread::HISTORIC_THREAD_ID
           )
 
-          expect(historic_counter.queued_count).to eq(0)
-          expect(historic_counter.publishing_count).to eq(0)
-          expect(historic_counter.published_count).to eq(0)
-          expect(historic_counter.failed_count).to eq(0)
+          expect(historic_thread.queued_count).to eq(0)
+          expect(historic_thread.publishing_count).to eq(0)
+          expect(historic_thread.published_count).to eq(0)
+          expect(historic_thread.failed_count).to eq(0)
         end
       end
     end

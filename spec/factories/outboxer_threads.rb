@@ -1,5 +1,5 @@
 FactoryBot.define do
-  factory :outboxer_message_counter, class: "Outboxer::Models::Message::Counter" do
+  factory :outboxer_threads, class: "Outboxer::Models::Thread" do
     hostname   { Socket.gethostname }
     process_id { Process.pid }
     thread_id  { Thread.current.object_id }
@@ -19,9 +19,9 @@ FactoryBot.define do
     updated_at { current_time - 5.seconds }
 
     trait :historic do
-      hostname   { Outboxer::Models::Message::Counter::HISTORIC_HOSTNAME }
-      process_id { Outboxer::Models::Message::Counter::HISTORIC_PROCESS_ID }
-      thread_id  { Outboxer::Models::Message::Counter::HISTORIC_THREAD_ID }
+      hostname   { Outboxer::Models::Thread::HISTORIC_HOSTNAME }
+      process_id { Outboxer::Models::Thread::HISTORIC_PROCESS_ID }
+      thread_id  { Outboxer::Models::Thread::HISTORIC_THREAD_ID }
     end
 
     trait :thread do

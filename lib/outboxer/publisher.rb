@@ -314,7 +314,7 @@ module Outboxer
                 last_updated_at = publisher.updated_at
                 time_delta = [current_utc_time - last_updated_at, heartbeat_interval].max
 
-                publisher_message_counter = Models::Message::Counter
+                publisher_thread = Models::Thread
                   .select(
                     "COALESCE(SUM(queued_count), 0) AS queued_count,
                      COALESCE(SUM(publishing_count), 0) AS publishing_count,
@@ -327,10 +327,10 @@ module Outboxer
                   .take
 
                 current_counts = {
-                  "queued" => publisher_message_counter&.queued_count || 0,
-                  "publishing" => publisher_message_counter&.publishing_count || 0,
-                  "published" => publisher_message_counter&.published_count || 0,
-                  "failed" => publisher_message_counter&.failed_count || 0
+                  "queued" => publisher_thread&.queued_count || 0,
+                  "publishing" => publisher_thread&.publishing_count || 0,
+                  "published" => publisher_thread&.published_count || 0,
+                  "failed" => publisher_thread&.failed_count || 0
                 }
 
                 throughput_by_status =
@@ -341,8 +341,8 @@ module Outboxer
 
                 latency = 0
 
-                if !publisher_message_counter.nil?
-                  latency = (current_utc_time - publisher_message_counter.last_updated_at).round(0)
+                if !publisher_thread.nil?
+                  latency = (current_utc_time - publisher_thread.last_updated_at).round(0)
                 end
 
                 publisher.update!(
