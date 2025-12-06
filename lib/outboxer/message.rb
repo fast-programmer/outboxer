@@ -83,7 +83,7 @@ module Outboxer
                 hostname: hostname,
                 process_id: process_id,
                 thread_id: thread_id,
-                queued_count: 1,
+                queued_count: 0,
                 queued_count_last_updated_at: current_utc_time,
                 publishing_count: 0,
                 published_count: 0,
