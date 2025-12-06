@@ -24,7 +24,7 @@ FactoryBot.define do
       thread_id  { Outboxer::Models::Thread::HISTORIC_THREAD_ID }
     end
 
-    trait :thread do
+    trait :current do
       hostname   { Socket.gethostname }
       process_id { Process.pid }
       thread_id  { Thread.current.object_id }

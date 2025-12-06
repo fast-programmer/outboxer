@@ -7,7 +7,7 @@ module Outboxer
         create(:outboxer_thread, :historic, queued_count: 1)
       end
 
-      let!(:thread) { create(:outboxer_thread, :thread, queued_count: 1) }
+      let!(:thread) { create(:outboxer_thread, :current, queued_count: 1) }
 
       before do
         message = Models::Message.create!(

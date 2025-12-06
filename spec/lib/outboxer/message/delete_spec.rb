@@ -11,7 +11,7 @@ module Outboxer
           create(:outboxer_thread, :historic, failed_count: 20)
         end
         let!(:thread_message_count) do
-          create(:outboxer_thread, :thread, failed_count: 10)
+          create(:outboxer_thread, :current, failed_count: 10)
         end
 
         let!(:result) { Message.delete(id: message.id, lock_version: message.lock_version) }
@@ -40,7 +40,7 @@ module Outboxer
           create(:outboxer_thread, :historic, published_count: 20)
         end
         let!(:thread_message_count) do
-          create(:outboxer_thread, :thread, published_count: 10)
+          create(:outboxer_thread, :current, published_count: 10)
         end
 
         let!(:message) { create(:outboxer_message, :published) }
