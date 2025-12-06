@@ -824,11 +824,21 @@ module Outboxer
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           # 1. Ensure the historic counter exists (idempotent upsert)
-          Models::Message::Counter.increment_counts_by(
-            hostname: Models::Message::Counter::HISTORIC_HOSTNAME,
-            process_id: Models::Message::Counter::HISTORIC_PROCESS_ID,
-            thread_id: Models::Message::Counter::HISTORIC_THREAD_ID,
-            current_utc_time: current_utc_time
+          Models::Message::Counter.insert_all(
+            [
+              {
+                hostname: Models::Message::Counter::HISTORIC_HOSTNAME,
+                process_id: Models::Message::Counter::HISTORIC_PROCESS_ID,
+                thread_id: Models::Message::Counter::HISTORIC_THREAD_ID,
+                queued_count: 0,
+                publishing_count: 0,
+                published_count: 0,
+                failed_count: 0,
+                created_at: current_utc_time,
+                updated_at: current_utc_time
+              }
+            ],
+            unique_by: :idx_outboxer_message_counters_identity
           )
 
           # 2. Lock *all* rows (historic counter + thread counters)
@@ -846,7 +856,10 @@ module Outboxer
 
           # 5. Sum all thread counters
           totals = thread_counters.each_with_object(
-            queued_count: 0, publishing_count: 0, published_count: 0, failed_count: 0
+            queued_count: historic_counter.queued_count,
+            publishing_count: historic_counter.publishing_count,
+            published_count: historic_counter.published_count,
+            failed_count: historic_counter.failed_count
           ) do |row, sum|
             sum[:queued_count] += row.queued_count
             sum[:publishing_count] += row.publishing_count
@@ -856,10 +869,10 @@ module Outboxer
 
           # 6. Update historic counter
           historic_counter.update!(
-            queued_count: historic_counter.queued_count + totals[:queued_count],
-            publishing_count: historic_counter.publishing + totals[:publishing_count],
-            published_count: historic_counter.published + totals[:published_count],
-            failed_count: historic_counter.failed + totals[:failed_count],
+            queued_count: totals[:queued_count],
+            publishing_count: totals[:publishing_count],
+            published_count: totals[:published_count],
+            failed_count: totals[:failed_count],
             updated_at: current_utc_time
           )
 
@@ -872,10 +885,10 @@ module Outboxer
 
           # 8. Return the updated totals
           {
-            queued: historic_counter.queued_count,
-            publishing: historic_counter.publishing_count,
-            published: historic_counter.published_count,
-            failed: historic_counter.failed_count
+            queued_count: historic_counter.queued_count,
+            publishing_count: historic_counter.publishing_count,
+            published_count: historic_counter.published_count,
+            failed_count: historic_counter.failed_count
           }
         end
       end
