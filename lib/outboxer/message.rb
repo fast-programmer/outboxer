@@ -77,39 +77,34 @@ module Outboxer
             updated_at: current_utc_time
           )
 
-          thread = Models::Thread.lock.find_by(
+          begin
+            ActiveRecord::Base.transaction(requires_new: true) do
+              Models::Thread.create!(
+                hostname: hostname,
+                process_id: process_id,
+                thread_id: thread_id,
+                queued_count: 1,
+                queued_count_last_updated_at: current_utc_time,
+                publishing_count: 0,
+                published_count: 0,
+                failed_count: 0,
+                created_at: current_utc_time,
+                updated_at: current_utc_time)
+            end
+          rescue ActiveRecord::RecordNotUnique
+            # no op
+          end
+
+          thread = Models::Thread.lock.find_by!(
             hostname: hostname, process_id: process_id, thread_id: thread_id)
 
-          if thread
-            thread.update!(
-              queued_count: thread.queued_count + 1,
-              queued_count_last_updated_at: current_utc_time,
-              updated_at: current_utc_time)
-          else
-            Models::Thread.create!(
-              hostname: hostname,
-              process_id: process_id,
-              thread_id: thread_id,
-              queued_count: 1,
-              queued_count_last_updated_at: current_utc_time,
-              publishing_count: 0,
-              published_count: 0,
-              failed_count: 0,
-              created_at: current_utc_time,
-              updated_at: current_utc_time)
-          end
+          thread.update!(
+            queued_count: thread.queued_count + 1,
+            queued_count_last_updated_at: current_utc_time,
+            updated_at: current_utc_time)
 
           { id: message.id, lock_version: message.lock_version }
         end
-      rescue ActiveRecord::RecordNotUnique
-        queue(
-          messageable: messageable,
-          messageable_type: messageable_type,
-          messageable_id: messageable_id,
-          hostname: hostname,
-          process_id: process_id,
-          thread_id: thread_id,
-          time: time)
       end
     end
 
@@ -440,43 +435,20 @@ module Outboxer
             end
           end
 
-          thread = Models::Thread.lock.find_by(
+          thread = Models::Thread.lock.find_by!(
             hostname: hostname, process_id: process_id, thread_id: thread_id)
 
-          if thread
-            thread.update!(
-              publishing_count: thread.publishing_count - 1,
-              failed_count: thread.failed_count + 1,
-              failed_count_last_updated_at: current_utc_time,
-              updated_at: current_utc_time)
-          else
-            Models::Thread.create!(
-              hostname: hostname,
-              process_id: process_id,
-              thread_id: thread_id,
-              queued_count: 0,
-              publishing_count: 0,
-              published_count: 0,
-              failed_count: 1,
-              failed_count_last_updated_at: current_utc_time,
-              created_at: current_utc_time,
-              updated_at: current_utc_time)
-          end
+          thread.update!(
+            publishing_count: thread.publishing_count - 1,
+            failed_count: thread.failed_count + 1,
+            failed_count_last_updated_at: current_utc_time,
+            updated_at: current_utc_time)
 
           {
             id: message.id,
             lock_version: message.lock_version
           }
         end
-      rescue ActiveRecord::RecordNotUnique
-        publishing_failed(
-          id: id,
-          lock_version: lock_version,
-          error: error,
-          hostname: hostname,
-          process_id: process_id,
-          thread_id: thread_id,
-          time: time)
       end
     end
 

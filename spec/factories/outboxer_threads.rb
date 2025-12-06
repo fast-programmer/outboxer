@@ -1,5 +1,5 @@
 FactoryBot.define do
-  factory :outboxer_threads, class: "Outboxer::Models::Thread" do
+  factory :outboxer_thread, class: "Outboxer::Models::Thread" do
     hostname   { Socket.gethostname }
     process_id { Process.pid }
     thread_id  { Thread.current.object_id }
