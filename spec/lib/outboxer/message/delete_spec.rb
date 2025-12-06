@@ -7,8 +7,12 @@ module Outboxer
         let!(:message) { create(:outboxer_message, :failed) }
         let!(:exception) { create(:outboxer_exception, message: message) }
         let!(:frame) { create(:outboxer_frame, exception: exception) }
-        let!(:historic_message_count) { create(:outboxer_message_count, :historic, failed: 20) }
-        let!(:thread_message_count) { create(:outboxer_message_count, :thread, failed: 10) }
+        let!(:historic_message_count) do
+          create(:outboxer_message_counter, :historic, failed_count: 20)
+        end
+        let!(:thread_message_count) do
+          create(:outboxer_message_counter, :thread, failed_count: 10)
+        end
 
         let!(:result) { Message.delete(id: message.id, lock_version: message.lock_version) }
 
@@ -16,10 +20,10 @@ module Outboxer
           expect(Models::Message).not_to exist(message.id)
         end
 
-        it "decrements the failed thread count metric" do
+        it "decrements the failed count thread count metric" do
           thread_message_count.reload
 
-          expect(thread_message_count.failed).to eq(9)
+          expect(thread_message_count.failed_count).to eq(9)
         end
 
         it "increments the total failed count metric" do
@@ -32,8 +36,12 @@ module Outboxer
       end
 
       context "when the message status is published" do
-        let!(:historic_message_count) { create(:outboxer_message_count, :historic, published: 20) }
-        let!(:thread_message_count) { create(:outboxer_message_count, :thread, published: 10) }
+        let!(:historic_message_count) do
+          create(:outboxer_message_counter, :historic, published_count: 20)
+        end
+        let!(:thread_message_count) do
+          create(:outboxer_message_counter, :thread, published_count: 10)
+        end
 
         let!(:message) { create(:outboxer_message, :published) }
         let!(:exception) { create(:outboxer_exception, message: message) }
@@ -48,7 +56,7 @@ module Outboxer
         it "decrements the published count thread count metric" do
           thread_message_count.reload
 
-          expect(thread_message_count.published).to eq(9)
+          expect(thread_message_count.published_count).to eq(9)
         end
 
         it "increments the total published count metric" do
