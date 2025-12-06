@@ -19,36 +19,44 @@ module Outboxer
           current_utc_time: Time.now.utc
         )
           update_values = {}
+          table = arel_table
 
           if queued_delta.is_a?(Integer) && queued_delta != 0
-            op = queued_delta.positive? ? "+" : "-"
-            update_values[:queued_count] = Arel.sql("queued_count #{op} #{queued_delta.abs}")
-            update_values[:queued_count_last_updated_at] = current_utc_time
+            update_values[:queued_count] =
+              table[:queued_count] + queued_delta
+            update_values[:queued_count_last_updated_at] =
+              current_utc_time
           end
 
           if publishing_delta.is_a?(Integer) && publishing_delta != 0
-            update_values[:publishing_count] = Arel.sql(
-              "publishing_count #{publishing_delta.positive? ? "+" : "-"} #{publishing_delta.abs}")
-            update_values[:publishing_count_last_updated_at] = current_utc_time
+            update_values[:publishing_count] =
+              table[:publishing_count] + publishing_delta
+            update_values[:publishing_count_last_updated_at] =
+              current_utc_time
           end
 
           if published_delta.is_a?(Integer) && published_delta != 0
-            update_values[:published_count] = Arel.sql(
-              "published_count #{published_delta.positive? ? "+" : "-"} #{published_delta.abs}")
-            update_values[:published_count_last_updated_at] = current_utc_time
+            update_values[:published_count] =
+              table[:published_count] + published_delta
+            update_values[:published_count_last_updated_at] =
+              current_utc_time
           end
 
           if failed_delta.is_a?(Integer) && failed_delta != 0
-            update_values[:failed_count] = Arel.sql(
-              "failed_count #{failed_delta.positive? ? "+" : "-"} #{failed_delta.abs}")
-            update_values[:failed_count_last_updated_at] = current_utc_time
+            update_values[:failed_count] =
+              table[:failed_count] + failed_delta
+            update_values[:failed_count_last_updated_at] =
+              current_utc_time
           end
 
-          if !update_values.empty?
+          if update_values.any?
             update_values[:updated_at] = current_utc_time
 
-            where(hostname: hostname, process_id: process_id, thread_id: thread_id)
-              .update_all(update_values)
+            where(
+              hostname: hostname,
+              process_id: process_id,
+              thread_id: thread_id
+            ).update_all(update_values)
           end
         end
       end
