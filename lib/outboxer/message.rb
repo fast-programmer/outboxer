@@ -51,7 +51,9 @@ module Outboxer
     #     thread_id: 5678
     #   )
     def queue(messageable: nil, messageable_type: nil, messageable_id: nil,
-              hostname: Socket.gethostname, process_id: Process.pid, thread_id: Thread.current.object_id,
+              hostname: Socket.gethostname,
+              process_id: Process.pid,
+              thread_id: Thread.current.object_id,
               time: ::Time)
       current_utc_time = time.now.utc
 
@@ -255,7 +257,9 @@ module Outboxer
               .pluck(:id, :lock_version, :messageable_type, :messageable_id)
               .first
 
-          if !id.nil?
+          if id.nil?
+            nil
+          else
             Models::Message
               .where(id: id)
               .update_all([
@@ -297,8 +301,6 @@ module Outboxer
               messageable_type: messageable_type,
               messageable_id: messageable_id
             }
-          else
-            nil
           end
         end
       rescue ActiveRecord::RecordNotUnique, ActiveRecord::RecordNotFound
@@ -589,10 +591,14 @@ module Outboxer
 
           if counter
             counter.update!(
-              queued_count: counter.queued_count - (message.status == Status::QUEUED ? 1 : 0),
-              publishing_count: counter.publishing_count - (message.status == Status::PUBLISHING ? 1 : 0),
-              published_count: counter.published_count - (message.status == Status::PUBLISHED ? 1 : 0),
-              failed_count: counter.failed_count - (message.status == Status::FAILED ? 1 : 0),
+              queued_count:
+                counter.queued_count - (message.status == Status::QUEUED ? 1 : 0),
+              publishing_count:
+                counter.publishing_count - (message.status == Status::PUBLISHING ? 1 : 0),
+              published_count:
+                counter.published_count - (message.status == Status::PUBLISHED ? 1 : 0),
+              failed_count:
+                counter.failed_count - (message.status == Status::FAILED ? 1 : 0),
               updated_at: current_utc_time)
           else
             Models::Message::Counter.create!(
@@ -664,12 +670,18 @@ module Outboxer
 
           if counter
             counter.update!(
-              queued_count: counter.queued_count + 1,
-              publishing_count: counter.publishing_count - (original_status == Status::PUBLISHING ? 1 : 0),
-              published_count: counter.published_count - (original_status == Status::PUBLISHED ? 1 : 0),
-              failed_count: counter.failed_count - (original_status == Status::FAILED ? 1 : 0),
-              queued_count_last_updated_at: current_utc_time,
-              updated_at: current_utc_time)
+              queued_count:
+                counter.queued_count + 1,
+              publishing_count:
+                counter.publishing_count - (original_status == Status::PUBLISHING ? 1 : 0),
+              published_count:
+                counter.published_count - (original_status == Status::PUBLISHED ? 1 : 0),
+              failed_count:
+                counter.failed_count - (original_status == Status::FAILED ? 1 : 0),
+              queued_count_last_updated_at:
+                current_utc_time,
+              updated_at:
+                current_utc_time)
           else
             Models::Message::Counter.create!(
               hostname: hostname,
@@ -882,7 +894,9 @@ module Outboxer
           "COALESCE(SUM(publishing_count), 0)  AS publishing",
           "COALESCE(SUM(published_count), 0)   AS published",
           "COALESCE(SUM(failed_count), 0)      AS failed",
-          "COALESCE(SUM(queued_count + publishing_count + published_count + failed_count), 0) AS total"
+          "COALESCE(SUM(" \
+            "queued_count + publishing_count + " \
+            "published_count + failed_count), 0) AS total"
         ).take
 
         result.attributes.symbolize_keys.slice(
@@ -899,7 +913,9 @@ module Outboxer
             "COALESCE(SUM(publishing_count), 0)  AS publishing",
             "COALESCE(SUM(published_count), 0)   AS published",
             "COALESCE(SUM(failed_count), 0)      AS failed",
-            "COALESCE(SUM(queued_count + publishing_count + published_count + failed_count), 0) AS total"
+            "COALESCE(SUM(" \
+              "queued_count + publishing_count + " \
+              "published_count + failed_count), 0) AS total"
           ).take
 
           min_times = Models::Message.group(:status).minimum(:updated_at)

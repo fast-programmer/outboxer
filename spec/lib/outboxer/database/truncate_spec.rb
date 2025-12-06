@@ -3,7 +3,10 @@ require "rails_helper"
 module Outboxer
   RSpec.describe Database, type: :service do
     describe ".truncate" do
-      let!(:historic_message_counter) { create(:outboxer_message_counter, :historic, queued_count: 1) }
+      let!(:historic_message_counter) do
+        create(:outboxer_message_counter, :historic, queued_count: 1)
+      end
+
       let!(:thread_message_counter) { create(:outboxer_message_counter, :thread, queued_count: 1) }
 
       before do
