@@ -20,19 +20,13 @@ module Outboxer
         is_postgres = connection.adapter_name.downcase.include?("postgres")
 
         insert_columns = %w[
-          hostname
-          process_id
-          thread_id
-          created_at
-          updated_at
+          hostname process_id thread_id
+          created_at updated_at
         ]
 
         insert_values = [
-          hostname,
-          process_id,
-          thread_id,
-          current_utc_time,
-          current_utc_time
+          hostname, process_id, thread_id,
+          current_utc_time, current_utc_time
         ]
 
         update_columns = []
