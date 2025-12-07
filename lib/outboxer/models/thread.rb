@@ -3,9 +3,9 @@ module Outboxer
     class Thread < ActiveRecord::Base
       self.table_name = "outboxer_threads"
 
-      HISTORIC_HOSTNAME   = "historic"
+      HISTORIC_HOSTNAME = "historic"
       HISTORIC_PROCESS_ID = 0
-      HISTORIC_THREAD_ID  = 0
+      HISTORIC_THREAD_ID = 0
 
       def self.update_message_counts_by!(
         hostname: Socket.gethostname,
@@ -42,7 +42,7 @@ module Outboxer
         # UPDATE (base)
         # -----------------------------
         update_columns = []
-        update_values  = []
+        update_values = []
 
         # -----------------------------
         # QUEUED
@@ -55,11 +55,11 @@ module Outboxer
             update_columns << "queued_count = #{table_name}.queued_count + EXCLUDED.queued_count"
           else
             update_columns << "queued_count = queued_count + ?"
-            update_values  << queued_count
+            update_values << queued_count
           end
 
           update_columns << "queued_count_last_updated_at = ?"
-          update_values  << current_utc_time
+          update_values << current_utc_time
         end
 
         # -----------------------------
@@ -74,11 +74,11 @@ module Outboxer
               "publishing_count = #{table_name}.publishing_count + EXCLUDED.publishing_count"
           else
             update_columns << "publishing_count = publishing_count + ?"
-            update_values  << publishing_count
+            update_values << publishing_count
           end
 
           update_columns << "publishing_count_last_updated_at = ?"
-          update_values  << current_utc_time
+          update_values << current_utc_time
         end
 
         # -----------------------------
@@ -86,18 +86,18 @@ module Outboxer
         # -----------------------------
         if published_count.to_i != 0
           insert_columns << "published_count" << "published_count_last_updated_at"
-          insert_values  << published_count   << current_utc_time
+          insert_values << published_count << current_utc_time
 
           if is_postgres
             update_columns <<
               "published_count = #{table_name}.published_count + EXCLUDED.published_count"
           else
             update_columns << "published_count = published_count + ?"
-            update_values  << published_count
+            update_values << published_count
           end
 
           update_columns << "published_count_last_updated_at = ?"
-          update_values  << current_utc_time
+          update_values << current_utc_time
         end
 
         # -----------------------------
