@@ -7,20 +7,128 @@ module Outboxer
       HISTORIC_PROCESS_ID = 0
       HISTORIC_THREAD_ID  = 0
 
-      STATUS_COLUMNS = {
-        queued: ["queued_message_count", "queued_message_count_last_updated_at"],
-        publishing: ["publishing_message_count", "publishing_message_count_last_updated_at"],
-        published: ["published_message_count", "published_message_count_last_updated_at"],
-        failed: ["failed_message_count", "failed_message_count_last_updated_at"]
-      }.freeze
+      POSTGRES_SQL = <<~SQL.freeze
+        INSERT INTO outboxer_threads (
+          hostname,
+          process_id,
+          thread_id,
+          queued_message_count,
+          queued_message_count_last_updated_at,
+          publishing_message_count,
+          publishing_message_count_last_updated_at,
+          published_message_count,
+          published_message_count_last_updated_at,
+          failed_message_count,
+          failed_message_count_last_updated_at,
+          created_at,
+          updated_at
+        )
+        VALUES (
+          $1, $2, $3,
+          $4, $5,
+          $6, $7,
+          $8, $9,
+          $10, $11,
+          $12, $13
+        )
+        ON CONFLICT (hostname, process_id, thread_id)
+        DO UPDATE SET
+          queued_message_count =
+            outboxer_threads.queued_message_count +
+            EXCLUDED.queued_message_count,
+          queued_message_count_last_updated_at =
+            CASE
+              WHEN EXCLUDED.queued_message_count != 0
+              THEN EXCLUDED.queued_message_count_last_updated_at
+              ELSE outboxer_threads.queued_message_count_last_updated_at
+            END,
+          publishing_message_count =
+            outboxer_threads.publishing_message_count +
+            EXCLUDED.publishing_message_count,
+          publishing_message_count_last_updated_at =
+            CASE
+              WHEN EXCLUDED.publishing_message_count != 0
+              THEN EXCLUDED.publishing_message_count_last_updated_at
+              ELSE outboxer_threads.publishing_message_count_last_updated_at
+            END,
+          published_message_count =
+            outboxer_threads.published_message_count +
+            EXCLUDED.published_message_count,
+          published_message_count_last_updated_at =
+            CASE
+              WHEN EXCLUDED.published_message_count != 0
+              THEN EXCLUDED.published_message_count_last_updated_at
+              ELSE outboxer_threads.published_message_count_last_updated_at
+            END,
+          failed_message_count =
+            outboxer_threads.failed_message_count +
+            EXCLUDED.failed_message_count,
+          failed_message_count_last_updated_at =
+            CASE
+              WHEN EXCLUDED.failed_message_count != 0
+              THEN EXCLUDED.failed_message_count_last_updated_at
+              ELSE outboxer_threads.failed_message_count_last_updated_at
+            END,
+          updated_at = EXCLUDED.updated_at
+      SQL
 
-      BASE_INSERT_COLUMNS = %w[
-        hostname
-        process_id
-        thread_id
-        created_at
-        updated_at
-      ].freeze
+      MYSQL_SQL = <<~SQL.freeze
+        INSERT INTO outboxer_threads (
+          hostname,
+          process_id,
+          thread_id,
+          queued_message_count,
+          queued_message_count_last_updated_at,
+          publishing_message_count,
+          publishing_message_count_last_updated_at,
+          published_message_count,
+          published_message_count_last_updated_at,
+          failed_message_count,
+          failed_message_count_last_updated_at,
+          created_at,
+          updated_at
+        )
+        VALUES (
+          ?, ?, ?,
+          ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+        )
+        ON DUPLICATE KEY UPDATE
+          queued_message_count =
+            queued_message_count + VALUES(queued_message_count),
+          queued_message_count_last_updated_at =
+            IF(
+              VALUES(queued_message_count) != 0,
+              VALUES(queued_message_count_last_updated_at),
+              queued_message_count_last_updated_at
+            ),
+          publishing_message_count =
+            publishing_message_count +
+            VALUES(publishing_message_count),
+          publishing_message_count_last_updated_at =
+            IF(
+              VALUES(publishing_message_count) != 0,
+              VALUES(publishing_message_count_last_updated_at),
+              publishing_message_count_last_updated_at
+            ),
+          published_message_count =
+            published_message_count +
+            VALUES(published_message_count),
+          published_message_count_last_updated_at =
+            IF(
+              VALUES(published_message_count) != 0,
+              VALUES(published_message_count_last_updated_at),
+              published_message_count_last_updated_at
+            ),
+          failed_message_count =
+            failed_message_count + VALUES(failed_message_count),
+          failed_message_count_last_updated_at =
+            IF(
+              VALUES(failed_message_count) != 0,
+              VALUES(failed_message_count_last_updated_at),
+              failed_message_count_last_updated_at
+            ),
+          updated_at = VALUES(updated_at)
+      SQL
 
       def self.update_message_counts_by!(
         hostname: Socket.gethostname,
@@ -32,70 +140,33 @@ module Outboxer
         failed_message_count: 0,
         current_utc_time: Time.now.utc
       )
-        is_postgres = connection.adapter_name.downcase.include?("postgres")
+        adapter_name = connection.adapter_name.downcase
+        is_postgres  = adapter_name.include?("postgres")
 
-        insert_columns = BASE_INSERT_COLUMNS.dup
-        insert_values  = [hostname, process_id, thread_id, current_utc_time, current_utc_time]
+        values = [
+          hostname,
+          process_id,
+          thread_id,
 
-        update_columns = []
-        update_values  = []
+          queued_message_count,
+          queued_message_count.to_i != 0 ? current_utc_time : nil,
 
-        {
-          queued: queued_message_count,
-          publishing: publishing_message_count,
-          published: published_message_count,
-          failed: failed_message_count
-        }.each do |name, message_count|
-          next if message_count.to_i == 0
+          publishing_message_count,
+          publishing_message_count.to_i != 0 ? current_utc_time : nil,
 
-          message_count_column, last_updated_column = STATUS_COLUMNS.fetch(name)
+          published_message_count,
+          published_message_count.to_i != 0 ? current_utc_time : nil,
 
-          insert_columns << message_count_column
-          insert_columns << last_updated_column
-          insert_values  << message_count
-          insert_values  << current_utc_time
+          failed_message_count,
+          failed_message_count.to_i != 0 ? current_utc_time : nil,
 
-          if is_postgres
-            update_columns <<
-              "#{message_count_column} = " \
-              "#{table_name}.#{message_count_column} + " \
-              "EXCLUDED.#{message_count_column}"
-          else
-            update_columns << "#{message_count_column} = #{message_count_column} + ?"
-            update_values  << message_count
-          end
+          current_utc_time,
+          current_utc_time
+        ]
 
-          update_columns << "#{last_updated_column} = ?"
-          update_values  << current_utc_time
-        end
+        sql = is_postgres ? POSTGRES_SQL : MYSQL_SQL
 
-        update_columns << "updated_at = ?"
-        update_values  << current_utc_time
-
-        insert_sql = <<~SQL
-          INSERT INTO #{table_name} (#{insert_columns.join(", ")})
-          VALUES (#{(["?"] * insert_columns.length).join(", ")})
-        SQL
-
-        sql =
-          if is_postgres
-            <<~SQL
-              #{insert_sql}
-              ON CONFLICT (hostname, process_id, thread_id)
-              DO UPDATE SET
-                #{update_columns.join(",\n                ")}
-            SQL
-          else
-            <<~SQL
-              #{insert_sql}
-              ON DUPLICATE KEY UPDATE
-                #{update_columns.join(",\n                ")}
-            SQL
-          end
-
-        connection.exec_query(
-          sanitize_sql_array([sql, *insert_values, *update_values])
-        )
+        connection.exec_query(sql, "Outboxer::Thread", values)
       end
     end
   end
