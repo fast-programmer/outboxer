@@ -239,7 +239,8 @@ module Outboxer
 
             Models::Thread.update_message_counts_by!(
               hostname: hostname, process_id: process_id, thread_id: thread_id,
-              queued_message_count: -1, publishing_message_count: 1, current_utc_time: current_utc_time)
+              queued_message_count: -1, publishing_message_count: 1,
+              current_utc_time: current_utc_time)
 
             {
               id: message_row[0],
@@ -291,7 +292,8 @@ module Outboxer
 
           Models::Thread.update_message_counts_by!(
             hostname: hostname, process_id: process_id, thread_id: thread_id,
-            publishing_message_count: -1, published_message_count: 1, current_utc_time: current_utc_time)
+            publishing_message_count: -1, published_message_count: 1,
+            current_utc_time: current_utc_time)
 
           { id: id }
         end
@@ -344,7 +346,8 @@ module Outboxer
 
           Models::Thread.update_message_counts_by!(
             hostname: hostname, process_id: process_id, thread_id: thread_id,
-            publishing_message_count: -1, failed_message_count: 1, current_utc_time: current_utc_time)
+            publishing_message_count: -1, failed_message_count: 1,
+            current_utc_time: current_utc_time)
 
           {
             id: message.id,

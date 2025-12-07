@@ -60,7 +60,8 @@ module Outboxer
             hostname: Models::Thread::HISTORIC_HOSTNAME,
             process_id: Models::Thread::HISTORIC_PROCESS_ID,
             thread_id: Models::Thread::HISTORIC_THREAD_ID,
-            queued_message_count: 100, publishing_message_count: 200, published_message_count: 300, failed_message_count: 400,
+            queued_message_count: 100, publishing_message_count: 200,
+            published_message_count: 300, failed_message_count: 400,
             created_at: current_utc_time, updated_at: current_utc_time
           )
         end
@@ -68,7 +69,8 @@ module Outboxer
         let!(:thread_count) do
           Models::Thread.create!(
             hostname: "worker2.test.local", process_id: 222, thread_id: 22_001,
-            queued_message_count: 1, publishing_message_count: 1, published_message_count: 1, failed_message_count: 1,
+            queued_message_count: 1, publishing_message_count: 1,
+            published_message_count: 1, failed_message_count: 1,
             created_at: current_utc_time, updated_at: current_utc_time
           )
         end
@@ -77,7 +79,8 @@ module Outboxer
           result = Message.rollup_counts(time: Time)
 
           expect(result).to eq(
-            queued_message_count: 101, publishing_message_count: 201, published_message_count: 301, failed_message_count: 401)
+            queued_message_count: 101, publishing_message_count: 201,
+            published_message_count: 301, failed_message_count: 401)
 
           historic_count.reload
 
@@ -93,7 +96,8 @@ module Outboxer
           result = Message.rollup_counts(time: Time)
 
           expect(result).to eq(
-            queued_message_count: 0, publishing_message_count: 0, published_message_count: 0, failed_message_count: 0
+            queued_message_count: 0, publishing_message_count: 0,
+            published_message_count: 0, failed_message_count: 0
           )
 
           historic_thread = Models::Thread.find_by!(
