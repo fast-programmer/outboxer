@@ -8,10 +8,10 @@ module Outboxer
       HISTORIC_THREAD_ID  = 0
 
       STATUS_COLUMNS = {
-        queued:     ["queued_message_count",     "queued_message_count_last_updated_at"],
+        queued: ["queued_message_count", "queued_message_count_last_updated_at"],
         publishing: ["publishing_message_count", "publishing_message_count_last_updated_at"],
-        published:  ["published_message_count",  "published_message_count_last_updated_at"],
-        failed:     ["failed_message_count",     "failed_message_count_last_updated_at"]
+        published: ["published_message_count", "published_message_count_last_updated_at"],
+        failed: ["failed_message_count", "failed_message_count_last_updated_at"]
       }.freeze
 
       BASE_INSERT_COLUMNS = %w[
@@ -41,15 +41,14 @@ module Outboxer
         update_values  = []
 
         {
-          queued:     queued_message_count,
+          queued: queued_message_count,
           publishing: publishing_message_count,
-          published:  published_message_count,
-          failed:     failed_message_count
+          published: published_message_count,
+          failed: failed_message_count
         }.each do |name, message_count|
           next if message_count.to_i == 0
 
-          message_count_column,
-          last_updated_column = STATUS_COLUMNS.fetch(name)
+          message_count_column, last_updated_column = STATUS_COLUMNS.fetch(name)
 
           insert_columns << message_count_column
           insert_columns << last_updated_column
