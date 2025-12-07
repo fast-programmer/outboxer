@@ -285,10 +285,6 @@ module Outboxer
             raise ActiveRecord::StaleObjectError.new(Models::Message.new(id: id), "destroy")
           end
 
-          Models::Frame
-            .where(exception_id: Models::Exception.select(:id).where(message_id: id))
-            .delete_all
-          Models::Exception.where(message_id: id).delete_all
           Models::Message.where(id: id).delete_all
 
           Models::Thread.update_message_counts_by!(
@@ -457,12 +453,11 @@ module Outboxer
 
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          message = Models::Message.includes(exceptions: :frames).lock.find_by!(id: id)
+          message = Models::Message.lock.find_by!(id: id)
           message.update!(lock_version: lock_version, updated_at: current_utc_time)
-
-          message.exceptions.each { |exception| exception.frames.each(&:delete) }
-          message.exceptions.delete_all
           message.delete
+
+          Models::Message.lock.where(id: id, lock_version: lock_version).delete_all
 
           Models::Thread.update_message_counts_by!(
             hostname: hostname,

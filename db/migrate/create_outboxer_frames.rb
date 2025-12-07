@@ -4,7 +4,8 @@ class CreateOutboxerFrames < ActiveRecord::Migration[6.1]
       t.integer :index, null: false
       t.text :text, null: false
 
-      t.references :exception, foreign_key: { to_table: :outboxer_exceptions }, null: false
+      t.references :exception, null: false,
+        foreign_key: { to_table: :outboxer_exceptions, on_delete: :cascade }
 
       t.index [:exception_id, :index], unique: true
     end
