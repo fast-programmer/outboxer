@@ -316,10 +316,10 @@ module Outboxer
 
                 publisher_thread = Models::Thread
                   .select(
-                    "COALESCE(SUM(queued_count), 0) AS queued_count,
-                     COALESCE(SUM(publishing_count), 0) AS publishing_count,
-                     COALESCE(SUM(published_count), 0) AS published_count,
-                     COALESCE(SUM(failed_count), 0) AS failed_count,
+                    "COALESCE(SUM(queued_message_count), 0) AS queued_message_count,
+                     COALESCE(SUM(publishing_message_count), 0) AS publishing_message_count,
+                     COALESCE(SUM(published_message_count), 0) AS published_message_count,
+                     COALESCE(SUM(failed_message_count), 0) AS failed_message_count,
                      MAX(updated_at) AS last_updated_at"
                   )
                   .where(hostname: hostname, process_id: process_id)
@@ -327,10 +327,10 @@ module Outboxer
                   .take
 
                 current_counts = {
-                  "queued" => publisher_thread&.queued_count || 0,
-                  "publishing" => publisher_thread&.publishing_count || 0,
-                  "published" => publisher_thread&.published_count || 0,
-                  "failed" => publisher_thread&.failed_count || 0
+                  "queued" => publisher_thread&.queued_message_count || 0,
+                  "publishing" => publisher_thread&.publishing_message_count || 0,
+                  "published" => publisher_thread&.published_message_count || 0,
+                  "failed" => publisher_thread&.failed_message_count || 0
                 }
 
                 throughput_by_status =
@@ -561,14 +561,14 @@ module Outboxer
               hostname: hostname,
               process_id: process_id,
               thread_id: Thread.current.object_id,
-              queued_count: 0,
-              queued_count_last_updated_at: current_utc_time,
-              publishing_count: 0,
-              publishing_count_last_updated_at: current_utc_time,
-              published_count: 0,
-              published_count_last_updated_at: current_utc_time,
-              failed_count: 0,
-              failed_count_last_updated_at: current_utc_time,
+              queued_message_count: 0,
+              queued_message_count_last_updated_at: current_utc_time,
+              publishing_message_count: 0,
+              publishing_message_count_last_updated_at: current_utc_time,
+              published_message_count: 0,
+              published_message_count_last_updated_at: current_utc_time,
+              failed_message_count: 0,
+              failed_message_count_last_updated_at: current_utc_time,
               created_at: current_utc_time,
               updated_at: current_utc_time)
           end

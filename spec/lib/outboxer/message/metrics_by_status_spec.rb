@@ -11,10 +11,10 @@ module Outboxer
         create(
           :outboxer_thread,
           :historic,
-          queued_count: 10,
-          publishing_count: 20,
-          published_count: 30,
-          failed_count: 40,
+          queued_message_count: 10,
+          publishing_message_count: 20,
+          published_message_count: 30,
+          failed_message_count: 40,
           created_at: current_utc_time,
           updated_at: current_utc_time
         )
@@ -24,10 +24,10 @@ module Outboxer
           hostname: "worker5.test.local",
           process_id: 555,
           thread_id: 25_001,
-          queued_count: 5,
-          publishing_count: 6,
-          published_count: 7,
-          failed_count: 8,
+          queued_message_count: 5,
+          publishing_message_count: 6,
+          published_message_count: 7,
+          failed_message_count: 8,
           created_at: current_utc_time,
           updated_at: current_utc_time
         )

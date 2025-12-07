@@ -13,18 +13,18 @@ RSpec.describe "bin/outboxer_publisher" do
 
   it "publishes message" do
     attempt = 1
-    published_count = Outboxer::Message.metrics_by_status[:published][:count]
+    published_message_count = Outboxer::Message.metrics_by_status[:published][:count]
 
-    while (attempt <= max_attempts) && published_count.zero?
+    while (attempt <= max_attempts) && published_message_count.zero?
       warn "Outboxer message not published yet. Retrying (#{attempt}/#{max_attempts})..."
       sleep delay
       attempt += 1
-      published_count = Outboxer::Message.metrics_by_status[:published][:count]
+      published_message_count = Outboxer::Message.metrics_by_status[:published][:count]
     end
 
     Process.kill("TERM", publisher_pid)
     Process.wait(publisher_pid)
 
-    expect(published_count).to be > 0
+    expect(published_message_count).to be > 0
   end
 end

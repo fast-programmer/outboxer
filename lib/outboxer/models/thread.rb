@@ -11,10 +11,10 @@ module Outboxer
         hostname: Socket.gethostname,
         process_id: Process.pid,
         thread_id: ::Thread.current.object_id,
-        queued_count: 0,
-        publishing_count: 0,
-        published_count: 0,
-        failed_count: 0,
+        queued_message_count: 0,
+        publishing_message_count: 0,
+        published_message_count: 0,
+        failed_message_count: 0,
         current_utc_time: Time.now.utc
       )
         is_postgres = connection.adapter_name.downcase.include?("postgres")
@@ -47,74 +47,74 @@ module Outboxer
         # -----------------------------
         # QUEUED
         # -----------------------------
-        if queued_count.to_i != 0
-          insert_columns << "queued_count" << "queued_count_last_updated_at"
-          insert_values << queued_count << current_utc_time
+        if queued_message_count.to_i != 0
+          insert_columns << "queued_message_count" << "queued_message_count_last_updated_at"
+          insert_values << queued_message_count << current_utc_time
 
           if is_postgres
-            update_columns << "queued_count = #{table_name}.queued_count + EXCLUDED.queued_count"
+            update_columns << "queued_message_count = #{table_name}.queued_message_count + EXCLUDED.queued_message_count"
           else
-            update_columns << "queued_count = queued_count + ?"
-            update_values << queued_count
+            update_columns << "queued_message_count = queued_message_count + ?"
+            update_values << queued_message_count
           end
 
-          update_columns << "queued_count_last_updated_at = ?"
+          update_columns << "queued_message_count_last_updated_at = ?"
           update_values << current_utc_time
         end
 
         # -----------------------------
         # PUBLISHING
         # -----------------------------
-        if publishing_count.to_i != 0
-          insert_columns << "publishing_count" << "publishing_count_last_updated_at"
-          insert_values << publishing_count << current_utc_time
+        if publishing_message_count.to_i != 0
+          insert_columns << "publishing_message_count" << "publishing_message_count_last_updated_at"
+          insert_values << publishing_message_count << current_utc_time
 
           if is_postgres
             update_columns <<
-              "publishing_count = #{table_name}.publishing_count + EXCLUDED.publishing_count"
+              "publishing_message_count = #{table_name}.publishing_message_count + EXCLUDED.publishing_message_count"
           else
-            update_columns << "publishing_count = publishing_count + ?"
-            update_values << publishing_count
+            update_columns << "publishing_message_count = publishing_message_count + ?"
+            update_values << publishing_message_count
           end
 
-          update_columns << "publishing_count_last_updated_at = ?"
+          update_columns << "publishing_message_count_last_updated_at = ?"
           update_values << current_utc_time
         end
 
         # -----------------------------
         # PUBLISHED
         # -----------------------------
-        if published_count.to_i != 0
-          insert_columns << "published_count" << "published_count_last_updated_at"
-          insert_values << published_count << current_utc_time
+        if published_message_count.to_i != 0
+          insert_columns << "published_message_count" << "published_message_count_last_updated_at"
+          insert_values << published_message_count << current_utc_time
 
           if is_postgres
             update_columns <<
-              "published_count = #{table_name}.published_count + EXCLUDED.published_count"
+              "published_message_count = #{table_name}.published_message_count + EXCLUDED.published_message_count"
           else
-            update_columns << "published_count = published_count + ?"
-            update_values << published_count
+            update_columns << "published_message_count = published_message_count + ?"
+            update_values << published_message_count
           end
 
-          update_columns << "published_count_last_updated_at = ?"
+          update_columns << "published_message_count_last_updated_at = ?"
           update_values << current_utc_time
         end
 
         # -----------------------------
         # FAILED
         # -----------------------------
-        if failed_count.to_i != 0
-          insert_columns << "failed_count" << "failed_count_last_updated_at"
-          insert_values << failed_count << current_utc_time
+        if failed_message_count.to_i != 0
+          insert_columns << "failed_message_count" << "failed_message_count_last_updated_at"
+          insert_values << failed_message_count << current_utc_time
 
           if is_postgres
-            update_columns << "failed_count = #{table_name}.failed_count + EXCLUDED.failed_count"
+            update_columns << "failed_message_count = #{table_name}.failed_message_count + EXCLUDED.failed_message_count"
           else
-            update_columns << "failed_count = failed_count + ?"
-            update_values << failed_count
+            update_columns << "failed_message_count = failed_message_count + ?"
+            update_values << failed_message_count
           end
 
-          update_columns << "failed_count_last_updated_at = ?"
+          update_columns << "failed_message_count_last_updated_at = ?"
           update_values << current_utc_time
         end
 
