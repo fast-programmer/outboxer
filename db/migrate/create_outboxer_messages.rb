@@ -37,6 +37,9 @@ class CreateOutboxerMessages < ActiveRecord::Migration[6.1]
     # bulk status + id locking
     add_index :outboxer_messages, [:status, :id],
       name: "idx_outboxer_status_id"
+
+    add_index :outboxer_messages, [:id, :status, :lock_version],
+      name: "idx_outboxer_id_status_lock_version"
   end
 
   def down
