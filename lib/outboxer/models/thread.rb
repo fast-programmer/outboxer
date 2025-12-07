@@ -147,19 +147,14 @@ module Outboxer
           hostname,
           process_id,
           thread_id,
-
           queued_message_count,
-          queued_message_count.to_i != 0 ? current_utc_time : nil,
-
+          current_utc_time,
           publishing_message_count,
-          publishing_message_count.to_i != 0 ? current_utc_time : nil,
-
+          current_utc_time,
           published_message_count,
-          published_message_count.to_i != 0 ? current_utc_time : nil,
-
+          current_utc_time,
           failed_message_count,
-          failed_message_count.to_i != 0 ? current_utc_time : nil,
-
+          current_utc_time,
           current_utc_time,
           current_utc_time
         ]
