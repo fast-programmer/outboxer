@@ -285,9 +285,6 @@ module Outboxer
             raise ActiveRecord::StaleObjectError.new(Models::Message.new(id: id), "destroy")
           end
 
-          exception_ids = Models::Exception.where(message_id: id).pluck(:id)
-          Models::Frame.where(exception_id: exception_ids).delete_all
-          Models::Exception.where(message_id: id).delete_all
           Models::Message.where(id: id).delete_all
 
           Models::Thread.update_message_counts_by!(
@@ -456,12 +453,11 @@ module Outboxer
 
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          message = Models::Message.includes(exceptions: :frames).lock.find_by!(id: id)
+          message = Models::Message.lock.find_by!(id: id)
           message.update!(lock_version: lock_version, updated_at: current_utc_time)
-
-          message.exceptions.each { |exception| exception.frames.each(&:delete) }
-          message.exceptions.delete_all
           message.delete
+
+          Models::Message.lock.where(id: id, lock_version: lock_version).delete_all
 
           Models::Thread.update_message_counts_by!(
             hostname: hostname,
@@ -645,22 +641,15 @@ module Outboxer
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
           # 1. Ensure the historic thread exists (idempotent upsert)
-          begin
-            ActiveRecord::Base.transaction(requires_new: true) do
-              Models::Thread.create!(
-                hostname: Models::Thread::HISTORIC_HOSTNAME,
-                process_id: Models::Thread::HISTORIC_PROCESS_ID,
-                thread_id: Models::Thread::HISTORIC_THREAD_ID,
-                queued_message_count: 0,
-                publishing_message_count: 0,
-                published_message_count: 0,
-                failed_message_count: 0,
-                created_at: current_utc_time,
-                updated_at: current_utc_time)
-            end
-          rescue ActiveRecord::RecordNotUnique
-            # no op
-          end
+          Models::Thread.update_message_counts_by!(
+            hostname: Models::Thread::HISTORIC_HOSTNAME,
+            process_id: Models::Thread::HISTORIC_PROCESS_ID,
+            thread_id: Models::Thread::HISTORIC_THREAD_ID,
+            queued_message_count: 0,
+            publishing_message_count: 0,
+            published_message_count: 0,
+            failed_message_count: 0,
+            current_utc_time: current_utc_time)
 
           # 2. Lock *all* rows (historic thread + thread threads)
           locked_threads = Models::Thread.lock("FOR UPDATE").to_a
