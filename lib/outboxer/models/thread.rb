@@ -7,7 +7,7 @@ module Outboxer
       HISTORIC_PROCESS_ID = 0
       HISTORIC_THREAD_ID  = 0
 
-      def update_message_counts_by!(
+      def self.update_message_counts_by!(
         hostname: Socket.gethostname,
         process_id: Process.pid,
         thread_id: ::Thread.current.object_id,
