@@ -246,18 +246,17 @@ module Outboxer
 
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          id, lock_version, messageable_type, messageable_id =
-            Models::Message
-              .where(status: Status::QUEUED)
-              .order(:id)
-              .limit(1)
-              .lock("FOR UPDATE SKIP LOCKED")
-              .pluck(:id, :lock_version, :messageable_type, :messageable_id)
-              .first
+          message_row = Models::Message
+            .where(status: Status::QUEUED)
+            .order(:id)
+            .limit(1)
+            .lock("FOR UPDATE SKIP LOCKED")
+            .pluck(:id, :lock_version, :messageable_type, :messageable_id)
+            .first
 
-          if id.presence
+          if message_row.presence
             Models::Message
-              .where(id: id)
+              .where(id: message_row[0])
               .update_all([
                 "lock_version = lock_version + 1, status = ?, updated_at = ?, publishing_at = ?",
                 Status::PUBLISHING, current_utc_time, current_utc_time
@@ -274,10 +273,10 @@ module Outboxer
               ])
 
             {
-              id: id,
-              lock_version: lock_version + 1,
-              messageable_type: messageable_type,
-              messageable_id: messageable_id
+              id: message_row[0],
+              lock_version: message_row[1] + 1,
+              messageable_type: message_row[2],
+              messageable_id: message_row[3]
             }
           end
         end
@@ -309,7 +308,7 @@ module Outboxer
           message_row = Models::Message
             .lock("FOR UPDATE")
             .where(id: id, lock_version: lock_version, status: Status::PUBLISHING)
-            .pluck(:id, :lock_version, :status)
+            .pluck(:id)
             .first
 
           if message_row.nil?
