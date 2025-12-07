@@ -5,16 +5,16 @@ class CreateOutboxerThreads < ActiveRecord::Migration[6.1]
       t.integer :process_id, null: false
       t.integer :thread_id, null: false
 
-      t.integer :queued_count, null: false
+      t.integer :queued_count, default: 0, null: false
       t.datetime :queued_count_last_updated_at, precision: 6
 
-      t.integer :publishing_count, null: false
+      t.integer :publishing_count, default: 0, null: false
       t.datetime :publishing_count_last_updated_at, precision: 6
 
-      t.integer :published_count, null: false
+      t.integer :published_count, default: 0, null: false
       t.datetime :published_count_last_updated_at, precision: 6
 
-      t.integer :failed_count, null: false
+      t.integer :failed_count, default: 0, null: false
       t.datetime :failed_count_last_updated_at, precision: 6
 
       t.timestamps null: false
