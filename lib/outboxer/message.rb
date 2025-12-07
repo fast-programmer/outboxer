@@ -77,34 +77,9 @@ module Outboxer
             updated_at: current_utc_time
           )
 
-          begin
-            ActiveRecord::Base.transaction(requires_new: true) do
-              Models::Thread.create!(
-                hostname: hostname,
-                process_id: process_id,
-                thread_id: thread_id,
-                queued_count: 0,
-                queued_count_last_updated_at: current_utc_time,
-                publishing_count: 0,
-                publishing_count_last_updated_at: current_utc_time,
-                published_count: 0,
-                published_count_last_updated_at: current_utc_time,
-                failed_count: 0,
-                failed_count_last_updated_at: current_utc_time,
-                created_at: current_utc_time,
-                updated_at: current_utc_time)
-            end
-          rescue ActiveRecord::RecordNotUnique
-            # no op
-          end
-
-          thread = Models::Thread.lock.find_by!(
-            hostname: hostname, process_id: process_id, thread_id: thread_id)
-
-          thread.update!(
-            queued_count: thread.queued_count + 1,
-            queued_count_last_updated_at: current_utc_time,
-            updated_at: current_utc_time)
+          Models::Thread.update_message_counts_by!(
+            hostname: hostname, process_id: process_id, thread_id: thread_id,
+            queued_count: 1, current_utc_time: current_utc_time)
 
           { id: message.id, lock_version: message.lock_version }
         end
@@ -262,15 +237,9 @@ module Outboxer
                 Status::PUBLISHING, current_utc_time, current_utc_time
               ])
 
-            Models::Thread
-              .where(hostname: hostname, process_id: process_id, thread_id: thread_id)
-              .update_all([
-                "queued_count = queued_count - 1, " \
-                "publishing_count = publishing_count + 1, " \
-                "publishing_count_last_updated_at = ?, " \
-                "updated_at = ?",
-                current_utc_time, current_utc_time
-              ])
+            Models::Thread.update_message_counts_by!(
+              hostname: hostname, process_id: process_id, thread_id: thread_id,
+              queued_count: -1, publishing_count: 1, current_utc_time: current_utc_time)
 
             {
               id: message_row[0],
@@ -320,16 +289,9 @@ module Outboxer
           Models::Exception.where(message_id: id).delete_all
           Models::Message.where(id: id).delete_all
 
-          Models::Thread
-            .where(hostname: hostname, process_id: process_id, thread_id: thread_id)
-            .update_all([
-              "publishing_count = publishing_count - 1, " \
-              "published_count = published_count + 1, " \
-              "published_count_last_updated_at = ?, " \
-              "updated_at = ?",
-              current_utc_time,
-              current_utc_time
-            ])
+          Models::Thread.update_message_counts_by!(
+            hostname: hostname, process_id: process_id, thread_id: thread_id,
+            publishing_count: -1, published_count: 1, current_utc_time: current_utc_time)
 
           { id: id }
         end
@@ -380,16 +342,9 @@ module Outboxer
             end
           end
 
-          Models::Thread
-            .where(hostname: hostname, process_id: process_id, thread_id: thread_id)
-            .update_all([
-              "publishing_count = publishing_count - 1, " \
-              "failed_count = failed_count + 1, " \
-              "failed_count_last_updated_at = ?, " \
-              "updated_at = ?",
-              current_utc_time,
-              current_utc_time
-            ])
+          Models::Thread.update_message_counts_by!(
+            hostname: hostname, process_id: process_id, thread_id: thread_id,
+            publishing_count: -1, failed_count: 1, current_utc_time: current_utc_time)
 
           {
             id: message.id,
@@ -505,43 +460,18 @@ module Outboxer
           message.exceptions.delete_all
           message.delete
 
-          thread = Models::Thread.lock.find_by(
-            hostname: hostname, process_id: process_id, thread_id: thread_id)
-
-          if thread
-            thread.update!(
-              queued_count:
-                thread.queued_count - (message.status == Status::QUEUED ? 1 : 0),
-              publishing_count:
-                thread.publishing_count - (message.status == Status::PUBLISHING ? 1 : 0),
-              published_count:
-                thread.published_count - (message.status == Status::PUBLISHED ? 1 : 0),
-              failed_count:
-                thread.failed_count - (message.status == Status::FAILED ? 1 : 0),
-              updated_at: current_utc_time)
-          else
-            Models::Thread.create!(
-              hostname: hostname,
-              process_id: process_id,
-              thread_id: thread_id,
-              queued_count: 0,
-              publishing_count: 0,
-              published_count: 0,
-              failed_count: 0,
-              created_at: current_utc_time,
-              updated_at: current_utc_time)
-          end
+          Models::Thread.update_message_counts_by!(
+            hostname: hostname,
+            process_id: process_id,
+            thread_id: thread_id,
+            queued_count: (message.status == Status::QUEUED ? -1 : 0),
+            publishing_count: (message.status == Status::PUBLISHING ? -1 : 0),
+            published_count: (message.status == Status::PUBLISHED ? -1 : 0),
+            failed_count: (message.status == Status::FAILED ? -1 : 0),
+            current_utc_time: current_utc_time)
 
           { id: id }
         end
-      rescue ActiveRecord::RecordNotUnique
-        delete(
-          id: id,
-          lock_version: lock_version,
-          hostname: hostname,
-          process_id: process_id,
-          thread_id: thread_id,
-          time: time)
       end
     end
 
@@ -584,52 +514,21 @@ module Outboxer
             publisher_id: publisher_id,
             publisher_name: publisher_name)
 
-          thread = Models::Thread.lock.find_by(
-            hostname: hostname, process_id: process_id, thread_id: thread_id)
-
-          if thread
-            thread.update!(
-              queued_count:
-                thread.queued_count + 1,
-              publishing_count:
-                thread.publishing_count - (original_status == Status::PUBLISHING ? 1 : 0),
-              published_count:
-                thread.published_count - (original_status == Status::PUBLISHED ? 1 : 0),
-              failed_count:
-                thread.failed_count - (original_status == Status::FAILED ? 1 : 0),
-              queued_count_last_updated_at:
-                current_utc_time,
-              updated_at:
-                current_utc_time)
-          else
-            Models::Thread.create!(
-              hostname: hostname,
-              process_id: process_id,
-              thread_id: thread_id,
-              queued_count: 1,
-              publishing_count: 0,
-              published_count: 0,
-              failed_count: 0,
-              queued_count_last_updated_at: current_utc_time,
-              created_at: current_utc_time,
-              updated_at: current_utc_time)
-          end
+          Models::Thread.update_message_counts_by!(
+            hostname: hostname,
+            process_id: process_id,
+            thread_id: thread_id,
+            queued_count: 1,
+            publishing_count: (original_status == Status::PUBLISHING ? -1 : 0),
+            published_count: (original_status == Status::PUBLISHED ? -1 : 0),
+            failed_count: (original_status == Status::FAILED ? -1 : 0),
+            current_utc_time: current_utc_time)
 
           {
             id: id,
             lock_version: lock_version
           }
         end
-      rescue ActiveRecord::RecordNotUnique
-        requeue(
-          id: id,
-          lock_version: lock_version,
-          publisher_id: publisher_id,
-          publisher_name: publisher_name,
-          hostname: hostname,
-          process_id: process_id,
-          thread_id: thread_id,
-          time: time)
       end
     end
 
