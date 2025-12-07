@@ -79,7 +79,7 @@ module Outboxer
 
           Models::Thread.update_message_counts_by!(
             hostname: hostname, process_id: process_id, thread_id: thread_id,
-            queued_count: 1, current_utc_time: current_utc_time)
+            queued_message_count: 1, current_utc_time: current_utc_time)
 
           { id: message.id, lock_version: message.lock_version }
         end
@@ -239,7 +239,8 @@ module Outboxer
 
             Models::Thread.update_message_counts_by!(
               hostname: hostname, process_id: process_id, thread_id: thread_id,
-              queued_count: -1, publishing_count: 1, current_utc_time: current_utc_time)
+              queued_message_count: -1, publishing_message_count: 1,
+              current_utc_time: current_utc_time)
 
             {
               id: message_row[0],
@@ -291,7 +292,8 @@ module Outboxer
 
           Models::Thread.update_message_counts_by!(
             hostname: hostname, process_id: process_id, thread_id: thread_id,
-            publishing_count: -1, published_count: 1, current_utc_time: current_utc_time)
+            publishing_message_count: -1, published_message_count: 1,
+            current_utc_time: current_utc_time)
 
           { id: id }
         end
@@ -344,7 +346,8 @@ module Outboxer
 
           Models::Thread.update_message_counts_by!(
             hostname: hostname, process_id: process_id, thread_id: thread_id,
-            publishing_count: -1, failed_count: 1, current_utc_time: current_utc_time)
+            publishing_message_count: -1, failed_message_count: 1,
+            current_utc_time: current_utc_time)
 
           {
             id: message.id,
@@ -464,10 +467,10 @@ module Outboxer
             hostname: hostname,
             process_id: process_id,
             thread_id: thread_id,
-            queued_count: (message.status == Status::QUEUED ? -1 : 0),
-            publishing_count: (message.status == Status::PUBLISHING ? -1 : 0),
-            published_count: (message.status == Status::PUBLISHED ? -1 : 0),
-            failed_count: (message.status == Status::FAILED ? -1 : 0),
+            queued_message_count: (message.status == Status::QUEUED ? -1 : 0),
+            publishing_message_count: (message.status == Status::PUBLISHING ? -1 : 0),
+            published_message_count: (message.status == Status::PUBLISHED ? -1 : 0),
+            failed_message_count: (message.status == Status::FAILED ? -1 : 0),
             current_utc_time: current_utc_time)
 
           { id: id }
@@ -518,10 +521,10 @@ module Outboxer
             hostname: hostname,
             process_id: process_id,
             thread_id: thread_id,
-            queued_count: 1,
-            publishing_count: (original_status == Status::PUBLISHING ? -1 : 0),
-            published_count: (original_status == Status::PUBLISHED ? -1 : 0),
-            failed_count: (original_status == Status::FAILED ? -1 : 0),
+            queued_message_count: 1,
+            publishing_message_count: (original_status == Status::PUBLISHING ? -1 : 0),
+            published_message_count: (original_status == Status::PUBLISHED ? -1 : 0),
+            failed_message_count: (original_status == Status::FAILED ? -1 : 0),
             current_utc_time: current_utc_time)
 
           {
@@ -648,10 +651,10 @@ module Outboxer
                 hostname: Models::Thread::HISTORIC_HOSTNAME,
                 process_id: Models::Thread::HISTORIC_PROCESS_ID,
                 thread_id: Models::Thread::HISTORIC_THREAD_ID,
-                queued_count: 0,
-                publishing_count: 0,
-                published_count: 0,
-                failed_count: 0,
+                queued_message_count: 0,
+                publishing_message_count: 0,
+                published_message_count: 0,
+                failed_message_count: 0,
                 created_at: current_utc_time,
                 updated_at: current_utc_time)
             end
@@ -674,23 +677,23 @@ module Outboxer
 
           # 5. Sum all thread threads
           totals = threads.each_with_object(
-            queued_count: historic_thread.queued_count,
-            publishing_count: historic_thread.publishing_count,
-            published_count: historic_thread.published_count,
-            failed_count: historic_thread.failed_count
+            queued_message_count: historic_thread.queued_message_count,
+            publishing_message_count: historic_thread.publishing_message_count,
+            published_message_count: historic_thread.published_message_count,
+            failed_message_count: historic_thread.failed_message_count
           ) do |row, sum|
-            sum[:queued_count] += row.queued_count
-            sum[:publishing_count] += row.publishing_count
-            sum[:published_count] += row.published_count
-            sum[:failed_count] += row.failed_count
+            sum[:queued_message_count] += row.queued_message_count
+            sum[:publishing_message_count] += row.publishing_message_count
+            sum[:published_message_count] += row.published_message_count
+            sum[:failed_message_count] += row.failed_message_count
           end
 
           # 6. Update historic thread
           historic_thread.update!(
-            queued_count: totals[:queued_count],
-            publishing_count: totals[:publishing_count],
-            published_count: totals[:published_count],
-            failed_count: totals[:failed_count],
+            queued_message_count: totals[:queued_message_count],
+            publishing_message_count: totals[:publishing_message_count],
+            published_message_count: totals[:published_message_count],
+            failed_message_count: totals[:failed_message_count],
             updated_at: current_utc_time
           )
 
@@ -703,10 +706,10 @@ module Outboxer
 
           # 8. Return the updated totals
           {
-            queued_count: historic_thread.queued_count,
-            publishing_count: historic_thread.publishing_count,
-            published_count: historic_thread.published_count,
-            failed_count: historic_thread.failed_count
+            queued_message_count: historic_thread.queued_message_count,
+            publishing_message_count: historic_thread.publishing_message_count,
+            published_message_count: historic_thread.published_message_count,
+            failed_message_count: historic_thread.failed_message_count
           }
         end
       end
@@ -721,13 +724,13 @@ module Outboxer
     def count_by_status
       ActiveRecord::Base.connection_pool.with_connection do
         result = Models::Thread.select(
-          "COALESCE(SUM(queued_count), 0)      AS queued",
-          "COALESCE(SUM(publishing_count), 0)  AS publishing",
-          "COALESCE(SUM(published_count), 0)   AS published",
-          "COALESCE(SUM(failed_count), 0)      AS failed",
+          "COALESCE(SUM(queued_message_count), 0)      AS queued",
+          "COALESCE(SUM(publishing_message_count), 0)  AS publishing",
+          "COALESCE(SUM(published_message_count), 0)   AS published",
+          "COALESCE(SUM(failed_message_count), 0)      AS failed",
           "COALESCE(SUM(" \
-            "queued_count + publishing_count + " \
-            "published_count + failed_count), 0) AS total"
+            "queued_message_count + publishing_message_count + " \
+            "published_message_count + failed_message_count), 0) AS total"
         ).take
 
         result.attributes.symbolize_keys.slice(
@@ -740,13 +743,13 @@ module Outboxer
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction(isolation: :repeatable_read) do
           counts = Models::Thread.select(
-            "COALESCE(SUM(queued_count), 0)      AS queued",
-            "COALESCE(SUM(publishing_count), 0)  AS publishing",
-            "COALESCE(SUM(published_count), 0)   AS published",
-            "COALESCE(SUM(failed_count), 0)      AS failed",
+            "COALESCE(SUM(queued_message_count), 0)      AS queued",
+            "COALESCE(SUM(publishing_message_count), 0)  AS publishing",
+            "COALESCE(SUM(published_message_count), 0)   AS published",
+            "COALESCE(SUM(failed_message_count), 0)      AS failed",
             "COALESCE(SUM(" \
-              "queued_count + publishing_count + " \
-              "published_count + failed_count), 0) AS total"
+              "queued_message_count + publishing_message_count + " \
+              "published_message_count + failed_message_count), 0) AS total"
           ).take
 
           min_times = Models::Message.group(:status).minimum(:updated_at)

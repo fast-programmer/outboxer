@@ -4,16 +4,16 @@ FactoryBot.define do
     process_id { Process.pid }
     thread_id  { Thread.current.object_id }
 
-    queued_count       { 0 }
-    publishing_count   { 0 }
-    published_count    { 0 }
-    failed_count       { 0 }
+    queued_message_count       { 0 }
+    publishing_message_count   { 0 }
+    published_message_count    { 0 }
+    failed_message_count       { 0 }
 
     current_time = Time.now.utc
-    queued_count_last_updated_at       { current_time }
-    publishing_count_last_updated_at   { current_time }
-    published_count_last_updated_at    { current_time }
-    failed_count_last_updated_at       { current_time }
+    queued_message_count_last_updated_at       { current_time }
+    publishing_message_count_last_updated_at   { current_time }
+    published_message_count_last_updated_at    { current_time }
+    failed_message_count_last_updated_at       { current_time }
 
     created_at { current_time - 10.seconds }
     updated_at { current_time - 5.seconds }

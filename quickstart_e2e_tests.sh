@@ -42,7 +42,7 @@ bundle exec rails new . \
 
 bundle install
 bundle exec rails db:create
-echo 'gem "outboxer", git: "https://github.com/fast-programmer/outboxer.git", branch: "refactor/upsert_threads"' \
+echo 'gem "outboxer", git: "https://github.com/fast-programmer/outboxer.git", branch: "refactor/rename_thread_message_columns"' \
   >> Gemfile
 bundle install
 bundle exec rails generate outboxer:install
@@ -76,19 +76,19 @@ attempt = 1
 max_attempts = 10
 delay = 1
 
-published_count = Outboxer::Message.metrics_by_status[:published][:count]
+published_message_count = Outboxer::Message.metrics_by_status[:published][:count]
 
-while (attempt <= max_attempts) && published_count.zero?
+while (attempt <= max_attempts) && published_message_count.zero?
   warn "Outboxer not published yet (#{attempt}/#{max_attempts})..."
   sleep delay
   attempt += 1
-  published_count = Outboxer::Message.metrics_by_status[:published][:count]
+  published_message_count = Outboxer::Message.metrics_by_status[:published][:count]
 end
 
 Process.kill("TERM", publisher_pid)
 Process.wait(publisher_pid)
 
-exit(published_count.positive? ? 0 : 1)
+exit(published_message_count.positive? ? 0 : 1)
 RUBY
 
 # TARGET_RUBY_VERSION=3.2.2 TARGET_RAILS_VERSION=7.1.5.1 TARGET_DATABASE_ADAPTER=postgresql ./quickstart_e2e_tests.sh
