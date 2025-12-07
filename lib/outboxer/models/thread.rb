@@ -130,6 +130,8 @@ module Outboxer
           updated_at = VALUES(updated_at)
       SQL
 
+      SQL_QUERY_NAME = "Outboxer::Models::Thread.update_message_counts_by!".freeze
+
       def self.update_message_counts_by!(
         hostname: Socket.gethostname,
         process_id: Process.pid,
@@ -140,10 +142,9 @@ module Outboxer
         failed_message_count: 0,
         current_utc_time: Time.now.utc
       )
-        adapter_name = connection.adapter_name.downcase
-        is_postgres  = adapter_name.include?("postgres")
+        @is_postgres ||= connection.adapter_name.downcase.include?("postgres")
 
-        values = [
+        connection.exec_update(@is_postgres ? POSTGRES_SQL : MYSQL_SQL, SQL_QUERY_NAME, [
           hostname,
           process_id,
           thread_id,
@@ -157,11 +158,7 @@ module Outboxer
           current_utc_time,
           current_utc_time,
           current_utc_time
-        ]
-
-        sql = is_postgres ? POSTGRES_SQL : MYSQL_SQL
-
-        connection.exec_query(sql, "Outboxer::Thread", values)
+        ])
       end
     end
   end
