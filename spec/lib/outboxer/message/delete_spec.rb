@@ -7,11 +7,11 @@ module Outboxer
         let!(:message) { create(:outboxer_message, :failed) }
         let!(:exception) { create(:outboxer_exception, message: message) }
         let!(:frame) { create(:outboxer_frame, exception: exception) }
-        let!(:historic_message_count) do
-          create(:outboxer_message_counter, :historic, failed_count: 20)
+        let!(:historic_thread) do
+          create(:outboxer_thread, :historic, failed_count: 20)
         end
-        let!(:thread_message_count) do
-          create(:outboxer_message_counter, :thread, failed_count: 10)
+        let!(:thread) do
+          create(:outboxer_thread, :current, failed_count: 10)
         end
 
         let!(:result) { Message.delete(id: message.id, lock_version: message.lock_version) }
@@ -21,9 +21,9 @@ module Outboxer
         end
 
         it "decrements the failed count thread count metric" do
-          thread_message_count.reload
+          thread.reload
 
-          expect(thread_message_count.failed_count).to eq(9)
+          expect(thread.failed_count).to eq(9)
         end
 
         it "increments the total failed count metric" do
@@ -36,11 +36,11 @@ module Outboxer
       end
 
       context "when the message status is published" do
-        let!(:historic_message_count) do
-          create(:outboxer_message_counter, :historic, published_count: 20)
+        let!(:historic_thread) do
+          create(:outboxer_thread, :historic, published_count: 20)
         end
-        let!(:thread_message_count) do
-          create(:outboxer_message_counter, :thread, published_count: 10)
+        let!(:thread) do
+          create(:outboxer_thread, :current, published_count: 10)
         end
 
         let!(:message) { create(:outboxer_message, :published) }
@@ -54,9 +54,9 @@ module Outboxer
         end
 
         it "decrements the published count thread count metric" do
-          thread_message_count.reload
+          thread.reload
 
-          expect(thread_message_count.published_count).to eq(9)
+          expect(thread.published_count).to eq(9)
         end
 
         it "increments the total published count metric" do

@@ -314,7 +314,7 @@ module Outboxer
                 last_updated_at = publisher.updated_at
                 time_delta = [current_utc_time - last_updated_at, heartbeat_interval].max
 
-                publisher_message_counter = Models::Message::Counter
+                publisher_thread = Models::Thread
                   .select(
                     "COALESCE(SUM(queued_count), 0) AS queued_count,
                      COALESCE(SUM(publishing_count), 0) AS publishing_count,
@@ -327,10 +327,10 @@ module Outboxer
                   .take
 
                 current_counts = {
-                  "queued" => publisher_message_counter&.queued_count || 0,
-                  "publishing" => publisher_message_counter&.publishing_count || 0,
-                  "published" => publisher_message_counter&.published_count || 0,
-                  "failed" => publisher_message_counter&.failed_count || 0
+                  "queued" => publisher_thread&.queued_count || 0,
+                  "publishing" => publisher_thread&.publishing_count || 0,
+                  "published" => publisher_thread&.published_count || 0,
+                  "failed" => publisher_thread&.failed_count || 0
                 }
 
                 throughput_by_status =
@@ -341,8 +341,8 @@ module Outboxer
 
                 latency = 0
 
-                if !publisher_message_counter.nil?
-                  latency = (current_utc_time - publisher_message_counter.last_updated_at).round(0)
+                if !publisher_thread.nil?
+                  latency = (current_utc_time - publisher_thread.last_updated_at).round(0)
                 end
 
                 publisher.update!(
@@ -506,8 +506,9 @@ module Outboxer
       publisher_threads = Array.new(concurrency) do |index|
         create_publisher_thread(
           id: publisher[:id], index: index,
+          hostname: hostname, process_id: process_id,
           poll_interval: poll_interval, tick_interval: tick_interval,
-          logger: logger, process: process, kernel: kernel, &block)
+          logger: logger, process: process, kernel: kernel, time: time, &block)
       end
 
       signal_read, _signal_write = trap_signals
@@ -545,12 +546,32 @@ module Outboxer
     # @yieldparam messages [Array<Hash>] Batch of messages to publish.
     # @return [Thread] The created publishing thread.
     def create_publisher_thread(id:, index:,
+                                hostname:, process_id:,
                                 poll_interval:, tick_interval:,
-                                logger:, process:, kernel:, &block)
+                                logger:, process:, kernel:, time:, &block)
       Thread.new do
         begin
           Thread.current.name = "publisher-#{index + 1}"
           # Thread.current.report_on_exception = true
+
+          current_utc_time = time.now.utc
+
+          ActiveRecord::Base.connection_pool.with_connection do
+            Models::Thread.create!(
+              hostname: hostname,
+              process_id: process_id,
+              thread_id: Thread.current.object_id,
+              queued_count: 0,
+              queued_count_last_updated_at: current_utc_time,
+              publishing_count: 0,
+              publishing_count_last_updated_at: current_utc_time,
+              published_count: 0,
+              published_count_last_updated_at: current_utc_time,
+              failed_count: 0,
+              failed_count_last_updated_at: current_utc_time,
+              created_at: current_utc_time,
+              updated_at: current_utc_time)
+          end
 
           while !terminating?
             if publishing?

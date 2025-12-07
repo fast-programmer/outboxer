@@ -77,39 +77,37 @@ module Outboxer
             updated_at: current_utc_time
           )
 
-          counter = Models::Message::Counter.lock.find_by(
+          begin
+            ActiveRecord::Base.transaction(requires_new: true) do
+              Models::Thread.create!(
+                hostname: hostname,
+                process_id: process_id,
+                thread_id: thread_id,
+                queued_count: 0,
+                queued_count_last_updated_at: current_utc_time,
+                publishing_count: 0,
+                publishing_count_last_updated_at: current_utc_time,
+                published_count: 0,
+                published_count_last_updated_at: current_utc_time,
+                failed_count: 0,
+                failed_count_last_updated_at: current_utc_time,
+                created_at: current_utc_time,
+                updated_at: current_utc_time)
+            end
+          rescue ActiveRecord::RecordNotUnique
+            # no op
+          end
+
+          thread = Models::Thread.lock.find_by!(
             hostname: hostname, process_id: process_id, thread_id: thread_id)
 
-          if counter
-            counter.update!(
-              queued_count: counter.queued_count + 1,
-              queued_count_last_updated_at: current_utc_time,
-              updated_at: current_utc_time)
-          else
-            Models::Message::Counter.create!(
-              hostname: hostname,
-              process_id: process_id,
-              thread_id: thread_id,
-              queued_count: 1,
-              queued_count_last_updated_at: current_utc_time,
-              publishing_count: 0,
-              published_count: 0,
-              failed_count: 0,
-              created_at: current_utc_time,
-              updated_at: current_utc_time)
-          end
+          thread.update!(
+            queued_count: thread.queued_count + 1,
+            queued_count_last_updated_at: current_utc_time,
+            updated_at: current_utc_time)
 
           { id: message.id, lock_version: message.lock_version }
         end
-      rescue ActiveRecord::RecordNotUnique
-        queue(
-          messageable: messageable,
-          messageable_type: messageable_type,
-          messageable_id: messageable_id,
-          hostname: hostname,
-          process_id: process_id,
-          thread_id: thread_id,
-          time: time)
       end
     end
 
@@ -248,68 +246,40 @@ module Outboxer
 
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          id, lock_version, messageable_type, messageable_id =
-            Models::Message
-              .where(status: Status::QUEUED)
-              .order(:id)
-              .limit(1)
-              .lock("FOR UPDATE SKIP LOCKED")
-              .pluck(:id, :lock_version, :messageable_type, :messageable_id)
-              .first
+          message_row = Models::Message
+            .where(status: Status::QUEUED)
+            .order(:id)
+            .limit(1)
+            .lock("FOR UPDATE SKIP LOCKED")
+            .pluck(:id, :lock_version, :messageable_type, :messageable_id)
+            .first
 
-          if id.nil?
-            nil
-          else
+          if message_row.presence
             Models::Message
-              .where(id: id)
+              .where(id: message_row[0])
               .update_all([
                 "lock_version = lock_version + 1, status = ?, updated_at = ?, publishing_at = ?",
                 Status::PUBLISHING, current_utc_time, current_utc_time
               ])
 
-            counter_exists = Models::Message::Counter
+            Models::Thread
               .where(hostname: hostname, process_id: process_id, thread_id: thread_id)
-              .lock("FOR UPDATE")
-              .exists?
-
-            if counter_exists
-              Models::Message::Counter
-                .where(hostname: hostname, process_id: process_id, thread_id: thread_id)
-                .update_all([
-                  "queued_count = queued_count - 1, publishing_count = publishing_count + 1, " \
-                  "publishing_count_last_updated_at = ?, updated_at = ?",
-                  current_utc_time, current_utc_time
-                ])
-            else
-              Models::Message::Counter.insert_all([{
-                hostname: hostname,
-                process_id: process_id,
-                thread_id: thread_id,
-                queued_count: -1,
-                publishing_count: 1,
-                published_count: 0,
-                failed_count: 0,
-                publishing_count_last_updated_at: current_utc_time,
-                created_at: current_utc_time,
-                updated_at: current_utc_time
-              }])
-            end
+              .update_all([
+                "queued_count = queued_count - 1, " \
+                "publishing_count = publishing_count + 1, " \
+                "publishing_count_last_updated_at = ?, " \
+                "updated_at = ?",
+                current_utc_time, current_utc_time
+              ])
 
             {
-              id: id,
-              lock_version: lock_version + 1,
-              messageable_type: messageable_type,
-              messageable_id: messageable_id
+              id: message_row[0],
+              lock_version: message_row[1] + 1,
+              messageable_type: message_row[2],
+              messageable_id: message_row[3]
             }
           end
         end
-      rescue ActiveRecord::RecordNotUnique, ActiveRecord::RecordNotFound
-        publishing(
-          hostname: hostname,
-          process_id: process_id,
-          thread_id: thread_id,
-          time: time
-        )
       end
     end
 
@@ -335,14 +305,14 @@ module Outboxer
 
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          id, lock_version, status = Models::Message
-            .where(id: id)
+          message_row = Models::Message
             .lock("FOR UPDATE")
-            .pluck(:id, :lock_version, :status)
+            .where(id: id, lock_version: lock_version, status: Status::PUBLISHING)
+            .pluck(:id)
             .first
 
-          if status != Models::Message::Status::PUBLISHING
-            raise Error, "Status must be publishing"
+          if message_row.nil?
+            raise ActiveRecord::StaleObjectError.new(Models::Message.new(id: id), "destroy")
           end
 
           exception_ids = Models::Exception.where(message_id: id).pluck(:id)
@@ -350,49 +320,19 @@ module Outboxer
           Models::Exception.where(message_id: id).delete_all
           Models::Message.where(id: id).delete_all
 
-          counter_row = Models::Message::Counter
+          Models::Thread
             .where(hostname: hostname, process_id: process_id, thread_id: thread_id)
-            .lock("FOR UPDATE")
-            .pluck(:publishing_count, :published_count)
-            .first
-
-          if counter_row
-            Models::Message::Counter
-              .where(hostname: hostname, process_id: process_id, thread_id: thread_id)
-              .update_all([
-                "publishing_count = publishing_count - 1, " \
-                "published_count = published_count + 1, " \
-                "published_count_last_updated_at = ?, " \
-                "updated_at = ?",
-                current_utc_time,
-                current_utc_time
-              ])
-          else
-            Models::Message::Counter.insert(
-              hostname: hostname,
-              process_id: process_id,
-              thread_id: thread_id,
-              queued_count: 0,
-              publishing_count: -1,
-              published_count: 1,
-              failed_count: 0,
-              published_count_last_updated_at: current_utc_time,
-              created_at: current_utc_time,
-              updated_at: current_utc_time
-            )
-          end
+            .update_all([
+              "publishing_count = publishing_count - 1, " \
+              "published_count = published_count + 1, " \
+              "published_count_last_updated_at = ?, " \
+              "updated_at = ?",
+              current_utc_time,
+              current_utc_time
+            ])
 
           { id: id }
         end
-      rescue ActiveRecord::RecordNotUnique
-        published(
-          id: id,
-          lock_version: lock_version,
-          hostname: hostname,
-          process_id: process_id,
-          thread_id: thread_id,
-          time: time
-        )
       end
     end
 
@@ -440,43 +380,22 @@ module Outboxer
             end
           end
 
-          counter = Models::Message::Counter.lock.find_by(
-            hostname: hostname, process_id: process_id, thread_id: thread_id)
-
-          if counter
-            counter.update!(
-              publishing_count: counter.publishing_count - 1,
-              failed_count: counter.failed_count + 1,
-              failed_count_last_updated_at: current_utc_time,
-              updated_at: current_utc_time)
-          else
-            Models::Message::Counter.create!(
-              hostname: hostname,
-              process_id: process_id,
-              thread_id: thread_id,
-              queued_count: 0,
-              publishing_count: 0,
-              published_count: 0,
-              failed_count: 1,
-              failed_count_last_updated_at: current_utc_time,
-              created_at: current_utc_time,
-              updated_at: current_utc_time)
-          end
+          Models::Thread
+            .where(hostname: hostname, process_id: process_id, thread_id: thread_id)
+            .update_all([
+              "publishing_count = publishing_count - 1, " \
+              "failed_count = failed_count + 1, " \
+              "failed_count_last_updated_at = ?, " \
+              "updated_at = ?",
+              current_utc_time,
+              current_utc_time
+            ])
 
           {
             id: message.id,
             lock_version: message.lock_version
           }
         end
-      rescue ActiveRecord::RecordNotUnique
-        publishing_failed(
-          id: id,
-          lock_version: lock_version,
-          error: error,
-          hostname: hostname,
-          process_id: process_id,
-          thread_id: thread_id,
-          time: time)
       end
     end
 
@@ -586,22 +505,22 @@ module Outboxer
           message.exceptions.delete_all
           message.delete
 
-          counter = Models::Message::Counter.lock.find_by(
+          thread = Models::Thread.lock.find_by(
             hostname: hostname, process_id: process_id, thread_id: thread_id)
 
-          if counter
-            counter.update!(
+          if thread
+            thread.update!(
               queued_count:
-                counter.queued_count - (message.status == Status::QUEUED ? 1 : 0),
+                thread.queued_count - (message.status == Status::QUEUED ? 1 : 0),
               publishing_count:
-                counter.publishing_count - (message.status == Status::PUBLISHING ? 1 : 0),
+                thread.publishing_count - (message.status == Status::PUBLISHING ? 1 : 0),
               published_count:
-                counter.published_count - (message.status == Status::PUBLISHED ? 1 : 0),
+                thread.published_count - (message.status == Status::PUBLISHED ? 1 : 0),
               failed_count:
-                counter.failed_count - (message.status == Status::FAILED ? 1 : 0),
+                thread.failed_count - (message.status == Status::FAILED ? 1 : 0),
               updated_at: current_utc_time)
           else
-            Models::Message::Counter.create!(
+            Models::Thread.create!(
               hostname: hostname,
               process_id: process_id,
               thread_id: thread_id,
@@ -665,25 +584,25 @@ module Outboxer
             publisher_id: publisher_id,
             publisher_name: publisher_name)
 
-          counter = Models::Message::Counter.lock.find_by(
+          thread = Models::Thread.lock.find_by(
             hostname: hostname, process_id: process_id, thread_id: thread_id)
 
-          if counter
-            counter.update!(
+          if thread
+            thread.update!(
               queued_count:
-                counter.queued_count + 1,
+                thread.queued_count + 1,
               publishing_count:
-                counter.publishing_count - (original_status == Status::PUBLISHING ? 1 : 0),
+                thread.publishing_count - (original_status == Status::PUBLISHING ? 1 : 0),
               published_count:
-                counter.published_count - (original_status == Status::PUBLISHED ? 1 : 0),
+                thread.published_count - (original_status == Status::PUBLISHED ? 1 : 0),
               failed_count:
-                counter.failed_count - (original_status == Status::FAILED ? 1 : 0),
+                thread.failed_count - (original_status == Status::FAILED ? 1 : 0),
               queued_count_last_updated_at:
                 current_utc_time,
               updated_at:
                 current_utc_time)
           else
-            Models::Message::Counter.create!(
+            Models::Thread.create!(
               hostname: hostname,
               process_id: process_id,
               thread_id: thread_id,
@@ -823,13 +742,13 @@ module Outboxer
 
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          # 1. Ensure the historic counter exists (idempotent upsert)
+          # 1. Ensure the historic thread exists (idempotent upsert)
           begin
             ActiveRecord::Base.transaction(requires_new: true) do
-              Models::Message::Counter.create!(
-                hostname: Models::Message::Counter::HISTORIC_HOSTNAME,
-                process_id: Models::Message::Counter::HISTORIC_PROCESS_ID,
-                thread_id: Models::Message::Counter::HISTORIC_THREAD_ID,
+              Models::Thread.create!(
+                hostname: Models::Thread::HISTORIC_HOSTNAME,
+                process_id: Models::Thread::HISTORIC_PROCESS_ID,
+                thread_id: Models::Thread::HISTORIC_THREAD_ID,
                 queued_count: 0,
                 publishing_count: 0,
                 published_count: 0,
@@ -841,25 +760,25 @@ module Outboxer
             # no op
           end
 
-          # 2. Lock *all* rows (historic counter + thread counters)
-          locked_counters = Models::Message::Counter.lock("FOR UPDATE").to_a
+          # 2. Lock *all* rows (historic thread + thread threads)
+          locked_threads = Models::Thread.lock("FOR UPDATE").to_a
 
-          # 3. Identify the historic counter
-          historic_counter = locked_counters.find do |r|
-            r.hostname == Models::Message::Counter::HISTORIC_HOSTNAME &&
-              r.process_id == Models::Message::Counter::HISTORIC_PROCESS_ID &&
-              r.thread_id == Models::Message::Counter::HISTORIC_THREAD_ID
+          # 3. Identify the historic thread
+          historic_thread = locked_threads.find do |r|
+            r.hostname == Models::Thread::HISTORIC_HOSTNAME &&
+              r.process_id == Models::Thread::HISTORIC_PROCESS_ID &&
+              r.thread_id == Models::Thread::HISTORIC_THREAD_ID
           end
 
-          # 4. Everything else is a thread counter
-          thread_counters = locked_counters - [historic_counter]
+          # 4. Everything else is a thread thread
+          threads = locked_threads - [historic_thread]
 
-          # 5. Sum all thread counters
-          totals = thread_counters.each_with_object(
-            queued_count: historic_counter.queued_count,
-            publishing_count: historic_counter.publishing_count,
-            published_count: historic_counter.published_count,
-            failed_count: historic_counter.failed_count
+          # 5. Sum all thread threads
+          totals = threads.each_with_object(
+            queued_count: historic_thread.queued_count,
+            publishing_count: historic_thread.publishing_count,
+            published_count: historic_thread.published_count,
+            failed_count: historic_thread.failed_count
           ) do |row, sum|
             sum[:queued_count] += row.queued_count
             sum[:publishing_count] += row.publishing_count
@@ -867,8 +786,8 @@ module Outboxer
             sum[:failed_count] += row.failed_count
           end
 
-          # 6. Update historic counter
-          historic_counter.update!(
+          # 6. Update historic thread
+          historic_thread.update!(
             queued_count: totals[:queued_count],
             publishing_count: totals[:publishing_count],
             published_count: totals[:published_count],
@@ -876,19 +795,19 @@ module Outboxer
             updated_at: current_utc_time
           )
 
-          # 7. Delete all rolled-up rows except historic counter
-          Models::Message::Counter.where.not(
-            hostname: Models::Message::Counter::HISTORIC_HOSTNAME,
-            process_id: Models::Message::Counter::HISTORIC_PROCESS_ID,
-            thread_id: Models::Message::Counter::HISTORIC_THREAD_ID
+          # 7. Delete all rolled-up rows except historic thread
+          Models::Thread.where.not(
+            hostname: Models::Thread::HISTORIC_HOSTNAME,
+            process_id: Models::Thread::HISTORIC_PROCESS_ID,
+            thread_id: Models::Thread::HISTORIC_THREAD_ID
           ).delete_all
 
           # 8. Return the updated totals
           {
-            queued_count: historic_counter.queued_count,
-            publishing_count: historic_counter.publishing_count,
-            published_count: historic_counter.published_count,
-            failed_count: historic_counter.failed_count
+            queued_count: historic_thread.queued_count,
+            publishing_count: historic_thread.publishing_count,
+            published_count: historic_thread.published_count,
+            failed_count: historic_thread.failed_count
           }
         end
       end
@@ -902,7 +821,7 @@ module Outboxer
     #   # => { :queued => 1200, publishing: 400, published: 100_000, failed: 250 }
     def count_by_status
       ActiveRecord::Base.connection_pool.with_connection do
-        result = Models::Message::Counter.select(
+        result = Models::Thread.select(
           "COALESCE(SUM(queued_count), 0)      AS queued",
           "COALESCE(SUM(publishing_count), 0)  AS publishing",
           "COALESCE(SUM(published_count), 0)   AS published",
@@ -921,7 +840,7 @@ module Outboxer
     def metrics_by_status(time: Time)
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction(isolation: :repeatable_read) do
-          counts = Models::Message::Counter.select(
+          counts = Models::Thread.select(
             "COALESCE(SUM(queued_count), 0)      AS queued",
             "COALESCE(SUM(publishing_count), 0)  AS publishing",
             "COALESCE(SUM(published_count), 0)   AS published",

@@ -5,11 +5,11 @@ module Outboxer
     describe ".metrics_by_status" do
       let(:current_utc_time) { Time.utc(2025, 1, 1, 0, 0, 0) }
 
-      before { Models::Message::Counter.delete_all }
+      before { Models::Thread.delete_all }
 
       before do
         create(
-          :outboxer_message_counter,
+          :outboxer_thread,
           :historic,
           queued_count: 10,
           publishing_count: 20,
@@ -20,7 +20,7 @@ module Outboxer
         )
 
         create(
-          :outboxer_message_counter,
+          :outboxer_thread,
           hostname: "worker5.test.local",
           process_id: 555,
           thread_id: 25_001,

@@ -85,7 +85,7 @@ module Outboxer
             TRUNCATE TABLE
               outboxer_frames,
               outboxer_exceptions,
-              outboxer_message_counters,
+              outboxer_threads,
               outboxer_messages,
               outboxer_signals,
               outboxer_publishers
@@ -98,7 +98,7 @@ module Outboxer
             connection.execute("SET FOREIGN_KEY_CHECKS = 0;")
             connection.execute("TRUNCATE TABLE outboxer_frames;")
             connection.execute("TRUNCATE TABLE outboxer_exceptions;")
-            connection.execute("TRUNCATE TABLE outboxer_message_counters;")
+            connection.execute("TRUNCATE TABLE outboxer_threads;")
             connection.execute("TRUNCATE TABLE outboxer_messages;")
             connection.execute("TRUNCATE TABLE outboxer_signals;")
             connection.execute("TRUNCATE TABLE outboxer_publishers;")
