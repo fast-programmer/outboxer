@@ -42,7 +42,7 @@ bundle exec rails new . \
 
 bundle install
 bundle exec rails db:create
-echo 'gem "outboxer", git: "https://github.com/fast-programmer/outboxer.git", branch: "optimisation/increase_throughput"' \
+echo 'gem "outboxer", git: "https://github.com/fast-programmer/outboxer.git", branch: "'"${GITHUB_HEAD_REF}"'"' \
   >> Gemfile
 bundle install
 bundle exec rails generate outboxer:install
