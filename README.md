@@ -29,7 +29,7 @@ bundle exec rails db:migrate
 
 **4. Generate event schema and model**
 
-```shell
+```bash
 bundle exec rails generate model Event type:string created_at:datetime --skip-timestamps
 bundle exec rails db:migrate
 ```
@@ -58,7 +58,7 @@ end
 
 **7. Create derived event type**
 
-```shell
+```bash
 bundle exec rails c
 ```
 
@@ -85,6 +85,7 @@ TRANSACTION                (0.2ms)  COMMIT
 Outboxer::Publisher.publish_message do |publisher, message|
   logger.info(
     "Publishing outboxer message " \
+    "publisher_id=#{publisher[:id]} " \
     "messageable_type=#{message[:messageable_type]} " \
     "messageable_id=#{message[:messageable_id]}"
   )
