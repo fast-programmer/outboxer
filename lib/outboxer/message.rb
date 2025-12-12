@@ -127,8 +127,7 @@ module Outboxer
     #     - `:messageable_type` [String]
     #     - `:messageable_id` [Integer, String]
     #   @yieldreturn [Object] result of the block (ignored)
-    #   @return [Boolean] `true` if a message was published successfully,
-    #     `false` if no queued message existed or publishing failed
+    #   @return [Hash, nil] the same yielded message hash, or `nil` if no queued message exists
     #   @raise [Exception] re-raises non-StandardError exceptions after marking failed
     #   @example Publish with processing
     #     Outboxer::Message.publish(logger: logger) do |message|
@@ -137,22 +136,20 @@ module Outboxer
     def publish(hostname: Socket.gethostname,
                 process_id: Process.pid,
                 thread_id: Thread.current.object_id,
-                logger: nil, time: ::Time, &block)
-      raise ArgumentError, "publish requires a block" if block.nil?
-
+                logger: nil, time: ::Time)
       publishing_started_at = time.now.utc
 
       message = Message.publishing(
         hostname: hostname, process_id: process_id, thread_id: thread_id, time: time)
 
-      if message.nil?
-        false
-      else
-        logger&.info(
-          "Outboxer message publishing id=#{message[:id]} " \
-            "messageable_type=#{message[:messageable_type]} " \
-            "messageable_id=#{message[:messageable_id]}")
+      return if message.nil?
 
+      logger&.info(
+        "Outboxer message publishing id=#{message[:id]} " \
+          "messageable_type=#{message[:messageable_type]} " \
+          "messageable_id=#{message[:messageable_id]}")
+
+      if block_given?
         begin
           yield message
         rescue StandardError => error
@@ -169,8 +166,6 @@ module Outboxer
               "duration_ms=#{((time.now.utc - publishing_started_at) * 1000).to_i}\n" \
               "#{error.class}: #{error.message}\n" \
               "#{error.backtrace.join("\n")}")
-
-          false
         rescue Exception => error
           publishing_failed(
             id: message[:id], lock_version: message[:lock_version], error: error,
@@ -196,10 +191,10 @@ module Outboxer
               "messageable_type=#{message[:messageable_type]} " \
               "messageable_id=#{message[:messageable_id]} " \
               "duration_ms=#{((time.now.utc - publishing_started_at) * 1000).to_i}")
-
-          true
         end
       end
+
+      message
     end
 
     # Selects and locks the next available message in **queued** status
