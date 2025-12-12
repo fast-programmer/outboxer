@@ -83,13 +83,6 @@ TRANSACTION                (0.2ms)  COMMIT
 # bin/outboxer_publisher
 
 Outboxer::Publisher.publish_message do |publisher, message|
-  logger.info(
-    "Publishing outboxer message " \
-    "publisher_id=#{publisher[:id]} " \
-    "messageable_type=#{message[:messageable_type]} " \
-    "messageable_id=#{message[:messageable_id]}"
-  )
-
   # TODO: publish message here
 end
 ```
