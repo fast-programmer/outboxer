@@ -77,42 +77,20 @@ Outboxer::Message Create   (0.3ms)  INSERT INTO "outboxer_messages" ...
 TRANSACTION                (0.2ms)  COMMIT
 ```
 
-**9. Publish outboxer message(s)**
+**9. Publish outboxer messages**
 
 ```ruby
-#!/usr/bin/env ruby
+# bin/outboxer_publisher
 
-require "bundler/setup"
-require "outboxer"
+Outboxer::Publisher.publish_message do |publisher, message|
+  logger.info(
+    "Publishing outboxer message " \
+    "messageable_type=#{message[:messageable_type]} " \
+    "messageable_id=#{message[:messageable_id]}"
+  )
 
-environment = ENV["RAILS_ENV"] || "development"
-
-logger = Outboxer::Logger.new($stdout, level: "INFO")
-
-database_config = Outboxer::Database.config(environment: environment, pool: 1)
-Outboxer::Database.connect(config: database_config, logger: logger)
-
-publishing = true
-
-Signal.trap("INT") { publishing = false }
-Signal.trap("TERM") { publishing = false }
-
-while publishing
-  published = Outboxer::Message.publish do |message|
-    logger.info(
-      "Publishing outboxer message " \
-      "messageable_type=#{message[:messageable_type]} " \
-      "messageable_id=#{message[:messageable_id]}"
-    )
-
-    # TODO: publish message here
-  end
-
-  if publishing && !published
-    sleep 5
-  end
+  # TODO: publish message here
 end
-
 ```
 
 To integrate with Active Cable, Sidekiq, Bunny, Kafka, AWS SQS and others, see the [publisher integration guide](https://github.com/fast-programmer/outboxer/wiki/Publisher-Integration-guide).
