@@ -80,25 +80,39 @@ TRANSACTION                (0.2ms)  COMMIT
 **9. Publish outboxer message(s)**
 
 ```ruby
-# bin/outboxer_publisher
+#!/usr/bin/env ruby
 
-logger = Outboxer::Logger.new
+require "bundler/setup"
+require "outboxer"
+
+environment = ENV["RAILS_ENV"] || "development"
+
+logger = Outboxer::Logger.new($stdout, level: "INFO")
+
+database_config = Outboxer::Database.config(environment: environment, pool: 1)
+Outboxer::Database.connect(config: database_config, logger: logger)
+
 publishing = true
 
-Signal.trap("INT")  { publishing = false }  # CTRL+C
-Signal.trap("TERM") { publishing = false }  # TERM
+Signal.trap("INT") { publishing = false }
+Signal.trap("TERM") { publishing = false }
 
 while publishing
-  Outboxer::Message.publish do |message|
+  published = Outboxer::Message.publish do |message|
     logger.info(
-      "Publishing outboxer message",
-      messageable_id:   message[:messageable_id],
-      messageable_type: message[:messageable_type]
+      "Publishing outboxer message " \
+      "messageable_type=#{message[:messageable_type]} " \
+      "messageable_id=#{message[:messageable_id]}"
     )
 
-    # publish to Sidekiq, Kafka, HTTP, etc.
+    # TODO: publish message here
+  end
+
+  if publishing && !published
+    sleep 5
   end
 end
+
 ```
 
 To integrate with Active Cable, Sidekiq, Bunny, Kafka, AWS SQS and others, see the [publisher integration guide](https://github.com/fast-programmer/outboxer/wiki/Publisher-Integration-guide).
@@ -111,7 +125,7 @@ To ensure you have end to end coverage:
 
 # Monitoring
 
-Monitor using the built-in web UI:
+Monitor multithreaded publishers using Outboxer's built-in web UI:
 
 ## Publishers
 
