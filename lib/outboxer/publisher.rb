@@ -576,7 +576,7 @@ module Outboxer
           while !terminating?
             if publishing?
               begin
-                published_message = Message.publish(logger: logger) do |message|
+                message_published = Message.publish(logger: logger) do |message|
                   block.call({ id: id }, message)
                 end
               rescue StandardError => error
@@ -590,7 +590,7 @@ module Outboxer
                   process: process,
                   kernel: kernel)
               else
-                if published_message.nil?
+                if message_published == false
                   Publisher.sleep(
                     poll_interval,
                     tick_interval: tick_interval,

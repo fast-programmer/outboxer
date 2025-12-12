@@ -23,10 +23,7 @@ module Outboxer
             end
 
             expect(yielded_id).to eq(queued_message.id)
-            expect(result).to include(
-              id: queued_message.id,
-              messageable_type: queued_message.messageable_type,
-              messageable_id: queued_message.messageable_id)
+            expect(result).to be true
 
             expect(Models::Message.published.count).to eql(0)
           end
@@ -36,11 +33,7 @@ module Outboxer
               raise StandardError, "temporary failure"
             end
 
-            expect(result).to include({
-              id: queued_message.id,
-              messageable_type: queued_message.messageable_type,
-              messageable_id: queued_message.messageable_id
-            })
+            expect(result).to be false
             expect(queued_message.reload.status)
               .to eq(Models::Message::Status::FAILED)
           end
@@ -61,7 +54,7 @@ module Outboxer
           it "returns nil" do
             result = Message.publish { raise "block should not be called" }
 
-            expect(result).to be_nil
+            expect(result).to be false
             expect(
               Models::Message.where(status: Models::Message::Status::QUEUED).count
             ).to eq(0)
@@ -126,7 +119,7 @@ module Outboxer
           it "returns nil and does not log" do
             result = Message.publish(logger: logger) { raise "should not run" }
 
-            expect(result).to be_nil
+            expect(result).to be false
             expect(logger).not_to have_received(:info)
             expect(logger).not_to have_received(:error)
             expect(logger).not_to have_received(:fatal)
