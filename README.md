@@ -15,7 +15,7 @@ bundle add outboxer
 bundle install
 ```
 
-**2. Generate schema migrations, publisher script and tests**
+**2. Generate schema migrations and tests**
 
 ```bash
 bundle exec rails g outboxer:install
@@ -29,12 +29,12 @@ bundle exec rails db:migrate
 
 **4. Generate event schema and model**
 
-```bash
+```shell
 bundle exec rails generate model Event type:string created_at:datetime --skip-timestamps
 bundle exec rails db:migrate
 ```
 
-**5. Queue outboxer message after event created**
+**5. Queue outboxer message when event created**
 
 ```ruby
 # app/models/event.rb
@@ -58,7 +58,7 @@ end
 
 **7. Create derived event type**
 
-```bash
+```shell
 bundle exec rails c
 ```
 
@@ -70,20 +70,34 @@ Accountify::InvoiceRaisedEvent.create!(created_at: Time.current)
 
 **8. Observe transactional consistency**
 
-```log
+```shell
 TRANSACTION                (0.2ms)  BEGIN
 Event Create               (0.4ms)  INSERT INTO "events" ...
 Outboxer::Message Create   (0.3ms)  INSERT INTO "outboxer_messages" ...
 TRANSACTION                (0.2ms)  COMMIT
 ```
 
-**8. Publish outboxer messages**
+**9. Publish outboxer message(s)**
 
 ```ruby
 # bin/outboxer_publisher
 
-Outboxer::Publisher.publish_message do |publisher, message|
-  # TODO: publish message here
+logger = Outboxer::Logger.new
+publishing = true
+
+Signal.trap("INT")  { publishing = false }  # CTRL+C
+Signal.trap("TERM") { publishing = false }  # TERM
+
+while publishing
+  Outboxer::Message.publish do |message|
+    logger.info(
+      "Publishing outboxer message",
+      messageable_id:   message[:messageable_id],
+      messageable_type: message[:messageable_type]
+    )
+
+    # publish to Sidekiq, Kafka, HTTP, etc.
+  end
 end
 ```
 
