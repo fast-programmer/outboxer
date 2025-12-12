@@ -4,9 +4,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/fast-programmer/outboxer/badge.svg)](https://coveralls.io/github/fast-programmer/outboxer)
 [![Join our Discord](https://img.shields.io/badge/Discord-blue?style=flat&logo=discord&logoColor=white)](https://discord.gg/x6EUehX6vU)
 
-**Outboxer** is an implementation of the [transactional outbox pattern](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html) for **Ruby on Rails** applications.
-
-It helps you migrate to **event-driven architecture** with at least once delivery guarantees.
+**Outboxer** is an implementation of the [transactional outbox pattern](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html) for event driven Ruby on Rails applications.
 
 # Quickstart
 
@@ -17,7 +15,7 @@ bundle add outboxer
 bundle install
 ```
 
-**2. Generate schema migrations, publisher script and tests**
+**2. Generate schema migrations and tests**
 
 ```bash
 bundle exec rails g outboxer:install
@@ -36,7 +34,7 @@ bundle exec rails generate model Event type:string created_at:datetime --skip-ti
 bundle exec rails db:migrate
 ```
 
-**5. Queue outboxer message after event created**
+**5. Queue outboxer message when event created**
 
 ```ruby
 # app/models/event.rb
@@ -72,19 +70,26 @@ Accountify::InvoiceRaisedEvent.create!(created_at: Time.current)
 
 **8. Observe transactional consistency**
 
-```log
+```shell
 TRANSACTION                (0.2ms)  BEGIN
 Event Create               (0.4ms)  INSERT INTO "events" ...
 Outboxer::Message Create   (0.3ms)  INSERT INTO "outboxer_messages" ...
 TRANSACTION                (0.2ms)  COMMIT
 ```
 
-**8. Publish outboxer messages**
+**9. Publish outboxer message in block**
 
 ```ruby
 # bin/outboxer_publisher
 
 Outboxer::Publisher.publish_message do |publisher, message|
+  logger.info(
+    "Publishing outboxer message " \
+    "publisher_id=#{publisher[:id]} " \
+    "messageable_type=#{message[:messageable_type]} " \
+    "messageable_id=#{message[:messageable_id]}"
+  )
+
   # TODO: publish message here
 end
 ```
@@ -99,7 +104,7 @@ To ensure you have end to end coverage:
 
 # Monitoring
 
-Monitor using the built-in web UI:
+Monitor multithreaded publishers using Outboxer's built-in web UI:
 
 ## Publishers
 
