@@ -147,12 +147,6 @@ module Outboxer
         result.join(" ")
       end
 
-      def pretty_time_ago_from_seconds(seconds:, time: ::Time)
-        return "-" if seconds.nil? || seconds <= 0
-
-        "#{time_ago_in_words(time.now - seconds)} ago"
-      end
-
       def human_readable_size(kilobytes:)
         units = ["KB", "MB", "GB", "TB"]
         size = kilobytes.to_f
