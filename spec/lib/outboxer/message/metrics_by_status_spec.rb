@@ -6,11 +6,6 @@ module Outboxer
       let(:current_utc_time) { Time.utc(2025, 1, 1, 0, 0, 0) }
 
       before do
-        Models::Thread.delete_all
-        Models::Message.delete_all
-      end
-
-      before do
         create(
           :outboxer_thread,
           :historic,
