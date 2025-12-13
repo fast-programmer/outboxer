@@ -76,7 +76,7 @@ module Outboxer
       end
 
       def pretty_duration_from_seconds(seconds:)
-        return "-" if seconds <= 0
+        return "—" if seconds.nil? || seconds <= 0
 
         # Units for sub-second durations
         sub_second_units = [

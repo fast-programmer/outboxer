@@ -100,35 +100,59 @@
 </div>
 
 <div class="container mt-4">
-    <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h3 class="mb-0">Messages</h3>
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table" style="table-layout: fixed;">
-                    <thead>
-                        <tr>
-                            <th scope="col">Status</th>
-                            <th scope="col">Count</th>
-                            <th scope="col">Latency</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <% Outboxer::Message::STATUSES.each do |status| %>
-                            <tr>
-                                <td class="text-capitalize">
-                                    <a class="custom-link" href="<%= outboxer_path("/messages?status=#{status}") %>">
-                                        <%= status %>
-                                    </a>
-                                </td>
-                                <td><%= Outboxer::Web.pretty_number(number: message_metrics_by_status[status.to_sym][:count]) %></td>
-                                <td><%= Outboxer::Web.pretty_duration_from_seconds(seconds: message_metrics_by_status[status.to_sym][:latency]) %></td>
-                            </tr>
-                        <% end %>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h3 class="mb-0">Messages</h3>
     </div>
+
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table" style="table-layout: fixed;">
+          <thead>
+            <tr>
+              <th scope="col">Status</th>
+              <th scope="col">Count</th>
+              <th scope="col">Age</th>
+              <th scope="col">Latency</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <% Outboxer::Message::STATUSES.each do |status| %>
+              <% metrics = message_metrics_by_status[status.to_sym] %>
+
+              <tr>
+                <td class="text-capitalize">
+                  <a class="custom-link"
+                     href="<%= outboxer_path("/messages?status=#{status}") %>">
+                    <%= status %>
+                  </a>
+                </td>
+
+                <td>
+                  <%= Outboxer::Web.pretty_number(number: metrics[:count]) %>
+                </td>
+
+                <td>
+                  <%= Outboxer::Web.pretty_duration_from_seconds(
+                        seconds: metrics[:age]
+                      ) %>
+                </td>
+
+                <td>
+                  <% if metrics[:latency] %>
+                    <%= Outboxer::Web.pretty_duration_from_seconds(
+                          seconds: metrics[:latency]
+                        ) %>
+                  <% else %>
+                    &mdash;
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 </div>
