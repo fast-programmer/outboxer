@@ -751,44 +751,35 @@ module Outboxer
           counts_hash = counts.attributes.symbolize_keys.transform_values(&:to_i)
 
           last_updates = Models::Message.group(:status).maximum(:updated_at)
-          ages = last_updates.transform_values { |t| t ? (now - t).to_i : 0 }
+          queued_age = last_updates["queued"] ? (now - last_updates["queued"]).to_i : 0
+
+          last_publishing_at = Models::Thread.maximum(:publishing_message_count_last_updated_at)
+          publishing_age = last_publishing_at ? (now - last_publishing_at).to_i : 0
+
+          last_failed_at = Models::Thread.maximum(:failed_message_count_last_updated_at)
+          failed_age = last_failed_at ? (now - last_failed_at).to_i : 0
 
           last_published_at = Models::Thread.maximum(:published_message_count_last_updated_at)
           published_age = last_published_at ? (now - last_published_at).to_i : 0
 
-          max_message_updated_at = last_updates.values.compact.max
-          max_activity_at = [max_message_updated_at, last_published_at].compact.max
+          max_activity_at = [
+            last_updates["queued"],
+            last_publishing_at,
+            last_failed_at,
+            last_published_at
+          ].compact.max
+
           total_age = max_activity_at ? (now - max_activity_at).to_i : 0
 
           oldest_queued_at = Models::Message.where(status: "queued").minimum(:queued_at)
           queued_latency = oldest_queued_at ? (now - oldest_queued_at).to_i : 0
 
           {
-            queued: {
-              count: counts_hash[:queued],
-              age: ages["queued"] || 0,
-              latency: queued_latency
-            },
-            publishing: {
-              count: counts_hash[:publishing],
-              age: ages["publishing"] || 0,
-              latency: nil
-            },
-            published: {
-              count: counts_hash[:published],
-              age: published_age,
-              latency: nil
-            },
-            failed: {
-              count: counts_hash[:failed],
-              age: ages["failed"] || 0,
-              latency: nil
-            },
-            total: {
-              count: counts_hash[:total],
-              age: total_age,
-              latency: nil
-            }
+            queued: { count: counts_hash[:queued], age: queued_age, latency: queued_latency },
+            publishing: { count: counts_hash[:publishing], age: publishing_age, latency: nil },
+            published: { count: counts_hash[:published], age: published_age, latency: nil },
+            failed: { count: counts_hash[:failed], age: failed_age, latency: nil },
+            total: { count: counts_hash[:total], age: total_age, latency: nil }
           }
         end
       end

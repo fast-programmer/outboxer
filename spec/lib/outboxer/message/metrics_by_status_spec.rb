@@ -18,7 +18,9 @@ module Outboxer
           publishing_message_count: 20,
           published_message_count: 30,
           failed_message_count: 40,
-          published_message_count_last_updated_at: current_utc_time
+          publishing_message_count_last_updated_at: current_utc_time,
+          published_message_count_last_updated_at: current_utc_time,
+          failed_message_count_last_updated_at: current_utc_time
         )
 
         create(
@@ -30,39 +32,21 @@ module Outboxer
           publishing_message_count: 6,
           published_message_count: 7,
           failed_message_count: 8,
-          published_message_count_last_updated_at: current_utc_time
+          publishing_message_count_last_updated_at: current_utc_time,
+          published_message_count_last_updated_at: current_utc_time,
+          failed_message_count_last_updated_at: current_utc_time
         )
       end
 
       it "returns metrics by status" do
-        expect(
-          Message.metrics_by_status(time: double(now: current_utc_time))
-        ).to eq(
-          queued: {
-            count: 15,
-            age: 0,
-            latency: 0
-          },
-          publishing: {
-            count: 26,
-            age: 0,
-            latency: nil
-          },
-          published: {
-            count: 37,
-            age: 0,
-            latency: nil
-          },
-          failed: {
-            count: 48,
-            age: 0,
-            latency: nil
-          },
-          total: {
-            count: 126,
-            age: 0,
-            latency: nil
-          }
+        result = Message.metrics_by_status(time: double(now: current_utc_time))
+
+        expect(result).to eq(
+          queued: { count: 15, age: 0, latency: 0 },
+          publishing: { count: 26, age: 0, latency: nil },
+          published: { count: 37, age: 0, latency: nil },
+          failed: { count: 48, age: 0, latency: nil },
+          total: { count: 126, age: 0, latency: nil }
         )
       end
     end

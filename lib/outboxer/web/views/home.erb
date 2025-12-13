@@ -129,21 +129,13 @@
                   </a>
                 </td>
 
-                <td>
-                  <%= Outboxer::Web.pretty_number(number: metrics[:count]) %>
-                </td>
+                <td><%= Outboxer::Web.pretty_number(number: metrics[:count]) %></td>
 
-                <td>
-                  <%= Outboxer::Web.pretty_duration_from_seconds(
-                        seconds: metrics[:age]
-                      ) %>
-                </td>
+                <td><%= Outboxer::Web.pretty_duration_from_seconds(seconds: metrics[:age]) %></td>
 
                 <td>
                   <% if metrics[:latency] %>
-                    <%= Outboxer::Web.pretty_duration_from_seconds(
-                          seconds: metrics[:latency]
-                        ) %>
+                    <%= Outboxer::Web.pretty_duration_from_seconds(seconds: metrics[:latency]) %>
                   <% else %>
                     &mdash;
                   <% end %>
