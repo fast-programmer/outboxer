@@ -751,17 +751,9 @@ module Outboxer
           counts_hash = counts.attributes.symbolize_keys.transform_values(&:to_i)
 
           last_queued_at = Models::Thread.maximum(:queued_message_count_last_updated_at)
-          # queued_age = last_queued_at ? (now - last_queued_at).to_i : 0
-
           last_publishing_at = Models::Thread.maximum(:publishing_message_count_last_updated_at)
-          # publishing_age = last_publishing_at ? (now - last_publishing_at).to_i : 0
-
           last_failed_at = Models::Thread.maximum(:failed_message_count_last_updated_at)
-          # failed_age = last_failed_at ? (now - last_failed_at).to_i : 0
-
           last_published_at = Models::Thread.maximum(:published_message_count_last_updated_at)
-          # published_age = last_published_at ? (now - last_published_at).to_i : 0
-
           oldest_queued_at = Models::Message.where(status: "queued").minimum(:queued_at)
           queued_latency = oldest_queued_at ? (now - oldest_queued_at).to_i : 0
 
