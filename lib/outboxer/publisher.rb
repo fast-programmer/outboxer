@@ -562,13 +562,13 @@ module Outboxer
               process_id: process_id,
               thread_id: Thread.current.object_id,
               queued_message_count: 0,
-              queued_message_count_last_updated_at: current_utc_time,
+              queued_message_count_last_updated_at: nil,
               publishing_message_count: 0,
-              publishing_message_count_last_updated_at: current_utc_time,
+              publishing_message_count_last_updated_at: nil,
               published_message_count: 0,
-              published_message_count_last_updated_at: current_utc_time,
+              published_message_count_last_updated_at: nil,
               failed_message_count: 0,
-              failed_message_count_last_updated_at: current_utc_time,
+              failed_message_count_last_updated_at: nil,
               created_at: current_utc_time,
               updated_at: current_utc_time)
           end

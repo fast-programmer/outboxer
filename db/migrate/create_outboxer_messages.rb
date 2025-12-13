@@ -23,6 +23,10 @@ class CreateOutboxerMessages < ActiveRecord::Migration[6.1]
     add_index :outboxer_messages, :status, name: "idx_outboxer_status"
 
     # messages by status latency
+    add_index :outboxer_messages, [:status, :queued_at],
+      name: "idx_outboxer_status_queued_at"
+
+    # messages by status age
     add_index :outboxer_messages, [:status, :updated_at],
       name: "idx_outboxer_status_updated_at"
 
