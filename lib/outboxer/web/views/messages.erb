@@ -150,10 +150,10 @@
                                         </a>
                                     </td>
                                     <td title="<%= message[:queued_at].in_time_zone(denormalised_query_params[:time_zone]) %>">
-                                        <%= Outboxer::Web.time_ago_in_words(message[:queued_at]) %> ago
+                                        <%= Outboxer::Web.time_ago_in_words(message[:queued_at]) %>
                                     </td>
                                     <td title="<%= message[:updated_at].in_time_zone(denormalised_query_params[:time_zone]) %>">
-                                        <%= Outboxer::Web.time_ago_in_words(message[:updated_at]) %> ago
+                                        <%= Outboxer::Web.time_ago_in_words(message[:updated_at]) %>
                                     </td>
                                     <td>
                                         <% if message[:publisher_exists] %>

@@ -35,8 +35,8 @@
                                         <%= publisher[:name] %>
                                     </a>
                                 </td>
-                                <td><%= Outboxer::Web.time_ago_in_words(publisher[:created_at]) %> ago</td>
-                                <td><%= Outboxer::Web.time_ago_in_words(publisher[:updated_at]) %> ago</td>
+                                <td><%= Outboxer::Web.time_ago_in_words(publisher[:created_at]) %></td>
+                                <td><%= Outboxer::Web.time_ago_in_words(publisher[:updated_at]) %></td>
                                 <td class="text-capitalize"><%= publisher[:status] %></td>
                                 <td><%= Outboxer::Web.pretty_throughput(per_second: publisher[:metrics]['published']['throughput']) %></td>
                                 <td><%= Outboxer::Web.pretty_duration_from_seconds(seconds: publisher[:metrics]['latency']) %></td>
@@ -112,7 +112,7 @@
             <tr>
               <th scope="col">Status</th>
               <th scope="col">Count</th>
-              <!-- <th scope="col">Last Update</th> -->
+              <th scope="col">Last Update</th>
               <th scope="col">Latency</th>
             </tr>
           </thead>
@@ -123,21 +123,24 @@
 
               <tr>
                 <td class="text-capitalize">
-                  <a class="custom-link"
-                     href="<%= outboxer_path("/messages?status=#{status}") %>">
+                  <% if status != Outboxer::Message::Status::PUBLISHED %>
+                    <a class="custom-link"
+                        href="<%= outboxer_path("/messages?status=#{status}") %>">
+                        <%= status %>
+                    </a>
+                  <% else %>
                     <%= status %>
-                  </a>
+                  <% end %>
                 </td>
 
                 <td><%= Outboxer::Web.pretty_number(number: metrics[:count]) %></td>
+                <td><%= Outboxer::Web.time_ago_in_words(metrics[:last_update]) %></td>
 
-                <!-- <td><%= Outboxer::Web.pretty_duration_from_seconds(seconds: metrics[:age]) %></td>
-                -->
                 <td>
                   <% if metrics[:latency] %>
                     <%= Outboxer::Web.pretty_duration_from_seconds(seconds: metrics[:latency]) %>
                   <% else %>
-                    &mdash;
+                    -
                   <% end %>
                 </td>
               </tr>

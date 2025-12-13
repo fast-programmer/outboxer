@@ -63,13 +63,13 @@
                     <tr>
                         <th scope="row">Created</th>
                         <td title="<%= publisher[:created_at].in_time_zone(denormalised_query_params[:time_zone]) %>">
-                            <%= Outboxer::Web.time_ago_in_words(publisher[:created_at]) %> ago
+                            <%= Outboxer::Web.time_ago_in_words(publisher[:created_at]) %>
                         </td>
                     </tr>
                     <tr>
                         <th scope="row">Updated</th>
                         <td title="<%= publisher[:updated_at].in_time_zone(denormalised_query_params[:time_zone]) %>">
-                            <%= Outboxer::Web.time_ago_in_words(publisher[:updated_at]) %> ago
+                            <%= Outboxer::Web.time_ago_in_words(publisher[:updated_at]) %>
                         </td>
                     </tr>
                 </tbody>

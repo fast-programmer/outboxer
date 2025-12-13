@@ -76,7 +76,7 @@ module Outboxer
       end
 
       def pretty_duration_from_seconds(seconds:)
-        return "—" if seconds.nil? || seconds <= 0
+        return "-" if seconds.nil? || seconds <= 0
 
         # Units for sub-second durations
         sub_second_units = [
@@ -147,6 +147,12 @@ module Outboxer
         result.join(" ")
       end
 
+      def pretty_time_ago_from_seconds(seconds:, time: ::Time)
+        return "-" if seconds.nil? || seconds <= 0
+
+        "#{time_ago_in_words(time.now - seconds)} ago"
+      end
+
       def human_readable_size(kilobytes:)
         units = ["KB", "MB", "GB", "TB"]
         size = kilobytes.to_f
@@ -161,23 +167,33 @@ module Outboxer
       end
 
       def time_ago_in_words(time)
+        return "-" if time.nil?
+
         seconds = (::Time.now - time).to_i
+        future  = seconds.negative?
+        seconds = seconds.abs
 
-        if seconds < 60
-          "#{seconds} #{seconds == 1 ? "second" : "seconds"}"
-        else
-          prefix = seconds.negative? ? "from now" : ""
-          seconds = seconds.abs
+        # return "-" if seconds == 0
 
+        quantity, unit =
           case seconds
-          when 0..59 then "#{seconds} seconds #{prefix}"
-          when 60..3599 then "#{seconds / 60} minutes #{prefix}"
-          when 3600..86_399 then "#{seconds / 3600} hours #{prefix}"
-          when 86_400..2_591_999 then "#{seconds / 86_400} days #{prefix}"
-          when 2_592_000..31_103_999 then "#{seconds / 2_592_000} months #{prefix}"
-          else "#{seconds / 31_104_000} years #{prefix}"
+          when 0..59
+            [seconds, "second"]
+          when 60..3_599
+            [seconds / 60, "minute"]
+          when 3_600..86_399
+            [seconds / 3_600, "hour"]
+          when 86_400..2_591_999
+            [seconds / 86_400, "day"]
+          when 2_592_000..31_103_999
+            [seconds / 2_592_000, "month"]
+          else
+            [seconds / 31_104_000, "year"]
           end
-        end
+
+        unit += "s" unless quantity == 1
+
+        future ? "#{quantity} #{unit} from now" : "#{quantity} #{unit} ago"
       end
     end
 
