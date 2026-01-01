@@ -68,7 +68,7 @@ module Outboxer
         end
 
       ActiveRecord::Base.connection_pool.with_connection do
-        ActiveRecord::Base.transaction(isolation: :read_committed) do
+        ActiveRecord::Base.transaction do
           message = Models::Message.create!(
             status: Status::QUEUED,
             messageable_id: id,
