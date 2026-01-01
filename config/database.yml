@@ -1,19 +1,26 @@
-development:
-  adapter: <%= ENV.fetch('DATABASE_ADAPTER') { 'postgresql' } %>
+<%
+adapter = ENV.fetch("DATABASE_ADAPTER", "postgresql")
+is_mysql = adapter == "mysql2"
+env = ENV["APP_ENV"] || ENV["RAILS_ENV"] || "development"
+%>
+
+default: &default
+  adapter: <%= adapter %>
+  host: <%= ENV.fetch("DATABASE_HOST", "localhost") %>
+  port: <%= ENV.fetch("DATABASE_PORT") { is_mysql ? 3306 : 5432 } %>
+  username: <%= ENV.fetch("DATABASE_USERNAME", "outboxer_developer") %>
+  password: <%= ENV.fetch("DATABASE_PASSWORD", "outboxer_password") %>
+  database: outboxer_<%= env %>
+  pool: <%= ENV.fetch("DATABASE_POOL") { ENV.fetch("RAILS_MAX_THREADS", 3) } %>
+
+  <% if is_mysql %>
+  encoding: utf8mb4
+  <% else %>
   encoding: utf8
-  host: <%= ENV.fetch('DATABASE_HOST') { 'localhost' } %>
-  port: <%= ENV.fetch('DATABASE_PORT') { 5432 } %>
-  username: outboxer_developer
-  password: outboxer_password
-  database: outboxer_development
-  pool: <%= ENV.fetch('DATABASE_POOL') { ENV.fetch('RAILS_MAX_THREADS', 3) } %>
+  <% end %>
+
+development:
+  <<: *default
 
 test:
-  adapter: <%= ENV.fetch('DATABASE_ADAPTER') { 'postgresql' } %>
-  encoding: utf8
-  host: <%= ENV.fetch('DATABASE_HOST') { 'localhost' } %>
-  port: <%= ENV.fetch('DATABASE_PORT') { 5432 } %>
-  username: outboxer_developer
-  password: outboxer_password
-  database: outboxer_test
-  pool: <%= ENV.fetch('DATABASE_POOL') { ENV.fetch('RAILS_MAX_THREADS', 3) } %>
+  <<: *default

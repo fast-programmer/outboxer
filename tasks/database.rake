@@ -9,7 +9,16 @@ namespace :outboxer do
       environment = ENV["APP_ENV"] || ENV["RAILS_ENV"] || "development"
       db_config = Outboxer::Database.config(environment: environment, pool: 1)
 
-      ActiveRecord::Base.establish_connection(db_config.merge(database: "postgres"))
+      maintenance_db_config = case ENV.fetch("DATABASE_ADAPTER", "postgresql")
+                              when "postgresql"
+                                db_config.merge(database: "postgres")
+                              when "mysql2"
+                                db_config.merge(database: nil)
+                              else
+                                raise "Unsupported DATABASE_ADAPTER: #{adapter.inspect}"
+                              end
+
+      ActiveRecord::Base.establish_connection(maintenance_db_config)
       ActiveRecord::Base.connection.drop_database(db_config[:database])
       ActiveRecord::Base.connection.disconnect!
     end
@@ -18,7 +27,16 @@ namespace :outboxer do
       environment = ENV["APP_ENV"] || ENV["RAILS_ENV"] || "development"
       db_config = Outboxer::Database.config(environment: environment, pool: 1)
 
-      ActiveRecord::Base.establish_connection(db_config.merge(database: "postgres"))
+      maintenance_db_config = case ENV.fetch("DATABASE_ADAPTER", "postgresql")
+                              when "postgresql"
+                                db_config.merge(database: "postgres")
+                              when "mysql2"
+                                db_config.merge(database: nil)
+                              else
+                                raise "Unsupported DATABASE_ADAPTER: #{adapter.inspect}"
+                              end
+
+      ActiveRecord::Base.establish_connection(maintenance_db_config)
       ActiveRecord::Base.connection.create_database(db_config[:database])
       ActiveRecord::Base.connection.disconnect!
     end

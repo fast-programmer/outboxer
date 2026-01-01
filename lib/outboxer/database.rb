@@ -92,6 +92,7 @@ module Outboxer
             RESTART IDENTITY;
           SQL
         else
+          # :nocov:
           foreign_key_checks = connection.select_value("SELECT @@FOREIGN_KEY_CHECKS;").to_i
 
           begin
@@ -105,6 +106,7 @@ module Outboxer
           ensure
             connection.execute("SET FOREIGN_KEY_CHECKS = #{foreign_key_checks};")
           end
+          # :nocov:
         end
       end
     end
