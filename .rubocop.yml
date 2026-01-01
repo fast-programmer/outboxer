@@ -62,6 +62,9 @@ Layout/MultilineMethodCallBraceLayout:
   Exclude:
     - 'bin/outboxer_publisher'
     - 'spec/**/*'
+Layout/IndentationWidth:
+  Enabled: true
+  Width: 2
 Naming/VariableNumber:
   Enabled: false
 Naming/RescuedExceptionsVariableName:

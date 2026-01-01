@@ -63,10 +63,9 @@ module Outboxer
             Message
               .list(sort: :messageable, order: :asc)[:messages]
               .map do |message|
-              [message[:messageable_type],
-               message[:messageable_id]]
-            end).to eq([["Event", "1"], ["Event", "2"], ["Event", "4"],
-                        ["Event", "5"]])
+                [message[:messageable_type], message[:messageable_id]]
+              end).to eq([["Event", "1"], ["Event", "2"], ["Event", "4"],
+                          ["Event", "5"]])
         end
 
         it "sorts messages by messageable in descending order" do
@@ -74,9 +73,8 @@ module Outboxer
             Message
               .list(sort: :messageable, order: :desc)[:messages]
               .map do |message|
-              [message[:messageable_type],
-               message[:messageable_id]]
-            end).to eq([["Event", "5"], ["Event", "4"], ["Event", "2"], ["Event", "1"]])
+                [message[:messageable_type], message[:messageable_id]]
+              end).to eq([["Event", "5"], ["Event", "4"], ["Event", "2"], ["Event", "1"]])
         end
       end
 

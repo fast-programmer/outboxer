@@ -225,7 +225,7 @@ module Outboxer
       current_utc_time = time.now.utc
 
       ActiveRecord::Base.connection_pool.with_connection do
-        ActiveRecord::Base.transaction do
+        ActiveRecord::Base.transaction(isolation: :read_committed) do
           message_row = Models::Message
             .where(status: Status::QUEUED)
             .order(:id)
@@ -279,7 +279,7 @@ module Outboxer
       current_utc_time = time.now.utc
 
       ActiveRecord::Base.connection_pool.with_connection do
-        ActiveRecord::Base.transaction do
+        ActiveRecord::Base.transaction(isolation: :read_committed) do
           message_row = Models::Message
             .lock("FOR UPDATE")
             .where(id: id, lock_version: lock_version, status: Status::PUBLISHING)
@@ -324,7 +324,7 @@ module Outboxer
       current_utc_time = time.now.utc
 
       ActiveRecord::Base.connection_pool.with_connection do
-        ActiveRecord::Base.transaction do
+        ActiveRecord::Base.transaction(isolation: :read_committed) do
           message = Models::Message.lock.find_by!(id: id)
 
           if message.status != Models::Message::Status::PUBLISHING
@@ -398,7 +398,7 @@ module Outboxer
     # @return [Hash] detailed information about the message.
     def find_by_id(id:)
       ActiveRecord::Base.connection_pool.with_connection do
-        ActiveRecord::Base.transaction do
+        ActiveRecord::Base.transaction(isolation: :read_committed) do
           message = Models::Message
             .left_joins(:publisher)
             .includes(exceptions: :frames)
@@ -457,7 +457,7 @@ module Outboxer
       current_utc_time = time.now.utc
 
       ActiveRecord::Base.connection_pool.with_connection do
-        ActiveRecord::Base.transaction do
+        ActiveRecord::Base.transaction(isolation: :read_committed) do
           message = Models::Message.lock.find_by!(id: id)
           message.update!(lock_version: lock_version, updated_at: current_utc_time)
           message.delete
@@ -503,7 +503,7 @@ module Outboxer
       current_utc_time = time.now.utc
 
       ActiveRecord::Base.connection_pool.with_connection do
-        ActiveRecord::Base.transaction do
+        ActiveRecord::Base.transaction(isolation: :read_committed) do
           message = Models::Message.lock.find_by!(id: id)
           original_status = message.status
 
@@ -644,7 +644,7 @@ module Outboxer
       current_utc_time = time.now.utc
 
       ActiveRecord::Base.connection_pool.with_connection do
-        ActiveRecord::Base.transaction do
+        ActiveRecord::Base.transaction(isolation: :read_committed) do
           # 1. Ensure the historic thread exists (idempotent upsert)
           Models::Thread.update_message_counts_by!(
             hostname: Models::Thread::HISTORIC_HOSTNAME,
