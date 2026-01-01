@@ -10,7 +10,6 @@ default: &default
   port: <%= ENV.fetch("DATABASE_PORT") { is_mysql ? 3306 : 5432 } %>
   username: <%= ENV.fetch("DATABASE_USERNAME", "outboxer_developer") %>
   password: <%= ENV.fetch("DATABASE_PASSWORD", "outboxer_password") %>
-  database: outboxer_<%= env %>
   pool: <%= ENV.fetch("DATABASE_POOL") { ENV.fetch("RAILS_MAX_THREADS", 3) } %>
 
   <% if is_mysql %>
@@ -21,6 +20,8 @@ default: &default
 
 development:
   <<: *default
+  database: outboxer_development
 
 test:
   <<: *default
+  database: outboxer_test

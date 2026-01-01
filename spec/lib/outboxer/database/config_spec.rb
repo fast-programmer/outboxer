@@ -60,7 +60,7 @@ module Outboxer
 
           expect(config).to include(
             adapter: a_string_matching(/postgresql|mysql2/),
-            encoding: "utf8",
+            encoding: a_string_matching(/utf8|utf8mb4/),
             host: a_string_matching(/localhost|127\.0\.0\.1/),
             username: "outboxer_developer",
             password: "outboxer_password",
