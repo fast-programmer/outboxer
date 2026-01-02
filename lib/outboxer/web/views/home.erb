@@ -14,14 +14,11 @@
                         <% else %>
                             <tr>
                                 <th scope="col" class="dynamic-name-column">Name</th> <!-- Dynamic column -->
+                                <th scope="col">Status</th>
                                 <th scope="col">Created</th>
                                 <th scope="col">Updated</th>
-                                <th scope="col">Status</th>
                                 <th scope="col">Throughput</th>
-                                <th scope="col">Latency</th>
-                                <th scope="col">CPU</th>
-                                <th scope="col">RSS</th>
-                                <th scope="col">RTT</th>
+                                <th scope="col">Metrics</th>
                                 <th scope="col">Action</th> <!-- New Action column -->
                             </tr>
                         <% end %>
@@ -34,15 +31,56 @@
                                        href="<%= outboxer_path("/publisher/#{publisher[:id]}#{normalise_query_string(time_zone: denormalised_query_params[:time_zone])}") %>">
                                         <%= publisher[:name] %>
                                     </a>
-                                </td>
-                                <td><%= Outboxer::Web.time_ago_in_words(publisher[:created_at]) %></td>
-                                <td><%= Outboxer::Web.time_ago_in_words(publisher[:updated_at]) %></td>
+
+                                    <div class="text-muted small mt-1">
+                                        <div>
+                                            Concurrency: <%= publisher[:settings]['concurrency'] %>,
+                                            Poll: <%= publisher[:settings]['poll_interval'] %>s,
+                                            Heartbeat: <%= publisher[:settings]['heartbeat_interval'] %>s,
+                                            Tick: <%= publisher[:settings]['tick_interval'] %>s
+                                        </div>
+                                    </div>                                </td>
                                 <td class="text-capitalize"><%= publisher[:status] %></td>
-                                <td><%= Outboxer::Web.pretty_throughput(per_second: publisher[:metrics]['published']['throughput']) %></td>
-                                <td><%= Outboxer::Web.pretty_duration_from_seconds(seconds: publisher[:metrics]['latency']) %></td>
-                                <td><%= publisher[:metrics]['cpu'].round(0) %>%</td>
-                                <td><%= Outboxer::Web.human_readable_size(kilobytes: publisher[:metrics]['rss']) %></td>
-                                <td><%= Outboxer::Web.pretty_duration_from_seconds(seconds: publisher[:metrics]['rtt']) %></td>
+                                <td><%= Outboxer::Web.time_ago_in_words(publisher[:created_at]) %></td>
+                                <td>
+                                    <div class="small text-muted">
+
+                                        <!-- Heartbeat / Metrics Updated -->
+                                        <div>
+                                            <strong>Heartbeat:</strong>
+                                            <%= Outboxer::Web.time_ago_in_words(publisher[:updated_at]) %>
+                                        </div>
+
+                                        <!-- Last Message Published -->
+                                        <div>
+                                            <strong>Message:</strong>
+                                            <% if publisher[:metrics]['last_message_update'] %>
+                                                <%= Outboxer::Web.time_ago_in_words(Time.iso8601(publisher[:metrics]['last_message_update'])) %>
+                                            <% else %>
+                                                -
+                                            <% end %>
+                                        </div>
+                                    <td><%= Outboxer::Web.pretty_throughput(per_second: publisher[:metrics]['published']['throughput']) %></td>
+                                    <td>
+                                    <div class="small text-muted">
+
+                                        <div>
+                                            <strong>CPU:</strong>
+                                            <%= publisher[:metrics]['cpu'].round(0) %>%
+                                        </div>
+
+                                        <div>
+                                            <strong>RSS:</strong>
+                                            <%= Outboxer::Web.human_readable_size(kilobytes: publisher[:metrics]['rss']) %>
+                                        </div>
+
+                                        <div>
+                                            <strong>RTT:</strong>
+                                            <%= Outboxer::Web.pretty_duration_from_seconds(seconds: publisher[:metrics]['rtt']) %>
+                                        </div>
+
+                                    </div>
+                                </td>
                                 <td>
                                     <div class="d-flex gap-1">
                                         <!-- Pause Button -->
@@ -112,7 +150,7 @@
             <tr>
               <th scope="col">Status</th>
               <th scope="col">Count</th>
-              <th scope="col">Last Update</th>
+              <th scope="col">Updated</th>
               <th scope="col">Latency</th>
             </tr>
           </thead>

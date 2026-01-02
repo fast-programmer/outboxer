@@ -55,7 +55,6 @@
         <div class="container-fluid">
             <a class="navbar-brand" href="<%= outboxer_path('') %>">
                 <i class="bi bi-envelope-open-fill"></i> Outboxer
-                <span class="badge bg-secondary"><%= Outboxer::Web.pretty_number(number: message_metrics_by_status[:published][:count]) %></span>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
@@ -63,9 +62,10 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav">
                     <% statuses = [
-                        { name: 'Queued', key: 'queued' },
-                        { name: 'Publishing', key: 'publishing' },
-                        { name: 'Failed', key: 'failed' }
+                        { name: 'Queued', key: 'queued', linkable: true },
+                        { name: 'Publishing', key: 'publishing', linkable: true },
+                        { name: 'Failed', key: 'failed', linkable: true },
+                        { name: 'Published', key: 'published', linkable: false },
                     ] %>
 
                     <li class="nav-item">
@@ -77,10 +77,18 @@
 
                     <% statuses.each do |status| %>
                         <li class="nav-item">
-                            <a class="nav-link <%= 'active' if denormalised_query_params[:status] == status[:key] %>"
-                               href="<%= outboxer_path("/messages#{normalise_query_string(status: status[:key], time_zone: params[:time_zone])}") %>">
-                                <%= status[:name] %> (<%= Outboxer::Web.pretty_number(number: message_metrics_by_status[status[:key].to_sym][:count]) %>)
-                            </a>
+                            <% if status[:linkable] %>
+                                <a class="nav-link <%= 'active' if denormalised_query_params[:status] == status[:key] %>"
+                                   href="<%= outboxer_path("/messages#{normalise_query_string(status: status[:key], time_zone: params[:time_zone])}") %>">
+                                    <%= status[:name] %>
+                                    (<%= Outboxer::Web.pretty_number(number: message_metrics_by_status[status[:key].to_sym][:count]) %>)
+                                </a>
+                            <% else %>
+                                <span class="nav-link disabled same-colour">
+                                    <%= status[:name] %>
+                                    (<%= Outboxer::Web.pretty_number(number: message_metrics_by_status[status[:key].to_sym][:count]) %>)
+                                </span>
+                            <% end %>
                         </li>
                     <% end %>
                 </ul>

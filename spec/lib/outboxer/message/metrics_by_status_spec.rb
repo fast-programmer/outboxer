@@ -43,7 +43,7 @@ module Outboxer
           publishing: { count: 26, last_update: current_utc_time, latency: nil },
           published: { count: 37, last_update: current_utc_time, latency: nil },
           failed: { count: 48, last_update: current_utc_time, latency: nil },
-          total: { count: 126, last_update: nil, latency: nil }
+          total: { count: 89, last_update: nil, latency: nil }
         )
       end
     end
