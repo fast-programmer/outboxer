@@ -117,7 +117,7 @@
                         <td><%= Outboxer::Web.human_readable_size(kilobytes: publisher[:metrics]['rss']) %></td>
                     </tr>
                     <tr>
-                        <th scope="row">RTT</th>
+                        <th scope="row">Database RTT</th>
                         <td><%= Outboxer::Web.pretty_duration_from_seconds(seconds: publisher[:metrics]['rtt']) %></td>
                     </tr>
                 </tbody>

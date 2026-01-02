@@ -95,7 +95,7 @@ module Outboxer
     def all
       ActiveRecord::Base.connection_pool.with_connection do
         ActiveRecord::Base.transaction do
-          publishers = Models::Publisher.includes(:signals).all
+          publishers = Models::Publisher.includes(:signals).order(created_at: :asc).all
 
           publishers.map do |publisher|
             {
@@ -295,9 +295,7 @@ module Outboxer
             ActiveRecord::Base.connection_pool.with_connection do
               ActiveRecord::Base.transaction do
                 start_rtt = process.clock_gettime(process::CLOCK_MONOTONIC)
-
                 publisher = Models::Publisher.lock.find(id)
-
                 end_rtt = process.clock_gettime(process::CLOCK_MONOTONIC)
                 rtt = end_rtt - start_rtt
 
@@ -315,19 +313,19 @@ module Outboxer
                 time_delta = [current_utc_time - last_updated_at, heartbeat_interval].max
 
                 publisher_thread = Models::Thread
-                  .select(
-                    "COALESCE(SUM(queued_message_count), 0) AS queued_message_count,
-                     COALESCE(SUM(publishing_message_count), 0) AS publishing_message_count,
-                     COALESCE(SUM(published_message_count), 0) AS published_message_count,
-                     COALESCE(SUM(failed_message_count), 0) AS failed_message_count,
-                     MAX(updated_at) AS last_updated_at"
-                  )
+                  .select("
+                    COALESCE(SUM(publishing_message_count), 0)    AS publishing_message_count,
+                    COALESCE(SUM(published_message_count), 0)     AS published_message_count,
+                    COALESCE(SUM(failed_message_count), 0)        AS failed_message_count,
+
+                    MAX(publishing_message_count_last_updated_at) AS publishing_message_count_last_updated_at,
+                    MAX(published_message_count_last_updated_at)  AS published_message_count_last_updated_at,
+                    MAX(failed_message_count_last_updated_at)     AS failed_message_count_last_updated_at")
                   .where(hostname: hostname, process_id: process_id)
                   .group(:hostname, :process_id)
                   .take
 
                 current_counts = {
-                  "queued" => publisher_thread&.queued_message_count || 0,
                   "publishing" => publisher_thread&.publishing_message_count || 0,
                   "published" => publisher_thread&.published_message_count || 0,
                   "failed" => publisher_thread&.failed_message_count || 0
@@ -339,10 +337,14 @@ module Outboxer
                     h[status] = ((count - prev) / time_delta).round(0)
                   end
 
-                latency = 0
+                timestamps = [
+                  publisher_thread.publishing_message_count_last_updated_at,
+                  publisher_thread.published_message_count_last_updated_at,
+                  publisher_thread.failed_message_count_last_updated_at
+                ].compact
 
-                if !publisher_thread.nil?
-                  latency = (current_utc_time - publisher_thread.last_updated_at).round(0)
+                if !timestamps.empty?
+                  last_message_update = timestamps.max
                 end
 
                 publisher.update!(
@@ -364,7 +366,7 @@ module Outboxer
                       "count" => current_counts["failed"],
                       "throughput" => throughput_by_status["failed"]
                     },
-                    "latency" => latency,
+                    "last_message_update" => last_message_update&.iso8601,
                     "cpu" => cpu,
                     "rss" => rss,
                     "rtt" => rtt
