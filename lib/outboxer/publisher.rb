@@ -313,14 +313,17 @@ module Outboxer
                 time_delta = [current_utc_time - last_updated_at, heartbeat_interval].max
 
                 publisher_thread = Models::Thread
-                  .select("
-                    COALESCE(SUM(publishing_message_count), 0)    AS publishing_message_count,
-                    COALESCE(SUM(published_message_count), 0)     AS published_message_count,
-                    COALESCE(SUM(failed_message_count), 0)        AS failed_message_count,
-
-                    MAX(publishing_message_count_last_updated_at) AS publishing_message_count_last_updated_at,
-                    MAX(published_message_count_last_updated_at)  AS published_message_count_last_updated_at,
-                    MAX(failed_message_count_last_updated_at)     AS failed_message_count_last_updated_at")
+                  .select(
+                    "COALESCE(SUM(publishing_message_count), 0) AS publishing_message_count, " \
+                      "COALESCE(SUM(published_message_count), 0) AS published_message_count, " \
+                      "COALESCE(SUM(failed_message_count), 0) AS failed_message_count, " \
+                      "MAX(publishing_message_count_last_updated_at) " \
+                      "AS publishing_message_count_last_updated_at, " \
+                      "MAX(published_message_count_last_updated_at) " \
+                      "AS published_message_count_last_updated_at, " \
+                      "MAX(failed_message_count_last_updated_at) " \
+                      "AS failed_message_count_last_updated_at"
+                  )
                   .where(hostname: hostname, process_id: process_id)
                   .group(:hostname, :process_id)
                   .take
