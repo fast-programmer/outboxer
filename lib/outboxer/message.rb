@@ -745,7 +745,7 @@ module Outboxer
             "COALESCE(SUM(failed_message_count), 0)      AS failed",
             "COALESCE(SUM(" \
               "queued_message_count + publishing_message_count + " \
-              "published_message_count + failed_message_count), 0) AS total"
+              "failed_message_count), 0) AS total"
           ).take
 
           counts_hash = counts.attributes.symbolize_keys.transform_values(&:to_i)

@@ -16,7 +16,7 @@
                                 <th scope="col" class="dynamic-name-column">Name</th> <!-- Dynamic column -->
                                 <th scope="col">Status</th>
                                 <th scope="col">Created</th>
-                                <th scope="col">Last Updates</th>
+                                <th scope="col">Updated</th>
                                 <th scope="col">Throughput</th>
                                 <th scope="col">Metrics</th>
                                 <th scope="col">Action</th> <!-- New Action column -->
@@ -27,19 +27,17 @@
                         <% publishers.each do |publisher| %>
                             <tr>
                                 <td class="dynamic-name-column">
-                                    <strong>
                                     <a class="custom-link"
                                        href="<%= outboxer_path("/publisher/#{publisher[:id]}#{normalise_query_string(time_zone: denormalised_query_params[:time_zone])}") %>">
                                         <%= publisher[:name] %>
                                     </a>
-                                    </strong>
 
                                     <div class="text-muted small mt-1">
                                         <div>
-                                            <strong>Concurrency:</strong> <%= publisher[:settings]['concurrency'] %>,
-                                            <strong>Tick:</strong> <%= publisher[:settings]['tick_interval'] %>s,
-                                            <strong>Poll:</strong> <%= publisher[:settings]['poll_interval'] %>s,
-                                            <strong>Heartbeat:</strong> <%= publisher[:settings]['heartbeat_interval'] %>s
+                                            Concurrency: <%= publisher[:settings]['concurrency'] %>,
+                                            Poll: <%= publisher[:settings]['poll_interval'] %>s,
+                                            Heartbeat: <%= publisher[:settings]['heartbeat_interval'] %>s,
+                                            Tick: <%= publisher[:settings]['tick_interval'] %>s
                                         </div>
                                     </div>                                </td>
                                 <td class="text-capitalize"><%= publisher[:status] %></td>
@@ -152,7 +150,7 @@
             <tr>
               <th scope="col">Status</th>
               <th scope="col">Count</th>
-              <th scope="col">Last Update</th>
+              <th scope="col">Updated</th>
               <th scope="col">Latency</th>
             </tr>
           </thead>
