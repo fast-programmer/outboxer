@@ -1,6 +1,12 @@
-require "aws-sdk-cloudwatch"
+#!/usr/bin/env ruby
 
-# env = ENV["APP_ENV"] || ENV["RAILS_ENV"] || "development"
+require "bundler/setup"
+require "aws-sdk-cloudwatch"
+require "outboxer"
+
+environment = ENV["RAILS_ENV"] || "development"
+db_config = Outboxer::Database.config(environment: environment, pool: 1)
+Outboxer::Database.connect(config: db_config)
 
 running = true
 
@@ -8,7 +14,14 @@ running = true
   Signal.trap(sig) { running = false }
 end
 
-cloud_watch = Aws::CloudWatch::Client.new
+cloud_watch = Aws::CloudWatch::Client.new(
+  credentials: Aws::Credentials.new(
+    ENV.fetch("AWS_ACCESS_KEY_ID"),
+    ENV.fetch("AWS_SECRET_ACCESS_KEY")
+  ),
+  region: ENV.fetch("AWS_REGION"),
+  ssl_verify_peer: false
+)
 
 interval = 10
 tick = 1

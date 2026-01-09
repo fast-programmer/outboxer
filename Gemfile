@@ -11,6 +11,7 @@ gem "rackup", "~> 2.0"
 gem "sinatra", "~> 4.2"
 
 group :development, :test do
+  gem "aws-sdk-cloudwatch", "~> 1.128"
   gem "database_cleaner", "~> 2.0"
   gem "dotenv", "~> 3.0"
   gem "factory_bot", "~> 6.0"
