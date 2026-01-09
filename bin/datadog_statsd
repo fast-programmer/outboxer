@@ -1,0 +1,46 @@
+#!/usr/bin/env ruby
+
+require "bundler/setup"
+require "datadog/statsd"
+require "outboxer"
+
+environment = ENV["RAILS_ENV"] || "development"
+db_config = Outboxer::Database.config(environment: environment, pool: 1)
+Outboxer::Database.connect(config: db_config)
+
+running = true
+
+["TERM", "INT"].each do |sig|
+  Signal.trap(sig) { running = false }
+end
+
+dogstatsd = Datadog::Statsd.new(
+  "127.0.0.1", 8125,
+  tags: ["env:#{environment}", "service:outboxer", "version:#{Outboxer::VERSION}"]
+)
+
+interval = 10
+tick = 1
+
+logger = Outboxer::Logger.new($stdout, level: 1)
+logger.info "Sending outboxer.messages.* statsd metrics to datadog..."
+
+while running
+  Outboxer::Message.metrics_by_status.each do |status, metrics|
+    dogstatsd.gauge("outboxer.messages.count", metrics[:count], tags: ["status:#{status}"])
+
+    if metrics[:latency]
+      dogstatsd.gauge("outboxer.messages.latency", metrics[:latency], tags: ["status:#{status}"])
+    end
+  end
+
+  slept = 0
+
+  while running && slept < interval
+    sleep tick
+
+    slept += tick
+  end
+end
+
+logger.info "Shutting down"

@@ -23,4 +23,5 @@ group :development, :test do
   gem "rubocop", "~> 1.70"
   gem "simplecov", "~> 0.0"
   gem "yard", ">= 0.9.36", "< 1.0"
+  gem "dogstatsd-ruby", "~> 5.7", ">= 5.7.1"
 end
