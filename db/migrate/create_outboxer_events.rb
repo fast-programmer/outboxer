@@ -1,7 +1,11 @@
-class CreateEvents < ActiveRecord::Migration[7.0]
+class CreateOutboxerEvents < ActiveRecord::Migration[7.0]
   def up
-    create_table :events do |t|
+    create_table :outboxer_events do |t|
+      t.integer :order, null: false
       t.datetime :created_at, null: false
+
+      t.string :eventable_id, limit: 255, null: false
+      t.string :eventable_type, limit: 255, null: false
 
       t.string :type, null: false, limit: 255
       t.send json_column_type, :body
@@ -12,7 +16,7 @@ class CreateEvents < ActiveRecord::Migration[7.0]
   end
 
   def down
-    drop_table :events if table_exists?(:events)
+    drop_table :outboxer_events if table_exists?(:outboxer_events)
   end
 
   private
