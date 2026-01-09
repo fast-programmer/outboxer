@@ -12,6 +12,7 @@ gem "sinatra", "~> 4.2"
 
 group :development, :test do
   gem "database_cleaner", "~> 2.0"
+  gem "dogstatsd-ruby", "~> 5.7", ">= 5.7.1"
   gem "dotenv", "~> 3.0"
   gem "factory_bot", "~> 6.0"
   gem "foreman", "~> 0.0"
@@ -23,5 +24,4 @@ group :development, :test do
   gem "rubocop", "~> 1.70"
   gem "simplecov", "~> 0.0"
   gem "yard", ">= 0.9.36", "< 1.0"
-  gem "dogstatsd-ruby", "~> 5.7", ">= 5.7.1"
 end
