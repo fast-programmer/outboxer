@@ -26,6 +26,9 @@ cloud_watch = Aws::CloudWatch::Client.new(
 interval = 10
 tick = 1
 
+logger = Outboxer::Logger.new($stdout, level: 1)
+logger.info "Sending Outboxer metrics to CloudWatch..."
+
 while running
   metrics_by_status = Outboxer::Message.metrics_by_status
 
@@ -53,3 +56,5 @@ while running
     slept += tick
   end
 end
+
+logger.info "Shutting down"
