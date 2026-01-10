@@ -33,8 +33,8 @@ dogstatsd = Datadog::Statsd.new(
   tags: ["env:#{environment}", "service:outboxer", "version:#{Outboxer::VERSION}"]
 )
 
-interval = 10
-tick = 1
+sleep_interval = 60
+tick_interval = 1
 
 logger = Outboxer::Logger.new($stdout, level: 1)
 logger.info "Sending outboxer.messages.* statsd metrics to datadog..."
@@ -50,10 +50,10 @@ while running
 
   slept = 0
 
-  while running && slept < interval
-    sleep tick
+  while running && slept < sleep_interval
+    sleep tick_interval
 
-    slept += tick
+    slept += tick_interval
   end
 end
 
