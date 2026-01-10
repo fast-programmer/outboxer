@@ -48,3 +48,5 @@ module Outboxer
     end
   end
 end
+
+# bundle exec rails g outboxer:install
