@@ -1,7 +1,21 @@
 #!/usr/bin/env ruby
 
 require "bundler/setup"
-require "datadog/statsd"
+
+begin
+  require "datadog/statsd"
+rescue LoadError
+  abort <<~MSG
+    dogstatsd-ruby is not installed.
+
+    Add it to your Gemfile:
+
+      gem "dogstatsd-ruby"
+
+    Then run bundle install.
+  MSG
+end
+
 require "outboxer"
 
 environment = ENV["RAILS_ENV"] || "development"
