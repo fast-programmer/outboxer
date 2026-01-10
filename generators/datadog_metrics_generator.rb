@@ -27,3 +27,4 @@ module Outboxer
 end
 
 # bundle exec rails g outboxer:install_datadog_metrics
+# bin/outboxer_datadog_metrics
