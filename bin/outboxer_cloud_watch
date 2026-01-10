@@ -4,26 +4,26 @@ require "bundler/setup"
 require "aws-sdk-cloudwatch"
 require "outboxer"
 
+put_interval = 60
+tick_interval = 1
+
 environment = ENV["RAILS_ENV"] || "development"
 db_config = Outboxer::Database.config(environment: environment, pool: 1)
 Outboxer::Database.connect(config: db_config)
 
 running = true
 
-["TERM", "INT"].each do |sig|
-  Signal.trap(sig) { running = false }
+["TERM", "INT"].each do |signal|
+  Signal.trap(signal) { running = false }
 end
 
-cloud_watch = Aws::CloudWatch::Client.new(
+cloud_watch_client = Aws::CloudWatch::Client.new(
   credentials: Aws::Credentials.new(
     ENV.fetch("AWS_ACCESS_KEY_ID"), ENV.fetch("AWS_SECRET_ACCESS_KEY")
   ),
   region: ENV.fetch("AWS_REGION"),
   ssl_verify_peer: false
 )
-
-interval = 10
-tick = 1
 
 logger = Outboxer::Logger.new($stdout, level: 1)
 logger.info "Sending Outboxer metrics to CloudWatch..."
@@ -53,14 +53,14 @@ while running
     }
   ]
 
-  cloud_watch.put_metric_data(namespace: "Outboxer", metric_data: metric_data)
+  cloud_watch_client.put_metric_data(namespace: "Outboxer", metric_data: metric_data)
 
   slept = 0
 
-  while running && slept < interval
-    sleep tick
+  while running && slept < put_interval
+    sleep tick_interval
 
-    slept += tick
+    slept += tick_interval
   end
 end
 
