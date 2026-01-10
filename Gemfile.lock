@@ -183,7 +183,7 @@ PLATFORMS
   x86_64-linux
 
 DEPENDENCIES
-  aws-sdk-cloudwatch
+  aws-sdk-cloudwatch (~> 1.128)
   coveralls_reborn
   database_cleaner (~> 2.0)
   dotenv (~> 3.0)
