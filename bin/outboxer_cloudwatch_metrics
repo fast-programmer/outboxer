@@ -1,10 +1,24 @@
 #!/usr/bin/env ruby
 
 require "bundler/setup"
-require "aws-sdk-cloudwatch"
+
+begin
+  require "aws-sdk-cloudwatch"
+rescue LoadError
+  abort <<~MSG
+    aws-sdk-cloudwatch is not installed.
+
+    Add it to your Gemfile:
+
+      gem "aws-sdk-cloudwatch"
+
+    Then run bundle install.
+  MSG
+end
+
 require "outboxer"
 
-put_interval = 60
+sleep_interval = 60
 tick_interval = 1
 
 environment = ENV["RAILS_ENV"] || "development"
@@ -57,7 +71,7 @@ while running
 
   slept = 0
 
-  while running && slept < put_interval
+  while running && slept < sleep_interval
     sleep tick_interval
 
     slept += tick_interval
