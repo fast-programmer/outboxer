@@ -83,6 +83,7 @@ module Outboxer
         if connection.adapter_name.downcase.include?("postgres")
           connection.execute(<<~SQL)
             TRUNCATE TABLE
+              outboxer_events,
               outboxer_frames,
               outboxer_exceptions,
               outboxer_threads,
@@ -97,6 +98,7 @@ module Outboxer
 
           begin
             connection.execute("SET FOREIGN_KEY_CHECKS = 0;")
+            connection.execute("TRUNCATE TABLE outboxer_events;")
             connection.execute("TRUNCATE TABLE outboxer_frames;")
             connection.execute("TRUNCATE TABLE outboxer_exceptions;")
             connection.execute("TRUNCATE TABLE outboxer_threads;")

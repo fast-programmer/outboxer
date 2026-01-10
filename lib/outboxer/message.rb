@@ -71,17 +71,22 @@ module Outboxer
         ActiveRecord::Base.transaction do
           message = Models::Message.create!(
             status: Status::QUEUED,
-            messageable_id: id,
             messageable_type: type,
+            messageable_id: id,
             queued_at: current_utc_time,
             updated_at: current_utc_time
           )
+
+          event = Models::QueuedEvent.create!(
+            order: lock_version, created_at: current_utc_time,
+            eventable: message,
+            body: { hostname: hostname, process_id: process_id, thread_id: thread_id })
 
           Models::Thread.update_message_counts_by!(
             hostname: hostname, process_id: process_id, thread_id: thread_id,
             queued_message_count: 1, current_utc_time: current_utc_time)
 
-          { id: message.id, lock_version: message.lock_version }
+          { id: message.id, lock_version: message.lock_version, event_id: event.id }
         end
       end
     end
@@ -242,6 +247,11 @@ module Outboxer
                 Status::PUBLISHING, current_utc_time, current_utc_time
               ])
 
+            event = Models::PublishingEvent.create!(
+              order: message_row[1] + 1, created_at: current_utc_time,
+              eventable_type: Models::Message.class, eventable_id: message_row[0],
+              body: { hostname: hostname, process_id: process_id, thread_id: thread_id })
+
             Models::Thread.update_message_counts_by!(
               hostname: hostname, process_id: process_id, thread_id: thread_id,
               queued_message_count: -1, publishing_message_count: 1,
@@ -251,7 +261,8 @@ module Outboxer
               id: message_row[0],
               lock_version: message_row[1] + 1,
               messageable_type: message_row[2],
-              messageable_id: message_row[3]
+              messageable_id: message_row[3],
+              event_id: event.id
             }
           end
         end
@@ -346,6 +357,12 @@ module Outboxer
             end
           end
 
+          event = Models::PublishingFailedEvent.create!(
+            order: lock_version,
+            created_at: current_utc_time,
+            eventable: message,
+            body: { exception: exception })
+
           Models::Thread.update_message_counts_by!(
             hostname: hostname, process_id: process_id, thread_id: thread_id,
             publishing_message_count: -1, failed_message_count: 1,
@@ -353,7 +370,8 @@ module Outboxer
 
           {
             id: message.id,
-            lock_version: message.lock_version
+            lock_version: message.lock_version,
+            event_id: event.id
           }
         end
       end
