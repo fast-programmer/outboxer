@@ -46,6 +46,7 @@ GEM
     database_cleaner-core (2.0.1)
     diff-lcs (1.5.1)
     docile (1.4.0)
+    dogstatsd-ruby (5.7.1)
     dotenv (3.1.2)
     drb (2.2.3)
     factory_bot (6.4.6)
@@ -169,6 +170,7 @@ PLATFORMS
 DEPENDENCIES
   coveralls_reborn
   database_cleaner (~> 2.0)
+  dogstatsd-ruby (~> 5.7, >= 5.7.1)
   dotenv (~> 3.0)
   factory_bot (~> 6.0)
   foreman (~> 0.0)

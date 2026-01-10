@@ -1,0 +1,60 @@
+#!/usr/bin/env ruby
+
+require "bundler/setup"
+
+begin
+  require "datadog/statsd"
+rescue LoadError
+  abort <<~MSG
+    dogstatsd-ruby is not installed.
+
+    Add it to your Gemfile:
+
+      gem "dogstatsd-ruby"
+
+    Then run bundle install.
+  MSG
+end
+
+require "outboxer"
+
+environment = ENV["RAILS_ENV"] || "development"
+db_config = Outboxer::Database.config(environment: environment, pool: 1)
+Outboxer::Database.connect(config: db_config)
+
+running = true
+
+["TERM", "INT"].each do |sig|
+  Signal.trap(sig) { running = false }
+end
+
+dogstatsd = Datadog::Statsd.new(
+  "127.0.0.1", 8125,
+  tags: ["env:#{environment}", "service:outboxer", "version:#{Outboxer::VERSION}"]
+)
+
+sleep_interval = 60
+tick_interval = 1
+
+logger = Outboxer::Logger.new($stdout, level: 1)
+logger.info "Sending outboxer.messages.* statsd metrics to datadog..."
+
+while running
+  Outboxer::Message.metrics_by_status.each do |status, metrics|
+    dogstatsd.gauge("outboxer.messages.count", metrics[:count], tags: ["status:#{status}"])
+
+    if metrics[:latency]
+      dogstatsd.gauge("outboxer.messages.latency", metrics[:latency], tags: ["status:#{status}"])
+    end
+  end
+
+  slept = 0
+
+  while running && slept < sleep_interval
+    sleep tick_interval
+
+    slept += tick_interval
+  end
+end
+
+logger.info "Shutting down"
