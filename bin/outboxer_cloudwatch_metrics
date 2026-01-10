@@ -1,0 +1,81 @@
+#!/usr/bin/env ruby
+
+require "bundler/setup"
+
+begin
+  require "aws-sdk-cloudwatch"
+rescue LoadError
+  abort <<~MSG
+    aws-sdk-cloudwatch is not installed.
+
+    Add it to your Gemfile:
+
+      gem "aws-sdk-cloudwatch"
+
+    Then run bundle install.
+  MSG
+end
+
+require "outboxer"
+
+sleep_interval = 60
+tick_interval = 1
+
+environment = ENV["RAILS_ENV"] || "development"
+db_config = Outboxer::Database.config(environment: environment, pool: 1)
+Outboxer::Database.connect(config: db_config)
+
+running = true
+
+["TERM", "INT"].each do |signal|
+  Signal.trap(signal) { running = false }
+end
+
+cloud_watch_client = Aws::CloudWatch::Client.new(
+  credentials: Aws::Credentials.new(
+    ENV.fetch("AWS_ACCESS_KEY_ID"), ENV.fetch("AWS_SECRET_ACCESS_KEY")
+  ),
+  region: ENV.fetch("AWS_REGION"),
+  ssl_verify_peer: false
+)
+
+logger = Outboxer::Logger.new($stdout, level: 1)
+logger.info "Sending Outboxer metrics to CloudWatch..."
+
+while running
+  metrics_by_status = Outboxer::Message.metrics_by_status
+
+  metric_data = metrics_by_status.except(:total).map do |status, metrics|
+    {
+      metric_name: "MessageCount",
+      dimensions: [
+        { name: "Status", value: status.to_s.capitalize },
+        { name: "Environment", value: environment }
+      ],
+      value: metrics[:count],
+      unit: "Count"
+    }
+  end + [
+    {
+      metric_name: "MessageLatency",
+      dimensions: [
+        { name: "Status", value: "Queued" },
+        { name: "Environment", value: environment }
+      ],
+      value: metrics_by_status[:queued][:latency] || 0,
+      unit: "Seconds"
+    }
+  ]
+
+  cloud_watch_client.put_metric_data(namespace: "Outboxer", metric_data: metric_data)
+
+  slept = 0
+
+  while running && slept < sleep_interval
+    sleep tick_interval
+
+    slept += tick_interval
+  end
+end
+
+logger.info "Shutting down"
